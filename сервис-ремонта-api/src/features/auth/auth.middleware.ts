@@ -9,6 +9,7 @@ export type AuthenticatedUser = {
   readonly id: string;
   readonly email: string;
   readonly displayName: string;
+  readonly phoneNumber: string | null;
   readonly role: UserRole;
   readonly active: boolean;
   readonly mustChangePassword: boolean;
@@ -39,6 +40,7 @@ export const createRequireAuth =
             id: true,
             email: true,
             displayName: true,
+            phoneNumber: true,
             role: true,
             active: true,
             mustChangePassword: true,
@@ -97,6 +99,7 @@ export const publicUser = (user: AuthenticatedUser) => ({
   id: user.id,
   email: user.email,
   displayName: user.displayName,
+  phoneNumber: user.phoneNumber,
   role: user.role,
   mustChangePassword: user.mustChangePassword,
 });

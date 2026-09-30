@@ -102,8 +102,16 @@ private fun RepairOrderCard(
             }
             Text(order.problem, fontSize = 13.sp, color = UtpInk, modifier = Modifier.padding(top = 9.dp))
             Text(order.address, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
-            if (role == "ADMIN") Text("Клиент: ${order.customerName.ifBlank { "—" }}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 7.dp))
-            if (order.technicianName.isNotBlank()) Text("Мастер: ${order.technicianName}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+            if (role == "ADMIN" || role == "TECHNICIAN") {
+                Text("Клиент: ${order.customerName.ifBlank { "—" }}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 7.dp))
+                order.customerPhoneNumber?.takeIf { it.isNotBlank() }?.let { Text("Телефон клиента: $it", fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 3.dp)) }
+            }
+            if (order.technicianName.isNotBlank()) {
+                Text("Мастер: ${order.technicianName}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+                if (role == "CUSTOMER" || role == "ADMIN") {
+                    order.technicianPhoneNumber?.takeIf { it.isNotBlank() }?.let { Text("Телефон мастера: $it", fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 3.dp)) }
+                }
+            }
             if (order.items.isNotEmpty()) {
                 Spacer(Modifier.height(11.dp))
                 Text("Услуги и запчасти", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)

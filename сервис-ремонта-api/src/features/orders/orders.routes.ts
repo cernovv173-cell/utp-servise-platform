@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 
+import type { UserRole } from "../../generated/prisma/client.js";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
@@ -50,9 +51,21 @@ const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
 
-const orderDetails = {
-  customer: { select: { id: true, displayName: true } },
-  assignedTechnician: { select: { id: true, displayName: true } },
+const orderDetails = (role: UserRole) => ({
+  customer: {
+    select: {
+      id: true,
+      displayName: true,
+      phoneNumber: role === "TECHNICIAN" || role === "ADMIN",
+    },
+  },
+  assignedTechnician: {
+    select: {
+      id: true,
+      displayName: true,
+      phoneNumber: role === "CUSTOMER" || role === "ADMIN",
+    },
+  },
   statusEvents: {
     orderBy: { createdAt: "desc" as const },
     select: {
@@ -68,7 +81,7 @@ const orderDetails = {
     include: { addedBy: { select: { id: true, displayName: true } } },
   },
   review: true,
-};
+});
 
 const isUniqueViolation = (error: unknown): boolean =>
   typeof error === "object" &&
@@ -94,7 +107,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             : {};
       const orders = await database.repairOrder.findMany({
         where,
-        include: orderDetails,
+        include: orderDetails(user.role),
         orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
         take: 100,
       });
@@ -131,7 +144,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: created.id },
-          include: orderDetails,
+          include: orderDetails(user.role),
         });
       });
       response.status(201).json({ order });
@@ -205,7 +218,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
-          include: orderDetails,
+          include: orderDetails(admin.role),
         });
       });
       response.json({ order });
@@ -259,7 +272,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
-          include: orderDetails,
+          include: orderDetails(user.role),
         });
       });
       response.json({ order });
@@ -305,7 +318,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
-          include: orderDetails,
+          include: orderDetails(user.role),
         });
       });
       response.status(201).json({ order });

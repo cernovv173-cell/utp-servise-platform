@@ -354,7 +354,7 @@ private fun AuthenticatedWorkspace(
                                 RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }) { id -> navController.navigate("customer/review/$id") }
                             }
                             composable("customer/reviews") { ReviewsScreen("Мои отзывы", reviews, refresh) }
-                            composable("customer/profile") { ProfileScreen(user, onLogout) }
+                            composable("customer/profile") { ProfileScreen(user, token, runAction, onLogout) }
                             composable("customer/new-order") {
                                 RepairRequestForm(
                                     onBack = { navController.popBackStack() },
@@ -372,7 +372,7 @@ private fun AuthenticatedWorkspace(
                             composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }) {} }
                             composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }) {} }
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh) }
-                            composable("technician/profile") { ProfileScreen(user, onLogout) }
+                            composable("technician/profile") { ProfileScreen(user, token, runAction, onLogout) }
                         }
                         else -> {
                             composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh) {} }
@@ -397,7 +397,7 @@ private fun AuthenticatedWorkspace(
                             }
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh) }
-                            composable("admin/profile") { ProfileScreen(user, onLogout) }
+                            composable("admin/profile") { ProfileScreen(user, token, runAction, onLogout) }
                         }
                     }
                     composable("chat/{orderId}") { entry ->

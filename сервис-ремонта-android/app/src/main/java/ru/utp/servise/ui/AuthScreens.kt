@@ -2,6 +2,7 @@ package ru.utp.servise.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,6 +37,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -153,8 +157,9 @@ private fun RegisterScreen(
     val scope = rememberCoroutineScope()
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(22.dp)) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(22.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
         Text("Аккаунт клиента", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Регистрация создаёт только клиентскую роль.", color = UtpMuted, modifier = Modifier.padding(top = 6.dp, bottom = 20.dp))
@@ -162,12 +167,25 @@ private fun RegisterScreen(
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(email, { email = it }, label = { Text("Электронная почта") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(14.dp))
         Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = { phoneNumber = it },
+            label = { Text("Телефон (необязательно)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+            shape = RoundedCornerShape(16.dp),
+        )
+        Text("Контакт будет доступен только участникам вашей заявки.", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
+        Spacer(Modifier.height(10.dp))
         OutlinedTextField(password, { password = it }, label = { Text("Пароль (не менее 12 символов)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(14.dp))
         Spacer(Modifier.height(18.dp))
         Button(onClick = {
             onError(null)
-            performAuth(scope, onBusy, onError, onAuthenticated) { ru.utp.servise.data.ApiClient.register(email.trim(), name.trim(), password) }
-        }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2 && email.isNotBlank() && password.length >= 12, shape = RoundedCornerShape(15.dp)) { Text("Зарегистрироваться") }
+            performAuth(scope, onBusy, onError, onAuthenticated) {
+                ru.utp.servise.data.ApiClient.register(email.trim(), name.trim(), password, phoneNumber.trim().takeIf { it.isNotEmpty() })
+            }
+        }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2 && email.isNotBlank() && password.length >= 12, shape = RoundedCornerShape(18.dp)) { Text("Зарегистрироваться") }
     }
 }
 

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -30,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.AppUser
@@ -48,6 +50,7 @@ fun StaffManagementScreen(
 ) {
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("TECHNICIAN") }
     var temporaryPassword by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp)) {
@@ -64,6 +67,15 @@ fun StaffManagementScreen(
                 Text("Добавить сотрудника", fontWeight = FontWeight.SemiBold, color = UtpInk)
                 OutlinedTextField(displayName, { displayName = it }, label = { Text("Имя") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true, shape = RoundedCornerShape(12.dp))
                 OutlinedTextField(email, { email = it }, label = { Text("Рабочая почта") }, modifier = Modifier.fillMaxWidth().padding(top = 7.dp), singleLine = true, shape = RoundedCornerShape(12.dp))
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    label = { Text("Телефон мастера (необязательно)") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 7.dp),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    shape = RoundedCornerShape(16.dp),
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                     FilterChip(selected = role == "TECHNICIAN", onClick = { role = "TECHNICIAN" }, label = { Text("Мастер") })
                     FilterChip(selected = role == "ADMIN", onClick = { role = "ADMIN" }, label = { Text("Администратор") })
@@ -71,11 +83,12 @@ fun StaffManagementScreen(
                 Text("Роль нельзя выбрать при обычной регистрации. Новый сотрудник получит временный пароль и сменит его при первом входе.", fontSize = 11.sp, lineHeight = 16.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
                 Button(
                     onClick = {
-                        runAction({ ru.utp.servise.data.ApiClient.createStaff(token, email.trim(), displayName.trim(), role) }) { result ->
+                        runAction({ ru.utp.servise.data.ApiClient.createStaff(token, email.trim(), displayName.trim(), role, phoneNumber.trim().takeIf { it.isNotEmpty() }) }) { result ->
                             val created = result as? NewStaffResult
                             temporaryPassword = created?.let { "${it.staff.email}\n\nВременный пароль:\n${it.temporaryPassword}" }
                             email = ""
                             displayName = ""
+                            phoneNumber = ""
                         }
                     },
                     enabled = displayName.trim().length >= 2 && email.contains("@"),
@@ -92,6 +105,7 @@ fun StaffManagementScreen(
                     Column(Modifier.weight(1f)) {
                         Text(member.displayName, fontWeight = FontWeight.SemiBold, color = UtpInk)
                         Text(member.email, fontSize = 12.sp, color = UtpMuted)
+                        member.phoneNumber?.takeIf { it.isNotBlank() }?.let { Text(it, fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 2.dp)) }
                         Text("${member.role.roleLabel()} · ${if (member.active) "Активен" else "Отключён"}", fontSize = 11.sp, color = if (member.active) UtpGreen else UtpMuted, modifier = Modifier.padding(top = 4.dp))
                     }
                     if (member.id != currentUser.id) {

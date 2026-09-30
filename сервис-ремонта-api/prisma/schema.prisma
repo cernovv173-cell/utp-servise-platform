@@ -38,6 +38,7 @@ model User {
   id                  String              @id @default(uuid()) @db.Uuid
   email               String              @unique @db.VarChar(320)
   displayName         String              @map("display_name") @db.VarChar(120)
+  phoneNumber         String?             @map("phone_number") @db.VarChar(32)
   passwordHash        String              @map("password_hash") @db.VarChar(255)
   role                UserRole            @default(CUSTOMER)
   active              Boolean             @default(true)

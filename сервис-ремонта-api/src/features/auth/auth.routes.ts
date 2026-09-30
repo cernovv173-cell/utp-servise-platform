@@ -26,11 +26,24 @@ const emailSchema = z
   .email()
   .max(320)
   .transform((value) => value.toLowerCase());
+const phoneValueSchema = z
+  .string()
+  .trim()
+  .max(32)
+  .refine(
+    (value) =>
+      /^[+0-9().\-\s]+$/.test(value) &&
+      value.replace(/\D/g, "").length >= 7 &&
+      value.replace(/\D/g, "").length <= 15,
+  )
+  .nullable();
+const phoneNumberSchema = phoneValueSchema.optional();
 const passwordSchema = z.string().min(12).max(128);
 const registerSchema = z
   .object({
     email: emailSchema,
     displayName: z.string().trim().min(2).max(120),
+    phoneNumber: phoneNumberSchema,
     password: passwordSchema,
   })
   .strict();
@@ -54,9 +67,11 @@ const staffSchema = z
   .object({
     email: emailSchema,
     displayName: z.string().trim().min(2).max(120),
+    phoneNumber: phoneNumberSchema,
     role: z.enum(["TECHNICIAN", "ADMIN"]).default("TECHNICIAN"),
   })
   .strict();
+const profileSchema = z.object({ phoneNumber: phoneValueSchema }).strict();
 
 type Body<T> = { readonly body: T };
 
@@ -92,6 +107,7 @@ export const createAuthRouter = (database: DatabaseClient): Router => {
           data: {
             email: input.email,
             displayName: input.displayName,
+            phoneNumber: input.phoneNumber?.trim() || null,
             passwordHash: await hashPassword(input.password),
             role: "CUSTOMER",
           },
@@ -149,6 +165,21 @@ export const createAuthRouter = (database: DatabaseClient): Router => {
   router.get("/auth/me", requireAuth, (_request, response) => {
     response.json({ user: publicUser(getAuthenticatedUser(response)) });
   });
+
+  router.patch(
+    "/auth/profile",
+    requireAuth,
+    validateRequest({ body: profileSchema }),
+    async (_request, response) => {
+      const user = getAuthenticatedUser(response);
+      const { phoneNumber } = bodyOf<z.infer<typeof profileSchema>>(response);
+      const updated = await database.user.update({
+        where: { id: user.id },
+        data: { phoneNumber: phoneNumber?.trim() || null },
+      });
+      response.json({ user: publicUser(updated) });
+    },
+  );
 
   router.put(
     "/auth/push-token",
@@ -237,6 +268,7 @@ export const createAuthRouter = (database: DatabaseClient): Router => {
           id: true,
           email: true,
           displayName: true,
+          phoneNumber: true,
           role: true,
           active: true,
           createdAt: true,
@@ -260,6 +292,7 @@ export const createAuthRouter = (database: DatabaseClient): Router => {
           data: {
             email: input.email,
             displayName: input.displayName,
+            phoneNumber: input.phoneNumber?.trim() || null,
             role: input.role,
             passwordHash: await hashPassword(temporaryPassword),
             mustChangePassword: true,
@@ -337,6 +370,7 @@ export const createAuthRouter = (database: DatabaseClient): Router => {
           id: true,
           email: true,
           displayName: true,
+          phoneNumber: true,
           role: true,
           active: true,
           createdAt: true,

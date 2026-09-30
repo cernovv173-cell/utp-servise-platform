@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -35,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.R
@@ -57,11 +59,11 @@ fun CustomerHomeScreen(user: AppUser, news: List<NewsArticle>, onCreateRequest: 
             Text("Привет, ${user.displayName.substringBefore(' ')}", color = UtpBlue, fontSize = 12.sp)
         }
         Spacer(Modifier.height(18.dp))
-        Card(shape = RoundedCornerShape(24.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFFE4EEFC))) {
+            Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
                 Text("Ремонт компьютеров и гаджетов", fontSize = 23.sp, lineHeight = 29.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("Опишите неисправность — мастер свяжется с вами и согласует стоимость.", fontSize = 13.sp, lineHeight = 19.sp, color = UtpMuted, modifier = Modifier.padding(top = 8.dp))
-                Button(onClick = onCreateRequest, modifier = Modifier.padding(top = 14.dp), shape = RoundedCornerShape(14.dp)) { Text("Оставить заявку  →") }
+                Button(onClick = onCreateRequest, modifier = Modifier.padding(top = 14.dp), shape = RoundedCornerShape(18.dp)) { Text("Оставить заявку  →") }
             }
         }
         Spacer(Modifier.height(23.dp))
@@ -153,11 +155,13 @@ fun RepairRequestForm(onBack: () -> Unit, onSubmit: (String, String, String) -> 
 }
 
 @Composable
-fun ProfileScreen(user: AppUser, onLogout: () -> Unit) {
+fun ProfileScreen(user: AppUser, token: String, runAction: RunAction, onLogout: () -> Unit) {
+    var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
+    var savedPhone by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Профиль", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Spacer(Modifier.height(15.dp))
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Text(user.displayName, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = UtpInk)
                 Text(user.email, fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
@@ -165,11 +169,37 @@ fun ProfileScreen(user: AppUser, onLogout: () -> Unit) {
             }
         }
         Spacer(Modifier.height(12.dp))
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
-            Text("UTP Servise · Защищённый вход по электронной почте", Modifier.padding(18.dp), fontSize = 13.sp, color = UtpMuted)
+        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+            Column(Modifier.fillMaxWidth().padding(18.dp)) {
+                Text("Контактный телефон", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text("Номер увидят только администратор и участники ремонта по вашей заявке.", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it },
+                    label = { Text("Номер телефона") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    shape = RoundedCornerShape(16.dp),
+                )
+                Button(
+                    onClick = {
+                        val normalized = phoneNumber.trim().takeIf { it.isNotEmpty() }
+                        runAction({ ru.utp.servise.data.ApiClient.updatePhoneNumber(token, normalized) }) { result ->
+                            val updated = (result as? AppUser)?.phoneNumber.orEmpty()
+                            phoneNumber = updated
+                            savedPhone = updated
+                        }
+                    },
+                    enabled = phoneNumber.trim() != savedPhone,
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) { Text("Сохранить телефон") }
+                Text("UTP Servise · защищённый вход по электронной почте", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 11.dp))
+            }
         }
         Spacer(Modifier.height(16.dp))
-        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) { Text("Выйти из аккаунта") }
+        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) { Text("Выйти из аккаунта") }
     }
 }
 

@@ -11,6 +11,7 @@ data class AppUser(
     val id: String,
     val email: String,
     val displayName: String,
+    val phoneNumber: String? = null,
     val role: String,
     val mustChangePassword: Boolean,
 )
@@ -23,7 +24,9 @@ data class RepairOrder(
     val status: String,
     val createdAt: String,
     val customerName: String,
+    val customerPhoneNumber: String?,
     val technicianName: String,
+    val technicianPhoneNumber: String?,
     val hasReview: Boolean,
     val history: List<String>,
     val items: List<RepairOrderItem>,
@@ -86,6 +89,7 @@ data class StaffMember(
     val id: String,
     val email: String,
     val displayName: String,
+    val phoneNumber: String?,
     val role: String,
     val active: Boolean,
 )
@@ -112,11 +116,19 @@ object ApiClient {
         request("POST", "/auth/login", body = JSONObject().put("email", email).put("password", password).put("portal", portal))
     )
 
-    fun register(email: String, displayName: String, password: String): AuthResult = authResult(
-        request("POST", "/auth/register", body = JSONObject().put("email", email).put("displayName", displayName).put("password", password))
+    fun register(email: String, displayName: String, password: String, phoneNumber: String?): AuthResult = authResult(
+        request("POST", "/auth/register", body = JSONObject()
+            .put("email", email)
+            .put("displayName", displayName)
+            .put("phoneNumber", phoneNumber ?: JSONObject.NULL)
+            .put("password", password))
     )
 
     fun me(token: String): AppUser = request("GET", "/auth/me", token).getJSONObject("user").toUser()
+    fun updatePhoneNumber(token: String, phoneNumber: String?): AppUser = request(
+        "PATCH", "/auth/profile", token,
+        JSONObject().put("phoneNumber", phoneNumber ?: JSONObject.NULL),
+    ).getJSONObject("user").toUser()
     fun logout(token: String) { request("POST", "/auth/logout", token) }
 
     fun registerPushToken(sessionToken: String, pushToken: String) {
@@ -209,9 +221,10 @@ object ApiClient {
 
     fun staff(token: String): List<StaffMember> = request("GET", "/staff", token).getJSONArray("staff").mapObjects { it.toStaff() }
 
-    fun createStaff(token: String, email: String, displayName: String, role: String): NewStaffResult {
+    fun createStaff(token: String, email: String, displayName: String, role: String, phoneNumber: String?): NewStaffResult {
         val result = request("POST", "/staff", token,
-            JSONObject().put("email", email).put("displayName", displayName).put("role", role))
+            JSONObject().put("email", email).put("displayName", displayName).put("role", role)
+                .put("phoneNumber", phoneNumber ?: JSONObject.NULL))
         return NewStaffResult(result.getJSONObject("staff").toStaff(), result.getString("temporaryPassword"))
     }
 
@@ -261,6 +274,7 @@ object ApiClient {
 
     private fun JSONObject.toUser() = AppUser(
         id = getString("id"), email = getString("email"), displayName = getString("displayName"),
+        phoneNumber = optString("phoneNumber").takeUnless { it.isBlank() || it == "null" },
         role = getString("role"), mustChangePassword = optBoolean("mustChangePassword")
     )
 
@@ -274,7 +288,9 @@ object ApiClient {
             id = getString("id"), deviceType = getString("deviceType"), problem = getString("problem"),
             address = getString("address"), status = getString("status"), createdAt = optString("createdAt"),
             customerName = customer?.optString("displayName").orEmpty(),
+            customerPhoneNumber = customer?.optString("phoneNumber")?.takeUnless { it.isBlank() || it == "null" },
             technicianName = technician?.optString("displayName").orEmpty(),
+            technicianPhoneNumber = technician?.optString("phoneNumber")?.takeUnless { it.isBlank() || it == "null" },
             hasReview = existingReview != null && existingReview.length() > 0,
             history = statusEvents.mapObjects { event ->
                 val from = event.optString("from").takeUnless { it == "null" || it.isBlank() }
@@ -298,6 +314,7 @@ object ApiClient {
 
     private fun JSONObject.toStaff() = StaffMember(
         id = getString("id"), email = getString("email"), displayName = getString("displayName"),
+        phoneNumber = optString("phoneNumber").takeUnless { it.isBlank() || it == "null" },
         role = getString("role"), active = optBoolean("active", true)
     )
 
