@@ -1,0 +1,4 @@
+R_DEF: Internal format may change without notice
+local
+drawable utp_servise_logo
+style Theme.UtpServise
