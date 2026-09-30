@@ -46,7 +46,7 @@ fun AdminChatInboxScreen(
     onBack: () -> Unit,
 ) {
     Column(
-        Modifier.fillMaxSize().background(UtpPale).padding(18.dp),
+        Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(9.dp),
     ) {
         TextButton(onClick = onBack) { Text("←  Управление") }

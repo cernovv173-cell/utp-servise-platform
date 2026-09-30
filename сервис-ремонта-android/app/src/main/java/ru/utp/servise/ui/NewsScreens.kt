@@ -42,7 +42,7 @@ fun AdminManagementScreen(
     onReviews: () -> Unit,
 ) {
     Column(
-        Modifier.fillMaxSize().background(UtpPale).padding(18.dp),
+        Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("Управление сервисом", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)

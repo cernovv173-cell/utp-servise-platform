@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -59,7 +61,7 @@ fun RepairOrdersScreen(
 ) {
     val visibleOrders = if (historyOnly) orders.filter { it.status == "COMPLETED" || it.status == "CANCELLED" }
         else orders.filter { it.status != "COMPLETED" && it.status != "CANCELLED" }
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(horizontal = 18.dp, vertical = 14.dp)) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.weight(1f)) {
                 Text(title, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
@@ -233,7 +235,7 @@ private fun StatusPill(text: String) {
 fun ReviewFormScreen(orderId: String, token: String, runAction: RunAction, onDone: () -> Unit) {
     var rating by remember { mutableStateOf(5) }
     var comment by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Отзыв о ремонте", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Оцените завершённый заказ", color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -253,7 +255,7 @@ fun ReviewFormScreen(orderId: String, token: String, runAction: RunAction, onDon
 
 @Composable
 fun ReviewsScreen(title: String, reviews: List<CustomerReview>, refresh: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(18.dp)) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(title, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk, modifier = Modifier.weight(1f))
             TextButton(onClick = refresh) { Text("Обновить") }

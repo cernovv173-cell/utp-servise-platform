@@ -121,7 +121,7 @@ fun RepairRequestForm(onBack: () -> Unit, onSubmit: (String, String, String) -> 
     var deviceMenu by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
         Text("Новая заявка", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Сотрудники сервиса увидят детали и свяжутся с вами.", fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 16.dp))
@@ -154,7 +154,7 @@ fun RepairRequestForm(onBack: () -> Unit, onSubmit: (String, String, String) -> 
 
 @Composable
 fun ProfileScreen(user: AppUser, onLogout: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(20.dp)) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Профиль", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Spacer(Modifier.height(15.dp))
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {

@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -48,7 +50,7 @@ fun StaffManagementScreen(
     var email by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("TECHNICIAN") }
     var temporaryPassword by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(18.dp)) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Сотрудники", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
@@ -117,7 +119,7 @@ fun ChangeTemporaryPasswordScreen(onChange: (String, String, (AuthResult) -> Uni
     var next by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(22.dp)) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(22.dp)) {
         Text("Смените временный пароль", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("До смены пароля доступ к заказам и сотрудникам закрыт.", color = UtpMuted, modifier = Modifier.padding(top = 6.dp, bottom = 15.dp))
         OutlinedTextField(current, { current = it }, label = { Text("Временный пароль") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(12.dp))
