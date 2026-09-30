@@ -34,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.CustomerReview
+import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.deviceLabel
@@ -49,9 +50,11 @@ fun RepairOrdersScreen(
     role: String,
     token: String,
     technicians: List<StaffMember>,
+    catalogItems: List<CatalogItem>,
     historyOnly: Boolean,
     runAction: RunAction,
     refresh: () -> Unit,
+    onChat: (String) -> Unit = {},
     onReview: (String) -> Unit,
 ) {
     val visibleOrders = if (historyOnly) orders.filter { it.status == "COMPLETED" || it.status == "CANCELLED" }
@@ -71,7 +74,7 @@ fun RepairOrdersScreen(
             }
         }
         visibleOrders.forEach { order ->
-            RepairOrderCard(order, role, token, technicians, runAction, onReview)
+            RepairOrderCard(order, role, token, technicians, catalogItems, runAction, onChat, onReview)
         }
     }
 }
@@ -82,7 +85,9 @@ private fun RepairOrderCard(
     role: String,
     token: String,
     technicians: List<StaffMember>,
+    catalogItems: List<CatalogItem>,
     runAction: RunAction,
+    onChat: (String) -> Unit,
     onReview: (String) -> Unit,
 ) {
     var showAssignment by remember { mutableStateOf(false) }
@@ -151,6 +156,13 @@ private fun RepairOrderCard(
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Добавить услугу или запчасть") }
             }
+            if (role == "CUSTOMER" || role == "TECHNICIAN") {
+                OutlinedButton(
+                    onClick = { onChat(order.id) },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                ) { Text("Открыть чат по заказу") }
+            }
             actions.forEach { (label, status) ->
                 OutlinedButton(
                     onClick = { runAction({ ru.utp.servise.data.ApiClient.updateStatus(token, order.id, status) }, {}) },
@@ -174,77 +186,18 @@ private fun RepairOrderCard(
         )
     }
     if (showAddItem) {
-        OrderItemDialog(
+        OrderItemPickerDialog(
+            catalogItems = catalogItems.filter { it.active },
             onDismiss = { showAddItem = false },
-            onAdd = { type, name, quantity, unitPriceRub ->
+            onAdd = { catalogItemId, quantity ->
                 runAction({
                     ru.utp.servise.data.ApiClient.addOrderItem(
-                        token, order.id, type, name, quantity, unitPriceRub,
+                        token, order.id, catalogItemId, quantity,
                     )
                 }) { showAddItem = false }
             },
         )
     }
-}
-
-@Composable
-private fun OrderItemDialog(
-    onDismiss: () -> Unit,
-    onAdd: (String, String, Int, Int) -> Unit,
-) {
-    var type by remember { mutableStateOf("SERVICE") }
-    var name by remember { mutableStateOf("") }
-    var quantity by remember { mutableStateOf("1") }
-    var price by remember { mutableStateOf("") }
-    val parsedQuantity = quantity.toIntOrNull()
-    val parsedPrice = price.toIntOrNull()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Добавить в заказ") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    OutlinedButton(onClick = { type = "SERVICE" }) { Text(if (type == "SERVICE") "✓ Услуга" else "Услуга") }
-                    OutlinedButton(onClick = { type = "SPARE_PART" }) { Text(if (type == "SPARE_PART") "✓ Запчасть" else "Запчасть") }
-                }
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(if (type == "SERVICE") "Название услуги" else "Название запчасти") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                )
-                OutlinedTextField(
-                    value = quantity,
-                    onValueChange = { quantity = it.filter(Char::isDigit).take(2) },
-                    label = { Text("Количество (1–99)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                )
-                OutlinedTextField(
-                    value = price,
-                    onValueChange = { price = it.filter(Char::isDigit).take(8) },
-                    label = { Text("Цена за единицу, ₽") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                )
-                Text("Сумма позиции будет видна в карточке заказа.", fontSize = 11.sp, color = UtpMuted)
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onAdd(type, name.trim(), parsedQuantity!!, parsedPrice!!) },
-                enabled = name.trim().length >= 2 && parsedQuantity != null && parsedQuantity in 1..99 &&
-                    parsedPrice != null && parsedPrice in 0..10_000_000,
-            ) { Text("Добавить") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
-    )
 }
 
 @Composable

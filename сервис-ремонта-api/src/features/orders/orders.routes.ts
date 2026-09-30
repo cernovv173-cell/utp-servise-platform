@@ -33,10 +33,8 @@ const statusBody = z
 const assignBody = z.object({ technicianId: z.string().uuid() }).strict();
 const orderItemBody = z
   .object({
-    type: z.enum(["SERVICE", "SPARE_PART"]),
-    name: z.string().trim().min(2).max(160),
+    catalogItemId: z.string().uuid(),
     quantity: z.number().int().min(1).max(99),
-    unitPriceRub: z.number().int().min(0).max(10_000_000),
   })
   .strict();
 const reviewBody = z
@@ -284,13 +282,24 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (!existing || !canAddRepairOrderItem(user.role, user.id, existing))
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        const catalogItem = await transaction.repairCatalogItem.findFirst({
+          where: { id: input.catalogItemId, active: true },
+          select: { id: true, type: true, name: true, unitPriceRub: true },
+        });
+        if (!catalogItem)
+          throw new HttpError(
+            404,
+            "CATALOG_ITEM_NOT_AVAILABLE",
+            "Позиция больше недоступна в каталоге. Обновите список.",
+          );
         await transaction.repairOrderItem.create({
           data: {
             orderId,
-            type: input.type,
-            name: input.name,
+            catalogItemId: catalogItem.id,
+            type: catalogItem.type,
+            name: catalogItem.name,
             quantity: input.quantity,
-            unitPriceRub: input.unitPriceRub,
+            unitPriceRub: catalogItem.unitPriceRub,
             addedById: user.id,
           },
         });

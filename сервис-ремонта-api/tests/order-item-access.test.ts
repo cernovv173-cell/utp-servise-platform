@@ -10,6 +10,7 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 
 const assignedOrderId = "11111111-1111-4111-8111-111111111111";
 const unassignedOrderId = "22222222-2222-4222-8222-222222222222";
+const catalogEntryId = "33333333-3333-4333-8333-333333333333";
 const adminToken = "A".repeat(48);
 const assignedTechnicianToken = "T".repeat(48);
 const otherTechnicianToken = "O".repeat(48);
@@ -59,6 +60,15 @@ test("only admins and the assigned technician can append order items", async (t)
     [unassignedOrderId, { id: unassignedOrderId, assignedTechnicianId: null }],
   ]);
   const items: Array<Record<string, unknown>> = [];
+  const catalog = [
+    {
+      id: catalogEntryId,
+      type: "SERVICE",
+      name: "Диагностика",
+      unitPriceRub: 1800,
+      active: true,
+    },
+  ];
   const userById = new Map(users.map((user) => [user.id, user]));
   const client = {
     session: {
@@ -101,6 +111,13 @@ test("only admins and the assigned technician can append order items", async (t)
         return item;
       },
     },
+    repairCatalogItem: {
+      findFirst: async ({
+        where,
+      }: {
+        where: { id: string; active: boolean };
+      }) => catalog.find((item) => item.id === where.id && item.active) ?? null,
+    },
     $transaction: async <T>(operation: (transaction: unknown) => Promise<T>) =>
       operation(client),
   };
@@ -114,7 +131,11 @@ test("only admins and the assigned technician can append order items", async (t)
   const address = server.address();
   assert.ok(address && typeof address !== "string");
   const baseUrl = `http://127.0.0.1:${address.port}`;
-  const addItem = (token: string, orderId: string, name: string) =>
+  const addItem = (
+    token: string,
+    orderId: string,
+    body: Record<string, unknown> = {},
+  ) =>
     fetch(`${baseUrl}/api/orders/${orderId}/items`, {
       method: "POST",
       headers: {
@@ -122,43 +143,29 @@ test("only admins and the assigned technician can append order items", async (t)
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        type: "SERVICE",
-        name,
+        catalogItemId: catalogEntryId,
         quantity: 1,
-        unitPriceRub: 1500,
+        ...body,
       }),
     });
 
-  const adminAnyOrder = await addItem(
-    adminToken,
-    unassignedOrderId,
-    "Диагностика",
-  );
+  const adminAnyOrder = await addItem(adminToken, unassignedOrderId);
   assert.equal(adminAnyOrder.status, 201);
   assert.equal(
     (await adminAnyOrder.json()).order.items[0].addedBy.displayName,
     "Admin",
   );
+  assert.equal(items[0]?.name, "Диагностика");
+  assert.equal(items[0]?.unitPriceRub, 1800);
+  assert.equal(items[0]?.catalogItemId, catalogEntryId);
 
-  const ownAssignment = await addItem(
-    assignedTechnicianToken,
-    assignedOrderId,
-    "Замена разъёма",
-  );
+  const ownAssignment = await addItem(assignedTechnicianToken, assignedOrderId);
   assert.equal(ownAssignment.status, 201);
 
-  const otherAssignment = await addItem(
-    otherTechnicianToken,
-    assignedOrderId,
-    "Чужая заявка",
-  );
+  const otherAssignment = await addItem(otherTechnicianToken, assignedOrderId);
   assert.equal(otherAssignment.status, 404);
 
-  const customerAttempt = await addItem(
-    customerToken,
-    assignedOrderId,
-    "Попытка клиента",
-  );
+  const customerAttempt = await addItem(customerToken, assignedOrderId);
   assert.equal(customerAttempt.status, 403);
 
   const invalidQuantity = await fetch(
@@ -170,13 +177,23 @@ test("only admins and the assigned technician can append order items", async (t)
         "content-type": "application/json",
       },
       body: JSON.stringify({
-        type: "SPARE_PART",
-        name: "SSD",
+        catalogItemId: catalogEntryId,
         quantity: 0,
-        unitPriceRub: 8000,
       }),
     },
   );
   assert.equal(invalidQuantity.status, 400);
+  assert.equal(items.length, 2);
+
+  const priceSpoof = await addItem(assignedTechnicianToken, assignedOrderId, {
+    name: "Другая позиция",
+    unitPriceRub: 1,
+  });
+  assert.equal(priceSpoof.status, 400);
+  assert.equal(items.length, 2);
+
+  catalog[0]!.active = false;
+  const disabledEntry = await addItem(assignedTechnicianToken, assignedOrderId);
+  assert.equal(disabledEntry.status, 404);
   assert.equal(items.length, 2);
 });

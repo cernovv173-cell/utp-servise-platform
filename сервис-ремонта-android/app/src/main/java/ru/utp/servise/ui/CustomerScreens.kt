@@ -12,7 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,14 +39,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.R
 import ru.utp.servise.data.AppUser
+import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.roleLabel
 
 private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
 
 @Composable
-fun CustomerHomeScreen(user: AppUser, onCreateRequest: () -> Unit, onOrders: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(20.dp)) {
+fun CustomerHomeScreen(user: AppUser, news: List<NewsArticle>, onCreateRequest: () -> Unit, onOrders: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Image(painterResource(R.drawable.utp_servise_logo), "Логотип UTP Servise", Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
             Column(Modifier.weight(1f).padding(start = 11.dp)) {
@@ -87,6 +90,26 @@ fun CustomerHomeScreen(user: AppUser, onCreateRequest: () -> Unit, onOrders: () 
                     Text("Все обращения — в одном месте", fontSize = 12.sp, color = UtpMuted)
                 }
                 Text("›", fontSize = 24.sp, color = UtpMuted)
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+        Text("Новости сервиса", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Spacer(Modifier.height(10.dp))
+        if (news.isEmpty()) {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+                Text("Пока нет новостей. Загляните сюда позже.", Modifier.padding(16.dp), color = UtpMuted, fontSize = 13.sp)
+            }
+        }
+        news.take(5).forEach { article ->
+            Card(
+                Modifier.fillMaxWidth().padding(bottom = 9.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+            ) {
+                Column(Modifier.padding(15.dp)) {
+                    Text(article.title, fontWeight = FontWeight.SemiBold, color = UtpInk, fontSize = 15.sp)
+                    Text(article.content, color = UtpMuted, fontSize = 13.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 6.dp))
+                }
             }
         }
     }

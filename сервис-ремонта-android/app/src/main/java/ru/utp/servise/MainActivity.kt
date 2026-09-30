@@ -38,19 +38,28 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.AppUser
+import ru.utp.servise.data.AdminChatInboxItem
 import ru.utp.servise.data.AuthResult
+import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.CustomerReview
+import ru.utp.servise.data.NewsArticle
+import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SessionStore
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.ui.AuthNavigation
 import ru.utp.servise.ui.ChangeTemporaryPasswordScreen
+import ru.utp.servise.ui.CatalogManagementScreen
+import ru.utp.servise.ui.AdminManagementScreen
+import ru.utp.servise.ui.AdminChatInboxScreen
+import ru.utp.servise.ui.RepairChatScreen
 import ru.utp.servise.ui.CustomerHomeScreen
 import ru.utp.servise.ui.ProfileScreen
 import ru.utp.servise.ui.RepairOrdersScreen
 import ru.utp.servise.ui.RepairRequestForm
 import ru.utp.servise.ui.ReviewFormScreen
 import ru.utp.servise.ui.ReviewsScreen
+import ru.utp.servise.ui.NewsManagementScreen
 import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.UtpBlue
@@ -63,6 +72,15 @@ class MainActivity : ComponentActivity() {
         setContent { UtpServiseTheme { UtpServiseApp() } }
     }
 }
+
+private data class WorkspaceData(
+    val orders: List<RepairOrder>,
+    val reviews: List<CustomerReview>,
+    val staff: List<StaffMember>,
+    val catalogItems: List<CatalogItem>,
+    val news: List<NewsArticle>,
+    val adminChats: List<AdminChatInboxItem>,
+)
 
 @Composable
 private fun UtpServiseApp() {
@@ -78,6 +96,10 @@ private fun UtpServiseApp() {
     var orders by remember { mutableStateOf<List<RepairOrder>>(emptyList()) }
     var staff by remember { mutableStateOf<List<StaffMember>>(emptyList()) }
     var reviews by remember { mutableStateOf<List<CustomerReview>>(emptyList()) }
+    var catalogItems by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
+    var news by remember { mutableStateOf<List<NewsArticle>>(emptyList()) }
+    var adminChats by remember { mutableStateOf<List<AdminChatInboxItem>>(emptyList()) }
+    var activeChat by remember { mutableStateOf<OrderChat?>(null) }
 
     LaunchedEffect(Unit) {
         val existing = withContext(Dispatchers.IO) { runCatching { tokenStore.readToken() }.getOrNull() }
@@ -116,12 +138,22 @@ private fun UtpServiseApp() {
         if (token.isNotBlank() && currentUser != null && !currentUser.mustChangePassword) {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    Triple(ApiClient.orders(token), ApiClient.reviews(token), if (currentUser.role == "ADMIN") ApiClient.staff(token) else emptyList())
+                    WorkspaceData(
+                        orders = ApiClient.orders(token),
+                        reviews = ApiClient.reviews(token),
+                        staff = if (currentUser.role == "ADMIN") ApiClient.staff(token) else emptyList(),
+                        catalogItems = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.catalog(token) else emptyList(),
+                        news = ApiClient.news(token),
+                        adminChats = if (currentUser.role == "ADMIN") ApiClient.administratorChatInbox(token) else emptyList(),
+                    )
                 }
-            }.onSuccess { (loadedOrders, loadedReviews, loadedStaff) ->
-                orders = loadedOrders
-                reviews = loadedReviews
-                staff = loadedStaff
+            }.onSuccess { data ->
+                orders = data.orders
+                reviews = data.reviews
+                staff = data.staff
+                catalogItems = data.catalogItems
+                news = data.news
+                adminChats = data.adminChats
             }.onFailure { errorMessage = it.message ?: "Не удалось загрузить данные." }
         }
     }
@@ -151,8 +183,14 @@ private fun UtpServiseApp() {
             orders = orders,
             staff = staff,
             reviews = reviews,
+            catalogItems = catalogItems,
+            news = news,
+            adminChats = adminChats,
+            activeChat = activeChat,
+            onChatUpdated = { activeChat = it },
             busy = busy,
             errorMessage = errorMessage,
+            onError = { errorMessage = it },
             onDismissError = { errorMessage = null },
             runAction = runAction,
             refresh = { revision += 1 },
@@ -165,6 +203,10 @@ private fun UtpServiseApp() {
                 orders = emptyList()
                 staff = emptyList()
                 reviews = emptyList()
+                catalogItems = emptyList()
+                news = emptyList()
+                adminChats = emptyList()
+                activeChat = null
                 errorMessage = null
             },
         )
@@ -180,13 +222,27 @@ private fun AuthenticatedWorkspace(
     orders: List<RepairOrder>,
     staff: List<StaffMember>,
     reviews: List<CustomerReview>,
+    catalogItems: List<CatalogItem>,
+    news: List<NewsArticle>,
+    adminChats: List<AdminChatInboxItem>,
+    activeChat: OrderChat?,
+    onChatUpdated: (OrderChat) -> Unit,
     busy: Boolean,
     errorMessage: String?,
+    onError: (String) -> Unit,
     onDismissError: () -> Unit,
     runAction: RunAction,
     refresh: () -> Unit,
     onLogout: () -> Unit,
 ) {
+    val scope = rememberCoroutineScope()
+    val onRefreshChat: (String) -> Unit = { orderId ->
+        scope.launch {
+            runCatching { withContext(Dispatchers.IO) { ApiClient.orderChat(token, orderId) } }
+                .onSuccess(onChatUpdated)
+                .onFailure { onError(it.message ?: "Не удалось обновить чат.") }
+        }
+    }
     val destinations = when (user.role) {
         "TECHNICIAN" -> listOf(
             Destination("technician/jobs", "Заказы", "▤"),
@@ -197,8 +253,7 @@ private fun AuthenticatedWorkspace(
         "ADMIN" -> listOf(
             Destination("admin/orders", "Заказы", "▤"),
             Destination("admin/history", "История", "◷"),
-            Destination("admin/staff", "Сотрудники", "♙"),
-            Destination("admin/reviews", "Отзывы", "★"),
+            Destination("admin/manage", "Управление", "⚙"),
             Destination("admin/profile", "Профиль", "⚙"),
         )
         else -> listOf(
@@ -247,12 +302,12 @@ private fun AuthenticatedWorkspace(
                 NavHost(navController = navController, startDestination = destinations.first().route, modifier = Modifier.fillMaxSize()) {
                     when (user.role) {
                         "CUSTOMER" -> {
-                            composable("customer/home") { CustomerHomeScreen(user, { navController.navigate("customer/new-order") }, { navController.navigate("customer/orders") }) }
+                            composable("customer/home") { CustomerHomeScreen(user, news, { navController.navigate("customer/new-order") }, { navController.navigate("customer/orders") }) }
                             composable("customer/orders") {
-                                RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), false, runAction, refresh) { id -> navController.navigate("customer/review/$id") }
+                                RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }) { id -> navController.navigate("customer/review/$id") }
                             }
                             composable("customer/history") {
-                                RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), true, runAction, refresh) { id -> navController.navigate("customer/review/$id") }
+                                RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }) { id -> navController.navigate("customer/review/$id") }
                             }
                             composable("customer/reviews") { ReviewsScreen("Мои отзывы", reviews, refresh) }
                             composable("customer/profile") { ProfileScreen(user, onLogout) }
@@ -270,18 +325,51 @@ private fun AuthenticatedWorkspace(
                             }
                         }
                         "TECHNICIAN" -> {
-                            composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), false, runAction, refresh) {} }
-                            composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), true, runAction, refresh) {} }
+                            composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }) {} }
+                            composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }) {} }
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh) }
                             composable("technician/profile") { ProfileScreen(user, onLogout) }
                         }
                         else -> {
-                            composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, false, runAction, refresh) {} }
-                            composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, true, runAction, refresh) {} }
+                            composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh) {} }
+                            composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, catalogItems, true, runAction, refresh) {} }
+                            composable("admin/manage") {
+                                AdminManagementScreen(
+                                    onNews = { navController.navigate("admin/news") },
+                                    onCatalog = { navController.navigate("admin/catalog") },
+                                    onChats = { navController.navigate("admin/chats") },
+                                    onStaff = { navController.navigate("admin/staff") },
+                                    onReviews = { navController.navigate("admin/reviews") },
+                                )
+                            }
+                            composable("admin/news") {
+                                NewsManagementScreen(token, news, runAction, refresh) { navController.popBackStack() }
+                            }
+                            composable("admin/catalog") {
+                                CatalogManagementScreen(token, catalogItems, runAction, refresh) { navController.popBackStack() }
+                            }
+                            composable("admin/chats") {
+                                AdminChatInboxScreen(adminChats, refresh, { navController.navigate("chat/$it") }) { navController.popBackStack() }
+                            }
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh) }
                             composable("admin/profile") { ProfileScreen(user, onLogout) }
                         }
+                    }
+                    composable("chat/{orderId}") { entry ->
+                        val orderId = entry.arguments?.getString("orderId").orEmpty()
+                        LaunchedEffect(orderId, token) { onRefreshChat(orderId) }
+                        RepairChatScreen(
+                            orderId = orderId,
+                            role = user.role,
+                            token = token,
+                            chat = activeChat?.takeIf { it.orderId == orderId },
+                            busy = busy,
+                            runAction = runAction,
+                            onChatUpdated = onChatUpdated,
+                            onRefresh = { onRefreshChat(orderId) },
+                            onBack = { navController.popBackStack() },
+                        )
                     }
                 }
             }

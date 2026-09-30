@@ -38,6 +38,50 @@ data class RepairOrderItem(
     val addedByName: String,
 )
 
+data class CatalogItem(
+    val id: String,
+    val type: String,
+    val name: String,
+    val unitPriceRub: Int,
+    val active: Boolean,
+)
+
+data class NewsArticle(
+    val id: String,
+    val title: String,
+    val content: String,
+    val isPublished: Boolean,
+    val publishedAt: String?,
+)
+
+data class OrderChatMessage(
+    val id: String,
+    val senderName: String,
+    val senderRole: String,
+    val content: String,
+    val createdAt: String,
+)
+
+data class OrderChat(
+    val id: String?,
+    val orderId: String,
+    val adminRequestedAt: String?,
+    val adminRequestedByName: String,
+    val adminJoinedAt: String?,
+    val adminJoinedByName: String,
+    val messages: List<OrderChatMessage>,
+)
+
+data class AdminChatInboxItem(
+    val orderId: String,
+    val deviceType: String,
+    val problem: String,
+    val customerName: String,
+    val technicianName: String,
+    val lastMessage: String,
+    val adminJoinedAt: String?,
+)
+
 data class StaffMember(
     val id: String,
     val email: String,
@@ -81,6 +125,60 @@ object ApiClient {
 
     fun orders(token: String): List<RepairOrder> = request("GET", "/orders", token).getJSONArray("orders").mapObjects { it.toOrder() }
 
+    fun catalog(token: String): List<CatalogItem> = request("GET", "/catalog", token)
+        .getJSONArray("catalogItems").mapObjects { it.toCatalogItem() }
+
+    fun createCatalogItem(token: String, type: String, name: String, unitPriceRub: Int): CatalogItem = request(
+        "POST", "/catalog", token,
+        JSONObject().put("type", type).put("name", name).put("unitPriceRub", unitPriceRub),
+    ).getJSONObject("catalogItem").toCatalogItem()
+
+    fun updateCatalogItem(token: String, item: CatalogItem): CatalogItem = request(
+        "PATCH", "/catalog/${item.id}", token,
+        JSONObject()
+            .put("type", item.type)
+            .put("name", item.name)
+            .put("unitPriceRub", item.unitPriceRub)
+            .put("active", item.active),
+    ).getJSONObject("catalogItem").toCatalogItem()
+
+    fun news(token: String): List<NewsArticle> = request("GET", "/news", token)
+        .getJSONArray("articles").mapObjects { it.toNewsArticle() }
+
+    fun createNews(token: String, title: String, content: String, isPublished: Boolean): NewsArticle = request(
+        "POST", "/news", token,
+        JSONObject().put("title", title).put("content", content).put("isPublished", isPublished),
+    ).getJSONObject("article").toNewsArticle()
+
+    fun updateNews(token: String, article: NewsArticle): NewsArticle = request(
+        "PATCH", "/news/${article.id}", token,
+        JSONObject()
+            .put("title", article.title)
+            .put("content", article.content)
+            .put("isPublished", article.isPublished),
+    ).getJSONObject("article").toNewsArticle()
+
+    fun orderChat(token: String, orderId: String): OrderChat = request(
+        "GET", "/orders/$orderId/chat", token,
+    ).getJSONObject("chat").toOrderChat()
+
+    fun sendChatMessage(token: String, orderId: String, content: String): OrderChat = request(
+        "POST", "/orders/$orderId/chat/messages", token,
+        JSONObject().put("content", content),
+    ).getJSONObject("chat").toOrderChat()
+
+    fun requestAdministratorHelp(token: String, orderId: String): OrderChat = request(
+        "POST", "/orders/$orderId/chat/request-admin", token,
+    ).getJSONObject("chat").toOrderChat()
+
+    fun joinOrderChatAsAdministrator(token: String, orderId: String): OrderChat = request(
+        "POST", "/orders/$orderId/chat/join-admin", token,
+    ).getJSONObject("chat").toOrderChat()
+
+    fun administratorChatInbox(token: String): List<AdminChatInboxItem> = request(
+        "GET", "/admin/chats", token,
+    ).getJSONArray("chats").mapObjects { it.toAdminChatInboxItem() }
+
     fun createOrder(token: String, deviceType: String, problem: String, address: String): RepairOrder = request(
         "POST", "/orders", token,
         JSONObject().put("deviceType", deviceType).put("problem", problem).put("address", address)
@@ -96,20 +194,9 @@ object ApiClient {
         JSONObject().put("technicianId", technicianId)
     ).getJSONObject("order").toOrder()
 
-    fun addOrderItem(
-        token: String,
-        orderId: String,
-        type: String,
-        name: String,
-        quantity: Int,
-        unitPriceRub: Int,
-    ): RepairOrder = request(
+    fun addOrderItem(token: String, orderId: String, catalogItemId: String, quantity: Int): RepairOrder = request(
         "POST", "/orders/$orderId/items", token,
-        JSONObject()
-            .put("type", type)
-            .put("name", name)
-            .put("quantity", quantity)
-            .put("unitPriceRub", unitPriceRub),
+        JSONObject().put("catalogItemId", catalogItemId).put("quantity", quantity),
     ).getJSONObject("order").toOrder()
 
     fun staff(token: String): List<StaffMember> = request("GET", "/staff", token).getJSONArray("staff").mapObjects { it.toStaff() }
@@ -205,6 +292,55 @@ object ApiClient {
         id = getString("id"), email = getString("email"), displayName = getString("displayName"),
         role = getString("role"), active = optBoolean("active", true)
     )
+
+    private fun JSONObject.toCatalogItem() = CatalogItem(
+        id = getString("id"),
+        type = getString("type"),
+        name = getString("name"),
+        unitPriceRub = getInt("unitPriceRub"),
+        active = optBoolean("active", true),
+    )
+
+    private fun JSONObject.toNewsArticle() = NewsArticle(
+        id = getString("id"),
+        title = getString("title"),
+        content = getString("content"),
+        isPublished = optBoolean("isPublished", false),
+        publishedAt = optString("publishedAt").takeUnless { it == "null" || it.isBlank() },
+    )
+
+    private fun JSONObject.toOrderChat() = OrderChat(
+        id = optString("id").takeUnless { it == "null" || it.isBlank() },
+        orderId = getString("orderId"),
+        adminRequestedAt = optString("adminRequestedAt").takeUnless { it == "null" || it.isBlank() },
+        adminRequestedByName = optJSONObject("requestedBy")?.optString("displayName").orEmpty(),
+        adminJoinedAt = optString("adminJoinedAt").takeUnless { it == "null" || it.isBlank() },
+        adminJoinedByName = optJSONObject("joinedBy")?.optString("displayName").orEmpty(),
+        messages = (optJSONArray("messages") ?: JSONArray()).mapObjects { message ->
+            val sender = message.optJSONObject("sender")
+            OrderChatMessage(
+                id = message.getString("id"),
+                senderName = sender?.optString("displayName").orEmpty().ifBlank { "Пользователь" },
+                senderRole = sender?.optString("role").orEmpty(),
+                content = message.getString("content"),
+                createdAt = message.optString("createdAt"),
+            )
+        },
+    )
+
+    private fun JSONObject.toAdminChatInboxItem(): AdminChatInboxItem {
+        val order = optJSONObject("order") ?: JSONObject()
+        val lastMessage = optJSONArray("messages")?.optJSONObject(0)
+        return AdminChatInboxItem(
+            orderId = order.optString("id"),
+            deviceType = order.optString("deviceType"),
+            problem = order.optString("problem"),
+            customerName = order.optJSONObject("customer")?.optString("displayName").orEmpty(),
+            technicianName = order.optJSONObject("assignedTechnician")?.optString("displayName").orEmpty(),
+            lastMessage = lastMessage?.optString("content").orEmpty(),
+            adminJoinedAt = optString("adminJoinedAt").takeUnless { it == "null" || it.isBlank() },
+        )
+    }
 
     private fun JSONObject.toReview(): CustomerReview {
         val order = optJSONObject("order") ?: JSONObject()

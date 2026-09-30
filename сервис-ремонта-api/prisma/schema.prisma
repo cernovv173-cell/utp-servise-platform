@@ -35,21 +35,26 @@ model AppSetting {
 }
 
 model User {
-  id                 String              @id @default(uuid()) @db.Uuid
-  email              String              @unique @db.VarChar(320)
-  displayName        String              @map("display_name") @db.VarChar(120)
-  passwordHash       String              @map("password_hash") @db.VarChar(255)
-  role               UserRole            @default(CUSTOMER)
-  active             Boolean             @default(true)
-  mustChangePassword Boolean             @default(false) @map("must_change_password")
-  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions           Session[]
-  customerOrders     RepairOrder[]       @relation("CustomerOrders")
-  assignedOrders     RepairOrder[]       @relation("AssignedOrders")
-  statusChanges      RepairStatusEvent[] @relation("StatusActor")
-  reviews            Review[]
-  addedOrderItems    RepairOrderItem[]   @relation("OrderItemAdder")
+  id                  String              @id @default(uuid()) @db.Uuid
+  email               String              @unique @db.VarChar(320)
+  displayName         String              @map("display_name") @db.VarChar(120)
+  passwordHash        String              @map("password_hash") @db.VarChar(255)
+  role                UserRole            @default(CUSTOMER)
+  active              Boolean             @default(true)
+  mustChangePassword  Boolean             @default(false) @map("must_change_password")
+  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions            Session[]
+  customerOrders      RepairOrder[]       @relation("CustomerOrders")
+  assignedOrders      RepairOrder[]       @relation("AssignedOrders")
+  statusChanges       RepairStatusEvent[] @relation("StatusActor")
+  reviews             Review[]
+  addedOrderItems     RepairOrderItem[]   @relation("OrderItemAdder")
+  catalogItemsCreated RepairCatalogItem[] @relation("CatalogItemCreator")
+  newsArticlesCreated NewsArticle[]       @relation("NewsArticleCreator")
+  orderChatMessages   OrderChatMessage[]  @relation("OrderChatMessageSender")
+  requestedChats      OrderChat[]         @relation("ChatEscalationRequester")
+  joinedChats         OrderChat[]         @relation("ChatAdministratorJoiner")
 
   @@index([role, active])
   @@map("users")
@@ -82,6 +87,7 @@ model RepairOrder {
   assignedTechnician   User?               @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusEvents         RepairStatusEvent[]
   items                RepairOrderItem[]
+  chat                 OrderChat?
   review               Review?
 
   @@index([customerId, createdAt])
@@ -91,19 +97,84 @@ model RepairOrder {
 }
 
 model RepairOrderItem {
-  id           String              @id @default(uuid()) @db.Uuid
-  orderId      String              @map("order_id") @db.Uuid
-  type         RepairOrderItemType
-  name         String              @db.VarChar(160)
-  quantity     Int                 @default(1)
-  unitPriceRub Int                 @map("unit_price_rub")
-  addedById    String?             @map("added_by_id") @db.Uuid
-  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  order        RepairOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  addedBy      User?               @relation("OrderItemAdder", fields: [addedById], references: [id], onDelete: SetNull)
+  id            String              @id @default(uuid()) @db.Uuid
+  orderId       String              @map("order_id") @db.Uuid
+  catalogItemId String?             @map("catalog_item_id") @db.Uuid
+  type          RepairOrderItemType
+  name          String              @db.VarChar(160)
+  quantity      Int                 @default(1)
+  unitPriceRub  Int                 @map("unit_price_rub")
+  addedById     String?             @map("added_by_id") @db.Uuid
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  order         RepairOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  catalogItem   RepairCatalogItem?  @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+  addedBy       User?               @relation("OrderItemAdder", fields: [addedById], references: [id], onDelete: SetNull)
 
   @@index([orderId, createdAt])
+  @@index([catalogItemId])
   @@map("repair_order_items")
+}
+
+model RepairCatalogItem {
+  id           String              @id @default(uuid()) @db.Uuid
+  type         RepairOrderItemType
+  name         String              @db.VarChar(160)
+  unitPriceRub Int                 @map("unit_price_rub")
+  active       Boolean             @default(true)
+  createdById  String?             @map("created_by_id") @db.Uuid
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy    User?               @relation("CatalogItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  orderItems   RepairOrderItem[]
+
+  @@index([active, type, name])
+  @@map("repair_catalog_items")
+}
+
+model NewsArticle {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String    @db.VarChar(160)
+  content     String    @db.VarChar(8000)
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
+  createdById String?   @map("created_by_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy   User?     @relation("NewsArticleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([isPublished, publishedAt])
+  @@map("news_articles")
+}
+
+model OrderChat {
+  id                 String             @id @default(uuid()) @db.Uuid
+  orderId            String             @unique @map("order_id") @db.Uuid
+  adminRequestedAt   DateTime?          @map("admin_requested_at") @db.Timestamptz(3)
+  adminRequestedById String?            @map("admin_requested_by_id") @db.Uuid
+  adminJoinedAt      DateTime?          @map("admin_joined_at") @db.Timestamptz(3)
+  adminJoinedById    String?            @map("admin_joined_by_id") @db.Uuid
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order              RepairOrder        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  requestedBy        User?              @relation("ChatEscalationRequester", fields: [adminRequestedById], references: [id], onDelete: SetNull)
+  joinedBy           User?              @relation("ChatAdministratorJoiner", fields: [adminJoinedById], references: [id], onDelete: SetNull)
+  messages           OrderChatMessage[]
+
+  @@index([adminRequestedAt, adminJoinedAt, updatedAt])
+  @@map("order_chats")
+}
+
+model OrderChatMessage {
+  id        String    @id @default(uuid()) @db.Uuid
+  chatId    String    @map("chat_id") @db.Uuid
+  senderId  String?   @map("sender_id") @db.Uuid
+  content   String    @db.VarChar(2000)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  chat      OrderChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    User?     @relation("OrderChatMessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([chatId, createdAt])
+  @@map("order_chat_messages")
 }
 
 model RepairStatusEvent {

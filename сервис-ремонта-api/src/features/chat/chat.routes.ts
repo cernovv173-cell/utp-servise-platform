@@ -1,0 +1,262 @@
+import { Router } from "express";
+import { z } from "zod";
+
+import type { DatabaseClient } from "../../lib/database/database.js";
+import { HttpError } from "../../lib/http/http-error.js";
+import { validateRequest } from "../../lib/http/validate-request.js";
+import {
+  createRequireAuth,
+  getAuthenticatedUser,
+  requireRoles,
+} from "../auth/auth.middleware.js";
+import {
+  canAccessOrderChat,
+  canJoinEscalatedChat,
+  canRequestAdministratorHelp,
+  canSendOrderChatMessage,
+} from "./chat-policy.js";
+
+const orderIdParams = z.object({ orderId: z.string().uuid() });
+const messageBody = z
+  .object({ content: z.string().trim().min(1).max(2000) })
+  .strict();
+
+const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
+  (response.locals.input as { readonly body: T }).body;
+const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
+  (response.locals.input as { readonly params: T }).params;
+
+const chatDetails = {
+  requestedBy: { select: { id: true, displayName: true } },
+  joinedBy: { select: { id: true, displayName: true } },
+  messages: {
+    orderBy: { createdAt: "desc" as const },
+    take: 100,
+    include: {
+      sender: { select: { id: true, displayName: true, role: true } },
+    },
+  },
+};
+
+const loadChat = (database: DatabaseClient, orderId: string) =>
+  database.orderChat.findUnique({ where: { orderId }, include: chatDetails });
+
+type LoadedChat = NonNullable<Awaited<ReturnType<typeof loadChat>>>;
+
+const chatPayload = (chat: LoadedChat | null, orderId: string) =>
+  chat
+    ? { chat: { ...chat, messages: [...chat.messages].reverse() } }
+    : {
+        chat: {
+          id: null,
+          orderId,
+          adminRequestedAt: null,
+          adminRequestedBy: null,
+          adminJoinedAt: null,
+          joinedBy: null,
+          messages: [],
+        },
+      };
+
+export const createChatRouter = (database: DatabaseClient): Router => {
+  const router = Router();
+  const requireAuth = createRequireAuth(database);
+
+  router.get(
+    "/admin/chats",
+    requireAuth,
+    requireRoles("ADMIN"),
+    async (_request, response) => {
+      const chats = await database.orderChat.findMany({
+        where: { adminRequestedAt: { not: null } },
+        include: {
+          order: {
+            select: {
+              id: true,
+              deviceType: true,
+              problem: true,
+              status: true,
+              customer: { select: { id: true, displayName: true } },
+              assignedTechnician: {
+                select: { id: true, displayName: true },
+              },
+            },
+          },
+          requestedBy: { select: { displayName: true } },
+          joinedBy: { select: { displayName: true } },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            include: {
+              sender: { select: { displayName: true, role: true } },
+            },
+          },
+        },
+        orderBy: [{ adminJoinedAt: "asc" }, { updatedAt: "desc" }],
+        take: 100,
+      });
+      response.json({ chats });
+    },
+  );
+
+  router.get(
+    "/orders/:orderId/chat",
+    requireAuth,
+    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    validateRequest({ params: orderIdParams }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.repairOrder.findUnique({
+        where: { id: orderId },
+        select: { customerId: true, assignedTechnicianId: true },
+      });
+      if (!order || !canAccessOrderChat(user.role, user.id, order))
+        throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+      response.json(chatPayload(await loadChat(database, orderId), orderId));
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/chat/messages",
+    requireAuth,
+    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    validateRequest({ params: orderIdParams, body: messageBody }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const { content } = bodyOf<z.infer<typeof messageBody>>(response);
+      const user = getAuthenticatedUser(response);
+      const chat = await database.$transaction(async (transaction) => {
+        const order = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          select: { customerId: true, assignedTechnicianId: true },
+        });
+        if (!order || !canAccessOrderChat(user.role, user.id, order))
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        const current = await transaction.orderChat.findUnique({
+          where: { orderId },
+          select: { adminRequestedAt: true, adminJoinedAt: true },
+        });
+        if (!canSendOrderChatMessage(user.role, user.id, order, current))
+          throw new HttpError(
+            403,
+            "ADMIN_MUST_JOIN_CHAT",
+            "Сначала администратор должен подключиться к беседе.",
+          );
+        const conversation = await transaction.orderChat.upsert({
+          where: { orderId },
+          create: { orderId },
+          update: {},
+          select: { id: true },
+        });
+        await transaction.orderChatMessage.create({
+          data: { chatId: conversation.id, senderId: user.id, content },
+        });
+        await transaction.orderChat.update({
+          where: { orderId },
+          data: { updatedAt: new Date() },
+        });
+        return transaction.orderChat.findUniqueOrThrow({
+          where: { orderId },
+          include: chatDetails,
+        });
+      });
+      response.status(201).json(chatPayload(chat, orderId));
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/chat/request-admin",
+    requireAuth,
+    requireRoles("TECHNICIAN"),
+    validateRequest({ params: orderIdParams }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const chat = await database.$transaction(async (transaction) => {
+        const order = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          select: { customerId: true, assignedTechnicianId: true },
+        });
+        if (!order || !canRequestAdministratorHelp(user.role, user.id, order))
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        const current = await transaction.orderChat.findUnique({
+          where: { orderId },
+          select: { adminRequestedAt: true, adminJoinedAt: true },
+        });
+        if (current?.adminJoinedAt) {
+          return transaction.orderChat.findUniqueOrThrow({
+            where: { orderId },
+            include: chatDetails,
+          });
+        }
+        if (current?.adminRequestedAt) {
+          return transaction.orderChat.findUniqueOrThrow({
+            where: { orderId },
+            include: chatDetails,
+          });
+        }
+        await transaction.orderChat.upsert({
+          where: { orderId },
+          create: {
+            orderId,
+            adminRequestedAt: new Date(),
+            adminRequestedById: user.id,
+          },
+          update: {
+            adminRequestedAt: new Date(),
+            adminRequestedById: user.id,
+          },
+        });
+        await transaction.orderChat.update({
+          where: { orderId },
+          data: { updatedAt: new Date() },
+        });
+        return transaction.orderChat.findUniqueOrThrow({
+          where: { orderId },
+          include: chatDetails,
+        });
+      });
+      response.json(chatPayload(chat, orderId));
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/chat/join-admin",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: orderIdParams }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const admin = getAuthenticatedUser(response);
+      const chat = await database.$transaction(async (transaction) => {
+        const current = await transaction.orderChat.findUnique({
+          where: { orderId },
+          select: {
+            adminRequestedAt: true,
+            adminJoinedAt: true,
+          },
+        });
+        if (!current || !canJoinEscalatedChat("ADMIN", current))
+          throw new HttpError(
+            409,
+            "ADMIN_HELP_NOT_REQUESTED",
+            "Для этой беседы мастер ещё не запросил помощь администратора.",
+          );
+        if (!current.adminJoinedAt) {
+          await transaction.orderChat.update({
+            where: { orderId },
+            data: { adminJoinedAt: new Date(), adminJoinedById: admin.id },
+          });
+        }
+        return transaction.orderChat.findUniqueOrThrow({
+          where: { orderId },
+          include: chatDetails,
+        });
+      });
+      response.json(chatPayload(chat, orderId));
+    },
+  );
+
+  return router;
+};
