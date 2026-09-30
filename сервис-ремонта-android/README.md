@@ -25,7 +25,19 @@
 ./gradlew :app:assembleDebug --no-daemon --max-workers=2
 ```
 
-Требуются JDK 17, Android SDK 36 и переменная сборки `UTP_API_BASE_URL` с HTTPS-адресом сервера. APK, собранный в среде проекта, настроен на адрес разработки. Производственный API ещё не опубликован, поэтому этот APK не следует считать производственным выпуском. Эмулятор и физическое устройство в среде Amazi недоступны.
+Для обычной сборки требуются JDK 17, Android SDK 36 и переменная `UTP_API_BASE_URL` с HTTPS-адресом API. APK от `assembleDebug` для разработки не предназначен для публикации. Эмулятор и физическое устройство в среде Amazi недоступны.
+
+### Подписанная сборка для RuStore
+
+Release-вариант подписывается только при заданных переменных `UTP_RELEASE_KEYSTORE_PATH`, `UTP_RELEASE_STORE_PASSWORD`, `UTP_RELEASE_KEY_ALIAS` и `UTP_RELEASE_KEY_PASSWORD`. Задайте их в среде сборки, а `UTP_API_BASE_URL` направьте на HTTPS production API, затем выполните:
+
+```bash
+./gradlew :app:assembleRelease --no-daemon --max-workers=2
+```
+
+Готовый APK находится в `app/build/outputs/apk/release/`. Файл keystore и пароли — постоянные данные подписи: храните резервную копию в защищённом месте и применяйте ту же подпись при последующих обновлениях. Не добавляйте keystore или пароли в Git. До публикации приложения проверьте, что production API развёрнут и доступен; сборка Android сама API не публикует.
+
+На момент последней release-сборки корень production API отвечал HTTP 404. Поэтому APK подписан и годится для проверки загрузки в консоль RuStore, но приложение не готово к использованию клиентами до отдельной публикации и проверки API.
 
 Чтобы включить push в Android-сборке, задайте `UTP_FIREBASE_ANDROID_CONFIG_JSON` с конфигурацией Firebase Android-приложения `ru.utp.servise`. На API для отправки уведомлений нужна отдельная серверная переменная `FCM_SERVICE_ACCOUNT_JSON`. Если Firebase-конфигурация не задана, Android APK всё равно собирается, но push-доставка недоступна.
 

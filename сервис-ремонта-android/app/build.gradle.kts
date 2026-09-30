@@ -5,6 +5,10 @@ plugins {
 }
 
 val firebaseConfigJson = providers.environmentVariable("UTP_FIREBASE_ANDROID_CONFIG_JSON").orNull?.trim()
+val releaseKeystorePath = providers.environmentVariable("UTP_RELEASE_KEYSTORE_PATH").orNull
+val releaseStorePassword = providers.environmentVariable("UTP_RELEASE_STORE_PASSWORD").orNull
+val releaseKeyAlias = providers.environmentVariable("UTP_RELEASE_KEY_ALIAS").orNull
+val releaseKeyPassword = providers.environmentVariable("UTP_RELEASE_KEY_PASSWORD").orNull
 val googleServicesFile = file("google-services.json")
 if (!firebaseConfigJson.isNullOrBlank()) {
     val firebaseConfig = try {
@@ -52,6 +56,21 @@ android {
             "API_BASE_URL",
             "\"${providers.environmentVariable("UTP_API_BASE_URL").orNull.orEmpty().trimEnd('/')}\""
         )
+    }
+    signingConfigs {
+        create("release") {
+            storeFile = releaseKeystorePath
+                ?.takeIf { it.isNotBlank() }
+                ?.let { file(it) }
+            storePassword = releaseStorePassword?.takeIf { it.isNotBlank() }
+            keyAlias = releaseKeyAlias?.takeIf { it.isNotBlank() }
+            keyPassword = releaseKeyPassword?.takeIf { it.isNotBlank() }
+        }
+    }
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
