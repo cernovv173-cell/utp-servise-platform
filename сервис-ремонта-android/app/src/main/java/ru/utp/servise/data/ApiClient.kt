@@ -119,6 +119,14 @@ object ApiClient {
     fun me(token: String): AppUser = request("GET", "/auth/me", token).getJSONObject("user").toUser()
     fun logout(token: String) { request("POST", "/auth/logout", token) }
 
+    fun registerPushToken(sessionToken: String, pushToken: String) {
+        request("PUT", "/auth/push-token", sessionToken, JSONObject().put("token", pushToken))
+    }
+
+    fun unregisterPushToken(sessionToken: String, pushToken: String) {
+        request("DELETE", "/auth/push-token", sessionToken, JSONObject().put("token", pushToken))
+    }
+
     fun changePassword(token: String, currentPassword: String, newPassword: String): AuthResult = authResult(
         request("POST", "/auth/change-password", token, JSONObject().put("currentPassword", currentPassword).put("newPassword", newPassword))
     )

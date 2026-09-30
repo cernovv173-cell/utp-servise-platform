@@ -4,6 +4,32 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
+val firebaseConfigJson = providers.environmentVariable("UTP_FIREBASE_ANDROID_CONFIG_JSON").orNull?.trim()
+val googleServicesFile = file("google-services.json")
+if (!firebaseConfigJson.isNullOrBlank()) {
+    val firebaseConfig = try {
+        groovy.json.JsonSlurper().parseText(firebaseConfigJson) as Map<*, *>
+    } catch (failure: Exception) {
+        throw GradleException("UTP_FIREBASE_ANDROID_CONFIG_JSON must contain valid JSON.", failure)
+    }
+    val packageNames = (firebaseConfig["client"] as? List<*>)
+        .orEmpty()
+        .mapNotNull { client ->
+            val clientInfo = (client as? Map<*, *>)?.get("client_info") as? Map<*, *>
+            val androidInfo = clientInfo?.get("android_client_info") as? Map<*, *>
+            androidInfo?.get("package_name") as? String
+        }
+    if ("ru.utp.servise" !in packageNames) {
+        throw GradleException("The supplied Firebase Android config must include package ru.utp.servise.")
+    }
+    googleServicesFile.writeText(firebaseConfigJson, Charsets.UTF_8)
+} else if (!googleServicesFile.isFile) {
+    logger.warn("UTP_FIREBASE_ANDROID_CONFIG_JSON is empty; Firebase push notifications will be unavailable in this build.")
+}
+if (!firebaseConfigJson.isNullOrBlank() || googleServicesFile.isFile) {
+    pluginManager.apply("com.google.gms.google-services")
+}
+
 android {
     namespace = "ru.utp.servise"
     compileSdk = 36
@@ -36,6 +62,8 @@ android {
 
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.08.00")
+    implementation(platform("com.google.firebase:firebase-bom:34.19.0"))
+    implementation("com.google.firebase:firebase-messaging")
     implementation(composeBom)
     androidTestImplementation(composeBom)
     implementation("androidx.activity:activity-compose:1.10.1")

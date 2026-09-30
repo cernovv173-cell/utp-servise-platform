@@ -1,8 +1,13 @@
 package ru.utp.servise
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +38,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.FirebaseApp
+import com.google.android.gms.tasks.Tasks
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,9 +52,11 @@ import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.OrderChat
+import ru.utp.servise.data.PushTokenManager
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SessionStore
 import ru.utp.servise.data.StaffMember
+import ru.utp.servise.notifications.NotificationChannels
 import ru.utp.servise.ui.AuthNavigation
 import ru.utp.servise.ui.ChangeTemporaryPasswordScreen
 import ru.utp.servise.ui.CatalogManagementScreen
@@ -69,6 +79,7 @@ import ru.utp.servise.ui.UtpServiseTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        NotificationChannels.ensureCreated(this)
         setContent { UtpServiseTheme { UtpServiseApp() } }
     }
 }
@@ -100,20 +111,43 @@ private fun UtpServiseApp() {
     var news by remember { mutableStateOf<List<NewsArticle>>(emptyList()) }
     var adminChats by remember { mutableStateOf<List<AdminChatInboxItem>>(emptyList()) }
     var activeChat by remember { mutableStateOf<OrderChat?>(null) }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
 
     LaunchedEffect(Unit) {
         val existing = withContext(Dispatchers.IO) { runCatching { tokenStore.readToken() }.getOrNull() }
         if (!existing.isNullOrBlank()) {
             runCatching { withContext(Dispatchers.IO) { ApiClient.me(existing) } }
-                .onSuccess { restored -> token = existing; user = restored }
+                .onSuccess { restored ->
+                    token = existing
+                    user = restored
+                    PushTokenManager.synchronize(context, existing)
+                }
                 .onFailure { tokenStore.clear() }
         }
         sessionReady = true
     }
 
+    LaunchedEffect(user?.id) {
+        if (
+            user != null &&
+            FirebaseApp.getApps(context).isNotEmpty() &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
     val onAuthenticated: (String, AppUser) -> Unit = { newToken, newUser ->
         runCatching { tokenStore.saveToken(newToken) }
-            .onSuccess { token = newToken; user = newUser; errorMessage = null }
+            .onSuccess {
+                token = newToken
+                user = newUser
+                errorMessage = null
+                PushTokenManager.synchronize(context, newToken)
+            }
             .onFailure { errorMessage = "Не удалось сохранить защищённую сессию. Попробуйте ещё раз." }
     }
 
@@ -196,7 +230,17 @@ private fun UtpServiseApp() {
             refresh = { revision += 1 },
             onLogout = {
                 val activeToken = token
-                scope.launch { runCatching { withContext(Dispatchers.IO) { ApiClient.logout(activeToken) } } }
+                scope.launch {
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            if (FirebaseApp.getApps(context).isNotEmpty()) {
+                                val pushToken = Tasks.await(FirebaseMessaging.getInstance().token)
+                                ApiClient.unregisterPushToken(activeToken, pushToken)
+                            }
+                        }
+                        runCatching { ApiClient.logout(activeToken) }
+                    }
+                }
                 tokenStore.clear()
                 token = ""
                 user = null

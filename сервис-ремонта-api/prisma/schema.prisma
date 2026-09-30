@@ -55,6 +55,7 @@ model User {
   orderChatMessages   OrderChatMessage[]  @relation("OrderChatMessageSender")
   requestedChats      OrderChat[]         @relation("ChatEscalationRequester")
   joinedChats         OrderChat[]         @relation("ChatAdministratorJoiner")
+  pushDeviceTokens    PushDeviceToken[]
 
   @@index([role, active])
   @@map("users")
@@ -70,6 +71,18 @@ model Session {
 
   @@index([userId, expiresAt])
   @@map("sessions")
+}
+
+model PushDeviceToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique @db.VarChar(4096)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_device_tokens")
 }
 
 model RepairOrder {

@@ -124,6 +124,12 @@ test("order chat access is scoped and technicians can hand the conversation to a
     };
   };
   const client = {
+    user: {
+      findMany: async () =>
+        users
+          .filter((user) => user.role === "ADMIN" && user.active)
+          .map(({ id }) => ({ id })),
+    },
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
         const user = users.find(

@@ -47,6 +47,9 @@ const changePasswordSchema = z
     newPassword: passwordSchema,
   })
   .strict();
+const pushTokenSchema = z
+  .object({ token: z.string().trim().min(1).max(4096) })
+  .strict();
 const staffSchema = z
   .object({
     email: emailSchema,
@@ -146,6 +149,36 @@ export const createAuthRouter = (database: DatabaseClient): Router => {
   router.get("/auth/me", requireAuth, (_request, response) => {
     response.json({ user: publicUser(getAuthenticatedUser(response)) });
   });
+
+  router.put(
+    "/auth/push-token",
+    requireAuth,
+    validateRequest({ body: pushTokenSchema }),
+    async (_request, response) => {
+      const user = getAuthenticatedUser(response);
+      const { token } = bodyOf<z.infer<typeof pushTokenSchema>>(response);
+      await database.pushDeviceToken.upsert({
+        where: { token },
+        create: { token, userId: user.id },
+        update: { userId: user.id },
+      });
+      response.status(204).end();
+    },
+  );
+
+  router.delete(
+    "/auth/push-token",
+    requireAuth,
+    validateRequest({ body: pushTokenSchema }),
+    async (_request, response) => {
+      const user = getAuthenticatedUser(response);
+      const { token } = bodyOf<z.infer<typeof pushTokenSchema>>(response);
+      await database.pushDeviceToken.deleteMany({
+        where: { token, userId: user.id },
+      });
+      response.status(204).end();
+    },
+  );
 
   router.post("/auth/logout", requireAuth, async (request, response) => {
     const token = request.header("authorization")!.slice("Bearer ".length);
