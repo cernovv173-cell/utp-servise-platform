@@ -21,6 +21,11 @@ enum RepairStatus {
   CANCELLED
 }
 
+enum RepairOrderItemType {
+  SERVICE
+  SPARE_PART
+}
+
 model AppSetting {
   key       String   @id
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -44,6 +49,7 @@ model User {
   assignedOrders     RepairOrder[]       @relation("AssignedOrders")
   statusChanges      RepairStatusEvent[] @relation("StatusActor")
   reviews            Review[]
+  addedOrderItems    RepairOrderItem[]   @relation("OrderItemAdder")
 
   @@index([role, active])
   @@map("users")
@@ -75,12 +81,29 @@ model RepairOrder {
   customer             User                @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
   assignedTechnician   User?               @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusEvents         RepairStatusEvent[]
+  items                RepairOrderItem[]
   review               Review?
 
   @@index([customerId, createdAt])
   @@index([assignedTechnicianId, status, updatedAt])
   @@index([status, createdAt])
   @@map("repair_orders")
+}
+
+model RepairOrderItem {
+  id           String              @id @default(uuid()) @db.Uuid
+  orderId      String              @map("order_id") @db.Uuid
+  type         RepairOrderItemType
+  name         String              @db.VarChar(160)
+  quantity     Int                 @default(1)
+  unitPriceRub Int                 @map("unit_price_rub")
+  addedById    String?             @map("added_by_id") @db.Uuid
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  order        RepairOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  addedBy      User?               @relation("OrderItemAdder", fields: [addedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("repair_order_items")
 }
 
 model RepairStatusEvent {

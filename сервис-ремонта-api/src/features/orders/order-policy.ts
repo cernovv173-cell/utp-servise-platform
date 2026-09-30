@@ -32,3 +32,11 @@ export const canViewRepairOrder = (
   if (role === "CUSTOMER") return order.customerId === userId;
   return order.assignedTechnicianId === userId;
 };
+
+export const canAddRepairOrderItem = (
+  role: UserRole,
+  userId: string,
+  order: { assignedTechnicianId: string | null },
+): boolean =>
+  role === "ADMIN" ||
+  (role === "TECHNICIAN" && order.assignedTechnicianId === userId);

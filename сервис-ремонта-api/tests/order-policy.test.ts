@@ -2,9 +2,43 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  canAddRepairOrderItem,
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "../src/features/orders/order-policy.js";
+
+test("administrators can add order items to any order, technicians only to their assignment", () => {
+  assert.equal(
+    canAddRepairOrderItem("ADMIN", "admin-1", {
+      assignedTechnicianId: "tech-1",
+    }),
+    true,
+  );
+  assert.equal(
+    canAddRepairOrderItem("ADMIN", "admin-1", {
+      assignedTechnicianId: null,
+    }),
+    true,
+  );
+  assert.equal(
+    canAddRepairOrderItem("TECHNICIAN", "tech-1", {
+      assignedTechnicianId: "tech-1",
+    }),
+    true,
+  );
+  assert.equal(
+    canAddRepairOrderItem("TECHNICIAN", "tech-2", {
+      assignedTechnicianId: "tech-1",
+    }),
+    false,
+  );
+  assert.equal(
+    canAddRepairOrderItem("CUSTOMER", "customer-1", {
+      assignedTechnicianId: "tech-1",
+    }),
+    false,
+  );
+});
 
 test("customers can only cancel their own not-yet-assigned orders", () => {
   assert.equal(

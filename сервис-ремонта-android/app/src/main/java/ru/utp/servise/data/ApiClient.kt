@@ -26,6 +26,16 @@ data class RepairOrder(
     val technicianName: String,
     val hasReview: Boolean,
     val history: List<String>,
+    val items: List<RepairOrderItem>,
+)
+
+data class RepairOrderItem(
+    val id: String,
+    val type: String,
+    val name: String,
+    val quantity: Int,
+    val unitPriceRub: Int,
+    val addedByName: String,
 )
 
 data class StaffMember(
@@ -84,6 +94,22 @@ object ApiClient {
     fun assignTechnician(token: String, orderId: String, technicianId: String): RepairOrder = request(
         "PATCH", "/orders/$orderId/assign", token,
         JSONObject().put("technicianId", technicianId)
+    ).getJSONObject("order").toOrder()
+
+    fun addOrderItem(
+        token: String,
+        orderId: String,
+        type: String,
+        name: String,
+        quantity: Int,
+        unitPriceRub: Int,
+    ): RepairOrder = request(
+        "POST", "/orders/$orderId/items", token,
+        JSONObject()
+            .put("type", type)
+            .put("name", name)
+            .put("quantity", quantity)
+            .put("unitPriceRub", unitPriceRub),
     ).getJSONObject("order").toOrder()
 
     fun staff(token: String): List<StaffMember> = request("GET", "/staff", token).getJSONArray("staff").mapObjects { it.toStaff() }
@@ -147,6 +173,7 @@ object ApiClient {
         val technician = optJSONObject("assignedTechnician")
         val customer = optJSONObject("customer")
         val statusEvents = optJSONArray("statusEvents") ?: JSONArray()
+        val items = optJSONArray("items") ?: JSONArray()
         val existingReview = optJSONObject("review")
         return RepairOrder(
             id = getString("id"), deviceType = getString("deviceType"), problem = getString("problem"),
@@ -160,7 +187,17 @@ object ApiClient {
                 val note = event.optString("note").takeUnless { it == "null" || it.isBlank() }
                 val actor = event.optJSONObject("actor")?.optString("displayName").orEmpty()
                 listOfNotNull(from?.let { "${it.statusLabel()} → ${to.statusLabel()}" }, to.statusLabel().takeIf { from == null }, note, actor.takeIf { it.isNotBlank() }).joinToString(" · ")
-            }
+            },
+            items = items.mapObjects { item ->
+                RepairOrderItem(
+                    id = item.getString("id"),
+                    type = item.getString("type"),
+                    name = item.getString("name"),
+                    quantity = item.getInt("quantity"),
+                    unitPriceRub = item.getInt("unitPriceRub"),
+                    addedByName = item.optJSONObject("addedBy")?.optString("displayName").orEmpty(),
+                )
+            },
         )
     }
 
@@ -198,6 +235,12 @@ fun String.statusLabel(): String = when (this) {
     "IN_PROGRESS" -> "В ремонте"
     "COMPLETED" -> "Завершена"
     "CANCELLED" -> "Отменена"
+    else -> this
+}
+
+fun String.orderItemTypeLabel(): String = when (this) {
+    "SERVICE" -> "Услуга"
+    "SPARE_PART" -> "Запчасть"
     else -> this
 }
 

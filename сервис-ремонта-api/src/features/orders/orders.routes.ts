@@ -10,6 +10,7 @@ import {
   requireRoles,
 } from "../auth/auth.middleware.js";
 import {
+  canAddRepairOrderItem,
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "./order-policy.js";
@@ -30,6 +31,14 @@ const statusBody = z
   })
   .strict();
 const assignBody = z.object({ technicianId: z.string().uuid() }).strict();
+const orderItemBody = z
+  .object({
+    type: z.enum(["SERVICE", "SPARE_PART"]),
+    name: z.string().trim().min(2).max(160),
+    quantity: z.number().int().min(1).max(99),
+    unitPriceRub: z.number().int().min(0).max(10_000_000),
+  })
+  .strict();
 const reviewBody = z
   .object({
     orderId: z.string().uuid(),
@@ -55,6 +64,10 @@ const orderDetails = {
       createdAt: true,
       actor: { select: { id: true, displayName: true, role: true } },
     },
+  },
+  items: {
+    orderBy: { createdAt: "asc" as const },
+    include: { addedBy: { select: { id: true, displayName: true } } },
   },
   review: true,
 };
@@ -252,6 +265,41 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
       });
       response.json({ order });
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/items",
+    requireAuth,
+    requireRoles("ADMIN", "TECHNICIAN"),
+    validateRequest({ params: orderIdParams, body: orderItemBody }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const input = bodyOf<z.infer<typeof orderItemBody>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.$transaction(async (transaction) => {
+        const existing = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          select: { id: true, assignedTechnicianId: true },
+        });
+        if (!existing || !canAddRepairOrderItem(user.role, user.id, existing))
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        await transaction.repairOrderItem.create({
+          data: {
+            orderId,
+            type: input.type,
+            name: input.name,
+            quantity: input.quantity,
+            unitPriceRub: input.unitPriceRub,
+            addedById: user.id,
+          },
+        });
+        return transaction.repairOrder.findUniqueOrThrow({
+          where: { id: orderId },
+          include: orderDetails,
+        });
+      });
+      response.status(201).json({ order });
     },
   );
 
