@@ -25,8 +25,8 @@
 18
 19    <application
 19-->/workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:3:5-16:19
-20        android:allowBackup="true"
-20-->/workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:4:9-35
+20        android:allowBackup="false"
+20-->/workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:4:9-36
 21        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
 21-->[androidx.core:core:1.15.0] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/5e724b81158eaafb4694b7cc548ba152/transformed/core-1.15.0/AndroidManifest.xml:28:18-86
 22        android:debuggable="true"

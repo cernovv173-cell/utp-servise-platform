@@ -6,7 +6,9 @@ export const createGetApiHealth =
   (database?: DatabaseHealth): RequestHandler =>
   async (request, response) => {
     if (!database) {
-      response.json({ database: "not_configured", status: "ok" });
+      response
+        .status(503)
+        .json({ database: "not_configured", status: "unavailable" });
       return;
     }
 

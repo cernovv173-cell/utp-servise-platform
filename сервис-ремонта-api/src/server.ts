@@ -1,4 +1,5 @@
 import { createApp } from "./app.js";
+import { ensureInitialAdmin } from "./features/auth/auth.routes.js";
 import { readConfig } from "./lib/config.js";
 import { createDatabase } from "./lib/database/database.js";
 import { runDatabaseMigrations } from "./lib/database/migrations.js";
@@ -21,6 +22,15 @@ const start = async (): Promise<void> => {
       await database.close().catch(() => undefined);
       throw error;
     }
+  }
+
+  if (database && config.initialAdminEmail && config.initialAdminPassword) {
+    await ensureInitialAdmin(
+      database.client,
+      config.initialAdminEmail,
+      config.initialAdminPassword,
+    );
+    logger.info("Initial administrator bootstrap checked");
   }
 
   const app = createApp({ database, logger });

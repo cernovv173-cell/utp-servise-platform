@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "ru.utp.servise.app-mergeDebugResources-32:/values-mr/values-mr.xml",
+            "outputFile": "ru.utp.servise.app-mergeDebugResources-36:/values-mr/values-mr.xml",
             "map": [
                 {
                     "source": "/var/cache/amazi-android/gradle/caches/8.11.1/transforms/6b1d955ac03d0105e5fa30f708bc4660/transformed/foundation-release/res/values-mr/values-mr.xml",

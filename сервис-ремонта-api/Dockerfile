@@ -11,7 +11,7 @@ RUN corepack enable
 
 USER 65532:65532
 
-CMD ["sh", "-c", "pnpm install --ignore-scripts --store-dir /tmp/pnpm-store && exec pnpm run dev"]
+CMD ["sh", "-c", "pnpm install --ignore-scripts --store-dir /tmp/pnpm-store && pnpm exec prisma generate && pnpm db:migrate && exec pnpm run dev"]
 
 FROM ${AMAZI_RUNTIME_BASE_IMAGE} AS build
 

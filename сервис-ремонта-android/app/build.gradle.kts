@@ -16,7 +16,17 @@ android {
         versionName = "1.0.0"
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+    defaultConfig {
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${providers.environmentVariable("UTP_API_BASE_URL").orNull.orEmpty().trimEnd('/')}\""
+        )
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -34,5 +44,6 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.9.2")
+    implementation("androidx.navigation:navigation-compose:2.9.8")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

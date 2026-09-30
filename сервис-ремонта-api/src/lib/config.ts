@@ -18,6 +18,8 @@ const databaseUrlSchema = z
 
 const environmentSchema = z.object({
   DATABASE_URL: optionalEnvironmentValue(databaseUrlSchema),
+  INITIAL_ADMIN_EMAIL: optionalEnvironmentValue(z.string().email().max(320)),
+  INITIAL_ADMIN_PASSWORD: optionalEnvironmentValue(z.string().min(12).max(128)),
   NODE_ENV: z
     .enum(["development", "production", "test"])
     .default("development"),
@@ -26,6 +28,8 @@ const environmentSchema = z.object({
 
 export type AppConfig = {
   readonly databaseUrl: string | undefined;
+  readonly initialAdminEmail: string | undefined;
+  readonly initialAdminPassword: string | undefined;
   readonly nodeEnv: z.infer<typeof environmentSchema>["NODE_ENV"];
   readonly port: number;
 };
@@ -40,6 +44,8 @@ export const readConfig = (
   const parsed = environmentSchema.parse(environment);
   return {
     databaseUrl: parsed.DATABASE_URL,
+    initialAdminEmail: parsed.INITIAL_ADMIN_EMAIL,
+    initialAdminPassword: parsed.INITIAL_ADMIN_PASSWORD,
     nodeEnv: parsed.NODE_ENV,
     port: parsed.PORT,
   };
