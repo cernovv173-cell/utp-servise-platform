@@ -75,6 +75,7 @@ import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.UtpBlue
 import ru.utp.servise.ui.UtpPale
 import ru.utp.servise.ui.UtpServiseTheme
+import ru.utp.servise.ui.WelcomeAnimation
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +98,12 @@ private data class WorkspaceData(
 private fun UtpServiseApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
+    val welcomePreferences = remember {
+        context.getSharedPreferences("utp_app_settings", android.content.Context.MODE_PRIVATE)
+    }
+    var showWelcome by remember {
+        mutableStateOf(!welcomePreferences.getBoolean("welcome_animation_seen", false))
+    }
     val tokenStore = remember { SessionStore(context) }
     var token by remember { mutableStateOf("") }
     var user by remember { mutableStateOf<AppUser?>(null) }
@@ -192,26 +199,27 @@ private fun UtpServiseApp() {
         }
     }
 
-    when {
-        !sessionReady -> LoadingScreen()
-        user == null -> AuthNavigation(
-            onAuthenticated = onAuthenticated,
-            onBusy = { busy = it },
-            onError = { errorMessage = it },
-        )
-        user!!.mustChangePassword -> ChangeTemporaryPasswordScreen(
-            onChange = { oldPassword, newPassword, onDone ->
-                runAction({ ApiClient.changePassword(token, oldPassword, newPassword) }) { value ->
-                    val auth = value as? AuthResult
-                    if (auth != null) {
-                        onAuthenticated(auth.accessToken, auth.user)
-                        onDone(auth)
+    Box(Modifier.fillMaxSize()) {
+        when {
+            !sessionReady -> LoadingScreen()
+            user == null -> AuthNavigation(
+                onAuthenticated = onAuthenticated,
+                onBusy = { busy = it },
+                onError = { errorMessage = it },
+            )
+            user!!.mustChangePassword -> ChangeTemporaryPasswordScreen(
+                onChange = { oldPassword, newPassword, onDone ->
+                    runAction({ ApiClient.changePassword(token, oldPassword, newPassword) }) { value ->
+                        val auth = value as? AuthResult
+                        if (auth != null) {
+                            onAuthenticated(auth.accessToken, auth.user)
+                            onDone(auth)
+                        }
                     }
-                }
-            },
-            busy = busy,
-        )
-        else -> AuthenticatedWorkspace(
+                },
+                busy = busy,
+            )
+            else -> AuthenticatedWorkspace(
             user = user!!,
             token = token,
             orders = orders,
@@ -254,7 +262,16 @@ private fun UtpServiseApp() {
                 activeChat = null
                 errorMessage = null
             },
-        )
+            )
+        }
+        if (showWelcome) {
+            WelcomeAnimation(
+                onFinished = {
+                    welcomePreferences.edit().putBoolean("welcome_animation_seen", true).apply()
+                    showWelcome = false
+                },
+            )
+        }
     }
 }
 

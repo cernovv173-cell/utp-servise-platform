@@ -3,6 +3,7 @@ import { Router } from "express";
 import { createAuthRouter } from "./features/auth/auth.routes.js";
 import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
 import { createChatRouter } from "./features/chat/chat.routes.js";
+import { createCompanyRouter } from "./features/company/company.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
 import { createNewsRouter } from "./features/news/news.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
@@ -21,8 +22,30 @@ export const createApiRouter = ({
   const router = Router();
 
   router.use(createSystemRouter({ database }));
+  router.get("/about", async (_request, response, next) => {
+    if (!database) {
+      response.json({
+        company: {
+          name: "UTP Servise",
+          description: "Ремонт компьютеров, ноутбуков, телефонов и планшетов.",
+          history: "",
+          services: [],
+          phone: "",
+          email: "",
+          address: "",
+          hours: "",
+          socials: [],
+          requisites: "",
+          mediaUrls: [],
+        },
+      });
+      return;
+    }
+    next();
+  });
 
   if (database) {
+    router.use(createCompanyRouter(database.client));
     router.use(createAuthRouter(database.client));
     router.use(createStaffRouter(database.client));
     router.use(createCatalogRouter(database.client));

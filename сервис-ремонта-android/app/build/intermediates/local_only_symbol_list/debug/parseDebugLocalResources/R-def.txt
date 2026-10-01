@@ -1,6 +1,7 @@
 R_DEF: Internal format may change without notice
 local
 color utp_servise_launcher_background
+drawable raccoon_welcome
 drawable utp_servise_launcher_foreground
 drawable utp_servise_launcher_source
 drawable utp_servise_logo

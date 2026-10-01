@@ -1,0 +1,202 @@
+import { Link } from "@tanstack/react-router";
+import {
+  Bell,
+  CircleUserRound,
+  ClipboardList,
+  FileText,
+  Home,
+  LogOut,
+  Moon,
+  Newspaper,
+  Star,
+  Sun,
+  UsersRound,
+} from "lucide-react";
+import { type ReactNode, useEffect, useState } from "react";
+
+import { useAuth } from "@/features/auth/auth-context";
+
+const links = [
+  { to: "/", label: "Главная", icon: Home },
+  { to: "/orders", label: "Заявки", icon: ClipboardList },
+  { to: "/checks", label: "Чеки и номера", icon: FileText },
+  { to: "/news", label: "Новости", icon: Newspaper },
+  { to: "/loyalty", label: "Бонусы", icon: Star },
+  { to: "/about", label: "О компании", icon: UsersRound },
+  { to: "/reviews", label: "Отзывы", icon: Bell },
+  { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
+];
+
+export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
+  const { user, ready, logout } = useAuth();
+  const [dark, setDark] = useState(() => localStorage.getItem("utp-web-theme") === "dark");
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    localStorage.setItem("utp-web-theme", dark ? "dark" : "light");
+  }, [dark]);
+
+  if (!ready)
+    return (
+      <div className="grid min-h-dvh place-items-center text-slate-500">Загружаем профиль…</div>
+    );
+  if (!user) {
+    return (
+      <main className="grid min-h-dvh place-items-center bg-slate-50 p-6 dark:bg-slate-950">
+        <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-100 text-xl font-bold text-blue-700">
+            U
+          </div>
+          <h1 className="mt-5 text-2xl font-semibold text-slate-950 dark:text-white">
+            Войдите в UTP Servise
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+            Заявки, история ремонта и новости доступны после входа в аккаунт.
+          </p>
+          <Link
+            to="/login"
+            className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
+          >
+            Войти или зарегистрироваться
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  const nav = links.filter((link) => link.to !== "/loyalty" || user.role === "CUSTOMER");
+  return (
+    <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 lg:flex dark:border-slate-800 dark:bg-slate-900">
+        <Link to="/" className="flex items-center gap-3 px-2 text-lg font-bold tracking-tight">
+          <span className="grid size-9 place-items-center rounded-xl bg-blue-600 text-white">
+            U
+          </span>
+          UTP Servise
+        </Link>
+        <p className="mt-8 px-3 text-xs font-semibold tracking-[0.16em] text-slate-400 uppercase">
+          Меню
+        </p>
+        <nav className="mt-3 grid gap-1">
+          {nav.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition ${active === to ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}
+            >
+              <Icon size={18} />
+              {label}
+            </Link>
+          ))}
+          {user.role === "ADMIN" && (
+            <Link
+              to="/admin"
+              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium ${active === "/admin" ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}
+            >
+              <UsersRound size={18} />
+              Администрирование
+            </Link>
+          )}
+        </nav>
+        <div className="mt-auto border-t border-slate-100 pt-4 dark:border-slate-800">
+          <p className="truncate px-3 text-sm font-semibold">{user.displayName}</p>
+          <p className="truncate px-3 pt-1 text-xs text-slate-500">{user.email}</p>
+          <button
+            onClick={logout}
+            className="mt-4 flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <LogOut size={17} />
+            Выйти
+          </button>
+        </div>
+      </aside>
+      <div className="lg:pl-60">
+        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur md:px-8 dark:border-slate-800 dark:bg-slate-900/90">
+          <Link to="/" className="flex items-center gap-2 font-bold lg:hidden">
+            <span className="grid size-8 place-items-center rounded-lg bg-blue-600 text-white">
+              U
+            </span>
+            UTP Servise
+          </Link>
+          <div className="hidden text-sm text-slate-500 lg:block">Сервис ремонта техники</div>
+          <div className="flex items-center gap-3">
+            <span className="hidden text-sm text-slate-600 sm:block dark:text-slate-300">
+              {user.displayName}
+            </span>
+            <button
+              aria-label="Переключить тему"
+              onClick={() => setDark((value) => !value)}
+              className="grid size-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              {dark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
+        </header>
+        <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 lg:hidden dark:border-slate-800 dark:bg-slate-900">
+          {nav.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${active === to ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "text-slate-600 dark:text-slate-300"}`}
+            >
+              <Icon size={15} />
+              {label}
+            </Link>
+          ))}
+          {user.role === "ADMIN" && (
+            <Link
+              to="/admin"
+              className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300"
+            >
+              Админ
+            </Link>
+          )}
+        </nav>
+        <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">{children}</main>
+      </div>
+    </div>
+  );
+};
+
+export const PageTitle = ({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) => (
+  <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      {eyebrow && (
+        <p className="mb-2 text-xs font-bold tracking-[0.15em] text-blue-600 uppercase">
+          {eyebrow}
+        </p>
+      )}
+      <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{title}</h1>
+      {description && (
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500 dark:text-slate-400">
+          {description}
+        </p>
+      )}
+    </div>
+    {action}
+  </div>
+);
+
+export const SectionCard = ({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) => (
+  <section
+    className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 ${className}`}
+  >
+    {children}
+  </section>
+);

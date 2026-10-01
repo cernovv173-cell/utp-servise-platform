@@ -11,21 +11,42 @@ import {
 } from "../auth/auth.middleware.js";
 
 const articleIdParams = z.object({ articleId: z.string().uuid() });
+const scheduleFields = {
+  startsAt: z.string().datetime({ offset: true }).nullable().optional(),
+  endsAt: z.string().datetime({ offset: true }).nullable().optional(),
+  isFeatured: z.boolean().optional(),
+};
 const createArticleBody = z
   .object({
     title: z.string().trim().min(3).max(160),
     content: z.string().trim().min(5).max(8000),
     isPublished: z.boolean().optional(),
+    ...scheduleFields,
   })
-  .strict();
+  .strict()
+  .refine(
+    (body) =>
+      !body.startsAt ||
+      !body.endsAt ||
+      new Date(body.startsAt) < new Date(body.endsAt),
+    { message: "Дата окончания должна быть позже даты начала." },
+  );
 const updateArticleBody = z
   .object({
     title: z.string().trim().min(3).max(160).optional(),
     content: z.string().trim().min(5).max(8000).optional(),
     isPublished: z.boolean().optional(),
+    ...scheduleFields,
   })
   .strict()
-  .refine((body) => Object.keys(body).length > 0);
+  .refine((body) => Object.keys(body).length > 0)
+  .refine(
+    (body) =>
+      !body.startsAt ||
+      !body.endsAt ||
+      new Date(body.startsAt) < new Date(body.endsAt),
+    { message: "Дата окончания должна быть позже даты начала." },
+  );
 
 const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly body: T }).body;
@@ -42,9 +63,23 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
     requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
+      const now = new Date();
       const articles = await database.newsArticle.findMany({
-        where: user.role === "ADMIN" ? {} : { isPublished: true },
-        orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+        where:
+          user.role === "ADMIN"
+            ? {}
+            : {
+                isPublished: true,
+                AND: [
+                  { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+                  { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+                ],
+              },
+        orderBy: [
+          { isFeatured: "desc" },
+          { publishedAt: "desc" },
+          { createdAt: "desc" },
+        ],
         take: 100,
       });
       response.json({ articles });
@@ -60,12 +95,16 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createArticleBody>>(response);
       const isPublished = input.isPublished ?? false;
+      const startsAt = input.startsAt ? new Date(input.startsAt) : null;
       const article = await database.newsArticle.create({
         data: {
           title: input.title,
           content: input.content,
           isPublished,
-          publishedAt: isPublished ? new Date() : null,
+          startsAt,
+          endsAt: input.endsAt ? new Date(input.endsAt) : null,
+          isFeatured: input.isFeatured ?? false,
+          publishedAt: isPublished ? (startsAt ?? new Date()) : null,
           createdById: user.id,
         },
       });
@@ -83,7 +122,7 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
       const input = bodyOf<z.infer<typeof updateArticleBody>>(response);
       const current = await database.newsArticle.findUnique({
         where: { id: articleId },
-        select: { id: true, isPublished: true },
+        select: { id: true, isPublished: true, startsAt: true, endsAt: true },
       });
       if (!current)
         throw new HttpError(
@@ -92,17 +131,46 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
           "Новость не найдена.",
         );
 
-      const publishedAt =
-        input.isPublished === undefined
+      const startsAt =
+        input.startsAt === undefined
           ? undefined
-          : input.isPublished
-            ? current.isPublished
-              ? undefined
-              : new Date()
+          : input.startsAt
+            ? new Date(input.startsAt)
+            : null;
+      const endsAt =
+        input.endsAt === undefined
+          ? current.endsAt
+          : input.endsAt
+            ? new Date(input.endsAt)
+            : null;
+      const effectiveStartsAt =
+        startsAt === undefined ? current.startsAt : startsAt;
+      if (effectiveStartsAt && endsAt && effectiveStartsAt >= endsAt) {
+        throw new HttpError(
+          400,
+          "INVALID_NEWS_SCHEDULE",
+          "Дата окончания должна быть позже даты начала.",
+        );
+      }
+      const nextPublished = input.isPublished ?? current.isPublished;
+      const publishedAt =
+        input.isPublished === undefined && input.startsAt === undefined
+          ? undefined
+          : nextPublished
+            ? ((startsAt === undefined ? current.startsAt : startsAt) ??
+              new Date())
             : null;
       const article = await database.newsArticle.update({
         where: { id: articleId },
-        data: { ...input, publishedAt },
+        data: {
+          title: input.title,
+          content: input.content,
+          isPublished: input.isPublished,
+          startsAt,
+          endsAt: input.endsAt === undefined ? undefined : endsAt,
+          isFeatured: input.isFeatured,
+          publishedAt,
+        },
       });
       response.json({ article });
     },

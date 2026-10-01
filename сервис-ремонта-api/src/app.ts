@@ -17,6 +17,33 @@ export const createApp = ({ database, logger }: CreateAppOptions): Express => {
   const app = express();
 
   app.disable("x-powered-by");
+  const webOrigins = new Set(
+    (process.env.WEB_APP_ORIGIN ?? "")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+  );
+  app.use((request, response, next) => {
+    const origin = request.header("origin");
+    if (origin && webOrigins.has(origin)) {
+      response.setHeader("Access-Control-Allow-Origin", origin);
+      response.setHeader("Vary", "Origin");
+      response.setHeader(
+        "Access-Control-Allow-Methods",
+        "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+      );
+      response.setHeader(
+        "Access-Control-Allow-Headers",
+        "Authorization,Content-Type",
+      );
+      response.setHeader("Access-Control-Max-Age", "600");
+    }
+    if (request.method === "OPTIONS") {
+      response.status(origin && webOrigins.has(origin) ? 204 : 403).end();
+      return;
+    }
+    next();
+  });
   app.use(helmet());
   app.use(
     pinoHttp({

@@ -167,6 +167,9 @@ model NewsArticle {
   content       String    @db.VarChar(8000)
   imageObjectId String?   @map("image_object_id") @db.VarChar(255)
   isPublished   Boolean   @default(false) @map("is_published")
+  startsAt      DateTime? @map("starts_at") @db.Timestamptz(3)
+  endsAt        DateTime? @map("ends_at") @db.Timestamptz(3)
+  isFeatured    Boolean   @default(false) @map("is_featured")
   publishedAt   DateTime? @map("published_at") @db.Timestamptz(3)
   createdById   String?   @map("created_by_id") @db.Uuid
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)

@@ -1,0 +1,26 @@
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { requestJson as request } from "./request-json";
+
+describe("request transport", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("passes the abort signal and request options to fetch", async () => {
+    const fetch = vi.fn().mockResolvedValue(Response.json({ id: 1 }));
+    vi.stubGlobal("fetch", fetch);
+    const signal = new AbortController().signal;
+    const init = { signal, method: "POST", body: JSON.stringify({ label: "Example" }) };
+    await expect(request("/api/items", init)).resolves.toEqual({ id: 1 });
+    expect(fetch).toHaveBeenCalledWith("/api/items", init);
+  });
+
+  it("rejects HTTP errors instead of caching an error response as successful data", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Unavailable", { status: 503 })));
+    await expect(request("/api/items")).rejects.toThrow("Request failed (503)");
+  });
+
+  it("accepts mutations with no response body", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
+    await expect(request<void>("/api/items/1", { method: "DELETE" })).resolves.toBeUndefined();
+  });
+});

@@ -48,6 +48,9 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       title: "Работаем в праздники",
       content: "Принимаем заявки в обычном режиме.",
       isPublished: true,
+      startsAt: null,
+      endsAt: null,
+      isFeatured: false,
       publishedAt: new Date("2026-09-20T12:00:00.000Z"),
       createdById: "admin-1",
     },
@@ -56,7 +59,32 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       title: "Черновик новости",
       content: "Этот текст пока не опубликован.",
       isPublished: false,
+      startsAt: null,
+      endsAt: null,
+      isFeatured: false,
       publishedAt: null,
+      createdById: "admin-1",
+    },
+    {
+      id: "44444444-4444-4444-8444-444444444444",
+      title: "Будущая публикация",
+      content: "Пока не должна отображаться.",
+      isPublished: true,
+      startsAt: new Date(Date.now() + 60_000),
+      endsAt: null,
+      isFeatured: true,
+      publishedAt: new Date(),
+      createdById: "admin-1",
+    },
+    {
+      id: "55555555-5555-4555-8555-555555555555",
+      title: "Срок истёк",
+      content: "Не должна отображаться.",
+      isPublished: true,
+      startsAt: null,
+      endsAt: new Date(Date.now() - 60_000),
+      isFeatured: true,
+      publishedAt: new Date(),
       createdById: "admin-1",
     },
   ];
@@ -70,12 +98,17 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       },
     },
     newsArticle: {
-      findMany: async ({ where }: { where: { isPublished?: boolean } }) =>
-        articles.filter(
-          (article) =>
-            where.isPublished === undefined ||
-            article.isPublished === where.isPublished,
-        ),
+      findMany: async ({ where }: { where: Record<string, unknown> }) => {
+        const now = new Date();
+        return articles.filter((article) => {
+          if (where.isPublished === undefined) return true;
+          return (
+            article.isPublished &&
+            (!article.startsAt || article.startsAt <= now) &&
+            (!article.endsAt || article.endsAt > now)
+          );
+        });
+      },
       create: async ({ data }: { data: Record<string, unknown> }) => {
         const created = {
           id: "33333333-3333-4333-8333-333333333333",
@@ -87,7 +120,11 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       findUnique: async ({ where }: { where: { id: string } }) => {
         const article = articles.find((entry) => entry.id === where.id);
         return article
-          ? { id: article.id, isPublished: article.isPublished }
+          ? {
+              id: article.id,
+              isPublished: article.isPublished,
+              startsAt: article.startsAt,
+            }
           : null;
       },
       update: async ({
@@ -131,7 +168,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
   );
 
   const adminNews = await fetch(baseUrl, { headers: headers(adminToken) });
-  assert.equal((await adminNews.json()).articles.length, 2);
+  assert.equal((await adminNews.json()).articles.length, 4);
 
   const createDraft = await fetch(baseUrl, {
     method: "POST",
@@ -143,6 +180,38 @@ test("only administrators write news and customer-facing reads exclude drafts", 
   });
   assert.equal(createDraft.status, 201);
   assert.equal((await createDraft.json()).article.isPublished, false);
+
+  const createScheduled = await fetch(baseUrl, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({
+      title: "Плановая акция",
+      content: "Текст акции для клиентов.",
+      isPublished: true,
+      startsAt: "2026-10-02T09:00:00.000Z",
+      endsAt: "2026-10-05T18:00:00.000Z",
+      isFeatured: true,
+    }),
+  });
+  assert.equal(createScheduled.status, 201);
+  const scheduledArticle = (await createScheduled.json()).article;
+  assert.equal(scheduledArticle.isFeatured, true);
+  assert.equal(
+    new Date(scheduledArticle.startsAt).toISOString(),
+    "2026-10-02T09:00:00.000Z",
+  );
+
+  const invalidSchedule = await fetch(baseUrl, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({
+      title: "Неверный срок",
+      content: "Окончание раньше начала.",
+      startsAt: "2026-10-05T18:00:00.000Z",
+      endsAt: "2026-10-02T09:00:00.000Z",
+    }),
+  });
+  assert.equal(invalidSchedule.status, 400);
 
   const techCreate = await fetch(baseUrl, {
     method: "POST",

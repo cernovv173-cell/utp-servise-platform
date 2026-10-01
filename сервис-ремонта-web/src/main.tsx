@@ -1,0 +1,43 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { RouterProvider, createRouter } from "@tanstack/react-router";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+
+import "@/index.css";
+
+import { AppToaster } from "@/components/app-toaster";
+
+import { queryClient } from "@/lib/query-client";
+
+import { routeTree } from "@/routeTree.gen";
+
+const routerBasePath =
+  new URL(import.meta.env.BASE_URL, window.location.href).pathname.replace(/\/$/u, "") || "/";
+
+const router = createRouter({
+  basepath: routerBasePath,
+  routeTree,
+  defaultPreload: "intent",
+  scrollRestoration: true,
+});
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element was not found");
+}
+
+createRoot(rootElement).render(
+  <StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+      <AppToaster />
+    </QueryClientProvider>
+  </StrictMode>,
+);
