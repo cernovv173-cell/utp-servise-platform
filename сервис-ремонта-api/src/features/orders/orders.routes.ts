@@ -25,6 +25,15 @@ const createOrderBody = z
     preferredAt: z.string().datetime().nullable().optional(),
   })
   .strict();
+const editOrderBody = z
+  .object({
+    deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]).optional(),
+    problem: z.string().trim().min(5).max(2000).optional(),
+    address: z.string().trim().min(8).max(500).optional(),
+    preferredAt: z.string().datetime().nullable().optional(),
+  })
+  .strict()
+  .refine((body) => Object.keys(body).length > 0);
 const statusBody = z
   .object({
     status: z.enum(["IN_PROGRESS", "COMPLETED", "CANCELLED"]),
@@ -56,6 +65,7 @@ const orderDetails = (role: UserRole) => ({
     select: {
       id: true,
       displayName: true,
+      avatarObjectId: true,
       phoneNumber: role === "TECHNICIAN" || role === "ADMIN",
     },
   },
@@ -63,6 +73,7 @@ const orderDetails = (role: UserRole) => ({
     select: {
       id: true,
       displayName: true,
+      avatarObjectId: true,
       phoneNumber: role === "CUSTOMER" || role === "ADMIN",
     },
   },
@@ -79,6 +90,15 @@ const orderDetails = (role: UserRole) => ({
   items: {
     orderBy: { createdAt: "asc" as const },
     include: { addedBy: { select: { id: true, displayName: true } } },
+  },
+  photos: {
+    orderBy: { createdAt: "asc" as const },
+    select: {
+      id: true,
+      objectId: true,
+      createdAt: true,
+      createdBy: { select: { displayName: true } },
+    },
   },
   review: true,
 });
@@ -148,6 +168,73 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
       });
       response.status(201).json({ order });
+    },
+  );
+
+  router.patch(
+    "/orders/:orderId",
+    requireAuth,
+    requireRoles("CUSTOMER", "ADMIN"),
+    validateRequest({ params: orderIdParams, body: editOrderBody }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const input = bodyOf<z.infer<typeof editOrderBody>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.$transaction(async (transaction) => {
+        const current = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          select: {
+            id: true,
+            customerId: true,
+            assignedTechnicianId: true,
+            status: true,
+            updatedAt: true,
+          },
+        });
+        if (!current || !canViewRepairOrder(user.role, user.id, current)) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
+        const editableStatus =
+          current.status === "REQUESTED" ||
+          (user.role === "ADMIN" && current.status === "ASSIGNED");
+        if (!editableStatus) {
+          throw new HttpError(
+            409,
+            "ORDER_NOT_EDITABLE",
+            "Редактировать можно только новую заявку; администратор также может изменить заявку с назначенным мастером.",
+          );
+        }
+        const update = await transaction.repairOrder.updateMany({
+          where: {
+            id: current.id,
+            status: current.status,
+            updatedAt: current.updatedAt,
+          },
+          data: {
+            deviceType: input.deviceType,
+            problem: input.problem,
+            address: input.address,
+            preferredAt:
+              input.preferredAt === undefined
+                ? undefined
+                : input.preferredAt
+                  ? new Date(input.preferredAt)
+                  : null,
+          },
+        });
+        if (update.count !== 1) {
+          throw new HttpError(
+            409,
+            "ORDER_CHANGED",
+            "Заявка уже изменилась. Обновите список и повторите действие.",
+          );
+        }
+        return transaction.repairOrder.findUniqueOrThrow({
+          where: { id: orderId },
+          include: orderDetails(user.role),
+        });
+      });
+      response.json({ order });
     },
   );
 

@@ -222,6 +222,7 @@ private fun UtpServiseApp() {
             adminChats = adminChats,
             activeChat = activeChat,
             onChatUpdated = { activeChat = it },
+            onUserUpdated = { user = it },
             busy = busy,
             errorMessage = errorMessage,
             onError = { errorMessage = it },
@@ -271,6 +272,7 @@ private fun AuthenticatedWorkspace(
     adminChats: List<AdminChatInboxItem>,
     activeChat: OrderChat?,
     onChatUpdated: (OrderChat) -> Unit,
+    onUserUpdated: (AppUser) -> Unit,
     busy: Boolean,
     errorMessage: String?,
     onError: (String) -> Unit,
@@ -346,7 +348,7 @@ private fun AuthenticatedWorkspace(
                 NavHost(navController = navController, startDestination = destinations.first().route, modifier = Modifier.fillMaxSize()) {
                     when (user.role) {
                         "CUSTOMER" -> {
-                            composable("customer/home") { CustomerHomeScreen(user, news, { navController.navigate("customer/new-order") }, { navController.navigate("customer/orders") }) }
+                            composable("customer/home") { CustomerHomeScreen(user, token, news, { navController.navigate("customer/new-order") }, { navController.navigate("customer/orders") }) }
                             composable("customer/orders") {
                                 RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }) { id -> navController.navigate("customer/review/$id") }
                             }
@@ -354,7 +356,7 @@ private fun AuthenticatedWorkspace(
                                 RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }) { id -> navController.navigate("customer/review/$id") }
                             }
                             composable("customer/reviews") { ReviewsScreen("Мои отзывы", reviews, refresh) }
-                            composable("customer/profile") { ProfileScreen(user, token, runAction, onLogout) }
+                            composable("customer/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
                             composable("customer/new-order") {
                                 RepairRequestForm(
                                     onBack = { navController.popBackStack() },
@@ -372,7 +374,7 @@ private fun AuthenticatedWorkspace(
                             composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }) {} }
                             composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }) {} }
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh) }
-                            composable("technician/profile") { ProfileScreen(user, token, runAction, onLogout) }
+                            composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
                         }
                         else -> {
                             composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh) {} }
@@ -397,7 +399,7 @@ private fun AuthenticatedWorkspace(
                             }
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh) }
-                            composable("admin/profile") { ProfileScreen(user, token, runAction, onLogout) }
+                            composable("admin/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
                         }
                     }
                     composable("chat/{orderId}") { entry ->

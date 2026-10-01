@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -48,7 +49,7 @@ import ru.utp.servise.data.roleLabel
 private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
 
 @Composable
-fun CustomerHomeScreen(user: AppUser, news: List<NewsArticle>, onCreateRequest: () -> Unit, onOrders: () -> Unit) {
+fun CustomerHomeScreen(user: AppUser, token: String, news: List<NewsArticle>, onCreateRequest: () -> Unit, onOrders: () -> Unit) {
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Image(painterResource(R.drawable.utp_servise_logo), "Логотип UTP Servise", Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
@@ -109,6 +110,14 @@ fun CustomerHomeScreen(user: AppUser, news: List<NewsArticle>, onCreateRequest: 
                 colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
             ) {
                 Column(Modifier.padding(15.dp)) {
+                    article.imageObjectId?.let { imageId ->
+                        RemoteProjectImage(
+                            imageId,
+                            token,
+                            Modifier.fillMaxWidth().height(150.dp),
+                            "Фотография к новости ${article.title}",
+                        )
+                    }
                     Text(article.title, fontWeight = FontWeight.SemiBold, color = UtpInk, fontSize = 15.sp)
                     Text(article.content, color = UtpMuted, fontSize = 13.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 6.dp))
                 }
@@ -126,7 +135,7 @@ fun RepairRequestForm(onBack: () -> Unit, onSubmit: (String, String, String) -> 
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
         Text("Новая заявка", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Сотрудники сервиса увидят детали и свяжутся с вами.", fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 16.dp))
+        Text("Сотрудники сервиса увидят детали и свяжутся с вами. Фото можно будет добавить в карточке заявки.", fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 16.dp))
         Box {
             OutlinedButton(onClick = { deviceMenu = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                 Text("Устройство: ${device.deviceLabel()}", modifier = Modifier.weight(1f))
@@ -155,7 +164,14 @@ fun RepairRequestForm(onBack: () -> Unit, onSubmit: (String, String, String) -> 
 }
 
 @Composable
-fun ProfileScreen(user: AppUser, token: String, runAction: RunAction, onLogout: () -> Unit) {
+fun ProfileScreen(
+    user: AppUser,
+    token: String,
+    runAction: RunAction,
+    onUserUpdated: (AppUser) -> Unit,
+    onLogout: () -> Unit,
+) {
+    val context = LocalContext.current
     var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
     var savedPhone by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
@@ -163,9 +179,31 @@ fun ProfileScreen(user: AppUser, token: String, runAction: RunAction, onLogout: 
         Spacer(Modifier.height(15.dp))
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
-                Text(user.displayName, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = UtpInk)
-                Text(user.email, fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    RemoteProjectImage(
+                        user.avatarObjectId,
+                        token,
+                        Modifier.size(62.dp).clip(RoundedCornerShape(31.dp)),
+                        "Аватар ${user.displayName}",
+                    )
+                    Column(Modifier.padding(start = 12.dp)) {
+                        Text(user.displayName, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = UtpInk)
+                        Text(user.email, fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+                    }
+                }
                 Text(user.role.roleLabel(), fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 9.dp))
+                PhotoPickerButton(
+                    label = if (user.avatarObjectId == null) "Добавить аватар" else "Изменить аватар",
+                ) { uri ->
+                    runAction({
+                        ru.utp.servise.data.ApiClient.updateAvatar(
+                            token,
+                            compressSelectedImage(context, uri),
+                        )
+                    }) { result ->
+                        (result as? AppUser)?.let(onUserUpdated)
+                    }
+                }
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -186,9 +224,11 @@ fun ProfileScreen(user: AppUser, token: String, runAction: RunAction, onLogout: 
                     onClick = {
                         val normalized = phoneNumber.trim().takeIf { it.isNotEmpty() }
                         runAction({ ru.utp.servise.data.ApiClient.updatePhoneNumber(token, normalized) }) { result ->
-                            val updated = (result as? AppUser)?.phoneNumber.orEmpty()
-                            phoneNumber = updated
-                            savedPhone = updated
+                            val updatedUser = result as? AppUser
+                            updatedUser?.let(onUserUpdated)
+                            val updatedPhone = updatedUser?.phoneNumber.orEmpty()
+                            phoneNumber = updatedPhone
+                            savedPhone = updatedPhone
                         }
                     },
                     enabled = phoneNumber.trim() != savedPhone,

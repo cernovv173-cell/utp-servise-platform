@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ApiClient
@@ -82,6 +83,7 @@ fun NewsManagementScreen(
     refresh: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
     var editedArticle by remember { mutableStateOf<NewsArticle?>(null) }
@@ -146,6 +148,14 @@ fun NewsManagementScreen(
         articles.forEach { article ->
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                    article.imageObjectId?.let { imageId ->
+                        RemoteProjectImage(
+                            imageId,
+                            token,
+                            Modifier.fillMaxWidth().height(170.dp),
+                            "Фотография к новости ${article.title}",
+                        )
+                    }
                     Text(article.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text(article.content, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
                     Text(if (article.isPublished) "Опубликована" else "Черновик", fontSize = 11.sp, color = UtpBlue, modifier = Modifier.padding(top = 7.dp))
@@ -154,6 +164,17 @@ fun NewsManagementScreen(
                         TextButton(
                             onClick = { runAction({ ApiClient.updateNews(token, article.copy(isPublished = !article.isPublished)) }) {} },
                         ) { Text(if (article.isPublished) "Снять" else "Опубликовать") }
+                    }
+                    PhotoPickerButton(
+                        label = if (article.imageObjectId == null) "Добавить фото" else "Заменить фото",
+                    ) { uri ->
+                        runAction({
+                            ApiClient.uploadNewsImage(
+                                token,
+                                article.id,
+                                compressSelectedImage(context, uri),
+                            )
+                        }) {}
                     }
                 }
             }

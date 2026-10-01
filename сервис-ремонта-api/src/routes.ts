@@ -3,8 +3,10 @@ import { Router } from "express";
 import { createAuthRouter } from "./features/auth/auth.routes.js";
 import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
 import { createChatRouter } from "./features/chat/chat.routes.js";
+import { createMediaRouter } from "./features/media/media.routes.js";
 import { createNewsRouter } from "./features/news/news.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
+import { createStaffRouter } from "./features/staff/staff.routes.js";
 import { createSystemRouter } from "./features/system/system.routes.js";
 import type { Database } from "./lib/database/database.js";
 import { HttpError } from "./lib/http/http-error.js";
@@ -22,10 +24,12 @@ export const createApiRouter = ({
 
   if (database) {
     router.use(createAuthRouter(database.client));
+    router.use(createStaffRouter(database.client));
     router.use(createCatalogRouter(database.client));
     router.use(createChatRouter(database.client));
     router.use(createNewsRouter(database.client));
     router.use(createOrdersRouter(database.client));
+    router.use(createMediaRouter(database.client));
   } else {
     router.use((request, _response, next) => {
       if (
@@ -35,7 +39,8 @@ export const createApiRouter = ({
         request.path.startsWith("/admin/chats") ||
         request.path.startsWith("/news") ||
         request.path.startsWith("/reviews") ||
-        request.path.startsWith("/staff")
+        request.path.startsWith("/staff") ||
+        request.path.startsWith("/media")
       ) {
         next(
           new HttpError(

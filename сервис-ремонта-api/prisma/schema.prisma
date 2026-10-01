@@ -39,6 +39,7 @@ model User {
   email               String              @unique @db.VarChar(320)
   displayName         String              @map("display_name") @db.VarChar(120)
   phoneNumber         String?             @map("phone_number") @db.VarChar(32)
+  avatarObjectId      String?             @map("avatar_object_id") @db.VarChar(255)
   passwordHash        String              @map("password_hash") @db.VarChar(255)
   role                UserRole            @default(CUSTOMER)
   active              Boolean             @default(true)
@@ -57,6 +58,7 @@ model User {
   requestedChats      OrderChat[]         @relation("ChatEscalationRequester")
   joinedChats         OrderChat[]         @relation("ChatAdministratorJoiner")
   pushDeviceTokens    PushDeviceToken[]
+  orderPhotos         RepairOrderPhoto[]
 
   @@index([role, active])
   @@map("users")
@@ -101,6 +103,7 @@ model RepairOrder {
   assignedTechnician   User?               @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusEvents         RepairStatusEvent[]
   items                RepairOrderItem[]
+  photos               RepairOrderPhoto[]
   chat                 OrderChat?
   review               Review?
 
@@ -129,6 +132,19 @@ model RepairOrderItem {
   @@map("repair_order_items")
 }
 
+model RepairOrderPhoto {
+  id          String      @id @default(uuid()) @db.Uuid
+  orderId     String      @map("order_id") @db.Uuid
+  objectId    String      @unique @map("object_id") @db.VarChar(255)
+  createdById String?     @map("created_by_id") @db.Uuid
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  order       RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("repair_order_photos")
+}
+
 model RepairCatalogItem {
   id           String              @id @default(uuid()) @db.Uuid
   type         RepairOrderItemType
@@ -146,15 +162,16 @@ model RepairCatalogItem {
 }
 
 model NewsArticle {
-  id          String    @id @default(uuid()) @db.Uuid
-  title       String    @db.VarChar(160)
-  content     String    @db.VarChar(8000)
-  isPublished Boolean   @default(false) @map("is_published")
-  publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
-  createdById String?   @map("created_by_id") @db.Uuid
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy   User?     @relation("NewsArticleCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  id            String    @id @default(uuid()) @db.Uuid
+  title         String    @db.VarChar(160)
+  content       String    @db.VarChar(8000)
+  imageObjectId String?   @map("image_object_id") @db.VarChar(255)
+  isPublished   Boolean   @default(false) @map("is_published")
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz(3)
+  createdById   String?   @map("created_by_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy     User?     @relation("NewsArticleCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([isPublished, publishedAt])
   @@map("news_articles")

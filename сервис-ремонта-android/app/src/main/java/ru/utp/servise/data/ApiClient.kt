@@ -12,6 +12,7 @@ data class AppUser(
     val email: String,
     val displayName: String,
     val phoneNumber: String? = null,
+    val avatarObjectId: String? = null,
     val role: String,
     val mustChangePassword: Boolean,
 )
@@ -25,12 +26,17 @@ data class RepairOrder(
     val createdAt: String,
     val customerName: String,
     val customerPhoneNumber: String?,
+    val customerAvatarObjectId: String?,
     val technicianName: String,
     val technicianPhoneNumber: String?,
+    val technicianAvatarObjectId: String?,
     val hasReview: Boolean,
     val history: List<String>,
     val items: List<RepairOrderItem>,
+    val photos: List<RepairOrderPhoto>,
 )
+
+data class RepairOrderPhoto(val id: String, val objectId: String)
 
 data class RepairOrderItem(
     val id: String,
@@ -55,6 +61,7 @@ data class NewsArticle(
     val content: String,
     val isPublished: Boolean,
     val publishedAt: String?,
+    val imageObjectId: String?,
 )
 
 data class OrderChatMessage(
@@ -90,6 +97,7 @@ data class StaffMember(
     val email: String,
     val displayName: String,
     val phoneNumber: String?,
+    val avatarObjectId: String?,
     val role: String,
     val active: Boolean,
 )
@@ -110,7 +118,7 @@ data class NewStaffResult(val staff: StaffMember, val temporaryPassword: String)
 class ApiException(val errorCode: String, override val message: String) : IOException(message)
 
 object ApiClient {
-    private val baseUrl: String = BuildConfig.API_BASE_URL.trimEnd('/')
+    internal val baseUrl: String = BuildConfig.API_BASE_URL.trimEnd('/')
 
     fun login(email: String, password: String, portal: String): AuthResult = authResult(
         request("POST", "/auth/login", body = JSONObject().put("email", email).put("password", password).put("portal", portal))
@@ -129,6 +137,10 @@ object ApiClient {
         "PATCH", "/auth/profile", token,
         JSONObject().put("phoneNumber", phoneNumber ?: JSONObject.NULL),
     ).getJSONObject("user").toUser()
+    fun updateAvatar(token: String, image: ByteArray): AppUser = MediaApiClient
+        .binaryRequest("POST", "/media/avatar", token, image)
+        .getJSONObject("user")
+        .toUser()
     fun logout(token: String) { request("POST", "/auth/logout", token) }
 
     fun registerPushToken(sessionToken: String, pushToken: String) {
@@ -178,6 +190,10 @@ object ApiClient {
             .put("isPublished", article.isPublished),
     ).getJSONObject("article").toNewsArticle()
 
+    fun uploadNewsImage(token: String, articleId: String, image: ByteArray) {
+        MediaApiClient.binaryRequest("POST", "/news/$articleId/image", token, image)
+    }
+
     fun orderChat(token: String, orderId: String): OrderChat = request(
         "GET", "/orders/$orderId/chat", token,
     ).getJSONObject("chat").toOrderChat()
@@ -203,6 +219,18 @@ object ApiClient {
         "POST", "/orders", token,
         JSONObject().put("deviceType", deviceType).put("problem", problem).put("address", address)
     ).getJSONObject("order").toOrder()
+
+    fun updateOrder(token: String, orderId: String, deviceType: String, problem: String, address: String): RepairOrder = request(
+        "PATCH", "/orders/$orderId", token,
+        JSONObject().put("deviceType", deviceType).put("problem", problem).put("address", address),
+    ).getJSONObject("order").toOrder()
+
+    fun uploadOrderPhoto(token: String, orderId: String, image: ByteArray) {
+        MediaApiClient.binaryRequest("POST", "/orders/$orderId/photos", token, image)
+    }
+
+    fun downloadMedia(token: String, objectId: String): ByteArray =
+        MediaApiClient.download(token, objectId)
 
     fun updateStatus(token: String, orderId: String, status: String, note: String = ""): RepairOrder = request(
         "PATCH", "/orders/$orderId/status", token,
@@ -230,6 +258,11 @@ object ApiClient {
 
     fun setStaffActive(token: String, staffId: String, active: Boolean): StaffMember = request(
         "PATCH", "/staff/$staffId/active", token, JSONObject().put("active", active)
+    ).getJSONObject("staff").toStaff()
+
+    fun updateStaff(token: String, staff: StaffMember): StaffMember = request(
+        "PATCH", "/staff/${staff.id}", token,
+        JSONObject().put("displayName", staff.displayName).put("phoneNumber", staff.phoneNumber ?: JSONObject.NULL),
     ).getJSONObject("staff").toStaff()
 
     fun reviews(token: String): List<CustomerReview> = request("GET", "/reviews", token)
@@ -275,6 +308,7 @@ object ApiClient {
     private fun JSONObject.toUser() = AppUser(
         id = getString("id"), email = getString("email"), displayName = getString("displayName"),
         phoneNumber = optString("phoneNumber").takeUnless { it.isBlank() || it == "null" },
+        avatarObjectId = optString("avatarObjectId").takeUnless { it.isBlank() || it == "null" },
         role = getString("role"), mustChangePassword = optBoolean("mustChangePassword")
     )
 
@@ -289,8 +323,10 @@ object ApiClient {
             address = getString("address"), status = getString("status"), createdAt = optString("createdAt"),
             customerName = customer?.optString("displayName").orEmpty(),
             customerPhoneNumber = customer?.optString("phoneNumber")?.takeUnless { it.isBlank() || it == "null" },
+            customerAvatarObjectId = customer?.optString("avatarObjectId")?.takeUnless { it.isBlank() || it == "null" },
             technicianName = technician?.optString("displayName").orEmpty(),
             technicianPhoneNumber = technician?.optString("phoneNumber")?.takeUnless { it.isBlank() || it == "null" },
+            technicianAvatarObjectId = technician?.optString("avatarObjectId")?.takeUnless { it.isBlank() || it == "null" },
             hasReview = existingReview != null && existingReview.length() > 0,
             history = statusEvents.mapObjects { event ->
                 val from = event.optString("from").takeUnless { it == "null" || it.isBlank() }
@@ -309,12 +345,16 @@ object ApiClient {
                     addedByName = item.optJSONObject("addedBy")?.optString("displayName").orEmpty(),
                 )
             },
+            photos = (optJSONArray("photos") ?: JSONArray()).mapObjects { photo ->
+                RepairOrderPhoto(photo.getString("id"), photo.getString("objectId"))
+            },
         )
     }
 
     private fun JSONObject.toStaff() = StaffMember(
         id = getString("id"), email = getString("email"), displayName = getString("displayName"),
         phoneNumber = optString("phoneNumber").takeUnless { it.isBlank() || it == "null" },
+        avatarObjectId = optString("avatarObjectId").takeUnless { it.isBlank() || it == "null" },
         role = getString("role"), active = optBoolean("active", true)
     )
 
@@ -332,6 +372,7 @@ object ApiClient {
         content = getString("content"),
         isPublished = optBoolean("isPublished", false),
         publishedAt = optString("publishedAt").takeUnless { it == "null" || it.isBlank() },
+        imageObjectId = optString("imageObjectId").takeUnless { it == "null" || it.isBlank() },
     )
 
     private fun JSONObject.toOrderChat() = OrderChat(

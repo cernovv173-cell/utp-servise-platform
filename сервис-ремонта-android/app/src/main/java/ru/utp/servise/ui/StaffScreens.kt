@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
@@ -38,6 +40,7 @@ import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.NewStaffResult
 import ru.utp.servise.data.StaffMember
+import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.roleLabel
 
 @Composable
@@ -53,6 +56,7 @@ fun StaffManagementScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var role by remember { mutableStateOf("TECHNICIAN") }
     var temporaryPassword by remember { mutableStateOf<String?>(null) }
+    var editedStaff by remember { mutableStateOf<StaffMember?>(null) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -102,16 +106,27 @@ fun StaffManagementScreen(
         staff.forEach { member ->
             Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
                 Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RemoteProjectImage(
+                        objectId = member.avatarObjectId,
+                        token = token,
+                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)),
+                        contentDescription = "Аватар ${member.displayName}",
+                    )
                     Column(Modifier.weight(1f)) {
                         Text(member.displayName, fontWeight = FontWeight.SemiBold, color = UtpInk)
                         Text(member.email, fontSize = 12.sp, color = UtpMuted)
                         member.phoneNumber?.takeIf { it.isNotBlank() }?.let { Text(it, fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 2.dp)) }
                         Text("${member.role.roleLabel()} · ${if (member.active) "Активен" else "Отключён"}", fontSize = 11.sp, color = if (member.active) UtpGreen else UtpMuted, modifier = Modifier.padding(top = 4.dp))
                     }
-                    if (member.id != currentUser.id) {
-                        TextButton(onClick = {
-                            runAction({ ru.utp.servise.data.ApiClient.setStaffActive(token, member.id, !member.active) }, {})
-                        }) { Text(if (member.active) "Отключить" else "Включить") }
+                    Column(horizontalAlignment = Alignment.End) {
+                        if (member.role == "TECHNICIAN") {
+                            TextButton(onClick = { editedStaff = member }) { Text("Изменить") }
+                        }
+                        if (member.id != currentUser.id) {
+                            TextButton(onClick = {
+                                runAction({ ApiClient.setStaffActive(token, member.id, !member.active) }, {})
+                            }) { Text(if (member.active) "Отключить" else "Включить") }
+                        }
                     }
                 }
             }
@@ -125,6 +140,59 @@ fun StaffManagementScreen(
             confirmButton = { TextButton(onClick = { temporaryPassword = null; refresh() }) { Text("Скопировал") } },
         )
     }
+    editedStaff?.let { member ->
+        EditTechnicianDialog(
+            staff = member,
+            onDismiss = { editedStaff = null },
+            onSave = { updated ->
+                runAction({ ApiClient.updateStaff(token, updated) }) { editedStaff = null }
+            },
+        )
+    }
+}
+
+@Composable
+private fun EditTechnicianDialog(
+    staff: StaffMember,
+    onDismiss: () -> Unit,
+    onSave: (StaffMember) -> Unit,
+) {
+    var displayName by remember(staff.id) { mutableStateOf(staff.displayName) }
+    var phoneNumber by remember(staff.id) { mutableStateOf(staff.phoneNumber.orEmpty()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Редактировать мастера") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = displayName,
+                    onValueChange = { displayName = it.take(120) },
+                    label = { Text("Имя") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                )
+                OutlinedTextField(
+                    value = phoneNumber,
+                    onValueChange = { phoneNumber = it.take(32) },
+                    label = { Text("Телефон") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onSave(staff.copy(displayName = displayName.trim(), phoneNumber = phoneNumber.trim().takeIf { it.isNotEmpty() }))
+                },
+                enabled = displayName.trim().length >= 2,
+            ) { Text("Сохранить") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
+    )
 }
 
 @Composable
