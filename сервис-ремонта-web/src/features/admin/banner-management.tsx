@@ -39,19 +39,29 @@ export const BannerManagement = () => {
       return;
     }
     const image = values.get("image");
+    const activateAfterUpload = values.get("isActive") === "on";
+    if (activateAfterUpload && (!(image instanceof File) || !image.size)) {
+      setError("Для активации выберите изображение баннера.");
+      return;
+    }
     create.mutate(
       {
         title: String(values.get("title")),
         content: String(values.get("content")),
         targetUrl: String(values.get("targetUrl") || "") || null,
+        placements: values.getAll("placements").map(String) as NonNullable<
+          Parameters<typeof createBanner>[1]["placements"]
+        >,
         startsAt: iso(starts),
         endsAt: iso(ends),
-        isActive: values.get("isActive") === "on",
+        isActive: false,
       },
       {
         onSuccess: async ({ banner }) => {
-          if (image instanceof File && image.size)
+          if (image instanceof File && image.size) {
             await uploadAdminImage(`/banners/${banner.id}/image`, token!, image);
+            if (activateAfterUpload) await updateBanner(token!, banner.id, { isActive: true });
+          }
           form.reset();
           await client.invalidateQueries({ queryKey: ["banners", token] });
         },
@@ -62,7 +72,7 @@ export const BannerManagement = () => {
     <SectionCard>
       <h2 className="font-semibold">Рекламные баннеры</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Активный баннер показывается в приоритетной зоне главной страницы в указанный период.
+        Выберите места показа и период. Для включения кампании обязательны изображение и ссылка.
       </p>
       <form onSubmit={submit} className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="grid gap-1 text-sm font-medium">
@@ -76,10 +86,12 @@ export const BannerManagement = () => {
           />
         </label>
         <label className="grid gap-1 text-sm font-medium">
-          Ссылка, необязательно
+          Ссылка (HTTP(S) или app://раздел)
           <input
             name="targetUrl"
-            type="url"
+            type="text"
+            required
+            placeholder="https://example.ru или app://news"
             className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
           />
         </label>
@@ -87,6 +99,8 @@ export const BannerManagement = () => {
           Текст
           <textarea
             name="content"
+            required
+            minLength={1}
             maxLength={1000}
             rows={2}
             className="rounded-lg border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-950"
@@ -100,6 +114,30 @@ export const BannerManagement = () => {
             className="h-10 rounded-lg border border-slate-200 bg-white px-2 font-normal dark:border-slate-700 dark:bg-slate-950"
           />
         </label>
+        <fieldset className="grid gap-2 text-sm md:col-span-2">
+          <legend className="font-medium">Места показа</legend>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {[
+              ["HOME", "Главная"],
+              ["NEWS", "Новости"],
+              ["SERVICE", "Услуги"],
+              ["CRAFTS", "Изделия"],
+              ["ABOUT", "О компании"],
+              ["LOYALTY", "Лояльность"],
+            ].map(([value, label]) => (
+              <label key={value} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  name="placements"
+                  value={value}
+                  defaultChecked={value === "HOME"}
+                  className="size-4 accent-blue-600"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <label className="grid gap-1 text-sm font-medium">
           Окончание показа
           <input
@@ -119,7 +157,7 @@ export const BannerManagement = () => {
         </label>
         <label className="flex items-center gap-2 self-center text-sm">
           <input type="checkbox" name="isActive" className="size-4 accent-blue-600" />
-          Активировать
+          Активировать после загрузки изображения
         </label>
         {error && (
           <p role="alert" className="text-sm text-rose-600">
@@ -129,6 +167,11 @@ export const BannerManagement = () => {
         {create.isError && (
           <p role="alert" className="text-sm text-rose-600">
             Не удалось сохранить баннер. Проверьте адрес ссылки и изображение.
+          </p>
+        )}
+        {update.isError && (
+          <p role="alert" className="text-sm text-rose-600">
+            Не удалось изменить состояние кампании. Для активации добавьте изображение и ссылку.
           </p>
         )}
         <button
@@ -156,6 +199,7 @@ export const BannerManagement = () => {
                 {banner.endsAt
                   ? ` — ${new Date(banner.endsAt).toLocaleString("ru-RU")}`
                   : " — без даты окончания"}
+                <span className="block">Места: {banner.placements.join(", ")}</span>
               </p>
             </div>
             <button

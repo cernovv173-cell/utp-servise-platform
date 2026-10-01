@@ -26,6 +26,16 @@ export type RepairOrder = {
   deviceType: string;
   problem: string;
   address: string;
+  contactPhone: string | null;
+  city: string | null;
+  street: string | null;
+  house: string | null;
+  apartment: string | null;
+  entrance: string | null;
+  hasBarrier: boolean;
+  floor: string | null;
+  additionalPhone: string | null;
+  additionalInfo: string | null;
   status: string;
   preferredAt: string | null;
   expectedCompletionAt: string | null;
@@ -37,7 +47,7 @@ export type RepairOrder = {
   receipt?: RepairReceipt | null;
   assignedTechnicianId?: string | null;
   assignedTechnician?: { id: string; displayName: string } | null;
-  customer?: { id: string; displayName: string; email: string };
+  customer?: { id: string; displayName: string; email: string; phoneNumber?: string | null };
 };
 
 export type StaffMember = {
@@ -49,10 +59,17 @@ export type StaffMember = {
 };
 
 export type RepairReceipt = {
+  id: string;
   receiptNumber: string;
+  serviceNumber: string;
+  customerName: string;
+  customerPhone: string | null;
   issuedAt: string;
   totalRub: number;
   bonusDiscountRub: number;
+  paymentStatus: "PENDING" | "PAID";
+  paymentMethod: "CASH" | "CARD_TERMINAL" | "BANK_TRANSFER" | "OTHER" | null;
+  paidAt: string | null;
   itemsSnapshot: { name: string; quantity: number; unitPriceRub: number; totalRub: number }[];
 };
 
@@ -76,6 +93,7 @@ export type Review = {
   customer?: { displayName: string };
   order: { deviceType: string; problem: string };
   isPublished: boolean;
+  imageObjectId?: string | null;
 };
 
 export type CraftItem = {
@@ -124,6 +142,7 @@ export type SiteBanner = {
   startsAt: string | null;
   endsAt: string | null;
   isActive: boolean;
+  placements: ("HOME" | "NEWS" | "SERVICE" | "CRAFTS" | "ABOUT" | "LOYALTY")[];
 };
 
 export type CompanyInfo = {
@@ -169,15 +188,54 @@ export const getOrders = (token: string, signal?: AbortSignal) =>
 
 export const createOrder = (
   token: string,
-  input: { deviceType: string; problem: string; address: string },
+  input: {
+    deviceType: string;
+    problem: string;
+    contactPhone: string;
+    city: string;
+    street: string;
+    house: string;
+    apartment?: string;
+    entrance?: string;
+    hasBarrier?: boolean;
+    floor?: string;
+    additionalPhone?: string;
+    additionalInfo?: string;
+  },
 ) =>
   apiRequest<{ order: RepairOrder }>("/orders", token, {
     method: "POST",
     body: JSON.stringify(input),
   });
 
+export const updateRepairOrder = (
+  token: string,
+  orderId: string,
+  input: Partial<
+    Pick<
+      RepairOrder,
+      | "deviceType"
+      | "problem"
+      | "contactPhone"
+      | "city"
+      | "street"
+      | "house"
+      | "apartment"
+      | "entrance"
+      | "hasBarrier"
+      | "floor"
+      | "additionalPhone"
+      | "additionalInfo"
+    >
+  >,
+) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${orderId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
 export const getNews = (token: string, signal?: AbortSignal) =>
-  apiRequest<{ articles: NewsArticle[] }>("/news", token, { signal });
+  apiRequest<{ articles: NewsArticle[]; reviews: Review[] }>("/news", token, { signal });
 
 export const createNews = (
   token: string,
@@ -251,6 +309,16 @@ export const requestBonusRedemption = (token: string, orderId: string, redeemBon
 
 export const createRepairReceipt = (token: string, orderId: string) =>
   apiRequest<{ receipt: RepairReceipt }>(`/orders/${orderId}/receipt`, token, { method: "POST" });
+
+export const markReceiptPaid = (
+  token: string,
+  orderId: string,
+  paymentMethod: NonNullable<RepairReceipt["paymentMethod"]>,
+) =>
+  apiRequest<{ receipt: RepairReceipt }>(`/orders/${orderId}/receipt/payment`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ paymentMethod }),
+  });
 
 export const getCraftItems = (token: string, signal?: AbortSignal) =>
   apiRequest<{ items: CraftItem[] }>("/craft-items", token, { signal });

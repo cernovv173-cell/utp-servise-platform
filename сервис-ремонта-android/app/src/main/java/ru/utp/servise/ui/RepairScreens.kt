@@ -1,5 +1,6 @@
 package ru.utp.servise.ui
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -24,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -49,12 +52,16 @@ fun RepairOrdersScreen(
     refresh: () -> Unit,
     onChat: (String) -> Unit = {},
     onReview: (String) -> Unit,
+    loyaltyBalance: Int = 0,
 ) {
+    var searchText by remember { mutableStateOf("") }
+    var searchResults by remember { mutableStateOf<List<RepairOrder>?>(null) }
     val visibleOrders = if (historyOnly) {
         orders.filter { it.status == "COMPLETED" || it.status == "CANCELLED" }
     } else {
         orders.filter { it.status != "COMPLETED" && it.status != "CANCELLED" }
     }
+    val displayedOrders = searchResults ?: visibleOrders
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState())
             .padding(horizontal = 18.dp, vertical = 14.dp),
@@ -66,7 +73,29 @@ fun RepairOrdersScreen(
             }
             TextButton(onClick = refresh) { Text("Обновить") }
         }
-        if (visibleOrders.isEmpty()) {
+        if (role == "ADMIN") {
+            OutlinedTextField(
+                value = searchText,
+                onValueChange = { searchText = it; searchResults = null },
+                label = { Text("Поиск по сервисному номеру") },
+                placeholder = { Text("Например, SRV-2026-000001") },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+            )
+            OutlinedButton(
+                onClick = {
+                    runAction({ ApiClient.searchOrders(token, searchText) }) { result ->
+                        searchResults = (result as? List<*>)
+                            ?.filterIsInstance<RepairOrder>()
+                            ?: emptyList()
+                    }
+                },
+                enabled = searchText.trim().length >= 2,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Найти заявку") }
+        }
+        if (displayedOrders.isEmpty()) {
             Card(
                 modifier = Modifier.padding(top = 10.dp),
                 shape = RoundedCornerShape(18.dp),
@@ -79,8 +108,8 @@ fun RepairOrdersScreen(
                 )
             }
         }
-        visibleOrders.forEach { order ->
-            RepairOrderCard(order, role, token, technicians, catalogItems, runAction, onChat, onReview)
+        displayedOrders.forEach { order ->
+            RepairOrderCard(order, role, token, technicians, catalogItems, runAction, onChat, onReview, loyaltyBalance)
         }
     }
 }
@@ -89,6 +118,8 @@ fun RepairOrdersScreen(
 fun ReviewFormScreen(orderId: String, token: String, runAction: RunAction, onDone: () -> Unit) {
     var rating by remember { mutableStateOf(5) }
     var comment by remember { mutableStateOf("") }
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState())
             .padding(20.dp),
@@ -109,9 +140,19 @@ fun ReviewFormScreen(orderId: String, token: String, runAction: RunAction, onDon
             modifier = Modifier.fillMaxWidth().height(145.dp),
             shape = RoundedCornerShape(14.dp),
         )
+        PhotoPickerButton(if (imageUri == null) "Добавить фотографию" else "Изменить фотографию") { imageUri = it }
+        imageUri?.let { Text("Фотография добавлена", fontSize = 12.sp, color = UtpMuted) }
         Button(
             onClick = {
-                runAction({ ApiClient.createReview(token, orderId, rating, comment.trim()) }) { onDone() }
+                runAction({
+                    ApiClient.createReview(
+                        token,
+                        orderId,
+                        rating,
+                        comment.trim(),
+                        imageUri?.let { compressSelectedImage(context, it) },
+                    )
+                }) { onDone() }
             },
             modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
             enabled = comment.trim().length >= 3,
@@ -121,7 +162,14 @@ fun ReviewFormScreen(orderId: String, token: String, runAction: RunAction, onDon
 }
 
 @Composable
-fun ReviewsScreen(title: String, reviews: List<CustomerReview>, refresh: () -> Unit) {
+fun ReviewsScreen(
+    title: String,
+    reviews: List<CustomerReview>,
+    refresh: () -> Unit,
+    token: String? = null,
+    canModerate: Boolean = false,
+    runAction: RunAction? = null,
+) {
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState())
             .padding(18.dp),
@@ -144,12 +192,22 @@ fun ReviewsScreen(title: String, reviews: List<CustomerReview>, refresh: () -> U
                         Text(review.deviceType.deviceLabel(), fontSize = 12.sp, color = UtpMuted)
                     }
                     Text(review.comment, fontSize = 14.sp, color = UtpInk, modifier = Modifier.padding(top = 8.dp))
+                    review.imageObjectId?.let { image ->
+                        RemoteProjectImage(image, token.orEmpty(), Modifier.fillMaxWidth().height(170.dp).padding(top = 8.dp), "Фотография к отзыву")
+                    }
+                    Text(if (review.isPublished) "Опубликован" else "Ожидает модерации", fontSize = 11.sp, color = if (review.isPublished) UtpBlue else UtpMuted, modifier = Modifier.padding(top = 6.dp))
                     Text(
                         "${review.customerName}${review.technicianName.takeIf { it.isNotBlank() }?.let { " · Мастер: $it" }.orEmpty()}",
                         fontSize = 11.sp,
                         color = UtpMuted,
                         modifier = Modifier.padding(top = 9.dp),
                     )
+                    if (canModerate && runAction != null) {
+                        OutlinedButton(
+                            onClick = { runAction({ ApiClient.moderateReview(token.orEmpty(), review.id, !review.isPublished) }, {}) },
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        ) { Text(if (review.isPublished) "Снять с публикации" else "Одобрить публикацию") }
+                    }
                 }
             }
         }

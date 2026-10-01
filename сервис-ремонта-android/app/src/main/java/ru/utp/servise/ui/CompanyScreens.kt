@@ -38,6 +38,7 @@ import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CompanyInfo
 import ru.utp.servise.data.CompanySocial
+import ru.utp.servise.data.SiteBanner
 
 @Composable
 fun CompanyScreen(
@@ -46,6 +47,8 @@ fun CompanyScreen(
     busy: Boolean,
     runAction: RunAction,
     onBack: (() -> Unit)?,
+    banners: List<SiteBanner> = emptyList(),
+    onCampaignNavigate: (String) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
@@ -89,6 +92,7 @@ fun CompanyScreen(
                 Text("О компании", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk, modifier = Modifier.weight(1f))
                 TextButton(onClick = { reloadKey += 1 }, enabled = !loading) { Text("Обновить") }
             }
+            banners.filter { it.placements.contains("ABOUT") }.forEach { CampaignBannerCard(it, token, onCampaignNavigate) }
             if (loading && currentCompany == null) {
                 Column(
                     Modifier.fillMaxWidth().padding(vertical = 28.dp),

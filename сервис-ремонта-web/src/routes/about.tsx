@@ -4,6 +4,8 @@ import { Clock3, Mail, MapPin, Phone, Share2 } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
+import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
+
 import { getCompany } from "@/lib/api";
 
 const AboutPage = () => {
@@ -16,6 +18,7 @@ const AboutPage = () => {
         title={company?.name ?? "О компании"}
         description={company?.description}
       />
+      <CampaignPlacement placement="ABOUT" className="mb-5" />
       {company && (
         <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
           <div className="grid gap-5">

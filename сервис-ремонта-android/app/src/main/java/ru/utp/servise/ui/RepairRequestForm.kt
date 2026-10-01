@@ -1,0 +1,138 @@
+package ru.utp.servise.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import ru.utp.servise.data.OrderAddress
+import ru.utp.servise.data.deviceLabel
+
+private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
+
+@Composable
+fun RepairRequestForm(
+    initialPhone: String,
+    onBack: () -> Unit,
+    onSubmit: (String, String, OrderAddress) -> Unit,
+    busy: Boolean,
+    banners: List<ru.utp.servise.data.SiteBanner> = emptyList(),
+    token: String = "",
+    onCampaignNavigate: (String) -> Unit = {},
+) {
+    var device by remember { mutableStateOf(deviceTypes.first()) }
+    var deviceMenu by remember { mutableStateOf(false) }
+    var problem by remember { mutableStateOf("") }
+    var phone by remember(initialPhone) { mutableStateOf(initialPhone) }
+    var city by remember { mutableStateOf("") }
+    var street by remember { mutableStateOf("") }
+    var house by remember { mutableStateOf("") }
+    var apartment by remember { mutableStateOf("") }
+    var entrance by remember { mutableStateOf("") }
+    var hasBarrier by remember { mutableStateOf(false) }
+    var floor by remember { mutableStateOf("") }
+    var additionalPhone by remember { mutableStateOf("") }
+    var additionalInfo by remember { mutableStateOf("") }
+    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
+        TextButton(onClick = onBack) { Text("←  Назад") }
+        Text("Новая заявка", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Text(
+            "Сотрудники сервиса увидят детали и свяжутся с вами. Фото можно будет добавить в карточке заявки.",
+            fontSize = 13.sp,
+            color = UtpMuted,
+            modifier = Modifier.padding(top = 5.dp, bottom = 16.dp),
+        )
+        banners.filter { it.placements.contains("SERVICE") && it.isActive && it.imageObjectId != null }.forEach {
+            CampaignBannerCard(it, token, onCampaignNavigate)
+        }
+        Box {
+            OutlinedButton(onClick = { deviceMenu = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
+                Text("Устройство: ${device.deviceLabel()}", modifier = Modifier.weight(1f))
+                Text("⌄")
+            }
+            DropdownMenu(expanded = deviceMenu, onDismissRequest = { deviceMenu = false }) {
+                deviceTypes.forEach { item -> DropdownMenuItem(text = { Text(item.deviceLabel()) }, onClick = { device = item; deviceMenu = false }) }
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(problem, { problem = it.take(2000) }, label = { Text("Опишите неисправность") }, placeholder = { Text("Например: ноутбук не включается") }, modifier = Modifier.fillMaxWidth().height(128.dp), shape = RoundedCornerShape(14.dp))
+        Spacer(Modifier.height(10.dp))
+        AddressField(phone, { phone = it.take(32) }, "Телефон для связи *", KeyboardType.Phone)
+        AddressField(city, { city = it.take(120) }, "Город *")
+        AddressField(street, { street = it.take(180) }, "Улица *")
+        AddressField(house, { house = it.take(30) }, "Дом *")
+        AddressField(apartment, { apartment = it.take(30) }, "Квартира")
+        AddressField(entrance, { entrance = it.take(30) }, "Подъезд")
+        AddressField(floor, { floor = it.take(20) }, "Этаж")
+        AddressField(additionalPhone, { additionalPhone = it.take(32) }, "Дополнительный телефон", KeyboardType.Phone)
+        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Есть шлагбаум", Modifier.weight(1f), color = UtpInk)
+            Switch(checked = hasBarrier, onCheckedChange = { hasBarrier = it })
+            Text(if (hasBarrier) "Да" else "Нет", modifier = Modifier.padding(start = 8.dp), color = UtpMuted)
+        }
+        AddressField(additionalInfo, { additionalInfo = it.take(500) }, "Дополнительная информация")
+        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Text("Стоимость согласуется с вами. Оплата производится после завершения ремонта.", Modifier.padding(14.dp), color = UtpInk, fontSize = 13.sp, lineHeight = 19.sp)
+        }
+        Spacer(Modifier.height(18.dp))
+        Button(
+            onClick = {
+                onSubmit(
+                    device,
+                    problem.trim(),
+                    OrderAddress(phone.trim(), city.trim(), street.trim(), house.trim(), apartment.trim(), entrance.trim(), hasBarrier, floor.trim(), additionalPhone.trim(), additionalInfo.trim()),
+                )
+            },
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+            enabled = !busy && problem.trim().length >= 5 && phone.count(Char::isDigit) >= 7 && city.trim().length >= 2 && street.trim().length >= 2 && house.isNotBlank(),
+            shape = RoundedCornerShape(15.dp),
+        ) { Text(if (busy) "Отправка…" else "Отправить заявку") }
+    }
+}
+
+@Composable
+private fun AddressField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    keyboardType: KeyboardType = KeyboardType.Text,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        modifier = Modifier.fillMaxWidth().padding(bottom = 9.dp),
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+        shape = RoundedCornerShape(14.dp),
+    )
+}

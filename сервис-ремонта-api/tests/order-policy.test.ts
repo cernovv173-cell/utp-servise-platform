@@ -3,9 +3,24 @@ import { test } from "node:test";
 
 import {
   canAddRepairOrderItem,
+  calculateEarnedPoints,
+  calculateMaxBonusDiscount,
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "../src/features/orders/order-policy.js";
+
+test("loyalty limits redemption to the smaller of balance and 30% of the receipt", () => {
+  assert.equal(calculateMaxBonusDiscount(1_000, 1_000), 300);
+  assert.equal(calculateMaxBonusDiscount(1_000, 125), 125);
+  assert.equal(calculateMaxBonusDiscount(999, 1_000), 299);
+  assert.equal(calculateMaxBonusDiscount(1_000, -20), 0);
+});
+
+test("loyalty earns 10% of cash actually paid after redemption", () => {
+  assert.equal(calculateEarnedPoints(1_000), 100);
+  assert.equal(calculateEarnedPoints(700), 70);
+  assert.equal(calculateEarnedPoints(0), 0);
+});
 
 test("administrators can add order items to any order, technicians only to their assignment", () => {
   assert.equal(

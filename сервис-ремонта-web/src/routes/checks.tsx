@@ -1,16 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileText, Printer } from "lucide-react";
+import { useState } from "react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { createRepairReceipt, getOrders } from "@/lib/api";
+import { type RepairReceipt, createRepairReceipt, getOrders, markReceiptPaid } from "@/lib/api";
+
+const paymentLabels: Record<NonNullable<RepairReceipt["paymentMethod"]>, string> = {
+  CASH: "Наличные",
+  CARD_TERMINAL: "Карта через терминал",
+  BANK_TRANSFER: "Банковский перевод",
+  OTHER: "Другое",
+};
 
 const ChecksPage = () => {
   const { token, user } = useAuth();
   const client = useQueryClient();
+  const [paymentMethods, setPaymentMethods] = useState<
+    Record<string, NonNullable<RepairReceipt["paymentMethod"]>>
+  >({});
   const query = useQuery({
     queryKey: ["orders", token],
     queryFn: ({ signal }) => getOrders(token!, signal),
@@ -18,6 +29,16 @@ const ChecksPage = () => {
   });
   const issue = useMutation({
     mutationFn: (orderId: string) => createRepairReceipt(token!, orderId),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["orders", token] }),
+  });
+  const markPaid = useMutation({
+    mutationFn: ({
+      orderId,
+      method,
+    }: {
+      orderId: string;
+      method: NonNullable<RepairReceipt["paymentMethod"]>;
+    }) => markReceiptPaid(token!, orderId, method),
     onSuccess: () => client.invalidateQueries({ queryKey: ["orders", token] }),
   });
   return (
@@ -76,8 +97,13 @@ const ChecksPage = () => {
               {order.receipt && (
                 <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
                   <p className="text-xs text-slate-400">
-                    Документ № {order.receipt.receiptNumber} ·{" "}
+                    Чек № {order.receipt.receiptNumber} · Сервисный номер{" "}
+                    {order.receipt.serviceNumber} ·{" "}
                     {new Date(order.receipt.issuedAt).toLocaleDateString("ru-RU")}
+                  </p>
+                  <p className="mt-2 text-sm">
+                    Клиент: {order.receipt.customerName}
+                    {order.receipt.customerPhone ? ` · ${order.receipt.customerPhone}` : ""}
                   </p>
                   {order.receipt.itemsSnapshot.map((item, index) => (
                     <div
@@ -100,15 +126,73 @@ const ChecksPage = () => {
                       <span>−{order.receipt.bonusDiscountRub.toLocaleString("ru-RU")} ₽</span>
                     </div>
                   )}
+                  <div className="mt-2 flex justify-between border-t border-slate-100 pt-3 text-sm font-semibold dark:border-slate-800">
+                    <span>Итог к оплате</span>
+                    <span>
+                      {(order.receipt.totalRub - order.receipt.bonusDiscountRub).toLocaleString(
+                        "ru-RU",
+                      )}{" "}
+                      ₽
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm">
+                    Статус: {order.receipt.paymentStatus === "PAID" ? "Оплачено" : "Ожидает оплаты"}
+                    {order.receipt.paymentMethod
+                      ? ` · ${paymentLabels[order.receipt.paymentMethod]}`
+                      : ""}
+                  </p>
+                  {order.receipt.paidAt && (
+                    <p className="mt-1 text-xs text-slate-500">
+                      Оплачено {new Date(order.receipt.paidAt).toLocaleString("ru-RU")}
+                    </p>
+                  )}
                 </div>
               )}
               {user?.role === "ADMIN" && order.status === "COMPLETED" && (
-                <button
-                  onClick={() => issue.mutate(order.id)}
-                  className="mt-4 min-h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white"
-                >
-                  {order.receipt ? "Обновить документ" : "Создать документ по ремонту"}
-                </button>
+                <div className="mt-4 flex flex-wrap items-center gap-2 print:hidden">
+                  <button
+                    disabled={order.receipt?.paymentStatus === "PAID" || issue.isPending}
+                    onClick={() => issue.mutate(order.id)}
+                    className="min-h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
+                  >
+                    {order.receipt ? "Обновить чек" : "Создать чек"}
+                  </button>
+                  {order.receipt?.paymentStatus === "PENDING" && (
+                    <>
+                      <select
+                        aria-label="Способ оплаты"
+                        value={paymentMethods[order.id] ?? "CASH"}
+                        onChange={(event) =>
+                          setPaymentMethods((current) => ({
+                            ...current,
+                            [order.id]: event.target.value as NonNullable<
+                              RepairReceipt["paymentMethod"]
+                            >,
+                          }))
+                        }
+                        className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-900"
+                      >
+                        {Object.entries(paymentLabels).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        disabled={markPaid.isPending}
+                        onClick={() =>
+                          markPaid.mutate({
+                            orderId: order.id,
+                            method: paymentMethods[order.id] ?? "CASH",
+                          })
+                        }
+                        className="min-h-9 rounded-lg bg-emerald-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
+                      >
+                        Подтвердить фактическую оплату
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
             </SectionCard>
           );

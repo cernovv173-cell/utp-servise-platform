@@ -2,10 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
+import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { CampaignBanner } from "@/features/campaigns/campaign-banner";
 
-import { getNews } from "@/lib/api";
+import { getBanners, getNews } from "@/lib/api";
 
 const NewsPage = () => {
   const { token } = useAuth();
@@ -14,6 +16,12 @@ const NewsPage = () => {
     queryFn: ({ signal }) => getNews(token!, signal),
     enabled: Boolean(token),
   });
+  const banners = useQuery({
+    queryKey: ["banners", token],
+    queryFn: ({ signal }) => getBanners(token!, signal),
+    enabled: Boolean(token),
+  });
+  const publishedReviews = (query.data?.reviews ?? []).filter((review) => review.isPublished);
   return (
     <AppShell active="/news">
       <PageTitle
@@ -27,6 +35,13 @@ const NewsPage = () => {
           Не удалось загрузить новости.
         </p>
       )}
+      <div className="mb-5 grid gap-4 md:grid-cols-2">
+        {(banners.data?.banners ?? [])
+          .filter((banner) => banner.placements.includes("NEWS"))
+          .map((banner) => (
+            <CampaignBanner key={banner.id} banner={banner} />
+          ))}
+      </div>
       <div className="grid gap-4 md:grid-cols-2">
         {(query.data?.articles ?? [])
           .filter((item) => item.isPublished)
@@ -54,11 +69,37 @@ const NewsPage = () => {
               </p>
             </SectionCard>
           ))}
+        {publishedReviews.map((review) => (
+          <SectionCard key={`review-${review.id}`}>
+            {review.imageObjectId && (
+              <ProtectedImage
+                objectId={review.imageObjectId}
+                alt="Фотография к отзыву"
+                loading="lazy"
+                className="mb-4 max-h-56 w-full rounded-xl object-cover"
+              />
+            )}
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Отзыв клиента</h2>
+              <span className="text-sm font-semibold text-amber-600">★ {review.rating}/5</span>
+            </div>
+            <p className="mt-2 text-xs text-slate-400">
+              {review.customer?.displayName ?? "Клиент"} ·{" "}
+              {new Date(review.createdAt).toLocaleDateString("ru-RU")}
+            </p>
+            <p className="mt-3 text-sm leading-6 whitespace-pre-line text-slate-600 dark:text-slate-300">
+              {review.comment}
+            </p>
+          </SectionCard>
+        ))}
         {!query.isLoading &&
           !query.isError &&
-          (query.data?.articles ?? []).filter((item) => item.isPublished).length === 0 && (
+          (query.data?.articles ?? []).filter((item) => item.isPublished).length === 0 &&
+          publishedReviews.length === 0 && (
             <SectionCard className="md:col-span-2">
-              <p className="text-sm text-slate-500">Сейчас нет опубликованных новостей.</p>
+              <p className="text-sm text-slate-500">
+                Сейчас нет опубликованных новостей и отзывов.
+              </p>
             </SectionCard>
           )}
       </div>

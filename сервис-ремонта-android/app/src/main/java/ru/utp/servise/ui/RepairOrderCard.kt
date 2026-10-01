@@ -1,8 +1,6 @@
 package ru.utp.servise.ui
 
 import android.net.Uri
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,7 +14,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +44,7 @@ internal fun RepairOrderCard(
     runAction: RunAction,
     onChat: (String) -> Unit,
     onReview: (String) -> Unit,
+    loyaltyBalance: Int,
 ) {
     val context = LocalContext.current
     var showAssignment by remember { mutableStateOf(false) }
@@ -59,6 +57,7 @@ internal fun RepairOrderCard(
         colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(16.dp)) {
+            Text(order.serviceNumber, fontSize = 11.sp, color = UtpBlue, fontWeight = FontWeight.SemiBold)
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     order.deviceType.deviceLabel(),
@@ -67,10 +66,26 @@ internal fun RepairOrderCard(
                     color = UtpInk,
                     modifier = Modifier.weight(1f),
                 )
-                StatusPill(order.status.statusLabel())
+                OrderStatusPill(order.status.statusLabel())
             }
             Text(order.problem, fontSize = 13.sp, color = UtpInk, modifier = Modifier.padding(top = 9.dp))
-            Text(order.address, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+            val structuredAddress = listOfNotNull(
+                order.city,
+                order.street,
+                order.house?.let { "д. $it" },
+                order.apartment?.takeIf { it.isNotBlank() }?.let { "кв. $it" },
+                order.entrance?.takeIf { it.isNotBlank() }?.let { "подъезд $it" },
+                order.floor?.takeIf { it.isNotBlank() }?.let { "этаж $it" },
+                if (order.hasBarrier) "шлагбаум: да" else "шлагбаум: нет",
+                order.additionalInfo?.takeIf { it.isNotBlank() },
+            ).joinToString(", ")
+            Text(structuredAddress.ifBlank { order.address }, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+            order.contactPhone?.takeIf { it.isNotBlank() }?.let {
+                Text("Телефон для связи: $it", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 3.dp))
+            }
+            order.additionalPhone?.takeIf { it.isNotBlank() }?.let {
+                Text("Дополнительный телефон: $it", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 3.dp))
+            }
 
             if (role == "ADMIN" || role == "TECHNICIAN") {
                 Row(
@@ -170,6 +185,8 @@ internal fun RepairOrderCard(
                 }
             }
 
+            RepairReceiptPanel(order, role, token, loyaltyBalance, runAction)
+
             val actions = mutableListOf<Pair<String, String>>()
             when (role) {
                 "CUSTOMER" -> if (order.status == "REQUESTED") actions.add("Отменить заявку" to "CANCELLED")
@@ -187,8 +204,8 @@ internal fun RepairOrderCard(
                 }
             }
 
-            val canEdit = order.status == "REQUESTED" && role in listOf("CUSTOMER", "ADMIN") ||
-                order.status == "ASSIGNED" && role == "ADMIN"
+            val canEdit = (order.status == "REQUESTED" && role in listOf("CUSTOMER", "ADMIN")) ||
+                (order.status == "ASSIGNED" && role == "ADMIN")
             if (canEdit) {
                 OutlinedButton(
                     onClick = { showEdit = true },
@@ -262,17 +279,5 @@ internal fun RepairOrderCard(
                 }
             },
         )
-    }
-}
-
-@Composable
-private fun StatusPill(text: String) {
-    Box(
-        Modifier.background(
-            androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
-            RoundedCornerShape(30.dp),
-        ).padding(horizontal = 10.dp, vertical = 5.dp),
-    ) {
-        Text(text, fontSize = 10.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Medium)
     }
 }

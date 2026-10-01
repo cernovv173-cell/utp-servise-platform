@@ -82,7 +82,15 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
         ],
         take: 100,
       });
-      response.json({ articles });
+      const reviews = await database.review.findMany({
+        where: user.role === "ADMIN" ? {} : { isPublished: true },
+        include: {
+          customer: { select: { id: true, displayName: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+      response.json({ articles, reviews });
     },
   );
 

@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import ru.utp.servise.R
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.NewsArticle
+import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.roleLabel
 
@@ -56,10 +57,14 @@ fun CustomerHomeScreen(
     user: AppUser,
     token: String,
     news: List<NewsArticle>,
+    banners: List<SiteBanner>,
     onCreateRequest: () -> Unit,
     onOrders: () -> Unit,
     onCrafts: () -> Unit,
     onAbout: () -> Unit,
+    onNews: () -> Unit,
+    onLoyalty: () -> Unit,
+    onCampaignNavigate: (String) -> Unit,
 ) {
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -79,6 +84,20 @@ fun CustomerHomeScreen(
             }
         }
         Spacer(Modifier.height(23.dp))
+        banners.filter { it.placements.contains("HOME") }.forEach { banner ->
+            CampaignBannerCard(banner, token, onCampaignNavigate)
+        }
+        Card(onClick = onLoyalty, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("★", fontSize = 24.sp, color = UtpBlue)
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text("Бонусы и история", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text("10% после оплаты, списание до 30% чека", fontSize = 12.sp, color = UtpMuted)
+                }
+                Text("›", fontSize = 24.sp, color = UtpMuted)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
         Text("Что нужно отремонтировать?", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Spacer(Modifier.height(12.dp))
         Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -137,6 +156,7 @@ fun CustomerHomeScreen(
         }
         Spacer(Modifier.height(24.dp))
         Text("Новости сервиса", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        TextButton(onClick = onNews) { Text("Все новости и отзывы →") }
         Spacer(Modifier.height(10.dp))
         if (news.isEmpty()) {
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
@@ -144,43 +164,6 @@ fun CustomerHomeScreen(
             }
         }
         news.filterNot { it.isFeatured }.take(5).forEach { article -> CustomerNewsCard(article, token) }
-    }
-}
-
-@Composable
-fun RepairRequestForm(onBack: () -> Unit, onSubmit: (String, String, String) -> Unit, busy: Boolean) {
-    var device by remember { mutableStateOf(deviceTypes.first()) }
-    var deviceMenu by remember { mutableStateOf(false) }
-    var problem by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
-        TextButton(onClick = onBack) { Text("←  Назад") }
-        Text("Новая заявка", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Сотрудники сервиса увидят детали и свяжутся с вами. Фото можно будет добавить в карточке заявки.", fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 16.dp))
-        Box {
-            OutlinedButton(onClick = { deviceMenu = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                Text("Устройство: ${device.deviceLabel()}", modifier = Modifier.weight(1f))
-                Text("⌄")
-            }
-            DropdownMenu(expanded = deviceMenu, onDismissRequest = { deviceMenu = false }) {
-                deviceTypes.forEach { item -> DropdownMenuItem(text = { Text(item.deviceLabel()) }, onClick = { device = item; deviceMenu = false }) }
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(problem, { problem = it }, label = { Text("Опишите неисправность") }, placeholder = { Text("Например: ноутбук не включается") }, modifier = Modifier.fillMaxWidth().height(128.dp), shape = RoundedCornerShape(14.dp))
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(address, { address = it }, label = { Text("Адрес") }, placeholder = { Text("Город, улица, дом") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(14.dp))
-        Spacer(Modifier.height(14.dp))
-        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Text("Цена согласуется с вами. Оплата наличными или картой — после завершения ремонта.", Modifier.padding(14.dp), color = UtpInk, fontSize = 13.sp, lineHeight = 19.sp)
-        }
-        Spacer(Modifier.height(18.dp))
-        Button(
-            onClick = { onSubmit(device, problem.trim(), address.trim()) },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            enabled = !busy && problem.trim().length >= 5 && address.trim().length >= 8,
-            shape = RoundedCornerShape(15.dp),
-        ) { Text(if (busy) "Отправка…" else "Отправить заявку") }
     }
 }
 

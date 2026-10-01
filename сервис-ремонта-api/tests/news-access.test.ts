@@ -140,6 +140,9 @@ test("only administrators write news and customer-facing reads exclude drafts", 
         return article;
       },
     },
+    review: {
+      findMany: async () => [],
+    },
   };
   const app = express();
   app.use(express.json());

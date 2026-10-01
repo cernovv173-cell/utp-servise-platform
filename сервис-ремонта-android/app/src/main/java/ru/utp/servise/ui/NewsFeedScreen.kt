@@ -1,0 +1,74 @@
+package ru.utp.servise.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.Composable
+import ru.utp.servise.data.CustomerReview
+import ru.utp.servise.data.NewsArticle
+import ru.utp.servise.data.SiteBanner
+import java.time.Instant
+
+@Composable
+fun NewsFeedScreen(
+    token: String,
+    articles: List<NewsArticle>,
+    reviews: List<CustomerReview>,
+    banners: List<SiteBanner>,
+    onCampaignNavigate: (String) -> Unit,
+) {
+    val visibleArticles = articles.filter { it.isPublished }
+    val visibleReviews = reviews.filter { it.isPublished }
+    Column(
+        Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text("Новости и отзывы", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        banners.filter { it.placements.contains("NEWS") }.forEach { CampaignBannerCard(it, token, onCampaignNavigate) }
+        visibleArticles.forEach { article ->
+            Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                    article.imageObjectId?.let { image ->
+                        RemoteProjectImage(image, token, Modifier.fillMaxWidth().height(170.dp), "Изображение: ${article.title}")
+                    }
+                    Text(article.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.padding(top = 8.dp))
+                    Text(article.content, fontSize = 13.sp, color = UtpMuted, lineHeight = 19.sp, modifier = Modifier.padding(top = 6.dp))
+                    article.publishedAt?.let { Text(formatNewsDate(it), fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 8.dp)) }
+                }
+            }
+        }
+        visibleReviews.forEach { review ->
+            Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                    review.imageObjectId?.let { image ->
+                        RemoteProjectImage(image, token, Modifier.fillMaxWidth().height(170.dp), "Фотография к отзыву")
+                    }
+                    Text("Отзыв клиента · ★ ${review.rating}/5", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.padding(top = 8.dp))
+                    Text(review.comment, fontSize = 13.sp, color = UtpMuted, lineHeight = 19.sp, modifier = Modifier.padding(top = 6.dp))
+                    Text("${review.customerName.ifBlank { "Клиент" }} · ${formatNewsDate(review.createdAt)}", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+        }
+        if (visibleArticles.isEmpty() && visibleReviews.isEmpty()) {
+            Text("Пока нет опубликованных новостей и отзывов.", color = UtpMuted)
+        }
+    }
+}
+
+private fun formatNewsDate(value: String): String =
+    runCatching { Instant.parse(value).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString() }
+        .getOrDefault(value.take(10))

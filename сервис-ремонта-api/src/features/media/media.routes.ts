@@ -26,6 +26,7 @@ const mediaParams = z.object({ objectId: z.string().trim().min(1).max(255) });
 const newsParams = z.object({ articleId: z.string().uuid() });
 const craftItemParams = z.object({ itemId: z.string().uuid() });
 const bannerParams = z.object({ bannerId: z.string().uuid() });
+const reviewParams = z.object({ reviewId: z.string().uuid() });
 const orderParams = z.object({ orderId: z.string().uuid() });
 
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
@@ -185,6 +186,42 @@ export const createMediaRouter = (
   );
 
   router.post(
+    "/reviews/:reviewId/image",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    validateRequest({ params: reviewParams }),
+    imageBody,
+    async (request, response) => {
+      const { reviewId } = paramsOf<z.infer<typeof reviewParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const review = await database.review.findFirst({
+        where: { id: reviewId, customerId: user.id, isPublished: false },
+        select: { id: true, imageObjectId: true },
+      });
+      if (!review)
+        throw new HttpError(
+          404,
+          "REVIEW_NOT_FOUND",
+          "Отзыв не найден или уже опубликован.",
+        );
+      const image = imageOf(request);
+      const objectId = await storage.upload(image.bytes, image.contentType);
+      try {
+        const updated = await database.review.update({
+          where: { id: review.id },
+          data: { imageObjectId: objectId },
+        });
+        if (review.imageObjectId)
+          await storage.delete(review.imageObjectId).catch(() => undefined);
+        response.json({ review: updated });
+      } catch (error) {
+        await storage.delete(objectId).catch(() => undefined);
+        throw error;
+      }
+    },
+  );
+
+  router.post(
     "/orders/:orderId/photos",
     requireAuth,
     allowedRoles,
@@ -261,61 +298,77 @@ export const createMediaRouter = (
         if (!mayView) invalidMedia();
       } else {
         const now = new Date();
-        const article = await database.newsArticle.findFirst({
+        const review = await database.review.findFirst({
           where: {
             imageObjectId: objectId,
             ...(user.role === "ADMIN"
               ? {}
               : {
-                  isPublished: true,
-                  AND: [
-                    { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-                    { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
-                  ],
+                  OR: [{ isPublished: true }, { customerId: user.id }],
                 }),
           },
           select: { id: true },
         });
-        if (!article) {
-          const craftItem = await database.craftItem.findFirst({
+        if (!review) {
+          const article = await database.newsArticle.findFirst({
             where: {
               imageObjectId: objectId,
-              ...(user.role === "ADMIN" ? {} : { isPublished: true }),
+              ...(user.role === "ADMIN"
+                ? {}
+                : {
+                    isPublished: true,
+                    AND: [
+                      { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+                      { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+                    ],
+                  }),
             },
             select: { id: true },
           });
-          if (!craftItem) {
-            const banner = await database.siteBanner.findFirst({
+          if (!article) {
+            const craftItem = await database.craftItem.findFirst({
               where: {
                 imageObjectId: objectId,
-                ...(user.role === "ADMIN"
-                  ? {}
-                  : {
-                      isActive: true,
-                      AND: [
-                        {
-                          OR: [{ startsAt: null }, { startsAt: { lte: now } }],
-                        },
-                        { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
-                      ],
-                    }),
+                ...(user.role === "ADMIN" ? {} : { isPublished: true }),
               },
               select: { id: true },
             });
-            if (!banner) {
-              const photo = await database.repairOrderPhoto.findUnique({
-                where: { objectId },
-                select: {
-                  order: {
-                    select: { customerId: true, assignedTechnicianId: true },
-                  },
+            if (!craftItem) {
+              const banner = await database.siteBanner.findFirst({
+                where: {
+                  imageObjectId: objectId,
+                  ...(user.role === "ADMIN"
+                    ? {}
+                    : {
+                        isActive: true,
+                        AND: [
+                          {
+                            OR: [
+                              { startsAt: null },
+                              { startsAt: { lte: now } },
+                            ],
+                          },
+                          { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+                        ],
+                      }),
                 },
+                select: { id: true },
               });
-              if (
-                !photo ||
-                !canViewRepairOrder(user.role, user.id, photo.order)
-              )
-                invalidMedia();
+              if (!banner) {
+                const photo = await database.repairOrderPhoto.findUnique({
+                  where: { objectId },
+                  select: {
+                    order: {
+                      select: { customerId: true, assignedTechnicianId: true },
+                    },
+                  },
+                });
+                if (
+                  !photo ||
+                  !canViewRepairOrder(user.role, user.id, photo.order)
+                )
+                  invalidMedia();
+              }
             }
           }
         }

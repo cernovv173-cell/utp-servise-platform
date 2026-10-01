@@ -3,9 +3,9 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, ClipboardList, FileText, Newspaper, Sparkles } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
-import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { CampaignBanner } from "@/features/campaigns/campaign-banner";
 
 import { getBanners, getNews, getOrders } from "@/lib/api";
 
@@ -58,35 +58,11 @@ const HomePage = () => {
           </Link>
         </div>
       </SectionCard>
-      {(banners.data?.banners ?? []).map((banner) => (
-        <SectionCard key={banner.id} className="mb-5 overflow-hidden p-0">
-          {banner.imageObjectId && (
-            <ProtectedImage
-              objectId={banner.imageObjectId}
-              alt={banner.title}
-              loading="lazy"
-              className="max-h-56 w-full object-cover"
-            />
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-5">
-            <div>
-              <p className="text-xs font-semibold text-blue-600">Предложение сервиса</p>
-              <h2 className="mt-1 text-lg font-semibold">{banner.title}</h2>
-              <p className="mt-1 text-sm text-slate-500">{banner.content}</p>
-            </div>
-            {banner.targetUrl && (
-              <a
-                href={banner.targetUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="min-h-10 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700"
-              >
-                Подробнее
-              </a>
-            )}
-          </div>
-        </SectionCard>
-      ))}
+      {(banners.data?.banners ?? [])
+        .filter((banner) => banner.placements.includes("HOME"))
+        .map((banner) => (
+          <CampaignBanner key={banner.id} banner={banner} className="mb-5" />
+        ))}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Link to="/orders">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">

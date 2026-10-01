@@ -7,6 +7,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 
 import {
   createCraftItem,
@@ -69,6 +70,7 @@ const CraftsPage = () => {
         title="Рукоделия"
         description="Готовые изделия и изготовление под заказ. Оформите заявку — администратор подтвердит наличие и сроки."
       />
+      <CampaignPlacement placement="CRAFTS" className="mb-5" />
       {isAdmin && <AdminCatalog items={items.data?.items ?? []} token={token!} onSaved={refresh} />}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {(items.data?.items ?? [])

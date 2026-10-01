@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrder
+import ru.utp.servise.data.SiteBanner
 
 @Composable
 fun CraftsScreen(
@@ -45,6 +46,8 @@ fun CraftsScreen(
     runAction: RunAction,
     refresh: () -> Unit,
     onBack: () -> Unit,
+    banners: List<SiteBanner> = emptyList(),
+    onCampaignNavigate: (String) -> Unit = {},
 ) {
     var customTitle by remember { mutableStateOf("") }
     var customNote by remember { mutableStateOf("") }
@@ -56,6 +59,7 @@ fun CraftsScreen(
         TextButton(onClick = onBack) { Text("←  Назад") }
         Text("Рукоделия", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Готовые изделия и изготовление под заказ. Заявку обработает администратор.", fontSize = 13.sp, color = UtpMuted)
+        banners.filter { it.placements.contains("CRAFTS") }.forEach { CampaignBannerCard(it, token, onCampaignNavigate) }
 
         if (isAdmin) {
             CraftItemManagementScreen(token, items, runAction, refresh)

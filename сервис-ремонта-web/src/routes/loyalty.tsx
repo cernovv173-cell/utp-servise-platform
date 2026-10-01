@@ -5,6 +5,7 @@ import { ArrowDownLeft, ArrowUpRight, Info, Star } from "lucide-react";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 
 import { getLoyalty } from "@/lib/api";
 
@@ -20,8 +21,9 @@ const LoyaltyPage = () => {
       <PageTitle
         eyebrow="БОНУСЫ"
         title="Программа лояльности"
-        description="Начисляем 5% от завершённого ремонта. Один балл равен одному рублю; при завершении следующего заказа можно списать до 30% его суммы."
+        description="Начисляем 10% после подтверждения фактической оплаты. Один балл равен одному рублю; по чеку можно списать не более 30% его суммы."
       />
+      <CampaignPlacement placement="LOYALTY" className="mb-5" />
       <SectionCard className="max-w-3xl">
         <div className="flex items-start gap-4">
           <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950">
@@ -33,8 +35,8 @@ const LoyaltyPage = () => {
               {(query.data?.balance ?? 0).toLocaleString("ru-RU")} баллов
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Бонусы вычитаются из учётной суммы при завершении ремонта. Онлайн-оплата не
-              подключена.
+              Списание и начисление фиксируются после того, как администратор отметит чек как
+              оплаченный. Онлайн-оплата не подключена.
             </p>
           </div>
         </div>
@@ -68,7 +70,7 @@ const LoyaltyPage = () => {
         {!query.isLoading && (query.data?.transactions.length ?? 0) === 0 && (
           <SectionCard>
             <p className="text-sm text-slate-500">
-              Пока нет операций. Баллы появятся после завершения ремонта.
+              Пока нет операций. Баллы появятся после подтверждения оплаты чека.
             </p>
           </SectionCard>
         )}

@@ -1,150 +1,11 @@
 package ru.utp.servise.data
 
-import org.json.JSONArray
 import org.json.JSONObject
 import ru.utp.servise.BuildConfig
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
-
-data class AppUser(
-    val id: String,
-    val email: String,
-    val displayName: String,
-    val phoneNumber: String? = null,
-    val avatarObjectId: String? = null,
-    val role: String,
-    val mustChangePassword: Boolean,
-)
-
-data class RepairOrder(
-    val id: String,
-    val deviceType: String,
-    val problem: String,
-    val address: String,
-    val status: String,
-    val createdAt: String,
-    val customerName: String,
-    val customerPhoneNumber: String?,
-    val customerAvatarObjectId: String?,
-    val technicianName: String,
-    val technicianPhoneNumber: String?,
-    val technicianAvatarObjectId: String?,
-    val hasReview: Boolean,
-    val history: List<String>,
-    val items: List<RepairOrderItem>,
-    val photos: List<RepairOrderPhoto>,
-    val serviceNumber: String = "",
-    val expectedCompletionAt: String? = null,
-    val bonusDiscountRub: Int = 0,
-    val redeemBonuses: Boolean = false,
-)
-
-data class RepairOrderPhoto(val id: String, val objectId: String)
-
-data class RepairOrderItem(
-    val id: String,
-    val type: String,
-    val name: String,
-    val quantity: Int,
-    val unitPriceRub: Int,
-    val addedByName: String,
-)
-
-data class CatalogItem(
-    val id: String,
-    val type: String,
-    val name: String,
-    val unitPriceRub: Int,
-    val active: Boolean,
-)
-
-data class CraftItem(
-    val id: String,
-    val title: String,
-    val description: String,
-    val priceRub: Int,
-    val imageObjectId: String?,
-    val isPublished: Boolean,
-    val customOrderAvailable: Boolean,
-)
-
-data class CraftOrder(
-    val id: String,
-    val itemTitle: String,
-    val unitPriceRub: Int,
-    val quotedPriceRub: Int?,
-    val quantity: Int,
-    val note: String,
-    val isCustomOrder: Boolean,
-    val status: String,
-    val createdAt: String,
-    val customerName: String,
-    val customerPhone: String?,
-)
-
-data class NewsArticle(
-    val id: String,
-    val title: String,
-    val content: String,
-    val isPublished: Boolean,
-    val publishedAt: String?,
-    val imageObjectId: String?,
-    val startsAt: String?,
-    val endsAt: String?,
-    val isFeatured: Boolean,
-)
-
-data class OrderChatMessage(
-    val id: String,
-    val senderName: String,
-    val senderRole: String,
-    val content: String,
-    val createdAt: String,
-)
-
-data class OrderChat(
-    val id: String?,
-    val orderId: String,
-    val adminRequestedAt: String?,
-    val adminRequestedByName: String,
-    val adminJoinedAt: String?,
-    val adminJoinedByName: String,
-    val messages: List<OrderChatMessage>,
-)
-
-data class AdminChatInboxItem(
-    val orderId: String,
-    val deviceType: String,
-    val problem: String,
-    val customerName: String,
-    val technicianName: String,
-    val lastMessage: String,
-    val adminJoinedAt: String?,
-)
-
-data class StaffMember(
-    val id: String,
-    val email: String,
-    val displayName: String,
-    val phoneNumber: String?,
-    val avatarObjectId: String?,
-    val role: String,
-    val active: Boolean,
-)
-
-data class CustomerReview(
-    val id: String,
-    val orderId: String,
-    val customerName: String,
-    val rating: Int,
-    val comment: String,
-    val deviceType: String,
-    val technicianName: String,
-)
-
-data class AuthResult(val accessToken: String, val user: AppUser)
-data class NewStaffResult(val staff: StaffMember, val temporaryPassword: String)
+import java.net.URLEncoder
 
 class ApiException(val errorCode: String, override val message: String) : IOException(message)
 
@@ -187,6 +48,12 @@ object ApiClient {
     )
 
     fun orders(token: String): List<RepairOrder> = request("GET", "/orders", token).getJSONArray("orders").mapObjects { it.toOrder() }
+
+    fun searchOrders(token: String, serviceNumber: String): List<RepairOrder> {
+        val query = URLEncoder.encode(serviceNumber.trim(), Charsets.UTF_8.name())
+        return request("GET", "/orders/search?serviceNumber=$query", token)
+            .getJSONArray("orders").mapObjects { it.toOrder() }
+    }
 
     fun catalog(token: String): List<CatalogItem> = request("GET", "/catalog", token)
         .getJSONArray("catalogItems").mapObjects { it.toCatalogItem() }
@@ -240,6 +107,38 @@ object ApiClient {
 
     fun news(token: String): List<NewsArticle> = request("GET", "/news", token)
         .getJSONArray("articles").mapObjects { it.toNewsArticle() }
+
+    fun banners(token: String): List<SiteBanner> = request("GET", "/banners", token)
+        .getJSONArray("banners").mapObjects { banner ->
+            SiteBanner(
+                id = banner.getString("id"),
+                title = banner.getString("title"),
+                content = banner.optString("content"),
+                imageObjectId = banner.nullableString("imageObjectId"),
+                targetUrl = banner.nullableString("targetUrl"),
+                placements = banner.optJSONArray("placements").strings(),
+                startsAt = banner.nullableString("startsAt"),
+                endsAt = banner.nullableString("endsAt"),
+                isActive = banner.optBoolean("isActive"),
+            )
+        }
+
+    fun loyalty(token: String): LoyaltyAccount {
+        val json = request("GET", "/loyalty/me", token)
+        return LoyaltyAccount(
+            balance = json.optInt("balance"),
+            transactions = json.optJSONArray("transactions").mapObjects { transaction ->
+                LoyaltyTransaction(
+                    id = transaction.getString("id"),
+                    type = transaction.optString("type"),
+                    points = transaction.optInt("points"),
+                    reason = transaction.optString("reason"),
+                    createdAt = transaction.optString("createdAt"),
+                    serviceNumber = transaction.optJSONObject("order")?.nullableString("serviceNumber"),
+                )
+            },
+        )
+    }
 
     fun companyInfo(): CompanyInfo = request("GET", "/about")
         .getJSONObject("company")
@@ -304,15 +203,29 @@ object ApiClient {
         "GET", "/admin/chats", token,
     ).getJSONArray("chats").mapObjects { it.toAdminChatInboxItem() }
 
-    fun createOrder(token: String, deviceType: String, problem: String, address: String): RepairOrder = request(
+    fun createOrder(token: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(
         "POST", "/orders", token,
-        JSONObject().put("deviceType", deviceType).put("problem", problem).put("address", address)
+        JSONObject().put("deviceType", deviceType).put("problem", problem).putAddress(address),
     ).getJSONObject("order").toOrder()
 
-    fun updateOrder(token: String, orderId: String, deviceType: String, problem: String, address: String): RepairOrder = request(
+    fun updateOrder(token: String, orderId: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(
         "PATCH", "/orders/$orderId", token,
-        JSONObject().put("deviceType", deviceType).put("problem", problem).put("address", address),
+        JSONObject().put("deviceType", deviceType).put("problem", problem).putAddress(address),
     ).getJSONObject("order").toOrder()
+
+    fun requestBonusRedemption(token: String, orderId: String, redeem: Boolean): RepairOrder = request(
+        "PATCH", "/orders/$orderId/bonus-redemption", token,
+        JSONObject().put("redeemBonuses", redeem),
+    ).getJSONObject("order").toOrder()
+
+    fun createReceipt(token: String, orderId: String): RepairReceipt = request(
+        "POST", "/orders/$orderId/receipt", token,
+    ).getJSONObject("receipt").toRepairReceipt()
+
+    fun markReceiptPaid(token: String, orderId: String, method: String): RepairReceipt = request(
+        "PATCH", "/orders/$orderId/receipt/payment", token,
+        JSONObject().put("paymentMethod", method),
+    ).getJSONObject("receipt").toRepairReceipt()
 
     fun uploadOrderPhoto(token: String, orderId: String, image: ByteArray) {
         MediaApiClient.binaryRequest("POST", "/orders/$orderId/photos", token, image)
@@ -357,14 +270,34 @@ object ApiClient {
     fun reviews(token: String): List<CustomerReview> = request("GET", "/reviews", token)
         .getJSONArray("reviews").mapObjects { it.toReview() }
 
-    fun createReview(token: String, orderId: String, rating: Int, comment: String): CustomerReview = request(
+    fun createReview(token: String, orderId: String, rating: Int, comment: String, image: ByteArray? = null): CustomerReview {
+        val review = request(
         "POST", "/reviews", token,
         JSONObject().put("orderId", orderId).put("rating", rating).put("comment", comment)
+        ).getJSONObject("review").toReview()
+        if (image != null) MediaApiClient.binaryRequest("POST", "/reviews/${review.id}/image", token, image)
+        return review
+    }
+
+    fun moderateReview(token: String, reviewId: String, isPublished: Boolean): CustomerReview = request(
+        "PATCH", "/reviews/$reviewId", token,
+        JSONObject().put("isPublished", isPublished),
     ).getJSONObject("review").toReview()
+
+    private fun JSONObject.putAddress(address: OrderAddress): JSONObject = put("contactPhone", address.contactPhone)
+        .put("city", address.city)
+        .put("street", address.street)
+        .put("house", address.house)
+        .put("apartment", address.apartment)
+        .put("entrance", address.entrance)
+        .put("hasBarrier", address.hasBarrier)
+        .put("floor", address.floor)
+        .put("additionalPhone", address.additionalPhone)
+        .put("additionalInfo", address.additionalInfo)
 
     private fun authResult(json: JSONObject) = AuthResult(json.getString("accessToken"), json.getJSONObject("user").toUser())
 
-    private fun request(method: String, path: String, token: String? = null, body: JSONObject? = null): JSONObject {
+    internal fun request(method: String, path: String, token: String? = null, body: JSONObject? = null): JSONObject {
         if (baseUrl.isBlank()) throw ApiException("API_NOT_CONFIGURED", "Адрес сервера ещё не настроен для этой сборки.")
         if (!baseUrl.startsWith("https://")) throw ApiException("HTTPS_REQUIRED", "Сервер должен использовать защищённое HTTPS-подключение.")
         val connection = URL("$baseUrl/api$path").openConnection() as HttpURLConnection
@@ -394,184 +327,5 @@ object ApiClient {
         }
     }
 
-    private fun JSONObject.toUser() = AppUser(
-        id = getString("id"), email = getString("email"), displayName = getString("displayName"),
-        phoneNumber = optString("phoneNumber").takeUnless { it.isBlank() || it == "null" },
-        avatarObjectId = optString("avatarObjectId").takeUnless { it.isBlank() || it == "null" },
-        role = getString("role"), mustChangePassword = optBoolean("mustChangePassword")
-    )
 
-    private fun JSONObject.toOrder(): RepairOrder {
-        val technician = optJSONObject("assignedTechnician")
-        val customer = optJSONObject("customer")
-        val statusEvents = optJSONArray("statusEvents") ?: JSONArray()
-        val items = optJSONArray("items") ?: JSONArray()
-        val existingReview = optJSONObject("review")
-        return RepairOrder(
-            id = getString("id"), deviceType = getString("deviceType"), problem = getString("problem"),
-            address = getString("address"), status = getString("status"), createdAt = optString("createdAt"),
-            customerName = customer?.optString("displayName").orEmpty(),
-            customerPhoneNumber = customer?.optString("phoneNumber")?.takeUnless { it.isBlank() || it == "null" },
-            customerAvatarObjectId = customer?.optString("avatarObjectId")?.takeUnless { it.isBlank() || it == "null" },
-            technicianName = technician?.optString("displayName").orEmpty(),
-            technicianPhoneNumber = technician?.optString("phoneNumber")?.takeUnless { it.isBlank() || it == "null" },
-            technicianAvatarObjectId = technician?.optString("avatarObjectId")?.takeUnless { it.isBlank() || it == "null" },
-            hasReview = existingReview != null && existingReview.length() > 0,
-            history = statusEvents.mapObjects { event ->
-                val from = event.optString("from").takeUnless { it == "null" || it.isBlank() }
-                val to = event.optString("to")
-                val note = event.optString("note").takeUnless { it == "null" || it.isBlank() }
-                val actor = event.optJSONObject("actor")?.optString("displayName").orEmpty()
-                listOfNotNull(from?.let { "${it.statusLabel()} → ${to.statusLabel()}" }, to.statusLabel().takeIf { from == null }, note, actor.takeIf { it.isNotBlank() }).joinToString(" · ")
-            },
-            items = items.mapObjects { item ->
-                RepairOrderItem(
-                    id = item.getString("id"),
-                    type = item.getString("type"),
-                    name = item.getString("name"),
-                    quantity = item.getInt("quantity"),
-                    unitPriceRub = item.getInt("unitPriceRub"),
-                    addedByName = item.optJSONObject("addedBy")?.optString("displayName").orEmpty(),
-                )
-            },
-            photos = (optJSONArray("photos") ?: JSONArray()).mapObjects { photo ->
-                RepairOrderPhoto(photo.getString("id"), photo.getString("objectId"))
-            },
-            serviceNumber = optString("serviceNumber").takeUnless { it.isBlank() || it == "null" } ?: getString("id"),
-            expectedCompletionAt = optString("expectedCompletionAt").takeUnless { it.isBlank() || it == "null" },
-            bonusDiscountRub = optInt("bonusDiscountRub", 0),
-            redeemBonuses = optBoolean("redeemBonuses", false),
-        )
-    }
-
-    private fun JSONObject.toStaff() = StaffMember(
-        id = getString("id"), email = getString("email"), displayName = getString("displayName"),
-        phoneNumber = optString("phoneNumber").takeUnless { it.isBlank() || it == "null" },
-        avatarObjectId = optString("avatarObjectId").takeUnless { it.isBlank() || it == "null" },
-        role = getString("role"), active = optBoolean("active", true)
-    )
-
-    private fun JSONObject.toCatalogItem() = CatalogItem(
-        id = getString("id"),
-        type = getString("type"),
-        name = getString("name"),
-        unitPriceRub = getInt("unitPriceRub"),
-        active = optBoolean("active", true),
-    )
-
-    private fun JSONObject.toCraftItem() = CraftItem(
-        id = getString("id"),
-        title = getString("title"),
-        description = optString("description"),
-        priceRub = optInt("priceRub"),
-        imageObjectId = optString("imageObjectId").takeUnless { it.isBlank() || it == "null" },
-        isPublished = optBoolean("isPublished"),
-        customOrderAvailable = optBoolean("customOrderAvailable", true),
-    )
-
-    private fun JSONObject.toCraftOrder(): CraftOrder {
-        val customer = optJSONObject("customer")
-        return CraftOrder(
-            id = getString("id"),
-            itemTitle = getString("itemTitleSnapshot"),
-            unitPriceRub = optInt("unitPriceRubSnapshot"),
-            quotedPriceRub = if (isNull("quotedPriceRub")) null else optInt("quotedPriceRub"),
-            quantity = optInt("quantity", 1),
-            note = optString("note"),
-            isCustomOrder = optBoolean("isCustomOrder"),
-            status = getString("status"),
-            createdAt = optString("createdAt"),
-            customerName = customer?.optString("displayName").orEmpty(),
-            customerPhone = customer?.optString("phoneNumber")?.takeUnless { it.isBlank() || it == "null" },
-        )
-    }
-
-    private fun JSONObject.toNewsArticle() = NewsArticle(
-        id = getString("id"),
-        title = getString("title"),
-        content = getString("content"),
-        isPublished = optBoolean("isPublished", false),
-        publishedAt = optString("publishedAt").takeUnless { it == "null" || it.isBlank() },
-        imageObjectId = optString("imageObjectId").takeUnless { it == "null" || it.isBlank() },
-        startsAt = optString("startsAt").takeUnless { it == "null" || it.isBlank() },
-        endsAt = optString("endsAt").takeUnless { it == "null" || it.isBlank() },
-        isFeatured = optBoolean("isFeatured"),
-    )
-
-    private fun JSONObject.toOrderChat() = OrderChat(
-        id = optString("id").takeUnless { it == "null" || it.isBlank() },
-        orderId = getString("orderId"),
-        adminRequestedAt = optString("adminRequestedAt").takeUnless { it == "null" || it.isBlank() },
-        adminRequestedByName = optJSONObject("requestedBy")?.optString("displayName").orEmpty(),
-        adminJoinedAt = optString("adminJoinedAt").takeUnless { it == "null" || it.isBlank() },
-        adminJoinedByName = optJSONObject("joinedBy")?.optString("displayName").orEmpty(),
-        messages = (optJSONArray("messages") ?: JSONArray()).mapObjects { message ->
-            val sender = message.optJSONObject("sender")
-            OrderChatMessage(
-                id = message.getString("id"),
-                senderName = sender?.optString("displayName").orEmpty().ifBlank { "Пользователь" },
-                senderRole = sender?.optString("role").orEmpty(),
-                content = message.getString("content"),
-                createdAt = message.optString("createdAt"),
-            )
-        },
-    )
-
-    private fun JSONObject.toAdminChatInboxItem(): AdminChatInboxItem {
-        val order = optJSONObject("order") ?: JSONObject()
-        val lastMessage = optJSONArray("messages")?.optJSONObject(0)
-        return AdminChatInboxItem(
-            orderId = order.optString("id"),
-            deviceType = order.optString("deviceType"),
-            problem = order.optString("problem"),
-            customerName = order.optJSONObject("customer")?.optString("displayName").orEmpty(),
-            technicianName = order.optJSONObject("assignedTechnician")?.optString("displayName").orEmpty(),
-            lastMessage = lastMessage?.optString("content").orEmpty(),
-            adminJoinedAt = optString("adminJoinedAt").takeUnless { it == "null" || it.isBlank() },
-        )
-    }
-
-    private fun JSONObject.toReview(): CustomerReview {
-        val order = optJSONObject("order") ?: JSONObject()
-        val technician = order.optJSONObject("assignedTechnician")
-        val customer = optJSONObject("customer")
-        return CustomerReview(
-            id = getString("id"), orderId = getString("orderId"), customerName = customer?.optString("displayName").orEmpty(),
-            rating = getInt("rating"), comment = getString("comment"), deviceType = order.optString("deviceType"),
-            technicianName = technician?.optString("displayName").orEmpty()
-        )
-    }
-
-    private inline fun <T> JSONArray.mapObjects(transform: (JSONObject) -> T): List<T> =
-        (0 until length()).mapNotNull { index -> optJSONObject(index)?.let(transform) }
-}
-
-fun String.deviceLabel(): String = when (this) {
-    "COMPUTER" -> "Компьютер"
-    "LAPTOP" -> "Ноутбук"
-    "PHONE" -> "Телефон"
-    "TABLET" -> "Планшет"
-    else -> this
-}
-
-fun String.statusLabel(): String = when (this) {
-    "REQUESTED" -> "Новая"
-    "ASSIGNED" -> "Назначен мастер"
-    "IN_PROGRESS" -> "В ремонте"
-    "COMPLETED" -> "Завершена"
-    "CANCELLED" -> "Отменена"
-    else -> this
-}
-
-fun String.orderItemTypeLabel(): String = when (this) {
-    "SERVICE" -> "Услуга"
-    "SPARE_PART" -> "Запчасть"
-    else -> this
-}
-
-fun String.roleLabel(): String = when (this) {
-    "CUSTOMER" -> "Клиент"
-    "TECHNICIAN" -> "Мастер"
-    "ADMIN" -> "Администратор"
-    else -> this
 }

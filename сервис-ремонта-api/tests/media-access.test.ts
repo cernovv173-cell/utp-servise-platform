@@ -92,6 +92,9 @@ test("avatars and order photos remain visible only to their account or order par
     craftItem: {
       findFirst: async () => null,
     },
+    review: {
+      findFirst: async () => null,
+    },
     siteBanner: {
       findFirst: async () => null,
     },

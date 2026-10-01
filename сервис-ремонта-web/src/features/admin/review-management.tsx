@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { SectionCard } from "@/components/app-shell";
+import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -36,6 +37,16 @@ export const ReviewManagement = () => {
               </p>
               <p className="mt-2 text-xs text-slate-400">
                 {review.order.deviceType} · {new Date(review.createdAt).toLocaleDateString("ru-RU")}
+              </p>
+              {review.imageObjectId && (
+                <ProtectedImage
+                  objectId={review.imageObjectId}
+                  alt="Фотография к отзыву"
+                  className="mt-3 max-h-48 rounded-lg object-cover"
+                />
+              )}
+              <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
+                {review.isPublished ? "Опубликован в новостях" : "Ожидает модерации"}
               </p>
             </div>
             <button

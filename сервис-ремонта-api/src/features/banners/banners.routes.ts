@@ -13,14 +13,20 @@ import {
 const bannerParams = z.object({ bannerId: z.string().uuid() });
 const date = z.string().datetime({ offset: true }).nullable().optional();
 const title = z.string().trim().min(2).max(160);
-const content = z.string().trim().max(1000);
+const content = z.string().trim().min(1).max(1000);
+const placements = z
+  .array(z.enum(["HOME", "NEWS", "SERVICE", "CRAFTS", "ABOUT", "LOYALTY"]))
+  .min(1)
+  .max(6);
 const targetUrl = z
   .string()
   .url()
   .max(1000)
   .refine(
-    (value) => /^https?:\/\//i.test(value),
-    "Используйте HTTP- или HTTPS-ссылку.",
+    (value) =>
+      /^https?:\/\//i.test(value) ||
+      /^app:\/\/(home|news|services|crafts|about|loyalty|checks)$/i.test(value),
+    "Используйте HTTP(S)-ссылку или допустимый внутренний раздел приложения.",
   )
   .nullable();
 const createBody = z
@@ -28,6 +34,7 @@ const createBody = z
     title,
     content,
     targetUrl: targetUrl.optional(),
+    placements: placements.optional(),
     startsAt: date,
     endsAt: date,
     isActive: z.boolean().optional(),
@@ -44,6 +51,7 @@ const updateBody = z
     title: title.optional(),
     content: content.optional(),
     targetUrl: targetUrl.optional(),
+    placements: placements.optional(),
     startsAt: date,
     endsAt: date,
     isActive: z.boolean().optional(),
@@ -101,11 +109,19 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createBody>>(response);
+      if (input.isActive) {
+        throw new HttpError(
+          409,
+          "BANNER_IMAGE_REQUIRED",
+          "Сначала загрузите изображение, затем включите кампанию.",
+        );
+      }
       const banner = await database.siteBanner.create({
         data: {
           title: input.title,
           content: input.content,
           targetUrl: input.targetUrl,
+          placements: input.placements ?? ["HOME"],
           startsAt: input.startsAt ? new Date(input.startsAt) : null,
           endsAt: input.endsAt ? new Date(input.endsAt) : null,
           isActive: input.isActive ?? false,
@@ -146,12 +162,30 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
           "Дата окончания должна быть позже даты начала.",
         );
       }
+      const nextTargetUrl =
+        input.targetUrl === undefined ? current.targetUrl : input.targetUrl;
+      const nextTitle = input.title ?? current.title;
+      const nextContent = input.content ?? current.content;
+      if (
+        input.isActive &&
+        (!current.imageObjectId ||
+          !nextTargetUrl ||
+          !nextTitle.trim() ||
+          !nextContent.trim())
+      ) {
+        throw new HttpError(
+          409,
+          "BANNER_CONTENT_REQUIRED",
+          "Для показа кампании нужны изображение, заголовок, текст и ссылка.",
+        );
+      }
       const banner = await database.siteBanner.update({
         where: { id: bannerId },
         data: {
           title: input.title,
           content: input.content,
           targetUrl: input.targetUrl,
+          placements: input.placements,
           startsAt: input.startsAt === undefined ? undefined : startsAt,
           endsAt: input.endsAt === undefined ? undefined : endsAt,
           isActive: input.isActive,

@@ -40,3 +40,12 @@ export const canAddRepairOrderItem = (
 ): boolean =>
   role === "ADMIN" ||
   (role === "TECHNICIAN" && order.assignedTechnicianId === userId);
+
+export const calculateMaxBonusDiscount = (
+  totalRub: number,
+  balancePoints: number,
+): number =>
+  Math.min(Math.max(0, Math.floor(balancePoints)), Math.floor(Math.max(0, totalRub) * 3 / 10));
+
+export const calculateEarnedPoints = (cashPaidRub: number): number =>
+  Math.floor(Math.max(0, cashPaidRub) / 10);

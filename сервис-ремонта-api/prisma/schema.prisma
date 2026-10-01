@@ -40,6 +40,18 @@ enum BonusTransactionType {
   MANUAL_ADJUSTMENT
 }
 
+enum ReceiptPaymentStatus {
+  PENDING
+  PAID
+}
+
+enum ReceiptPaymentMethod {
+  CASH
+  CARD_TERMINAL
+  BANK_TRANSFER
+  OTHER
+}
+
 model AppSetting {
   key       String   @id
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -117,6 +129,16 @@ model RepairOrder {
   deviceType           String              @map("device_type") @db.VarChar(120)
   problem              String              @db.VarChar(2000)
   address              String              @db.VarChar(500)
+  contactPhone         String?             @map("contact_phone") @db.VarChar(32)
+  city                 String?             @db.VarChar(120)
+  street               String?             @db.VarChar(180)
+  house                String?             @db.VarChar(30)
+  apartment            String?             @db.VarChar(30)
+  entrance             String?             @db.VarChar(30)
+  hasBarrier           Boolean             @default(false) @map("has_barrier")
+  floor                String?             @db.VarChar(20)
+  additionalPhone      String?             @map("additional_phone") @db.VarChar(32)
+  additionalInfo       String?             @map("additional_info") @db.VarChar(500)
   preferredAt          DateTime?           @map("preferred_at") @db.Timestamptz(3)
   expectedCompletionAt DateTime?           @map("expected_completion_at") @db.Timestamptz(3)
   redeemBonuses        Boolean             @default(false) @map("redeem_bonuses")
@@ -176,10 +198,16 @@ model RepairReceipt {
   id                 String   @id @default(uuid()) @db.Uuid
   orderId            String   @unique @map("order_id") @db.Uuid
   receiptNumber      String   @unique @map("receipt_number") @db.VarChar(48)
+  serviceNumber      String   @map("service_number") @db.VarChar(32)
+  customerName       String   @map("customer_name") @db.VarChar(120)
+  customerPhone      String?  @map("customer_phone") @db.VarChar(32)
   issuedById         String   @map("issued_by_id") @db.Uuid
   itemsSnapshot      Json     @map("items_snapshot")
   totalRub           Int      @map("total_rub")
   bonusDiscountRub   Int      @default(0) @map("bonus_discount_rub")
+  paymentStatus      ReceiptPaymentStatus @default(PENDING) @map("payment_status")
+  paymentMethod      ReceiptPaymentMethod? @map("payment_method")
+  paidAt             DateTime? @map("paid_at") @db.Timestamptz(3)
   issuedAt           DateTime @default(now()) @map("issued_at") @db.Timestamptz(3)
   order              RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   issuedBy           User     @relation("ReceiptIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
@@ -274,7 +302,8 @@ model Review {
   customerId String      @map("customer_id") @db.Uuid
   rating     Int
   comment    String      @db.VarChar(2000)
-  isPublished Boolean    @default(true) @map("is_published")
+  imageObjectId String?  @map("image_object_id") @db.VarChar(255)
+  isPublished Boolean    @default(false) @map("is_published")
   createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   order      RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   customer   User        @relation(fields: [customerId], references: [id], onDelete: Restrict)
@@ -348,6 +377,7 @@ model SiteBanner {
   content       String    @db.VarChar(1000)
   imageObjectId String?   @map("image_object_id") @db.VarChar(255)
   targetUrl     String?   @map("target_url") @db.VarChar(1000)
+  placements    String[]  @default(["HOME"])
   startsAt      DateTime? @map("starts_at") @db.Timestamptz(3)
   endsAt        DateTime? @map("ends_at") @db.Timestamptz(3)
   isActive      Boolean   @default(false) @map("is_active")
