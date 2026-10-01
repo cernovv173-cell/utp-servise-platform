@@ -57,6 +57,7 @@ fun StaffManagementScreen(
     var role by remember { mutableStateOf("TECHNICIAN") }
     var temporaryPassword by remember { mutableStateOf<String?>(null) }
     var editedStaff by remember { mutableStateOf<StaffMember?>(null) }
+    var deletingStaff by remember { mutableStateOf<StaffMember?>(null) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -121,8 +122,13 @@ fun StaffManagementScreen(
                     Column(horizontalAlignment = Alignment.End) {
                         if (member.role == "TECHNICIAN") {
                             TextButton(onClick = { editedStaff = member }) { Text("Изменить") }
-                        }
-                        if (member.id != currentUser.id) {
+                            TextButton(
+                                onClick = {
+                                    if (member.active) deletingStaff = member
+                                    else runAction({ ApiClient.setStaffActive(token, member.id, true) }, {})
+                                },
+                            ) { Text(if (member.active) "Удалить" else "Восстановить") }
+                        } else if (member.id != currentUser.id) {
                             TextButton(onClick = {
                                 runAction({ ApiClient.setStaffActive(token, member.id, !member.active) }, {})
                             }) { Text(if (member.active) "Отключить" else "Включить") }
@@ -147,6 +153,21 @@ fun StaffManagementScreen(
             onSave = { updated ->
                 runAction({ ApiClient.updateStaff(token, updated) }) { editedStaff = null }
             },
+        )
+    }
+    deletingStaff?.let { member ->
+        AlertDialog(
+            onDismissRequest = { deletingStaff = null },
+            title = { Text("Удалить мастера?") },
+            text = {
+                Text("Учётная запись ${member.displayName} будет отключена, а вход в приложение — закрыт. История заявок сохранится. Сначала переназначьте все незавершённые заявки мастера.")
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    runAction({ ApiClient.deleteTechnician(token, member.id) }) { deletingStaff = null }
+                }) { Text("Удалить") }
+            },
+            dismissButton = { TextButton(onClick = { deletingStaff = null }) { Text("Отмена") } },
         )
     }
 }

@@ -65,6 +65,7 @@ fun CustomerHomeScreen(
     onNews: () -> Unit,
     onLoyalty: () -> Unit,
     onCampaignNavigate: (String) -> Unit,
+    onContactAdministrator: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -121,6 +122,17 @@ fun CustomerHomeScreen(
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text("История и статус заказа", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text("Все обращения — в одном месте", fontSize = 12.sp, color = UtpMuted)
+                }
+                Text("›", fontSize = 24.sp, color = UtpMuted)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Card(onClick = onContactAdministrator, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("✉", fontSize = 24.sp, color = UtpBlue)
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text("Написать администратору", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text("Задать вопрос напрямую в чат", fontSize = 12.sp, color = UtpMuted)
                 }
                 Text("›", fontSize = 24.sp, color = UtpMuted)
             }

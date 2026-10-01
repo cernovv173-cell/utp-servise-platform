@@ -203,6 +203,59 @@ object ApiClient {
         "GET", "/admin/chats", token,
     ).getJSONArray("chats").mapObjects { it.toAdminChatInboxItem() }
 
+    fun supportChat(token: String): SupportChat = request(
+        "GET", "/support/chat", token,
+    ).getJSONObject("chat").toSupportChat()
+
+    fun sendSupportChatMessage(token: String, content: String): SupportChat = request(
+        "POST", "/support/chat/messages", token,
+        JSONObject().put("content", content),
+    ).getJSONObject("chat").toSupportChat()
+
+    fun administratorSupportChats(token: String): List<SupportChatInboxItem> = request(
+        "GET", "/admin/support/chats", token,
+    ).getJSONArray("chats").mapObjects { it.toSupportChatInboxItem() }
+
+    fun administratorSupportChat(token: String, customerId: String): SupportChat = request(
+        "GET", "/admin/support/chats/$customerId", token,
+    ).getJSONObject("chat").toSupportChat()
+
+    fun sendAdministratorSupportMessage(
+        token: String,
+        customerId: String,
+        content: String,
+    ): SupportChat = request(
+        "POST", "/admin/support/chats/$customerId/messages", token,
+        JSONObject().put("content", content),
+    ).getJSONObject("chat").toSupportChat()
+
+    fun administratorCustomers(
+        token: String,
+        search: String,
+        page: Int,
+        pageSize: Int = 20,
+    ): AdminCustomerPage {
+        val query = URLEncoder.encode(search.trim(), Charsets.UTF_8.name())
+        val response = request(
+            "GET", "/admin/customers?search=$query&page=$page&pageSize=$pageSize", token,
+        )
+        val pagination = response.getJSONObject("pagination")
+        return AdminCustomerPage(
+            customers = response.getJSONArray("customers").mapObjects { it.toAdminCustomer() },
+            page = pagination.optInt("page", page),
+            totalPages = pagination.optInt("totalPages"),
+            totalItems = pagination.optInt("totalItems"),
+        )
+    }
+
+    fun updateAdministratorCustomer(token: String, customer: AdminCustomer): AdminCustomer = request(
+        "PATCH", "/admin/customers/${customer.id}", token,
+        JSONObject()
+            .put("email", customer.email)
+            .put("displayName", customer.displayName)
+            .put("phoneNumber", customer.phoneNumber ?: JSONObject.NULL),
+    ).getJSONObject("customer").toAdminCustomer()
+
     fun createOrder(token: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(
         "POST", "/orders", token,
         JSONObject().put("deviceType", deviceType).put("problem", problem).putAddress(address),
@@ -260,6 +313,10 @@ object ApiClient {
 
     fun setStaffActive(token: String, staffId: String, active: Boolean): StaffMember = request(
         "PATCH", "/staff/$staffId/active", token, JSONObject().put("active", active)
+    ).getJSONObject("staff").toStaff()
+
+    fun deleteTechnician(token: String, staffId: String): StaffMember = request(
+        "DELETE", "/staff/$staffId", token,
     ).getJSONObject("staff").toStaff()
 
     fun updateStaff(token: String, staff: StaffMember): StaffMember = request(

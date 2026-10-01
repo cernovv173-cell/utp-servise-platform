@@ -49,6 +49,8 @@ import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SessionStore
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.StaffMember
+import ru.utp.servise.data.SupportChat
+import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.notifications.NotificationChannels
 import ru.utp.servise.ui.AuthNavigation
 import ru.utp.servise.ui.ChangeTemporaryPasswordScreen
@@ -89,6 +91,8 @@ private fun UtpServiseApp() {
     var loyalty by remember { mutableStateOf(LoyaltyAccount(0, emptyList())) }
     var adminChats by remember { mutableStateOf<List<AdminChatInboxItem>>(emptyList()) }
     var activeChat by remember { mutableStateOf<OrderChat?>(null) }
+    var supportChats by remember { mutableStateOf<List<SupportChatInboxItem>>(emptyList()) }
+    var activeSupportChat by remember { mutableStateOf<SupportChat?>(null) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { }
@@ -161,6 +165,7 @@ private fun UtpServiseApp() {
                         banners = ApiClient.banners(token),
                         loyalty = if (currentUser.role == "CUSTOMER") ApiClient.loyalty(token) else LoyaltyAccount(0, emptyList()),
                         adminChats = if (currentUser.role == "ADMIN") ApiClient.administratorChatInbox(token) else emptyList(),
+                        supportChats = if (currentUser.role == "ADMIN") ApiClient.administratorSupportChats(token) else emptyList(),
                     )
                 }
             }.onSuccess { data ->
@@ -174,6 +179,7 @@ private fun UtpServiseApp() {
                 banners = data.banners
                 loyalty = data.loyalty
                 adminChats = data.adminChats
+                supportChats = data.supportChats
             }.onFailure { errorMessage = it.message ?: "Не удалось загрузить данные." }
         }
     }
@@ -211,8 +217,34 @@ private fun UtpServiseApp() {
             banners = banners,
             loyalty = loyalty,
             adminChats = adminChats,
+            supportChats = supportChats,
             activeChat = activeChat,
             onChatUpdated = { activeChat = it },
+            activeSupportChat = activeSupportChat,
+            onSupportChatUpdated = { activeSupportChat = it },
+            onRefreshSupportChat = { customerId ->
+                scope.launch {
+                    runCatching {
+                        withContext(Dispatchers.IO) {
+                            if (user?.role == "ADMIN") {
+                                val targetId = customerId ?: error("Не выбран клиент чата.")
+                                ApiClient.administratorSupportChat(token, targetId)
+                            } else {
+                                ApiClient.supportChat(token)
+                            }
+                        }
+                    }.onSuccess { activeSupportChat = it }
+                        .onFailure { errorMessage = it.message ?: "Не удалось обновить чат поддержки." }
+                }
+            },
+            onRefreshSupportInbox = {
+                scope.launch {
+                    runCatching {
+                        withContext(Dispatchers.IO) { ApiClient.administratorSupportChats(token) }
+                    }.onSuccess { supportChats = it }
+                        .onFailure { errorMessage = it.message ?: "Не удалось обновить чаты клиентов." }
+                }
+            },
             onUserUpdated = { user = it },
             busy = busy,
             errorMessage = errorMessage,
@@ -247,6 +279,8 @@ private fun UtpServiseApp() {
                 loyalty = LoyaltyAccount(0, emptyList())
                 adminChats = emptyList()
                 activeChat = null
+                supportChats = emptyList()
+                activeSupportChat = null
                 errorMessage = null
             },
             )

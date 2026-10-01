@@ -61,37 +61,39 @@ model AppSetting {
 }
 
 model User {
-  id                  String              @id @default(uuid()) @db.Uuid
-  email               String              @unique @db.VarChar(320)
-  displayName         String              @map("display_name") @db.VarChar(120)
-  phoneNumber         String?             @map("phone_number") @db.VarChar(32)
-  avatarObjectId      String?             @map("avatar_object_id") @db.VarChar(255)
-  passwordHash        String              @map("password_hash") @db.VarChar(255)
-  role                UserRole            @default(CUSTOMER)
-  active              Boolean             @default(true)
-  mustChangePassword  Boolean             @default(false) @map("must_change_password")
-  createdAt           DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions            Session[]
-  customerOrders      RepairOrder[]       @relation("CustomerOrders")
-  assignedOrders      RepairOrder[]       @relation("AssignedOrders")
-  statusChanges       RepairStatusEvent[] @relation("StatusActor")
-  reviews             Review[]
-  addedOrderItems     RepairOrderItem[]   @relation("OrderItemAdder")
-  catalogItemsCreated RepairCatalogItem[] @relation("CatalogItemCreator")
-  newsArticlesCreated NewsArticle[]       @relation("NewsArticleCreator")
-  orderChatMessages   OrderChatMessage[]  @relation("OrderChatMessageSender")
-  requestedChats      OrderChat[]         @relation("ChatEscalationRequester")
-  joinedChats         OrderChat[]         @relation("ChatAdministratorJoiner")
-  pushDeviceTokens    PushDeviceToken[]
-  orderPhotos         RepairOrderPhoto[]
-  craftItemsCreated   CraftItem[]          @relation("CraftItemCreator")
-  craftOrders         CraftOrder[]         @relation("CraftOrderCustomer")
-  handledCraftOrders  CraftOrder[]         @relation("CraftOrderHandler")
-  bonusTransactions   LoyaltyTransaction[] @relation("BonusCustomer")
-  bonusActions        LoyaltyTransaction[] @relation("BonusActor")
-  createdBanners      SiteBanner[]         @relation("BannerCreator")
-  issuedReceipts      RepairReceipt[]      @relation("ReceiptIssuer")
+  id                   String                @id @default(uuid()) @db.Uuid
+  email                String                @unique @db.VarChar(320)
+  displayName          String                @map("display_name") @db.VarChar(120)
+  phoneNumber          String?               @map("phone_number") @db.VarChar(32)
+  avatarObjectId       String?               @map("avatar_object_id") @db.VarChar(255)
+  passwordHash         String                @map("password_hash") @db.VarChar(255)
+  role                 UserRole              @default(CUSTOMER)
+  active               Boolean               @default(true)
+  mustChangePassword   Boolean               @default(false) @map("must_change_password")
+  createdAt            DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions             Session[]
+  customerOrders       RepairOrder[]         @relation("CustomerOrders")
+  assignedOrders       RepairOrder[]         @relation("AssignedOrders")
+  statusChanges        RepairStatusEvent[]   @relation("StatusActor")
+  reviews              Review[]
+  addedOrderItems      RepairOrderItem[]     @relation("OrderItemAdder")
+  catalogItemsCreated  RepairCatalogItem[]   @relation("CatalogItemCreator")
+  newsArticlesCreated  NewsArticle[]         @relation("NewsArticleCreator")
+  orderChatMessages    OrderChatMessage[]    @relation("OrderChatMessageSender")
+  requestedChats       OrderChat[]           @relation("ChatEscalationRequester")
+  joinedChats          OrderChat[]           @relation("ChatAdministratorJoiner")
+  pushDeviceTokens     PushDeviceToken[]
+  orderPhotos          RepairOrderPhoto[]
+  craftItemsCreated    CraftItem[]           @relation("CraftItemCreator")
+  craftOrders          CraftOrder[]          @relation("CraftOrderCustomer")
+  handledCraftOrders   CraftOrder[]          @relation("CraftOrderHandler")
+  bonusTransactions    LoyaltyTransaction[]  @relation("BonusCustomer")
+  bonusActions         LoyaltyTransaction[]  @relation("BonusActor")
+  createdBanners       SiteBanner[]          @relation("BannerCreator")
+  issuedReceipts       RepairReceipt[]       @relation("ReceiptIssuer")
+  supportConversations SupportConversation[] @relation("SupportConversationCustomer")
+  supportMessages      SupportChatMessage[]  @relation("SupportChatMessageSender")
 
   @@index([role, active])
   @@map("users")
@@ -122,32 +124,32 @@ model PushDeviceToken {
 }
 
 model RepairOrder {
-  id                   String              @id @default(uuid()) @db.Uuid
-  serviceNumber        String              @unique @map("service_number") @db.VarChar(32)
-  customerId           String              @map("customer_id") @db.Uuid
-  assignedTechnicianId String?             @map("assigned_technician_id") @db.Uuid
-  deviceType           String              @map("device_type") @db.VarChar(120)
-  problem              String              @db.VarChar(2000)
-  address              String              @db.VarChar(500)
-  contactPhone         String?             @map("contact_phone") @db.VarChar(32)
-  city                 String?             @db.VarChar(120)
-  street               String?             @db.VarChar(180)
-  house                String?             @db.VarChar(30)
-  apartment            String?             @db.VarChar(30)
-  entrance             String?             @db.VarChar(30)
-  hasBarrier           Boolean             @default(false) @map("has_barrier")
-  floor                String?             @db.VarChar(20)
-  additionalPhone      String?             @map("additional_phone") @db.VarChar(32)
-  additionalInfo       String?             @map("additional_info") @db.VarChar(500)
-  preferredAt          DateTime?           @map("preferred_at") @db.Timestamptz(3)
-  expectedCompletionAt DateTime?           @map("expected_completion_at") @db.Timestamptz(3)
-  redeemBonuses        Boolean             @default(false) @map("redeem_bonuses")
-  bonusDiscountRub     Int                 @default(0) @map("bonus_discount_rub")
-  status               RepairStatus        @default(REQUESTED)
-  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  customer             User                @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
-  assignedTechnician   User?               @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
+  id                   String               @id @default(uuid()) @db.Uuid
+  serviceNumber        String               @unique @map("service_number") @db.VarChar(32)
+  customerId           String               @map("customer_id") @db.Uuid
+  assignedTechnicianId String?              @map("assigned_technician_id") @db.Uuid
+  deviceType           String               @map("device_type") @db.VarChar(120)
+  problem              String               @db.VarChar(2000)
+  address              String               @db.VarChar(500)
+  contactPhone         String?              @map("contact_phone") @db.VarChar(32)
+  city                 String?              @db.VarChar(120)
+  street               String?              @db.VarChar(180)
+  house                String?              @db.VarChar(30)
+  apartment            String?              @db.VarChar(30)
+  entrance             String?              @db.VarChar(30)
+  hasBarrier           Boolean              @default(false) @map("has_barrier")
+  floor                String?              @db.VarChar(20)
+  additionalPhone      String?              @map("additional_phone") @db.VarChar(32)
+  additionalInfo       String?              @map("additional_info") @db.VarChar(500)
+  preferredAt          DateTime?            @map("preferred_at") @db.Timestamptz(3)
+  expectedCompletionAt DateTime?            @map("expected_completion_at") @db.Timestamptz(3)
+  redeemBonuses        Boolean              @default(false) @map("redeem_bonuses")
+  bonusDiscountRub     Int                  @default(0) @map("bonus_discount_rub")
+  status               RepairStatus         @default(REQUESTED)
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer             User                 @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
+  assignedTechnician   User?                @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusEvents         RepairStatusEvent[]
   items                RepairOrderItem[]
   photos               RepairOrderPhoto[]
@@ -195,22 +197,22 @@ model RepairOrderPhoto {
 }
 
 model RepairReceipt {
-  id                 String   @id @default(uuid()) @db.Uuid
-  orderId            String   @unique @map("order_id") @db.Uuid
-  receiptNumber      String   @unique @map("receipt_number") @db.VarChar(48)
-  serviceNumber      String   @map("service_number") @db.VarChar(32)
-  customerName       String   @map("customer_name") @db.VarChar(120)
-  customerPhone      String?  @map("customer_phone") @db.VarChar(32)
-  issuedById         String   @map("issued_by_id") @db.Uuid
-  itemsSnapshot      Json     @map("items_snapshot")
-  totalRub           Int      @map("total_rub")
-  bonusDiscountRub   Int      @default(0) @map("bonus_discount_rub")
-  paymentStatus      ReceiptPaymentStatus @default(PENDING) @map("payment_status")
-  paymentMethod      ReceiptPaymentMethod? @map("payment_method")
-  paidAt             DateTime? @map("paid_at") @db.Timestamptz(3)
-  issuedAt           DateTime @default(now()) @map("issued_at") @db.Timestamptz(3)
-  order              RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  issuedBy           User     @relation("ReceiptIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+  id               String                @id @default(uuid()) @db.Uuid
+  orderId          String                @unique @map("order_id") @db.Uuid
+  receiptNumber    String                @unique @map("receipt_number") @db.VarChar(48)
+  serviceNumber    String                @map("service_number") @db.VarChar(32)
+  customerName     String                @map("customer_name") @db.VarChar(120)
+  customerPhone    String?               @map("customer_phone") @db.VarChar(32)
+  issuedById       String                @map("issued_by_id") @db.Uuid
+  itemsSnapshot    Json                  @map("items_snapshot")
+  totalRub         Int                   @map("total_rub")
+  bonusDiscountRub Int                   @default(0) @map("bonus_discount_rub")
+  paymentStatus    ReceiptPaymentStatus  @default(PENDING) @map("payment_status")
+  paymentMethod    ReceiptPaymentMethod? @map("payment_method")
+  paidAt           DateTime?             @map("paid_at") @db.Timestamptz(3)
+  issuedAt         DateTime              @default(now()) @map("issued_at") @db.Timestamptz(3)
+  order            RepairOrder           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  issuedBy         User                  @relation("ReceiptIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
 
   @@map("repair_receipts")
 }
@@ -281,6 +283,31 @@ model OrderChatMessage {
   @@map("order_chat_messages")
 }
 
+model SupportConversation {
+  id         String               @id @default(uuid()) @db.Uuid
+  customerId String               @unique @map("customer_id") @db.Uuid
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer   User                 @relation("SupportConversationCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  messages   SupportChatMessage[]
+
+  @@index([updatedAt])
+  @@map("support_conversations")
+}
+
+model SupportChatMessage {
+  id        String              @id @default(uuid()) @db.Uuid
+  chatId    String              @map("chat_id") @db.Uuid
+  senderId  String?             @map("sender_id") @db.Uuid
+  content   String              @db.VarChar(2000)
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  chat      SupportConversation @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender    User?               @relation("SupportChatMessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([chatId, createdAt])
+  @@map("support_chat_messages")
+}
+
 model RepairStatusEvent {
   id        String        @id @default(uuid()) @db.Uuid
   orderId   String        @map("order_id") @db.Uuid
@@ -297,56 +324,56 @@ model RepairStatusEvent {
 }
 
 model Review {
-  id         String      @id @default(uuid()) @db.Uuid
-  orderId    String      @unique @map("order_id") @db.Uuid
-  customerId String      @map("customer_id") @db.Uuid
-  rating     Int
-  comment    String      @db.VarChar(2000)
-  imageObjectId String?  @map("image_object_id") @db.VarChar(255)
-  isPublished Boolean    @default(false) @map("is_published")
-  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  order      RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  customer   User        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  id            String      @id @default(uuid()) @db.Uuid
+  orderId       String      @unique @map("order_id") @db.Uuid
+  customerId    String      @map("customer_id") @db.Uuid
+  rating        Int
+  comment       String      @db.VarChar(2000)
+  imageObjectId String?     @map("image_object_id") @db.VarChar(255)
+  isPublished   Boolean     @default(false) @map("is_published")
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  order         RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer      User        @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   @@index([customerId, createdAt])
   @@map("reviews")
 }
 
 model CraftItem {
-  id                  String       @id @default(uuid()) @db.Uuid
-  title               String       @db.VarChar(160)
-  description         String       @db.VarChar(4000)
-  priceRub            Int          @map("price_rub")
-  imageObjectId       String?      @map("image_object_id") @db.VarChar(255)
-  isPublished         Boolean      @default(false) @map("is_published")
-  customOrderAvailable Boolean     @default(true) @map("custom_order_available")
-  createdById         String?      @map("created_by_id") @db.Uuid
-  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy           User?        @relation("CraftItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  orders              CraftOrder[]
+  id                   String       @id @default(uuid()) @db.Uuid
+  title                String       @db.VarChar(160)
+  description          String       @db.VarChar(4000)
+  priceRub             Int          @map("price_rub")
+  imageObjectId        String?      @map("image_object_id") @db.VarChar(255)
+  isPublished          Boolean      @default(false) @map("is_published")
+  customOrderAvailable Boolean      @default(true) @map("custom_order_available")
+  createdById          String?      @map("created_by_id") @db.Uuid
+  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy            User?        @relation("CraftItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  orders               CraftOrder[]
 
   @@index([isPublished, createdAt])
   @@map("craft_items")
 }
 
 model CraftOrder {
-  id                   String          @id @default(uuid()) @db.Uuid
-  customerId           String          @map("customer_id") @db.Uuid
-  itemId               String?         @map("item_id") @db.Uuid
-  itemTitleSnapshot    String          @map("item_title_snapshot") @db.VarChar(160)
-  unitPriceRubSnapshot Int             @map("unit_price_rub_snapshot")
-  quotedPriceRub       Int?            @map("quoted_price_rub")
-  quantity             Int             @default(1)
-  note                 String          @db.VarChar(2000)
-  isCustomOrder        Boolean         @default(false) @map("is_custom_order")
+  id                   String           @id @default(uuid()) @db.Uuid
+  customerId           String           @map("customer_id") @db.Uuid
+  itemId               String?          @map("item_id") @db.Uuid
+  itemTitleSnapshot    String           @map("item_title_snapshot") @db.VarChar(160)
+  unitPriceRubSnapshot Int              @map("unit_price_rub_snapshot")
+  quotedPriceRub       Int?             @map("quoted_price_rub")
+  quantity             Int              @default(1)
+  note                 String           @db.VarChar(2000)
+  isCustomOrder        Boolean          @default(false) @map("is_custom_order")
   status               CraftOrderStatus @default(REQUESTED)
-  handledById          String?         @map("handled_by_id") @db.Uuid
-  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
-  customer             User            @relation("CraftOrderCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  item                 CraftItem?      @relation(fields: [itemId], references: [id], onDelete: SetNull)
-  handledBy            User?           @relation("CraftOrderHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  handledById          String?          @map("handled_by_id") @db.Uuid
+  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer             User             @relation("CraftOrderCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  item                 CraftItem?       @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  handledBy            User?            @relation("CraftOrderHandler", fields: [handledById], references: [id], onDelete: SetNull)
 
   @@index([customerId, createdAt])
   @@index([status, createdAt])
@@ -354,17 +381,17 @@ model CraftOrder {
 }
 
 model LoyaltyTransaction {
-  id          String                @id @default(uuid()) @db.Uuid
-  customerId  String                @map("customer_id") @db.Uuid
-  orderId     String?               @map("order_id") @db.Uuid
-  actorId     String?               @map("actor_id") @db.Uuid
-  type        BonusTransactionType
-  points      Int
-  reason      String                @db.VarChar(255)
-  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
-  customer    User                  @relation("BonusCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  order       RepairOrder?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  actor       User?                 @relation("BonusActor", fields: [actorId], references: [id], onDelete: SetNull)
+  id         String               @id @default(uuid()) @db.Uuid
+  customerId String               @map("customer_id") @db.Uuid
+  orderId    String?              @map("order_id") @db.Uuid
+  actorId    String?              @map("actor_id") @db.Uuid
+  type       BonusTransactionType
+  points     Int
+  reason     String               @db.VarChar(255)
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer   User                 @relation("BonusCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  order      RepairOrder?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  actor      User?                @relation("BonusActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([customerId, createdAt])
   @@index([orderId])

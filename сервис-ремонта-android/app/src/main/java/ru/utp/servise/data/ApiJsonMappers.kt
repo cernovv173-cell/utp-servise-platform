@@ -188,6 +188,48 @@ internal fun JSONObject.toAdminChatInboxItem(): AdminChatInboxItem {
     )
 }
 
+internal fun JSONObject.toSupportChat(): SupportChat {
+    val customer = optJSONObject("customer")
+    return SupportChat(
+        id = nullableString("id"),
+        customerId = getString("customerId"),
+        customerName = customer?.optString("displayName").orEmpty(),
+        customerEmail = customer?.optString("email").orEmpty(),
+        messages = optJSONArray("messages").mapObjects { message ->
+            val sender = message.optJSONObject("sender")
+            SupportChatMessage(
+                id = message.getString("id"),
+                senderId = message.nullableString("senderId"),
+                senderName = sender?.optString("displayName").orEmpty().ifBlank { "Пользователь" },
+                senderRole = sender?.optString("role").orEmpty(),
+                content = message.getString("content"),
+                createdAt = message.optString("createdAt"),
+            )
+        },
+    )
+}
+
+internal fun JSONObject.toSupportChatInboxItem(): SupportChatInboxItem {
+    val customer = optJSONObject("customer") ?: JSONObject()
+    val lastMessage = optJSONArray("messages")?.optJSONObject(0)
+    return SupportChatInboxItem(
+        customerId = customer.optString("id"),
+        customerName = customer.optString("displayName"),
+        customerEmail = customer.optString("email"),
+        lastMessage = lastMessage?.optString("content").orEmpty(),
+        updatedAt = optString("updatedAt"),
+    )
+}
+
+internal fun JSONObject.toAdminCustomer() = AdminCustomer(
+    id = getString("id"),
+    email = getString("email"),
+    displayName = getString("displayName"),
+    phoneNumber = nullableString("phoneNumber"),
+    active = optBoolean("active", true),
+    createdAt = optString("createdAt"),
+)
+
 internal fun JSONObject.toReview(): CustomerReview {
     val order = optJSONObject("order") ?: JSONObject()
     val technician = order.optJSONObject("assignedTechnician")

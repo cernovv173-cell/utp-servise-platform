@@ -39,12 +39,15 @@ import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.StaffMember
+import ru.utp.servise.data.SupportChat
+import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.ui.AdminChatInboxScreen
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.CatalogManagementScreen
 import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
+import ru.utp.servise.ui.CustomerManagementScreen
 import ru.utp.servise.ui.LoyaltyScreen
 import ru.utp.servise.ui.NewsFeedScreen
 import ru.utp.servise.ui.NewsManagementScreen
@@ -74,8 +77,13 @@ internal fun AuthenticatedWorkspace(
     banners: List<SiteBanner>,
     loyalty: LoyaltyAccount,
     adminChats: List<AdminChatInboxItem>,
+    supportChats: List<SupportChatInboxItem>,
     activeChat: OrderChat?,
     onChatUpdated: (OrderChat) -> Unit,
+    activeSupportChat: SupportChat?,
+    onSupportChatUpdated: (SupportChat) -> Unit,
+    onRefreshSupportChat: (String?) -> Unit,
+    onRefreshSupportInbox: () -> Unit,
     onUserUpdated: (AppUser) -> Unit,
     busy: Boolean,
     errorMessage: String?,
@@ -177,6 +185,7 @@ internal fun AuthenticatedWorkspace(
                                     { navController.navigate("customer/news") },
                                     { navController.navigate("customer/loyalty") },
                                     onCampaignNavigate,
+                                    { navController.navigate("customer/support-chat") },
                                 )
                             }
                             composable("customer/news") { NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate) }
@@ -229,6 +238,8 @@ internal fun AuthenticatedWorkspace(
                                     onReviews = { navController.navigate("admin/reviews") },
                                     onCrafts = { navController.navigate("admin/crafts") },
                                     onAbout = { navController.navigate("admin/about") },
+                                    onSupportChats = { navController.navigate("admin/support-chats") },
+                                    onCustomers = { navController.navigate("admin/customers") },
                                 )
                             }
                             composable("admin/about") {
@@ -245,10 +256,25 @@ internal fun AuthenticatedWorkspace(
                                 AdminChatInboxScreen(adminChats, refresh, { navController.navigate("chat/$it") }) { navController.popBackStack() }
                             }
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
+                            composable("admin/customers") { CustomerManagementScreen(token, runAction) { navController.popBackStack() } }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh, token = token, canModerate = true, runAction = runAction) }
                             composable("admin/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
                         }
                     }
+                    addSupportChatRoutes(
+                        role = user.role,
+                        userId = user.id,
+                        token = token,
+                        supportChats = supportChats,
+                        activeSupportChat = activeSupportChat,
+                        busy = busy,
+                        runAction = runAction,
+                        onChatUpdated = onSupportChatUpdated,
+                        onRefreshChat = onRefreshSupportChat,
+                        onRefreshInbox = onRefreshSupportInbox,
+                        onOpenAdminChat = { customerId -> navController.navigate("admin/support-chat/$customerId") },
+                        onBack = { navController.popBackStack() },
+                    )
                     composable("chat/{orderId}") { entry ->
                         val orderId = entry.arguments?.getString("orderId").orEmpty()
                         LaunchedEffect(orderId, token) { onRefreshChat(orderId) }

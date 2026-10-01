@@ -225,5 +225,57 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.delete(
+    "/staff/:userId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: userIdParams }),
+    async (_request, response, next) => {
+      const userId = userIdOf(response);
+      const target = await database.user.findFirst({
+        where: { id: userId, role: "TECHNICIAN" },
+        select: { id: true },
+      });
+      if (!target) {
+        next(new HttpError(404, "STAFF_NOT_FOUND", "Мастер не найден."));
+        return;
+      }
+
+      const activeAssignments = await database.repairOrder.count({
+        where: {
+          assignedTechnicianId: userId,
+          status: { notIn: ["COMPLETED", "CANCELLED"] },
+        },
+      });
+      if (activeAssignments > 0) {
+        next(
+          new HttpError(
+            409,
+            "TECHNICIAN_HAS_ACTIVE_ORDERS",
+            "Сначала переназначьте или завершите активные заявки этого мастера.",
+          ),
+        );
+        return;
+      }
+
+      const staff = await database.user.update({
+        where: { id: userId },
+        data: { active: false },
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          phoneNumber: true,
+          avatarObjectId: true,
+          role: true,
+          active: true,
+          createdAt: true,
+        },
+      });
+      await database.session.deleteMany({ where: { userId } });
+      response.json({ staff });
+    },
+  );
+
   return router;
 };

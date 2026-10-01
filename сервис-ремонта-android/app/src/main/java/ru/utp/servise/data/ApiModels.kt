@@ -185,6 +185,47 @@ data class AdminChatInboxItem(
     val adminJoinedAt: String?,
 )
 
+data class SupportChatMessage(
+    val id: String,
+    val senderId: String?,
+    val senderName: String,
+    val senderRole: String,
+    val content: String,
+    val createdAt: String,
+)
+
+data class SupportChat(
+    val id: String?,
+    val customerId: String,
+    val customerName: String,
+    val customerEmail: String,
+    val messages: List<SupportChatMessage>,
+)
+
+data class SupportChatInboxItem(
+    val customerId: String,
+    val customerName: String,
+    val customerEmail: String,
+    val lastMessage: String,
+    val updatedAt: String,
+)
+
+data class AdminCustomer(
+    val id: String,
+    val email: String,
+    val displayName: String,
+    val phoneNumber: String?,
+    val active: Boolean,
+    val createdAt: String,
+)
+
+data class AdminCustomerPage(
+    val customers: List<AdminCustomer>,
+    val page: Int,
+    val totalPages: Int,
+    val totalItems: Int,
+)
+
 data class StaffMember(
     val id: String,
     val email: String,
