@@ -17,6 +17,8 @@ import {
 } from "./order-policy.js";
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
+const reviewIdParams = z.object({ reviewId: z.string().uuid() });
+const moderateReviewBody = z.object({ isPublished: z.boolean() }).strict();
 const createOrderBody = z
   .object({
     deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]),
@@ -40,6 +42,20 @@ const statusBody = z
     note: z.string().trim().max(500).optional(),
   })
   .strict();
+const expectedCompletionBody = z
+  .object({
+    expectedCompletionAt: z.string().datetime({ offset: true }).nullable(),
+  })
+  .strict();
+const bonusRedemptionBody = z.object({ redeemBonuses: z.boolean() }).strict();
+const receiptItems = z.array(
+  z.object({
+    name: z.string(),
+    quantity: z.number().int(),
+    unitPriceRub: z.number().int(),
+    totalRub: z.number().int(),
+  }),
+);
 const assignBody = z.object({ technicianId: z.string().uuid() }).strict();
 const orderItemBody = z
   .object({
@@ -101,6 +117,7 @@ const orderDetails = (role: UserRole) => ({
     },
   },
   review: true,
+  receipt: true,
 });
 
 const isUniqueViolation = (error: unknown): boolean =>
@@ -135,6 +152,31 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.get(
+    "/orders/search",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({
+      query: z.object({ serviceNumber: z.string().trim().min(2).max(32) }),
+    }),
+    async (_request, response) => {
+      const query = (
+        response.locals.input as {
+          readonly query: { readonly serviceNumber: string };
+        }
+      ).query;
+      const orders = await database.repairOrder.findMany({
+        where: {
+          serviceNumber: { contains: query.serviceNumber, mode: "insensitive" },
+        },
+        include: orderDetails("ADMIN"),
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      });
+      response.json({ orders });
+    },
+  );
+
   router.post(
     "/orders",
     requireAuth,
@@ -144,8 +186,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createOrderBody>>(response);
       const order = await database.$transaction(async (transaction) => {
+        const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
+          SELECT nextval('repair_service_number_seq') AS value
+        `;
+        const number = String(sequence[0]?.value ?? "1").padStart(6, "0");
         const created = await transaction.repairOrder.create({
           data: {
+            serviceNumber: `UTP-${new Date().getUTCFullYear()}-${number}`,
             customerId: user.id,
             deviceType: input.deviceType,
             problem: input.problem,
@@ -235,6 +282,121 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
       });
       response.json({ order });
+    },
+  );
+
+  router.patch(
+    "/orders/:orderId/expected-completion",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: orderIdParams, body: expectedCompletionBody }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const { expectedCompletionAt } =
+        bodyOf<z.infer<typeof expectedCompletionBody>>(response);
+      const order = await database.repairOrder.update({
+        where: { id: orderId },
+        data: {
+          expectedCompletionAt: expectedCompletionAt
+            ? new Date(expectedCompletionAt)
+            : null,
+        },
+        include: orderDetails("ADMIN"),
+      });
+      response.json({ order });
+    },
+  );
+
+  router.patch(
+    "/orders/:orderId/bonus-redemption",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    validateRequest({ params: orderIdParams, body: bonusRedemptionBody }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.repairOrder.findFirst({
+        where: { id: orderId, customerId: user.id },
+      });
+      if (!order)
+        throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+      if (order.status === "COMPLETED" || order.status === "CANCELLED") {
+        throw new HttpError(
+          409,
+          "BONUS_REDEMPTION_CLOSED",
+          "Для закрытой заявки нельзя менять использование бонусов.",
+        );
+      }
+      const { redeemBonuses } =
+        bodyOf<z.infer<typeof bonusRedemptionBody>>(response);
+      const updated = await database.repairOrder.update({
+        where: { id: orderId },
+        data: { redeemBonuses },
+        include: orderDetails(user.role),
+      });
+      response.json({ order: updated });
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/receipt",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: orderIdParams }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const receipt = await database.$transaction(async (transaction) => {
+        const order = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          include: { items: { orderBy: { createdAt: "asc" } } },
+        });
+        if (!order)
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        if (order.status !== "COMPLETED") {
+          throw new HttpError(
+            409,
+            "ORDER_NOT_COMPLETED",
+            "Документ по ремонту можно сформировать после завершения работ.",
+          );
+        }
+        const snapshot = order.items.map((item) => ({
+          name: item.name,
+          quantity: item.quantity,
+          unitPriceRub: item.unitPriceRub,
+          totalRub: item.quantity * item.unitPriceRub,
+        }));
+        const totalRub = snapshot.reduce(
+          (total, item) => total + item.totalRub,
+          0,
+        );
+        return transaction.repairReceipt.upsert({
+          where: { orderId },
+          create: {
+            orderId,
+            receiptNumber: `DOC-${order.serviceNumber}`,
+            issuedById: user.id,
+            itemsSnapshot: snapshot,
+            totalRub,
+            bonusDiscountRub: order.bonusDiscountRub,
+          },
+          update: {
+            issuedById: user.id,
+            itemsSnapshot: snapshot,
+            totalRub,
+            bonusDiscountRub: order.bonusDiscountRub,
+            issuedAt: new Date(),
+          },
+        });
+      });
+      response
+        .status(201)
+        .json({
+          receipt: {
+            ...receipt,
+            itemsSnapshot: receiptItems.parse(receipt.itemsSnapshot),
+          },
+        });
     },
   );
 
@@ -338,9 +500,39 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Эта роль не может выполнить такой переход статуса.",
           );
         }
+        let bonusDiscountRub = 0;
+        let earnedPoints = 0;
+        if (status === "COMPLETED") {
+          const items = await transaction.repairOrderItem.findMany({
+            where: { orderId },
+            select: { quantity: true, unitPriceRub: true },
+          });
+          const totalRub = items.reduce(
+            (sum, item) => sum + item.quantity * item.unitPriceRub,
+            0,
+          );
+          if (totalRub > 2_147_483_647) {
+            throw new HttpError(
+              400,
+              "ORDER_TOTAL_TOO_LARGE",
+              "Итог заказа превышает допустимое значение.",
+            );
+          }
+          if (current.redeemBonuses && totalRub > 0) {
+            const balance = await transaction.loyaltyTransaction.aggregate({
+              where: { customerId: current.customerId },
+              _sum: { points: true },
+            });
+            bonusDiscountRub = Math.min(
+              Math.max(0, balance._sum.points ?? 0),
+              Math.floor(totalRub * 0.3),
+            );
+          }
+          earnedPoints = Math.floor((totalRub - bonusDiscountRub) * 0.05);
+        }
         const changed = await transaction.repairOrder.updateMany({
           where: { id: current.id, status: current.status },
-          data: { status },
+          data: { status, bonusDiscountRub },
         });
         if (changed.count !== 1)
           throw new HttpError(
@@ -357,6 +549,30 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             note,
           },
         });
+        if (status === "COMPLETED" && bonusDiscountRub > 0) {
+          await transaction.loyaltyTransaction.create({
+            data: {
+              customerId: current.customerId,
+              orderId,
+              actorId: user.id,
+              type: "REDEEM",
+              points: -bonusDiscountRub,
+              reason: `Списание на ремонт ${current.serviceNumber}`,
+            },
+          });
+        }
+        if (status === "COMPLETED" && earnedPoints > 0) {
+          await transaction.loyaltyTransaction.create({
+            data: {
+              customerId: current.customerId,
+              orderId,
+              actorId: user.id,
+              type: "EARN",
+              points: earnedPoints,
+              reason: `Начисление 5% после ремонта ${current.serviceNumber}`,
+            },
+          });
+        }
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
           include: orderDetails(user.role),
@@ -420,9 +636,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const user = getAuthenticatedUser(response);
       const where =
         user.role === "CUSTOMER"
-          ? { customerId: user.id }
+          ? { OR: [{ customerId: user.id }, { isPublished: true }] }
           : user.role === "TECHNICIAN"
-            ? { order: { assignedTechnicianId: user.id } }
+            ? { isPublished: true, order: { assignedTechnicianId: user.id } }
             : {};
       const reviews = await database.review.findMany({
         where,
@@ -441,6 +657,23 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         take: 100,
       });
       response.json({ reviews });
+    },
+  );
+
+  router.patch(
+    "/reviews/:reviewId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: reviewIdParams, body: moderateReviewBody }),
+    async (_request, response) => {
+      const { reviewId } = paramsOf<z.infer<typeof reviewIdParams>>(response);
+      const { isPublished } =
+        bodyOf<z.infer<typeof moderateReviewBody>>(response);
+      const review = await database.review.update({
+        where: { id: reviewId },
+        data: { isPublished },
+      });
+      response.json({ review });
     },
   );
 

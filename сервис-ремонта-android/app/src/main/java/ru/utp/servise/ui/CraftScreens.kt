@@ -1,0 +1,185 @@
+package ru.utp.servise.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.CraftItem
+import ru.utp.servise.data.CraftOrder
+
+@Composable
+fun CraftsScreen(
+    token: String,
+    isAdmin: Boolean,
+    items: List<CraftItem>,
+    orders: List<CraftOrder>,
+    runAction: RunAction,
+    refresh: () -> Unit,
+    onBack: () -> Unit,
+) {
+    var customTitle by remember { mutableStateOf("") }
+    var customNote by remember { mutableStateOf("") }
+    var customQuantity by remember { mutableStateOf("1") }
+    Column(
+        Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        TextButton(onClick = onBack) { Text("←  Назад") }
+        Text("Рукоделия", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Text("Готовые изделия и изготовление под заказ. Заявку обработает администратор.", fontSize = 13.sp, color = UtpMuted)
+
+        if (isAdmin) {
+            CraftItemManagementScreen(token, items, runAction, refresh)
+            Text("Заявки на изделия", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+            orders.forEach { order -> AdminCraftOrderCard(order, token, runAction, refresh) }
+        } else {
+            items.filter { it.isPublished }.forEach { item ->
+                CustomerCraftItemCard(item, token, runAction, refresh)
+            }
+            Spacer(Modifier.height(4.dp))
+            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Text("Индивидуальный заказ", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    OutlinedTextField(customTitle, { customTitle = it.take(160) }, label = { Text("Что изготовить") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(customNote, { customNote = it.take(2000) }, label = { Text("Описание и пожелания") }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp))
+                    OutlinedTextField(customQuantity, { customQuantity = it.filter(Char::isDigit).take(2) }, label = { Text("Количество") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    Button(
+                        onClick = { runAction({ ApiClient.createCraftOrder(token, null, customTitle.trim(), customQuantity.toIntOrNull()?.coerceIn(1, 99) ?: 1, customNote.trim()) }) { customTitle = ""; customNote = ""; refresh() } },
+                        enabled = customTitle.trim().length >= 2 && customNote.trim().length >= 2,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Отправить заявку") }
+                    Text("Цена и сроки заказного изделия уточняются администратором. Онлайн-оплата не подключена.", fontSize = 11.sp, color = UtpMuted)
+                }
+            }
+            Text("Мои заявки", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+            orders.forEach { CustomerCraftOrderCard(it) }
+        }
+        if (items.isEmpty()) Text("В каталоге пока нет материалов.", color = UtpMuted)
+    }
+}
+
+@Composable
+private fun CustomerCraftItemCard(item: CraftItem, token: String, runAction: RunAction, refresh: () -> Unit) {
+    var quantity by remember(item.id) { mutableStateOf("1") }
+    var note by remember(item.id) { mutableStateOf("") }
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            item.imageObjectId?.let { image -> RemoteProjectImage(image, token, Modifier.fillMaxWidth().height(180.dp), "Фото изделия ${item.title}") }
+            Text(item.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+            Text(item.description.ifBlank { "Готовое изделие ручной работы." }, fontSize = 13.sp, color = UtpMuted)
+            Text("${item.priceRub} ₽", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpBlue)
+            OutlinedTextField(quantity, { quantity = it.filter(Char::isDigit).take(2) }, label = { Text("Количество") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
+            if (item.customOrderAvailable) {
+                OutlinedTextField(note, { note = it.take(2000) }, label = { Text("Пожелания, необязательно") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
+            }
+            Button(onClick = { runAction({ ApiClient.createCraftOrder(token, item.id, null, quantity.toIntOrNull()?.coerceIn(1, 99) ?: 1, note.trim()) }) { refresh() } }, modifier = Modifier.fillMaxWidth()) { Text("Оставить заявку") }
+        }
+    }
+}
+
+@Composable
+private fun CraftItemManagementScreen(token: String, items: List<CraftItem>, runAction: RunAction, refresh: () -> Unit) {
+    val context = LocalContext.current
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var price by remember { mutableStateOf("") }
+    var newOrderEnabled by remember { mutableStateOf(true) }
+    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("Добавить изделие", fontWeight = FontWeight.SemiBold, color = UtpInk)
+            OutlinedTextField(title, { title = it.take(160) }, label = { Text("Название") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(description, { description = it.take(4000) }, label = { Text("Описание") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(price, { price = it.filter(Char::isDigit).take(8) }, label = { Text("Цена, ₽") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
+            OutlinedButton(onClick = { newOrderEnabled = !newOrderEnabled }) { Text(if (newOrderEnabled) "✓ Можно изготовить под заказ" else "Заказной вариант отключён") }
+            Button(
+                onClick = {
+                    runAction({ ApiClient.createCraftItem(token, title.trim(), description.trim(), price.toIntOrNull() ?: 0, false, newOrderEnabled) }) { _ ->
+                        title = ""; description = ""; price = ""
+                        refresh()
+                    }
+                },
+                enabled = title.trim().length >= 2 && price.toIntOrNull() != null,
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text("Сохранить изделие") }
+            Text("После сохранения выберите фото отдельной кнопкой в карточке.", fontSize = 11.sp, color = UtpMuted)
+        }
+    }
+    items.forEach { item ->
+        var editedPrice by remember(item.id, item.priceRub) { mutableStateOf(item.priceRub.toString()) }
+        Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text(item.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(editedPrice, { editedPrice = it.filter(Char::isDigit).take(8) }, label = { Text("Цена, ₽") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    TextButton(onClick = { runAction({ ApiClient.updateCraftItem(token, item.id, priceRub = editedPrice.toIntOrNull()) }) { refresh() } }) { Text("Сохранить цену") }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { runAction({ ApiClient.updateCraftItem(token, item.id, isPublished = !item.isPublished) }) { refresh() } }) { Text(if (item.isPublished) "Снять с публикации" else "Опубликовать") }
+                    PhotoPickerButton(label = if (item.imageObjectId == null) "Добавить фото" else "Заменить фото") { uri ->
+                        runAction({ ApiClient.uploadCraftImage(token, item.id, compressSelectedImage(context, uri)) }) { refresh() }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdminCraftOrderCard(order: CraftOrder, token: String, runAction: RunAction, refresh: () -> Unit) {
+    var expanded by remember(order.id) { mutableStateOf(false) }
+    Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+        Column(Modifier.fillMaxWidth().padding(13.dp)) {
+            Text(order.itemTitle, fontWeight = FontWeight.SemiBold, color = UtpInk)
+            Text("${order.customerName} · ${order.quantity} шт. · ${order.status}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+            Text(order.note.ifBlank { "Без дополнительных пожеланий" }, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.padding(top = 5.dp)) { Text("Изменить статус") }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                listOf("REQUESTED", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "CANCELLED").forEach { status ->
+                    DropdownMenuItem(text = { Text(status) }, onClick = { expanded = false; runAction({ ApiClient.updateCraftOrderStatus(token, order.id, status) }) { refresh() } })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomerCraftOrderCard(order: CraftOrder) {
+    Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(order.itemTitle, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text("${order.quantity} шт. · ${order.status}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+            }
+            Text("${order.quotedPriceRub ?: order.unitPriceRub} ₽", fontWeight = FontWeight.SemiBold, color = UtpBlue)
+        }
+    }
+}

@@ -7,7 +7,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { createOrder, getOrders } from "@/lib/api";
+import { createOrder, getOrders, requestBonusRedemption } from "@/lib/api";
 
 const statusLabels: Record<string, string> = {
   REQUESTED: "Новая",
@@ -40,6 +40,11 @@ const OrdersPage = () => {
       setFormOpen(false);
       toast.success("Заявка отправлена");
     },
+  });
+  const bonuses = useMutation({
+    mutationFn: ({ orderId, redeem }: { orderId: string; redeem: boolean }) =>
+      requestBonusRedemption(token!, orderId, redeem),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["orders", token] }),
   });
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -132,7 +137,7 @@ const OrdersPage = () => {
           <SectionCard key={order.id}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-xs text-slate-400">Сервисный номер · {order.id}</p>
+                <p className="text-xs text-slate-400">Сервисный номер · {order.serviceNumber}</p>
                 <h2 className="mt-1 font-semibold">
                   {deviceLabels[order.deviceType] ?? order.deviceType}
                 </h2>
@@ -144,10 +149,26 @@ const OrdersPage = () => {
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
               <span>Создана: {new Date(order.createdAt).toLocaleDateString("ru-RU")}</span>
+              {order.expectedCompletionAt && (
+                <span>
+                  Ориентир завершения:{" "}
+                  {new Date(order.expectedCompletionAt).toLocaleDateString("ru-RU")}
+                </span>
+              )}
               <Link to="/checks" className="font-semibold text-blue-600">
                 Детали и чек →
               </Link>
             </div>
+            {user?.role === "CUSTOMER" && !["COMPLETED", "CANCELLED"].includes(order.status) && (
+              <button
+                onClick={() => bonuses.mutate({ orderId: order.id, redeem: !order.redeemBonuses })}
+                className={`mt-3 rounded-lg border px-3 py-2 text-xs font-medium ${order.redeemBonuses ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "border-slate-200 dark:border-slate-700"}`}
+              >
+                {order.redeemBonuses
+                  ? "✓ Использовать бонусы при завершении"
+                  : "Попросить списать бонусы (до 30%)"}
+              </button>
+            )}
           </SectionCard>
         ))}
         {!query.isLoading && !query.isError && query.data?.orders.length === 0 && (

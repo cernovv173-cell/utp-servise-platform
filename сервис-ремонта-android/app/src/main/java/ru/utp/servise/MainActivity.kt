@@ -49,6 +49,8 @@ import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.AdminChatInboxItem
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.CatalogItem
+import ru.utp.servise.data.CraftItem
+import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.OrderChat
@@ -60,6 +62,7 @@ import ru.utp.servise.notifications.NotificationChannels
 import ru.utp.servise.ui.AuthNavigation
 import ru.utp.servise.ui.ChangeTemporaryPasswordScreen
 import ru.utp.servise.ui.CatalogManagementScreen
+import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminChatInboxScreen
 import ru.utp.servise.ui.RepairChatScreen
@@ -90,6 +93,8 @@ private data class WorkspaceData(
     val reviews: List<CustomerReview>,
     val staff: List<StaffMember>,
     val catalogItems: List<CatalogItem>,
+    val craftItems: List<CraftItem>,
+    val craftOrders: List<CraftOrder>,
     val news: List<NewsArticle>,
     val adminChats: List<AdminChatInboxItem>,
 )
@@ -115,6 +120,8 @@ private fun UtpServiseApp() {
     var staff by remember { mutableStateOf<List<StaffMember>>(emptyList()) }
     var reviews by remember { mutableStateOf<List<CustomerReview>>(emptyList()) }
     var catalogItems by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
+    var craftItems by remember { mutableStateOf<List<CraftItem>>(emptyList()) }
+    var craftOrders by remember { mutableStateOf<List<CraftOrder>>(emptyList()) }
     var news by remember { mutableStateOf<List<NewsArticle>>(emptyList()) }
     var adminChats by remember { mutableStateOf<List<AdminChatInboxItem>>(emptyList()) }
     var activeChat by remember { mutableStateOf<OrderChat?>(null) }
@@ -184,6 +191,8 @@ private fun UtpServiseApp() {
                         reviews = ApiClient.reviews(token),
                         staff = if (currentUser.role == "ADMIN") ApiClient.staff(token) else emptyList(),
                         catalogItems = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.catalog(token) else emptyList(),
+                        craftItems = ApiClient.craftItems(token),
+                        craftOrders = if (currentUser.role == "ADMIN" || currentUser.role == "CUSTOMER") ApiClient.craftOrders(token) else emptyList(),
                         news = ApiClient.news(token),
                         adminChats = if (currentUser.role == "ADMIN") ApiClient.administratorChatInbox(token) else emptyList(),
                     )
@@ -193,6 +202,8 @@ private fun UtpServiseApp() {
                 reviews = data.reviews
                 staff = data.staff
                 catalogItems = data.catalogItems
+                craftItems = data.craftItems
+                craftOrders = data.craftOrders
                 news = data.news
                 adminChats = data.adminChats
             }.onFailure { errorMessage = it.message ?: "Не удалось загрузить данные." }
@@ -226,6 +237,8 @@ private fun UtpServiseApp() {
             staff = staff,
             reviews = reviews,
             catalogItems = catalogItems,
+            craftItems = craftItems,
+            craftOrders = craftOrders,
             news = news,
             adminChats = adminChats,
             activeChat = activeChat,
@@ -257,6 +270,8 @@ private fun UtpServiseApp() {
                 staff = emptyList()
                 reviews = emptyList()
                 catalogItems = emptyList()
+                craftItems = emptyList()
+                craftOrders = emptyList()
                 news = emptyList()
                 adminChats = emptyList()
                 activeChat = null
@@ -285,6 +300,8 @@ private fun AuthenticatedWorkspace(
     staff: List<StaffMember>,
     reviews: List<CustomerReview>,
     catalogItems: List<CatalogItem>,
+    craftItems: List<CraftItem>,
+    craftOrders: List<CraftOrder>,
     news: List<NewsArticle>,
     adminChats: List<AdminChatInboxItem>,
     activeChat: OrderChat?,
@@ -365,7 +382,8 @@ private fun AuthenticatedWorkspace(
                 NavHost(navController = navController, startDestination = destinations.first().route, modifier = Modifier.fillMaxSize()) {
                     when (user.role) {
                         "CUSTOMER" -> {
-                            composable("customer/home") { CustomerHomeScreen(user, token, news, { navController.navigate("customer/new-order") }, { navController.navigate("customer/orders") }) }
+                            composable("customer/home") { CustomerHomeScreen(user, token, news, { navController.navigate("customer/new-order") }, { navController.navigate("customer/orders") }, { navController.navigate("customer/crafts") }) }
+                            composable("customer/crafts") { CraftsScreen(token, false, craftItems, craftOrders, runAction, refresh) { navController.popBackStack() } }
                             composable("customer/orders") {
                                 RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }) { id -> navController.navigate("customer/review/$id") }
                             }
@@ -403,8 +421,10 @@ private fun AuthenticatedWorkspace(
                                     onChats = { navController.navigate("admin/chats") },
                                     onStaff = { navController.navigate("admin/staff") },
                                     onReviews = { navController.navigate("admin/reviews") },
+                                    onCrafts = { navController.navigate("admin/crafts") },
                                 )
                             }
+                            composable("admin/crafts") { CraftsScreen(token, true, craftItems, craftOrders, runAction, refresh) { navController.popBackStack() } }
                             composable("admin/news") {
                                 NewsManagementScreen(token, news, runAction, refresh) { navController.popBackStack() }
                             }

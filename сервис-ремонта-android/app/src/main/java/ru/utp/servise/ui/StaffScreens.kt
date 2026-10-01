@@ -66,7 +66,7 @@ fun StaffManagementScreen(
             TextButton(onClick = refresh) { Text("Обновить") }
         }
         Spacer(Modifier.height(13.dp))
-        Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+        Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(15.dp)) {
                 Text("Добавить сотрудника", fontWeight = FontWeight.SemiBold, color = UtpInk)
                 OutlinedTextField(displayName, { displayName = it }, label = { Text("Имя") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true, shape = RoundedCornerShape(12.dp))
@@ -104,7 +104,7 @@ fun StaffManagementScreen(
         Spacer(Modifier.height(14.dp))
         Text("Учётные записи (${staff.size})", fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.padding(bottom = 8.dp))
         staff.forEach { member ->
-            Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+            Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                     RemoteProjectImage(
                         objectId = member.avatarObjectId,

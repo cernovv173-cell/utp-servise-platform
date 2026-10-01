@@ -34,6 +34,10 @@ data class RepairOrder(
     val history: List<String>,
     val items: List<RepairOrderItem>,
     val photos: List<RepairOrderPhoto>,
+    val serviceNumber: String = "",
+    val expectedCompletionAt: String? = null,
+    val bonusDiscountRub: Int = 0,
+    val redeemBonuses: Boolean = false,
 )
 
 data class RepairOrderPhoto(val id: String, val objectId: String)
@@ -55,6 +59,30 @@ data class CatalogItem(
     val active: Boolean,
 )
 
+data class CraftItem(
+    val id: String,
+    val title: String,
+    val description: String,
+    val priceRub: Int,
+    val imageObjectId: String?,
+    val isPublished: Boolean,
+    val customOrderAvailable: Boolean,
+)
+
+data class CraftOrder(
+    val id: String,
+    val itemTitle: String,
+    val unitPriceRub: Int,
+    val quotedPriceRub: Int?,
+    val quantity: Int,
+    val note: String,
+    val isCustomOrder: Boolean,
+    val status: String,
+    val createdAt: String,
+    val customerName: String,
+    val customerPhone: String?,
+)
+
 data class NewsArticle(
     val id: String,
     val title: String,
@@ -62,6 +90,9 @@ data class NewsArticle(
     val isPublished: Boolean,
     val publishedAt: String?,
     val imageObjectId: String?,
+    val startsAt: String?,
+    val endsAt: String?,
+    val isFeatured: Boolean,
 )
 
 data class OrderChatMessage(
@@ -174,12 +205,59 @@ object ApiClient {
             .put("active", item.active),
     ).getJSONObject("catalogItem").toCatalogItem()
 
+    fun craftItems(token: String): List<CraftItem> = request("GET", "/craft-items", token)
+        .getJSONArray("items").mapObjects { it.toCraftItem() }
+
+    fun createCraftItem(token: String, title: String, description: String, priceRub: Int, isPublished: Boolean, customOrderAvailable: Boolean): CraftItem = request(
+        "POST", "/craft-items", token,
+        JSONObject().put("title", title).put("description", description).put("priceRub", priceRub)
+            .put("isPublished", isPublished).put("customOrderAvailable", customOrderAvailable),
+    ).getJSONObject("item").toCraftItem()
+
+    fun updateCraftItem(token: String, itemId: String, priceRub: Int? = null, isPublished: Boolean? = null): CraftItem {
+        val body = JSONObject()
+        priceRub?.let { body.put("priceRub", it) }
+        isPublished?.let { body.put("isPublished", it) }
+        return request("PATCH", "/craft-items/$itemId", token, body).getJSONObject("item").toCraftItem()
+    }
+
+    fun uploadCraftImage(token: String, itemId: String, image: ByteArray) {
+        MediaApiClient.binaryRequest("POST", "/craft-items/$itemId/image", token, image)
+    }
+
+    fun craftOrders(token: String): List<CraftOrder> = request("GET", "/craft-orders", token)
+        .getJSONArray("orders").mapObjects { it.toCraftOrder() }
+
+    fun createCraftOrder(token: String, itemId: String?, customTitle: String?, quantity: Int, note: String): CraftOrder {
+        val body = JSONObject().put("quantity", quantity).put("note", note)
+        if (itemId != null) body.put("itemId", itemId) else body.put("customTitle", customTitle.orEmpty())
+        return request("POST", "/craft-orders", token, body).getJSONObject("order").toCraftOrder()
+    }
+
+    fun updateCraftOrderStatus(token: String, orderId: String, status: String): CraftOrder = request(
+        "PATCH", "/craft-orders/$orderId", token, JSONObject().put("status", status),
+    ).getJSONObject("order").toCraftOrder()
+
     fun news(token: String): List<NewsArticle> = request("GET", "/news", token)
         .getJSONArray("articles").mapObjects { it.toNewsArticle() }
 
-    fun createNews(token: String, title: String, content: String, isPublished: Boolean): NewsArticle = request(
+    fun createNews(
+        token: String,
+        title: String,
+        content: String,
+        isPublished: Boolean,
+        startsAt: String? = null,
+        endsAt: String? = null,
+        isFeatured: Boolean = false,
+    ): NewsArticle = request(
         "POST", "/news", token,
-        JSONObject().put("title", title).put("content", content).put("isPublished", isPublished),
+        JSONObject()
+            .put("title", title)
+            .put("content", content)
+            .put("isPublished", isPublished)
+            .put("startsAt", startsAt ?: JSONObject.NULL)
+            .put("endsAt", endsAt ?: JSONObject.NULL)
+            .put("isFeatured", isFeatured),
     ).getJSONObject("article").toNewsArticle()
 
     fun updateNews(token: String, article: NewsArticle): NewsArticle = request(
@@ -187,7 +265,10 @@ object ApiClient {
         JSONObject()
             .put("title", article.title)
             .put("content", article.content)
-            .put("isPublished", article.isPublished),
+            .put("isPublished", article.isPublished)
+            .put("startsAt", article.startsAt ?: JSONObject.NULL)
+            .put("endsAt", article.endsAt ?: JSONObject.NULL)
+            .put("isFeatured", article.isFeatured),
     ).getJSONObject("article").toNewsArticle()
 
     fun uploadNewsImage(token: String, articleId: String, image: ByteArray) {
@@ -348,6 +429,10 @@ object ApiClient {
             photos = (optJSONArray("photos") ?: JSONArray()).mapObjects { photo ->
                 RepairOrderPhoto(photo.getString("id"), photo.getString("objectId"))
             },
+            serviceNumber = optString("serviceNumber").takeUnless { it.isBlank() || it == "null" } ?: getString("id"),
+            expectedCompletionAt = optString("expectedCompletionAt").takeUnless { it.isBlank() || it == "null" },
+            bonusDiscountRub = optInt("bonusDiscountRub", 0),
+            redeemBonuses = optBoolean("redeemBonuses", false),
         )
     }
 
@@ -366,6 +451,33 @@ object ApiClient {
         active = optBoolean("active", true),
     )
 
+    private fun JSONObject.toCraftItem() = CraftItem(
+        id = getString("id"),
+        title = getString("title"),
+        description = optString("description"),
+        priceRub = optInt("priceRub"),
+        imageObjectId = optString("imageObjectId").takeUnless { it.isBlank() || it == "null" },
+        isPublished = optBoolean("isPublished"),
+        customOrderAvailable = optBoolean("customOrderAvailable", true),
+    )
+
+    private fun JSONObject.toCraftOrder(): CraftOrder {
+        val customer = optJSONObject("customer")
+        return CraftOrder(
+            id = getString("id"),
+            itemTitle = getString("itemTitleSnapshot"),
+            unitPriceRub = optInt("unitPriceRubSnapshot"),
+            quotedPriceRub = if (isNull("quotedPriceRub")) null else optInt("quotedPriceRub"),
+            quantity = optInt("quantity", 1),
+            note = optString("note"),
+            isCustomOrder = optBoolean("isCustomOrder"),
+            status = getString("status"),
+            createdAt = optString("createdAt"),
+            customerName = customer?.optString("displayName").orEmpty(),
+            customerPhone = customer?.optString("phoneNumber")?.takeUnless { it.isBlank() || it == "null" },
+        )
+    }
+
     private fun JSONObject.toNewsArticle() = NewsArticle(
         id = getString("id"),
         title = getString("title"),
@@ -373,6 +485,9 @@ object ApiClient {
         isPublished = optBoolean("isPublished", false),
         publishedAt = optString("publishedAt").takeUnless { it == "null" || it.isBlank() },
         imageObjectId = optString("imageObjectId").takeUnless { it == "null" || it.isBlank() },
+        startsAt = optString("startsAt").takeUnless { it == "null" || it.isBlank() },
+        endsAt = optString("endsAt").takeUnless { it == "null" || it.isBlank() },
+        isFeatured = optBoolean("isFeatured"),
     )
 
     private fun JSONObject.toOrderChat() = OrderChat(

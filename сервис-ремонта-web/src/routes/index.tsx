@@ -3,10 +3,11 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, ClipboardList, FileText, Newspaper, Sparkles } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
+import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { getNews, getOrders } from "@/lib/api";
+import { getBanners, getNews, getOrders } from "@/lib/api";
 
 const HomePage = () => {
   const { token, user } = useAuth();
@@ -18,6 +19,11 @@ const HomePage = () => {
   const news = useQuery({
     queryKey: ["news", token],
     queryFn: ({ signal }) => getNews(token!, signal),
+    enabled: Boolean(token),
+  });
+  const banners = useQuery({
+    queryKey: ["banners", token],
+    queryFn: ({ signal }) => getBanners(token!, signal),
     enabled: Boolean(token),
   });
   const featured = (news.data?.articles ?? []).filter((article) => article.isFeatured).slice(0, 3);
@@ -52,6 +58,35 @@ const HomePage = () => {
           </Link>
         </div>
       </SectionCard>
+      {(banners.data?.banners ?? []).map((banner) => (
+        <SectionCard key={banner.id} className="mb-5 overflow-hidden p-0">
+          {banner.imageObjectId && (
+            <ProtectedImage
+              objectId={banner.imageObjectId}
+              alt={banner.title}
+              loading="lazy"
+              className="max-h-56 w-full object-cover"
+            />
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-4 p-5">
+            <div>
+              <p className="text-xs font-semibold text-blue-600">Предложение сервиса</p>
+              <h2 className="mt-1 text-lg font-semibold">{banner.title}</h2>
+              <p className="mt-1 text-sm text-slate-500">{banner.content}</p>
+            </div>
+            {banner.targetUrl && (
+              <a
+                href={banner.targetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="min-h-10 rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold dark:border-slate-700"
+              >
+                Подробнее
+              </a>
+            )}
+          </div>
+        </SectionCard>
+      ))}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <Link to="/orders">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
@@ -74,6 +109,13 @@ const HomePage = () => {
             <Newspaper className="text-violet-600" />
             <h3 className="mt-4 font-semibold">Новости сервиса</h3>
             <p className="mt-1 text-sm text-slate-500">Акции, объявления и обновления</p>
+          </SectionCard>
+        </Link>
+        <Link to="/crafts">
+          <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
+            <Sparkles className="text-amber-600" />
+            <h3 className="mt-4 font-semibold">Рукоделия</h3>
+            <p className="mt-1 text-sm text-slate-500">Изделия и заказные варианты</p>
           </SectionCard>
         </Link>
       </div>

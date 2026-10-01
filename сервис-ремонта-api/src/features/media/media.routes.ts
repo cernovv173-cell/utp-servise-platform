@@ -24,6 +24,8 @@ const imageBody: RequestHandler = express.raw({
 });
 const mediaParams = z.object({ objectId: z.string().trim().min(1).max(255) });
 const newsParams = z.object({ articleId: z.string().uuid() });
+const craftItemParams = z.object({ itemId: z.string().uuid() });
+const bannerParams = z.object({ bannerId: z.string().uuid() });
 const orderParams = z.object({ orderId: z.string().uuid() });
 
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
@@ -121,6 +123,68 @@ export const createMediaRouter = (
   );
 
   router.post(
+    "/craft-items/:itemId/image",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: craftItemParams }),
+    imageBody,
+    async (request, response) => {
+      const { itemId } = paramsOf<z.infer<typeof craftItemParams>>(response);
+      const item = await database.craftItem.findUnique({
+        where: { id: itemId },
+        select: { id: true, imageObjectId: true },
+      });
+      if (!item)
+        throw new HttpError(404, "CRAFT_ITEM_NOT_FOUND", "Изделие не найдено.");
+      const image = imageOf(request);
+      const objectId = await storage.upload(image.bytes, image.contentType);
+      try {
+        const updated = await database.craftItem.update({
+          where: { id: itemId },
+          data: { imageObjectId: objectId },
+        });
+        if (item.imageObjectId)
+          await storage.delete(item.imageObjectId).catch(() => undefined);
+        response.json({ item: updated });
+      } catch (error) {
+        await storage.delete(objectId).catch(() => undefined);
+        throw error;
+      }
+    },
+  );
+
+  router.post(
+    "/banners/:bannerId/image",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: bannerParams }),
+    imageBody,
+    async (request, response) => {
+      const { bannerId } = paramsOf<z.infer<typeof bannerParams>>(response);
+      const banner = await database.siteBanner.findUnique({
+        where: { id: bannerId },
+        select: { id: true, imageObjectId: true },
+      });
+      if (!banner)
+        throw new HttpError(404, "BANNER_NOT_FOUND", "Баннер не найден.");
+      const image = imageOf(request);
+      const objectId = await storage.upload(image.bytes, image.contentType);
+      try {
+        const updated = await database.siteBanner.update({
+          where: { id: bannerId },
+          data: { imageObjectId: objectId },
+        });
+        if (banner.imageObjectId)
+          await storage.delete(banner.imageObjectId).catch(() => undefined);
+        response.json({ banner: updated });
+      } catch (error) {
+        await storage.delete(objectId).catch(() => undefined);
+        throw error;
+      }
+    },
+  );
+
+  router.post(
     "/orders/:orderId/photos",
     requireAuth,
     allowedRoles,
@@ -196,24 +260,63 @@ export const createMediaRouter = (
         }
         if (!mayView) invalidMedia();
       } else {
+        const now = new Date();
         const article = await database.newsArticle.findFirst({
           where: {
             imageObjectId: objectId,
-            ...(user.role === "ADMIN" ? {} : { isPublished: true }),
+            ...(user.role === "ADMIN"
+              ? {}
+              : {
+                  isPublished: true,
+                  AND: [
+                    { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+                    { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+                  ],
+                }),
           },
           select: { id: true },
         });
         if (!article) {
-          const photo = await database.repairOrderPhoto.findUnique({
-            where: { objectId },
-            select: {
-              order: {
-                select: { customerId: true, assignedTechnicianId: true },
-              },
+          const craftItem = await database.craftItem.findFirst({
+            where: {
+              imageObjectId: objectId,
+              ...(user.role === "ADMIN" ? {} : { isPublished: true }),
             },
+            select: { id: true },
           });
-          if (!photo || !canViewRepairOrder(user.role, user.id, photo.order)) {
-            invalidMedia();
+          if (!craftItem) {
+            const banner = await database.siteBanner.findFirst({
+              where: {
+                imageObjectId: objectId,
+                ...(user.role === "ADMIN"
+                  ? {}
+                  : {
+                      isActive: true,
+                      AND: [
+                        {
+                          OR: [{ startsAt: null }, { startsAt: { lte: now } }],
+                        },
+                        { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+                      ],
+                    }),
+              },
+              select: { id: true },
+            });
+            if (!banner) {
+              const photo = await database.repairOrderPhoto.findUnique({
+                where: { objectId },
+                select: {
+                  order: {
+                    select: { customerId: true, assignedTechnicianId: true },
+                  },
+                },
+              });
+              if (
+                !photo ||
+                !canViewRepairOrder(user.role, user.id, photo.order)
+              )
+                invalidMedia();
+            }
           }
         }
       }

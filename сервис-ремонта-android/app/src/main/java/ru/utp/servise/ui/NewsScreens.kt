@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.NewsArticle
+import java.time.Instant
 
 @Composable
 fun AdminManagementScreen(
@@ -41,6 +42,7 @@ fun AdminManagementScreen(
     onChats: () -> Unit,
     onStaff: () -> Unit,
     onReviews: () -> Unit,
+    onCrafts: () -> Unit,
 ) {
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
@@ -53,6 +55,7 @@ fun AdminManagementScreen(
         ManagementCard("Чаты с запросом помощи", "Подключение администратора к беседе", "✉", onChats)
         ManagementCard("Сотрудники", "Мастера и административные аккаунты", "♙", onStaff)
         ManagementCard("Отзывы", "Отзывы клиентов о ремонтах", "★", onReviews)
+        ManagementCard("Рукоделия", "Изделия, цены, фото и заявки", "✿", onCrafts)
     }
 }
 
@@ -62,7 +65,7 @@ private fun ManagementCard(title: String, description: String, icon: String, onC
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
     ) {
         Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(icon, fontSize = 23.sp, color = UtpBlue, modifier = Modifier.padding(end = 12.dp))
@@ -86,6 +89,9 @@ fun NewsManagementScreen(
     val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+    var startsAt by remember { mutableStateOf<String?>(null) }
+    var endsAt by remember { mutableStateOf<String?>(null) }
+    var isFeatured by remember { mutableStateOf(false) }
     var editedArticle by remember { mutableStateOf<NewsArticle?>(null) }
 
     Column(
@@ -95,7 +101,7 @@ fun NewsManagementScreen(
         TextButton(onClick = onBack) { Text("←  Управление") }
         Text("Новости", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Черновики видны только администраторам. Публикации появляются на главной у клиентов.", fontSize = 12.sp, color = UtpMuted)
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Новая новость", fontWeight = FontWeight.SemiBold, color = UtpInk)
                 OutlinedTextField(
@@ -113,27 +119,43 @@ fun NewsManagementScreen(
                     modifier = Modifier.fillMaxWidth().height(135.dp),
                     shape = RoundedCornerShape(12.dp),
                 )
+                ScheduleDateTimeField("Начало публикации", startsAt, { startsAt = it })
+                ScheduleDateTimeField("Окончание публикации", endsAt, { endsAt = it })
+                OutlinedButton(onClick = { isFeatured = !isFeatured }) {
+                    Text(if (isFeatured) "★ Приоритет на главной" else "☆ Без приоритета")
+                }
                 val valid = title.trim().length >= 3 && content.trim().length >= 5
+                val validSchedule = startsAt == null || endsAt == null || runCatching {
+                    Instant.parse(startsAt) < Instant.parse(endsAt)
+                }.getOrDefault(false)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = {
-                            runAction({ ApiClient.createNews(token, title.trim(), content.trim(), false) }) {
+                            runAction({ ApiClient.createNews(token, title.trim(), content.trim(), false, startsAt, endsAt, isFeatured) }) {
                                 title = ""
                                 content = ""
+                                startsAt = null
+                                endsAt = null
+                                isFeatured = false
+                                refresh()
                             }
                         },
-                        enabled = valid,
+                        enabled = valid && validSchedule,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                     ) { Text("Черновик") }
                     Button(
                         onClick = {
-                            runAction({ ApiClient.createNews(token, title.trim(), content.trim(), true) }) {
+                            runAction({ ApiClient.createNews(token, title.trim(), content.trim(), true, startsAt, endsAt, isFeatured) }) {
                                 title = ""
                                 content = ""
+                                startsAt = null
+                                endsAt = null
+                                isFeatured = false
+                                refresh()
                             }
                         },
-                        enabled = valid,
+                        enabled = valid && validSchedule,
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                     ) { Text("Опубликовать") }
@@ -146,7 +168,7 @@ fun NewsManagementScreen(
         }
         if (articles.isEmpty()) Text("Новостей пока нет.", color = UtpMuted)
         articles.forEach { article ->
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     article.imageObjectId?.let { imageId ->
                         RemoteProjectImage(
@@ -159,6 +181,17 @@ fun NewsManagementScreen(
                     Text(article.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text(article.content, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
                     Text(if (article.isPublished) "Опубликована" else "Черновик", fontSize = 11.sp, color = UtpBlue, modifier = Modifier.padding(top = 7.dp))
+                    Text(
+                        buildString {
+                            append(formatNewsScheduleDate("С", article.startsAt))
+                            append(" · ")
+                            append(formatNewsScheduleDate("До", article.endsAt))
+                            if (article.isFeatured) append(" · Приоритет на главной")
+                        },
+                        fontSize = 11.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { editedArticle = article }) { Text("Изменить") }
                         TextButton(
@@ -199,6 +232,9 @@ private fun NewsEditDialog(
 ) {
     var title by remember(article.id) { mutableStateOf(article.title) }
     var content by remember(article.id) { mutableStateOf(article.content) }
+    var startsAt by remember(article.id) { mutableStateOf(article.startsAt) }
+    var endsAt by remember(article.id) { mutableStateOf(article.endsAt) }
+    var isFeatured by remember(article.id) { mutableStateOf(article.isFeatured) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Изменить новость") },
@@ -206,12 +242,17 @@ private fun NewsEditDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(title, { title = it.take(160) }, label = { Text("Заголовок") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                 OutlinedTextField(content, { content = it.take(8000) }, label = { Text("Текст") }, modifier = Modifier.fillMaxWidth().height(140.dp), shape = RoundedCornerShape(12.dp))
+                ScheduleDateTimeField("Начало публикации", startsAt, { startsAt = it })
+                ScheduleDateTimeField("Окончание публикации", endsAt, { endsAt = it })
+                OutlinedButton(onClick = { isFeatured = !isFeatured }) {
+                    Text(if (isFeatured) "★ Приоритет на главной" else "☆ Без приоритета")
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(article.copy(title = title.trim(), content = content.trim())) },
-                enabled = title.trim().length >= 3 && content.trim().length >= 5,
+                onClick = { onSave(article.copy(title = title.trim(), content = content.trim(), startsAt = startsAt, endsAt = endsAt, isFeatured = isFeatured)) },
+                enabled = title.trim().length >= 3 && content.trim().length >= 5 && (startsAt == null || endsAt == null || runCatching { Instant.parse(startsAt) < Instant.parse(endsAt) }.getOrDefault(false)),
             ) { Text("Сохранить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },

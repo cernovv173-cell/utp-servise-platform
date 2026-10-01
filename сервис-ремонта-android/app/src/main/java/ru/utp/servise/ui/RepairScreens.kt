@@ -70,7 +70,7 @@ fun RepairOrdersScreen(
             Card(
                 modifier = Modifier.padding(top = 10.dp),
                 shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
             ) {
                 Text(
                     if (historyOnly) "Завершённых ремонтов пока нет." else "Сейчас здесь нет заявок.",
@@ -136,7 +136,7 @@ fun ReviewsScreen(title: String, reviews: List<CustomerReview>, refresh: () -> U
             Card(
                 Modifier.fillMaxWidth().padding(bottom = 10.dp),
                 shape = RoundedCornerShape(17.dp),
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
             ) {
                 Column(Modifier.padding(15.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {

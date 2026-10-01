@@ -26,6 +26,20 @@ enum RepairOrderItemType {
   SPARE_PART
 }
 
+enum CraftOrderStatus {
+  REQUESTED
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum BonusTransactionType {
+  EARN
+  REDEEM
+  MANUAL_ADJUSTMENT
+}
+
 model AppSetting {
   key       String   @id
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -59,6 +73,13 @@ model User {
   joinedChats         OrderChat[]         @relation("ChatAdministratorJoiner")
   pushDeviceTokens    PushDeviceToken[]
   orderPhotos         RepairOrderPhoto[]
+  craftItemsCreated   CraftItem[]          @relation("CraftItemCreator")
+  craftOrders         CraftOrder[]         @relation("CraftOrderCustomer")
+  handledCraftOrders  CraftOrder[]         @relation("CraftOrderHandler")
+  bonusTransactions   LoyaltyTransaction[] @relation("BonusCustomer")
+  bonusActions        LoyaltyTransaction[] @relation("BonusActor")
+  createdBanners      SiteBanner[]         @relation("BannerCreator")
+  issuedReceipts      RepairReceipt[]      @relation("ReceiptIssuer")
 
   @@index([role, active])
   @@map("users")
@@ -90,12 +111,16 @@ model PushDeviceToken {
 
 model RepairOrder {
   id                   String              @id @default(uuid()) @db.Uuid
+  serviceNumber        String              @unique @map("service_number") @db.VarChar(32)
   customerId           String              @map("customer_id") @db.Uuid
   assignedTechnicianId String?             @map("assigned_technician_id") @db.Uuid
   deviceType           String              @map("device_type") @db.VarChar(120)
   problem              String              @db.VarChar(2000)
   address              String              @db.VarChar(500)
   preferredAt          DateTime?           @map("preferred_at") @db.Timestamptz(3)
+  expectedCompletionAt DateTime?           @map("expected_completion_at") @db.Timestamptz(3)
+  redeemBonuses        Boolean             @default(false) @map("redeem_bonuses")
+  bonusDiscountRub     Int                 @default(0) @map("bonus_discount_rub")
   status               RepairStatus        @default(REQUESTED)
   createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -106,6 +131,8 @@ model RepairOrder {
   photos               RepairOrderPhoto[]
   chat                 OrderChat?
   review               Review?
+  bonusTransactions    LoyaltyTransaction[]
+  receipt              RepairReceipt?
 
   @@index([customerId, createdAt])
   @@index([assignedTechnicianId, status, updatedAt])
@@ -143,6 +170,21 @@ model RepairOrderPhoto {
 
   @@index([orderId, createdAt])
   @@map("repair_order_photos")
+}
+
+model RepairReceipt {
+  id                 String   @id @default(uuid()) @db.Uuid
+  orderId            String   @unique @map("order_id") @db.Uuid
+  receiptNumber      String   @unique @map("receipt_number") @db.VarChar(48)
+  issuedById         String   @map("issued_by_id") @db.Uuid
+  itemsSnapshot      Json     @map("items_snapshot")
+  totalRub           Int      @map("total_rub")
+  bonusDiscountRub   Int      @default(0) @map("bonus_discount_rub")
+  issuedAt           DateTime @default(now()) @map("issued_at") @db.Timestamptz(3)
+  order              RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  issuedBy           User     @relation("ReceiptIssuer", fields: [issuedById], references: [id], onDelete: Restrict)
+
+  @@map("repair_receipts")
 }
 
 model RepairCatalogItem {
@@ -232,10 +274,88 @@ model Review {
   customerId String      @map("customer_id") @db.Uuid
   rating     Int
   comment    String      @db.VarChar(2000)
+  isPublished Boolean    @default(true) @map("is_published")
   createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   order      RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   customer   User        @relation(fields: [customerId], references: [id], onDelete: Restrict)
 
   @@index([customerId, createdAt])
   @@map("reviews")
+}
+
+model CraftItem {
+  id                  String       @id @default(uuid()) @db.Uuid
+  title               String       @db.VarChar(160)
+  description         String       @db.VarChar(4000)
+  priceRub            Int          @map("price_rub")
+  imageObjectId       String?      @map("image_object_id") @db.VarChar(255)
+  isPublished         Boolean      @default(false) @map("is_published")
+  customOrderAvailable Boolean     @default(true) @map("custom_order_available")
+  createdById         String?      @map("created_by_id") @db.Uuid
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy           User?        @relation("CraftItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  orders              CraftOrder[]
+
+  @@index([isPublished, createdAt])
+  @@map("craft_items")
+}
+
+model CraftOrder {
+  id                   String          @id @default(uuid()) @db.Uuid
+  customerId           String          @map("customer_id") @db.Uuid
+  itemId               String?         @map("item_id") @db.Uuid
+  itemTitleSnapshot    String          @map("item_title_snapshot") @db.VarChar(160)
+  unitPriceRubSnapshot Int             @map("unit_price_rub_snapshot")
+  quotedPriceRub       Int?            @map("quoted_price_rub")
+  quantity             Int             @default(1)
+  note                 String          @db.VarChar(2000)
+  isCustomOrder        Boolean         @default(false) @map("is_custom_order")
+  status               CraftOrderStatus @default(REQUESTED)
+  handledById          String?         @map("handled_by_id") @db.Uuid
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer             User            @relation("CraftOrderCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  item                 CraftItem?      @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  handledBy            User?           @relation("CraftOrderHandler", fields: [handledById], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
+  @@map("craft_orders")
+}
+
+model LoyaltyTransaction {
+  id          String                @id @default(uuid()) @db.Uuid
+  customerId  String                @map("customer_id") @db.Uuid
+  orderId     String?               @map("order_id") @db.Uuid
+  actorId     String?               @map("actor_id") @db.Uuid
+  type        BonusTransactionType
+  points      Int
+  reason      String                @db.VarChar(255)
+  createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer    User                  @relation("BonusCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  order       RepairOrder?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  actor       User?                 @relation("BonusActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([customerId, createdAt])
+  @@index([orderId])
+  @@map("loyalty_transactions")
+}
+
+model SiteBanner {
+  id            String    @id @default(uuid()) @db.Uuid
+  title         String    @db.VarChar(160)
+  content       String    @db.VarChar(1000)
+  imageObjectId String?   @map("image_object_id") @db.VarChar(255)
+  targetUrl     String?   @map("target_url") @db.VarChar(1000)
+  startsAt      DateTime? @map("starts_at") @db.Timestamptz(3)
+  endsAt        DateTime? @map("ends_at") @db.Timestamptz(3)
+  isActive      Boolean   @default(false) @map("is_active")
+  createdById   String?   @map("created_by_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy     User?     @relation("BannerCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([isActive, startsAt, endsAt])
+  @@map("site_banners")
 }

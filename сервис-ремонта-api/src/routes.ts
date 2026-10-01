@@ -1,9 +1,12 @@
 import { Router } from "express";
 
 import { createAuthRouter } from "./features/auth/auth.routes.js";
+import { createBannersRouter } from "./features/banners/banners.routes.js";
 import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
 import { createChatRouter } from "./features/chat/chat.routes.js";
 import { createCompanyRouter } from "./features/company/company.routes.js";
+import { createCraftsRouter } from "./features/crafts/crafts.routes.js";
+import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
 import { createNewsRouter } from "./features/news/news.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
@@ -51,6 +54,9 @@ export const createApiRouter = ({
     router.use(createCatalogRouter(database.client));
     router.use(createChatRouter(database.client));
     router.use(createNewsRouter(database.client));
+    router.use(createCraftsRouter(database.client));
+    router.use(createBannersRouter(database.client));
+    router.use(createLoyaltyRouter(database.client));
     router.use(createOrdersRouter(database.client));
     router.use(createMediaRouter(database.client));
   } else {
@@ -63,7 +69,12 @@ export const createApiRouter = ({
         request.path.startsWith("/news") ||
         request.path.startsWith("/reviews") ||
         request.path.startsWith("/staff") ||
-        request.path.startsWith("/media")
+        request.path.startsWith("/media") ||
+        request.path.startsWith("/craft-items") ||
+        request.path.startsWith("/craft-orders") ||
+        request.path.startsWith("/loyalty") ||
+        request.path.startsWith("/banners") ||
+        request.path.startsWith("/admin/loyalty")
       ) {
         next(
           new HttpError(

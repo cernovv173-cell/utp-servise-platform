@@ -103,7 +103,7 @@ private fun AuthEntryScreen(onLogin: (String) -> Unit, onRegister: () -> Unit) {
 
 @Composable
 private fun PortalCard(title: String, description: String, icon: String, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(icon, fontSize = 23.sp, modifier = Modifier.padding(end = 14.dp))
             Column(Modifier.weight(1f)) {

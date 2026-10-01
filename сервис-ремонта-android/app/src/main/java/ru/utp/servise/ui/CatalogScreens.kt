@@ -127,7 +127,7 @@ fun CatalogManagementScreen(
         TextButton(onClick = onBack) { Text("←  Управление") }
         Text("Каталог услуг и запчастей", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Общий прайс. Мастерам доступны только активные позиции.", fontSize = 12.sp, color = UtpMuted)
-        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Новая позиция", fontWeight = FontWeight.SemiBold, color = UtpInk)
                 Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
@@ -172,7 +172,7 @@ fun CatalogManagementScreen(
         }
         if (catalogItems.isEmpty()) Text("Каталог пока пуст. Добавьте первую услугу или запчасть.", color = UtpMuted)
         catalogItems.forEach { item ->
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     Text("${item.type.orderItemTypeLabel()} · ${item.name}", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text("${item.unitPriceRub} ₽ · ${if (item.active) "Активна" else "Скрыта из выбора"}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 3.dp))

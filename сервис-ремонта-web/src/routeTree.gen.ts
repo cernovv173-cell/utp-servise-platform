@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ChecksRouteImport } from './routes/checks'
+import { Route as CraftsRouteImport } from './routes/crafts'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
 import { Route as NewsRouteImport } from './routes/news'
@@ -43,6 +44,11 @@ const AdminRoute = AdminRouteImport.update({
 const ChecksRoute = ChecksRouteImport.update({
   id: '/checks',
   path: '/checks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CraftsRoute = CraftsRouteImport.update({
+  id: '/crafts',
+  path: '/crafts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/checks': typeof ChecksRoute
+  '/crafts': typeof CraftsRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/checks': typeof ChecksRoute
+  '/crafts': typeof CraftsRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRoute
   '/checks': typeof ChecksRoute
+  '/crafts': typeof CraftsRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/checks'
+    | '/crafts'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/checks'
+    | '/crafts'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/checks'
+    | '/crafts'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRoute
   ChecksRoute: typeof ChecksRoute
+  CraftsRoute: typeof CraftsRoute
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   NewsRoute: typeof NewsRoute
@@ -195,6 +208,13 @@ declare module '@tanstack/react-router' {
       path: '/checks'
       fullPath: '/checks'
       preLoaderRoute: typeof ChecksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crafts': {
+      id: '/crafts'
+      path: '/crafts'
+      fullPath: '/crafts'
+      preLoaderRoute: typeof CraftsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   AdminRoute: AdminRoute,
   ChecksRoute: ChecksRoute,
+  CraftsRoute: CraftsRoute,
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   NewsRoute: NewsRoute,

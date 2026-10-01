@@ -56,7 +56,7 @@ internal fun RepairOrderCard(
     Card(
         Modifier.fillMaxWidth().padding(bottom = 11.dp),
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -269,10 +269,10 @@ internal fun RepairOrderCard(
 private fun StatusPill(text: String) {
     Box(
         Modifier.background(
-            androidx.compose.ui.graphics.Color(0xFFEAF2FE),
+            androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
             RoundedCornerShape(30.dp),
         ).padding(horizontal = 10.dp, vertical = 5.dp),
     ) {
-        Text(text, fontSize = 10.sp, color = UtpBlue, fontWeight = FontWeight.Medium)
+        Text(text, fontSize = 10.sp, color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer, fontWeight = FontWeight.Medium)
     }
 }

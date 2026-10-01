@@ -44,7 +44,7 @@ export const createApp = ({ database, logger }: CreateAppOptions): Express => {
     }
     next();
   });
-  app.use(helmet());
+  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(
     pinoHttp({
       autoLogging: {

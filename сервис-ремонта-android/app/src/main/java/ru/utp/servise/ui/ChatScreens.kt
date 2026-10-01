@@ -58,7 +58,7 @@ fun AdminChatInboxScreen(
             TextButton(onClick = refresh) { Text("Обновить") }
         }
         if (chats.isEmpty()) {
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Text("Запросов на подключение администратора пока нет.", Modifier.padding(16.dp), color = UtpMuted)
             }
         }
@@ -67,7 +67,7 @@ fun AdminChatInboxScreen(
                 onClick = { onOpenChat(chat.orderId) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White),
+                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
             ) {
                 Column(Modifier.padding(15.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -154,7 +154,7 @@ fun RepairChatScreen(
             verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             if (currentChat == null || currentChat.messages.isEmpty()) {
-                Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color.White)) {
+                Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                     Text("Напишите сообщение по ремонту. Переписка доступна клиенту, назначенному мастеру и подключившемуся администратору.", Modifier.padding(14.dp), fontSize = 12.sp, color = UtpMuted)
                 }
             }
@@ -164,7 +164,7 @@ fun RepairChatScreen(
                     modifier = Modifier.fillMaxWidth(if (isOwn) 0.88f else 1f).align(if (isOwn) Alignment.End else Alignment.Start),
                     shape = RoundedCornerShape(15.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isOwn) androidx.compose.ui.graphics.Color(0xFFE4EEFC) else androidx.compose.ui.graphics.Color.White,
+                        containerColor = if (isOwn) androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer else androidx.compose.material3.MaterialTheme.colorScheme.surface,
                     ),
                 ) {
                     Column(Modifier.padding(12.dp)) {
