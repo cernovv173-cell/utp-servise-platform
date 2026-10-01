@@ -52,7 +52,15 @@ import ru.utp.servise.data.roleLabel
 private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
 
 @Composable
-fun CustomerHomeScreen(user: AppUser, token: String, news: List<NewsArticle>, onCreateRequest: () -> Unit, onOrders: () -> Unit, onCrafts: () -> Unit) {
+fun CustomerHomeScreen(
+    user: AppUser,
+    token: String,
+    news: List<NewsArticle>,
+    onCreateRequest: () -> Unit,
+    onOrders: () -> Unit,
+    onCrafts: () -> Unit,
+    onAbout: () -> Unit,
+) {
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Image(painterResource(R.drawable.utp_servise_logo), "Логотип UTP Servise", Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
@@ -105,6 +113,17 @@ fun CustomerHomeScreen(user: AppUser, token: String, news: List<NewsArticle>, on
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text("Рукоделия", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text("Готовые изделия и заказные работы", fontSize = 12.sp, color = UtpMuted)
+                }
+                Text("›", fontSize = 24.sp, color = UtpMuted)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Card(onClick = onAbout, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("ℹ", fontSize = 24.sp, color = UtpBlue)
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text("О компании", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text("Услуги, контакты и история сервиса", fontSize = 12.sp, color = UtpMuted)
                 }
                 Text("›", fontSize = 24.sp, color = UtpMuted)
             }

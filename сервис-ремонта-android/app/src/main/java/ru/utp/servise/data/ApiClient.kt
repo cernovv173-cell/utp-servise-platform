@@ -241,6 +241,14 @@ object ApiClient {
     fun news(token: String): List<NewsArticle> = request("GET", "/news", token)
         .getJSONArray("articles").mapObjects { it.toNewsArticle() }
 
+    fun companyInfo(): CompanyInfo = request("GET", "/about")
+        .getJSONObject("company")
+        .toCompanyInfo()
+
+    fun updateCompanyInfo(token: String, company: CompanyInfo): CompanyInfo = request(
+        "PUT", "/about", token, company.toRequestJson(),
+    ).getJSONObject("company").toCompanyInfo()
+
     fun createNews(
         token: String,
         title: String,

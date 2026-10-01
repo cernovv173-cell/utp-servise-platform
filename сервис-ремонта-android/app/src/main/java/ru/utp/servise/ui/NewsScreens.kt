@@ -43,6 +43,7 @@ fun AdminManagementScreen(
     onStaff: () -> Unit,
     onReviews: () -> Unit,
     onCrafts: () -> Unit,
+    onAbout: () -> Unit,
 ) {
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
@@ -56,6 +57,7 @@ fun AdminManagementScreen(
         ManagementCard("Сотрудники", "Мастера и административные аккаунты", "♙", onStaff)
         ManagementCard("Отзывы", "Отзывы клиентов о ремонтах", "★", onReviews)
         ManagementCard("Рукоделия", "Изделия, цены, фото и заявки", "✿", onCrafts)
+        ManagementCard("О компании", "Описание, контакты, услуги и медиа", "ℹ", onAbout)
     }
 }
 

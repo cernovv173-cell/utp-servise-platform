@@ -63,6 +63,7 @@ import ru.utp.servise.ui.AuthNavigation
 import ru.utp.servise.ui.ChangeTemporaryPasswordScreen
 import ru.utp.servise.ui.CatalogManagementScreen
 import ru.utp.servise.ui.CraftsScreen
+import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminChatInboxScreen
 import ru.utp.servise.ui.RepairChatScreen
@@ -103,12 +104,7 @@ private data class WorkspaceData(
 private fun UtpServiseApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
-    val welcomePreferences = remember {
-        context.getSharedPreferences("utp_app_settings", android.content.Context.MODE_PRIVATE)
-    }
-    var showWelcome by remember {
-        mutableStateOf(!welcomePreferences.getBoolean("welcome_animation_seen", false))
-    }
+    var showWelcome by remember { mutableStateOf(true) }
     val tokenStore = remember { SessionStore(context) }
     var token by remember { mutableStateOf("") }
     var user by remember { mutableStateOf<AppUser?>(null) }
@@ -281,10 +277,7 @@ private fun UtpServiseApp() {
         }
         if (showWelcome) {
             WelcomeAnimation(
-                onFinished = {
-                    welcomePreferences.edit().putBoolean("welcome_animation_seen", true).apply()
-                    showWelcome = false
-                },
+                onFinished = { showWelcome = false },
             )
         }
     }
@@ -328,6 +321,7 @@ private fun AuthenticatedWorkspace(
             Destination("technician/jobs", "Заказы", "▤"),
             Destination("technician/history", "История", "◷"),
             Destination("technician/reviews", "Отзывы", "★"),
+            Destination("technician/about", "О компании", "ℹ"),
             Destination("technician/profile", "Профиль", "♙"),
         )
         "ADMIN" -> listOf(
@@ -382,7 +376,18 @@ private fun AuthenticatedWorkspace(
                 NavHost(navController = navController, startDestination = destinations.first().route, modifier = Modifier.fillMaxSize()) {
                     when (user.role) {
                         "CUSTOMER" -> {
-                            composable("customer/home") { CustomerHomeScreen(user, token, news, { navController.navigate("customer/new-order") }, { navController.navigate("customer/orders") }, { navController.navigate("customer/crafts") }) }
+                            composable("customer/home") {
+                                CustomerHomeScreen(
+                                    user, token, news,
+                                    { navController.navigate("customer/new-order") },
+                                    { navController.navigate("customer/orders") },
+                                    { navController.navigate("customer/crafts") },
+                                    { navController.navigate("customer/about") },
+                                )
+                            }
+                            composable("customer/about") {
+                                CompanyScreen(token, false, busy, runAction, onBack = { navController.popBackStack() })
+                            }
                             composable("customer/crafts") { CraftsScreen(token, false, craftItems, craftOrders, runAction, refresh) { navController.popBackStack() } }
                             composable("customer/orders") {
                                 RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }) { id -> navController.navigate("customer/review/$id") }
@@ -409,6 +414,7 @@ private fun AuthenticatedWorkspace(
                             composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }) {} }
                             composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }) {} }
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh) }
+                            composable("technician/about") { CompanyScreen(token, false, busy, runAction, onBack = null) }
                             composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
                         }
                         else -> {
@@ -422,7 +428,11 @@ private fun AuthenticatedWorkspace(
                                     onStaff = { navController.navigate("admin/staff") },
                                     onReviews = { navController.navigate("admin/reviews") },
                                     onCrafts = { navController.navigate("admin/crafts") },
+                                    onAbout = { navController.navigate("admin/about") },
                                 )
+                            }
+                            composable("admin/about") {
+                                CompanyScreen(token, true, busy, runAction, onBack = { navController.popBackStack() })
                             }
                             composable("admin/crafts") { CraftsScreen(token, true, craftItems, craftOrders, runAction, refresh) { navController.popBackStack() } }
                             composable("admin/news") {
