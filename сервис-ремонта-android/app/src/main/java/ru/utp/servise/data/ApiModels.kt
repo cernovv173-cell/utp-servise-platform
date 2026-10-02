@@ -101,6 +101,23 @@ data class LoyaltyTransaction(
 
 data class LoyaltyAccount(val balance: Int, val transactions: List<LoyaltyTransaction>)
 
+data class SalaryAmounts(val day: Int = 0, val week: Int = 0, val month: Int = 0)
+data class SalaryRange(val startsAt: String = "", val endsAt: String = "")
+data class SalaryTechnician(
+    val id: String,
+    val displayName: String,
+    val amounts: SalaryAmounts,
+)
+data class SalarySummary(
+    val ratePercent: Int = 75,
+    val timeZone: String = "UTC",
+    val dayRange: SalaryRange = SalaryRange(),
+    val weekRange: SalaryRange = SalaryRange(),
+    val monthRange: SalaryRange = SalaryRange(),
+    val totals: SalaryAmounts = SalaryAmounts(),
+    val technicians: List<SalaryTechnician> = emptyList(),
+)
+
 data class SiteBanner(
     val id: String,
     val title: String,

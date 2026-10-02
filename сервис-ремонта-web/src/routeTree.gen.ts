@@ -20,6 +20,7 @@ import { Route as LoyaltyRouteImport } from './routes/loyalty'
 import { Route as NewsRouteImport } from './routes/news'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ReviewsRouteImport } from './routes/reviews'
+import { Route as SalaryRouteImport } from './routes/salary'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -76,6 +77,11 @@ const ReviewsRoute = ReviewsRouteImport.update({
   path: '/reviews',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalaryRoute = SalaryRouteImport.update({
+  id: '/salary',
+  path: '/salary',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/news': typeof NewsRoute
   '/orders': typeof OrdersRoute
   '/reviews': typeof ReviewsRoute
+  '/salary': typeof SalaryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/news': typeof NewsRoute
   '/orders': typeof OrdersRoute
   '/reviews': typeof ReviewsRoute
+  '/salary': typeof SalaryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -116,6 +124,7 @@ export interface FileRoutesById {
   '/news': typeof NewsRoute
   '/orders': typeof OrdersRoute
   '/reviews': typeof ReviewsRoute
+  '/salary': typeof SalaryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/orders'
     | '/reviews'
+    | '/salary'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -144,6 +154,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/orders'
     | '/reviews'
+    | '/salary'
   id:
     | '__root__'
     | '/'
@@ -157,6 +168,7 @@ export interface FileRouteTypes {
     | '/news'
     | '/orders'
     | '/reviews'
+    | '/salary'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -171,6 +183,7 @@ export interface RootRouteChildren {
   NewsRoute: typeof NewsRoute
   OrdersRoute: typeof OrdersRoute
   ReviewsRoute: typeof ReviewsRoute
+  SalaryRoute: typeof SalaryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReviewsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/salary': {
+      id: '/salary'
+      path: '/salary'
+      fullPath: '/salary'
+      preLoaderRoute: typeof SalaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -267,6 +287,7 @@ const rootRouteChildren: RootRouteChildren = {
   NewsRoute: NewsRoute,
   OrdersRoute: OrdersRoute,
   ReviewsRoute: ReviewsRoute,
+  SalaryRoute: SalaryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

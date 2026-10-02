@@ -11,6 +11,10 @@ import {
   requireRoles,
 } from "../auth/auth.middleware.js";
 import {
+  TECHNICIAN_SALARY_RATE_PERCENT,
+  calculateTechnicianSalaryRub,
+} from "../salary/salary-calculation.js";
+import {
   calculateEarnedPoints,
   calculateMaxBonusDiscount,
   canAddRepairOrderItem,
@@ -788,7 +792,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "ORDER_CHANGED",
             "Заявка уже изменилась. Обновите список и повторите действие.",
           );
-        await transaction.repairStatusEvent.create({
+        const statusEvent = await transaction.repairStatusEvent.create({
           data: {
             orderId,
             actorId: user.id,
@@ -796,7 +800,28 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             to: status,
             note,
           },
+          select: { createdAt: true },
         });
+        if (status === "COMPLETED" && current.assignedTechnicianId) {
+          const serviceItems = await transaction.repairOrderItem.findMany({
+            where: { orderId, type: "SERVICE" },
+            select: { quantity: true, unitPriceRub: true },
+          });
+          const serviceTotalRub = serviceItems.reduce(
+            (total, item) => total + item.quantity * item.unitPriceRub,
+            0,
+          );
+          await transaction.technicianSalaryEntry.create({
+            data: {
+              orderId,
+              technicianId: current.assignedTechnicianId,
+              serviceTotalRub,
+              salaryRub: calculateTechnicianSalaryRub(serviceTotalRub),
+              ratePercent: TECHNICIAN_SALARY_RATE_PERCENT,
+              earnedAt: statusEvent.createdAt,
+            },
+          });
+        }
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
           include: orderDetails(user.role),

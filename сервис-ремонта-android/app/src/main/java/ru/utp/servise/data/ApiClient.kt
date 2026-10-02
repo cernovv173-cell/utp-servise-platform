@@ -140,6 +140,11 @@ object ApiClient {
         )
     }
 
+    fun salary(token: String): SalarySummary {
+        val timeZone = URLEncoder.encode(java.time.ZoneId.systemDefault().id, Charsets.UTF_8.name())
+        return request("GET", "/salary?timeZone=$timeZone", token).toSalarySummary()
+    }
+
     fun companyInfo(): CompanyInfo = request("GET", "/about")
         .getJSONObject("company")
         .toCompanyInfo()

@@ -9,6 +9,7 @@ import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SiteBanner
+import ru.utp.servise.data.SalarySummary
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.SupportChatInboxItem
 
@@ -22,6 +23,7 @@ internal data class WorkspaceData(
     val news: List<NewsArticle>,
     val banners: List<SiteBanner>,
     val loyalty: LoyaltyAccount,
+    val salary: SalarySummary,
     val adminChats: List<AdminChatInboxItem>,
     val supportChats: List<SupportChatInboxItem>,
 )

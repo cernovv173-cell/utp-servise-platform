@@ -98,6 +98,37 @@ internal fun JSONObject.toRepairReceipt() = RepairReceipt(
     paidAt = nullableString("paidAt"),
 )
 
+internal fun JSONObject.toSalarySummary(): SalarySummary {
+    val ranges = optJSONObject("ranges") ?: JSONObject()
+    val totals = optJSONObject("totals") ?: JSONObject()
+    return SalarySummary(
+        ratePercent = optInt("ratePercent", 75),
+        timeZone = optString("timeZone", "UTC"),
+        dayRange = ranges.optJSONObject("day")?.toSalaryRange() ?: SalaryRange(),
+        weekRange = ranges.optJSONObject("week")?.toSalaryRange() ?: SalaryRange(),
+        monthRange = ranges.optJSONObject("month")?.toSalaryRange() ?: SalaryRange(),
+        totals = totals.toSalaryAmounts(),
+        technicians = optJSONArray("technicians").mapObjects { technician ->
+            SalaryTechnician(
+                id = technician.getString("id"),
+                displayName = technician.optString("displayName"),
+                amounts = technician.optJSONObject("amounts")?.toSalaryAmounts() ?: SalaryAmounts(),
+            )
+        },
+    )
+}
+
+private fun JSONObject.toSalaryRange() = SalaryRange(
+    startsAt = optString("startsAt"),
+    endsAt = optString("endsAt"),
+)
+
+private fun JSONObject.toSalaryAmounts() = SalaryAmounts(
+    day = optInt("day"),
+    week = optInt("week"),
+    month = optInt("month"),
+)
+
 internal fun JSONObject.toStaff() = StaffMember(
     id = getString("id"),
     email = getString("email"),

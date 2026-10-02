@@ -48,6 +48,7 @@ import ru.utp.servise.data.PushTokenManager
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SessionStore
 import ru.utp.servise.data.SiteBanner
+import ru.utp.servise.data.SalarySummary
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.SupportChat
 import ru.utp.servise.data.SupportChatInboxItem
@@ -89,6 +90,7 @@ private fun UtpServiseApp() {
     var news by remember { mutableStateOf<List<NewsArticle>>(emptyList()) }
     var banners by remember { mutableStateOf<List<SiteBanner>>(emptyList()) }
     var loyalty by remember { mutableStateOf(LoyaltyAccount(0, emptyList())) }
+    var salary by remember { mutableStateOf(SalarySummary()) }
     var adminChats by remember { mutableStateOf<List<AdminChatInboxItem>>(emptyList()) }
     var activeChat by remember { mutableStateOf<OrderChat?>(null) }
     var supportChats by remember { mutableStateOf<List<SupportChatInboxItem>>(emptyList()) }
@@ -164,6 +166,7 @@ private fun UtpServiseApp() {
                         news = ApiClient.news(token),
                         banners = ApiClient.banners(token),
                         loyalty = if (currentUser.role == "CUSTOMER") ApiClient.loyalty(token) else LoyaltyAccount(0, emptyList()),
+                        salary = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.salary(token) else SalarySummary(),
                         adminChats = if (currentUser.role == "ADMIN") ApiClient.administratorChatInbox(token) else emptyList(),
                         supportChats = if (currentUser.role == "ADMIN") ApiClient.administratorSupportChats(token) else emptyList(),
                     )
@@ -178,6 +181,7 @@ private fun UtpServiseApp() {
                 news = data.news
                 banners = data.banners
                 loyalty = data.loyalty
+                salary = data.salary
                 adminChats = data.adminChats
                 supportChats = data.supportChats
             }.onFailure { errorMessage = it.message ?: "Не удалось загрузить данные." }
@@ -216,6 +220,7 @@ private fun UtpServiseApp() {
             news = news,
             banners = banners,
             loyalty = loyalty,
+            salary = salary,
             adminChats = adminChats,
             supportChats = supportChats,
             activeChat = activeChat,

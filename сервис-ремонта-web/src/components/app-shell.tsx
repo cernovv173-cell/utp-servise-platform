@@ -12,6 +12,7 @@ import {
   Star,
   Sun,
   UsersRound,
+  Wallet,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
@@ -23,6 +24,7 @@ const links = [
   { to: "/checks", label: "Чеки и номера", icon: FileText },
   { to: "/news", label: "Новости", icon: Newspaper },
   { to: "/loyalty", label: "Бонусы", icon: Star },
+  { to: "/salary", label: "Зарплата", icon: Wallet },
   { to: "/crafts", label: "Рукоделия", icon: Sparkles },
   { to: "/about", label: "О компании", icon: UsersRound },
   { to: "/reviews", label: "Отзывы", icon: Bell },
@@ -66,7 +68,11 @@ export const AppShell = ({ active, children }: { active: string; children: React
     );
   }
 
-  const nav = links.filter((link) => link.to !== "/loyalty" || user.role === "CUSTOMER");
+  const nav = links.filter((link) =>
+    link.to === "/salary"
+      ? user.role === "TECHNICIAN" || user.role === "ADMIN"
+      : link.to !== "/loyalty" || user.role === "CUSTOMER",
+  );
   return (
     <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 lg:flex dark:border-slate-800 dark:bg-slate-900">

@@ -38,6 +38,7 @@ import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SiteBanner
+import ru.utp.servise.data.SalarySummary
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.SupportChat
 import ru.utp.servise.data.SupportChatInboxItem
@@ -59,6 +60,7 @@ import ru.utp.servise.ui.ReviewFormScreen
 import ru.utp.servise.ui.ReviewsScreen
 import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.StaffManagementScreen
+import ru.utp.servise.ui.SalaryScreen
 import ru.utp.servise.ui.UtpBlue
 
 private data class Destination(val route: String, val label: String, val icon: String)
@@ -76,6 +78,7 @@ internal fun AuthenticatedWorkspace(
     news: List<NewsArticle>,
     banners: List<SiteBanner>,
     loyalty: LoyaltyAccount,
+    salary: SalarySummary,
     adminChats: List<AdminChatInboxItem>,
     supportChats: List<SupportChatInboxItem>,
     activeChat: OrderChat?,
@@ -105,6 +108,7 @@ internal fun AuthenticatedWorkspace(
         "TECHNICIAN" -> listOf(
             Destination("technician/jobs", "Заказы", "▤"),
             Destination("technician/history", "История", "◷"),
+            Destination("technician/salary", "Зарплата", "₽"),
             Destination("technician/reviews", "Отзывы", "★"),
             Destination("technician/about", "О компании", "ℹ"),
             Destination("technician/profile", "Профиль", "♙"),
@@ -112,6 +116,7 @@ internal fun AuthenticatedWorkspace(
         "ADMIN" -> listOf(
             Destination("admin/orders", "Заказы", "▤"),
             Destination("admin/history", "История", "◷"),
+            Destination("admin/salary", "Зарплата", "₽"),
             Destination("admin/manage", "Управление", "⚙"),
             Destination("admin/profile", "Профиль", "⚙"),
         )
@@ -222,6 +227,7 @@ internal fun AuthenticatedWorkspace(
                         "TECHNICIAN" -> {
                             composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}) }
                             composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}) }
+                            composable("technician/salary") { SalaryScreen(salary, isAdmin = false, onRefresh = refresh) }
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh, token = token) }
                             composable("technician/about") { CompanyScreen(token, false, busy, runAction, onBack = null, banners = banners, onCampaignNavigate = onCampaignNavigate) }
                             composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
@@ -229,6 +235,7 @@ internal fun AuthenticatedWorkspace(
                         else -> {
                             composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh, onReview = {}) }
                             composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, catalogItems, true, runAction, refresh, onReview = {}) }
+                            composable("admin/salary") { SalaryScreen(salary, isAdmin = true, onRefresh = refresh) }
                             composable("admin/manage") {
                                 AdminManagementScreen(
                                     onNews = { navController.navigate("admin/news") },

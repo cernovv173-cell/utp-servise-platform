@@ -133,6 +133,20 @@ export type LoyaltyCustomer = {
   transactions: LoyaltyTransaction[];
 };
 
+export type SalaryPeriodName = "day" | "week" | "month";
+export type SalarySummary = {
+  ratePercent: number;
+  timeZone: string;
+  generatedAt: string;
+  ranges: Record<SalaryPeriodName, { startsAt: string; endsAt: string }>;
+  totals: Record<SalaryPeriodName, number>;
+  technicians: Array<{
+    id: string;
+    displayName: string;
+    amounts: Record<SalaryPeriodName, number>;
+  }>;
+};
+
 export type SiteBanner = {
   id: string;
   title: string;
@@ -361,6 +375,9 @@ export const getLoyalty = (token: string, signal?: AbortSignal) =>
   apiRequest<{ balance: number; transactions: LoyaltyTransaction[] }>("/loyalty/me", token, {
     signal,
   });
+
+export const getSalarySummary = (token: string, timeZone: string, signal?: AbortSignal) =>
+  apiRequest<SalarySummary>(`/salary?timeZone=${encodeURIComponent(timeZone)}`, token, { signal });
 
 export const getAdminLoyalty = (token: string, signal?: AbortSignal) =>
   apiRequest<{ customers: LoyaltyCustomer[] }>("/admin/loyalty", token, { signal });

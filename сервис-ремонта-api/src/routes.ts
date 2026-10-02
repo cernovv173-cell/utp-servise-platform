@@ -11,6 +11,7 @@ import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
 import { createNewsRouter } from "./features/news/news.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
+import { createSalaryRouter } from "./features/salary/salary.routes.js";
 import { createStaffRouter } from "./features/staff/staff.routes.js";
 import { createSupportChatRouter } from "./features/support-chat/support-chat.routes.js";
 import { createSystemRouter } from "./features/system/system.routes.js";
@@ -62,12 +63,14 @@ export const createApiRouter = ({
     router.use(createBannersRouter(database.client));
     router.use(createLoyaltyRouter(database.client));
     router.use(createOrdersRouter(database.client));
+    router.use(createSalaryRouter(database.client));
     router.use(createMediaRouter(database.client));
   } else {
     router.use((request, _response, next) => {
       if (
         request.path.startsWith("/auth") ||
         request.path.startsWith("/orders") ||
+        request.path.startsWith("/salary") ||
         request.path.startsWith("/catalog") ||
         request.path.startsWith("/admin/chats") ||
         request.path.startsWith("/news") ||
