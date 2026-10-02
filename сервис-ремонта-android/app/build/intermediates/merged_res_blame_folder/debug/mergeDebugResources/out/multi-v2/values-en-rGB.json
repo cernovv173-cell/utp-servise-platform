@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "ru.utp.servise.app-mergeDebugResources-46:/values-en-rGB/values-en-rGB.xml",
+            "outputFile": "ru.utp.servise.app-mergeDebugResources-47:/values-en-rGB/values-en-rGB.xml",
             "map": [
                 {
                     "source": "/var/cache/amazi-android/gradle/caches/8.11.1/transforms/9a7efe13668e483cbc6e19aa92d71ba4/transformed/material3-release/res/values-en-rGB/values-en-rGB.xml",

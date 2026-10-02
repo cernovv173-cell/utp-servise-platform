@@ -43,9 +43,10 @@ ru.utp.servise.app-savedstate-ktx-1.3.1-41 /var/cache/amazi-android/gradle/cache
 ru.utp.servise.app-annotation-experimental-1.4.1-42 /var/cache/amazi-android/gradle/caches/8.11.1/transforms/f2e1b02375c5cc0ee29a44db6ef21cb2/transformed/annotation-experimental-1.4.1/res
 ru.utp.servise.app-lifecycle-livedata-core-2.9.2-43 /var/cache/amazi-android/gradle/caches/8.11.1/transforms/fbf636e9de698508c0f4170298a98189/transformed/lifecycle-livedata-core-2.9.2/res
 ru.utp.servise.app-pngs-44 /workspace/сервис-ремонта-android/app/build/generated/res/pngs/debug
-ru.utp.servise.app-resValues-45 /workspace/сервис-ремонта-android/app/build/generated/res/resValues/debug
-ru.utp.servise.app-packageDebugResources-46 /workspace/сервис-ремонта-android/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-ru.utp.servise.app-packageDebugResources-47 /workspace/сервис-ремонта-android/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-ru.utp.servise.app-debug-48 /workspace/сервис-ремонта-android/app/build/intermediates/merged_res/debug/mergeDebugResources
-ru.utp.servise.app-debug-49 /workspace/сервис-ремонта-android/app/src/debug/res
-ru.utp.servise.app-main-50 /workspace/сервис-ремонта-android/app/src/main/res
+ru.utp.servise.app-res-45 /workspace/сервис-ремонта-android/app/build/generated/res/processDebugGoogleServices
+ru.utp.servise.app-resValues-46 /workspace/сервис-ремонта-android/app/build/generated/res/resValues/debug
+ru.utp.servise.app-packageDebugResources-47 /workspace/сервис-ремонта-android/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+ru.utp.servise.app-packageDebugResources-48 /workspace/сервис-ремонта-android/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+ru.utp.servise.app-debug-49 /workspace/сервис-ремонта-android/app/build/intermediates/merged_res/debug/mergeDebugResources
+ru.utp.servise.app-debug-50 /workspace/сервис-ремонта-android/app/src/debug/res
+ru.utp.servise.app-main-51 /workspace/сервис-ремонта-android/app/src/main/res
