@@ -34,6 +34,16 @@ import kotlinx.coroutines.delay
 import ru.utp.servise.data.SupportChat
 import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.data.roleLabel
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+private val supportChatTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm", Locale.getDefault())
+
+private fun formatSupportChatTimestamp(value: String): String? = runCatching {
+    Instant.parse(value).atZone(ZoneId.systemDefault()).format(supportChatTimeFormatter)
+}.getOrNull()
 
 @Composable
 fun SupportChatInboxScreen(
@@ -46,7 +56,7 @@ fun SupportChatInboxScreen(
     LaunchedEffect(Unit) {
         refreshLatest()
         while (true) {
-            delay(15_000)
+            delay(5_000)
             refreshLatest()
         }
     }
@@ -78,6 +88,9 @@ fun SupportChatInboxScreen(
                     Text(chat.customerName.ifBlank { "Клиент" }, fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text(chat.customerEmail, fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
                     Text(chat.lastMessage, fontSize = 13.sp, color = UtpInk, modifier = Modifier.padding(top = 7.dp))
+                    formatSupportChatTimestamp(chat.updatedAt)?.let { timestamp ->
+                        Text("Последнее сообщение · $timestamp", fontSize = 10.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+                    }
                     Text("Открыть переписку →", fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 8.dp))
                 }
             }
@@ -100,7 +113,7 @@ fun SupportChatScreen(
     LaunchedEffect(customerId, isAdministrator) {
         refreshLatest()
         while (true) {
-            delay(8_000)
+            delay(3_000)
             refreshLatest()
         }
     }
@@ -151,6 +164,14 @@ fun SupportChatScreen(
                             if (message.senderRole.isNotBlank()) Text(message.senderRole.roleLabel(), fontSize = 10.sp, color = UtpMuted)
                         }
                         Text(message.content, fontSize = 14.sp, color = UtpInk, modifier = Modifier.padding(top = 4.dp))
+                        formatSupportChatTimestamp(message.createdAt)?.let { timestamp ->
+                            Text(
+                                timestamp,
+                                fontSize = 10.sp,
+                                color = UtpMuted,
+                                modifier = Modifier.align(if (isOwn) Alignment.End else Alignment.Start).padding(top = 4.dp),
+                            )
+                        }
                     }
                 }
             }
