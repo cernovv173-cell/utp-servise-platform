@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.AdminChatInboxItem
 import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.CraftItem
@@ -88,6 +89,7 @@ internal fun AuthenticatedWorkspace(
     onRefreshSupportChat: (String?) -> Unit,
     onRefreshSupportInbox: () -> Unit,
     onUserUpdated: (AppUser) -> Unit,
+    onPasswordChanged: (AuthResult) -> Unit,
     busy: Boolean,
     errorMessage: String?,
     onError: (String) -> Unit,
@@ -206,7 +208,7 @@ internal fun AuthenticatedWorkspace(
                                 RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, loyaltyBalance = loyalty.balance, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
                             }
                             composable("customer/reviews") { ReviewsScreen("Мои отзывы", reviews, refresh, token = token) }
-                            composable("customer/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
+                            composable("customer/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
                             composable("customer/new-order") {
                                 RepairRequestForm(
                                     initialPhone = user.phoneNumber.orEmpty(),
@@ -230,7 +232,7 @@ internal fun AuthenticatedWorkspace(
                             composable("technician/salary") { SalaryScreen(salary, isAdmin = false, onRefresh = refresh) }
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh, token = token) }
                             composable("technician/about") { CompanyScreen(token, false, busy, runAction, onBack = null, banners = banners, onCampaignNavigate = onCampaignNavigate) }
-                            composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
+                            composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
                         }
                         else -> {
                             composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh, onReview = {}) }
@@ -265,7 +267,7 @@ internal fun AuthenticatedWorkspace(
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
                             composable("admin/customers") { CustomerManagementScreen(token, runAction) { navController.popBackStack() } }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh, token = token, canModerate = true, runAction = runAction) }
-                            composable("admin/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onLogout) }
+                            composable("admin/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
                         }
                     }
                     addSupportChatRoutes(

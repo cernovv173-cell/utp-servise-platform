@@ -314,6 +314,12 @@ export const updateProfile = (token: string, phoneNumber: string) =>
     body: JSON.stringify({ phoneNumber: phoneNumber || null }),
   });
 
+export const changePassword = (token: string, currentPassword: string, newPassword: string) =>
+  apiRequest<AuthResponse>("/auth/change-password", token, {
+    method: "POST",
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
 export const setExpectedCompletion = (
   token: string,
   orderId: string,

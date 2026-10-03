@@ -7,12 +7,16 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { updateProfile } from "@/lib/api";
+import { changePassword, updateProfile } from "@/lib/api";
 
 const AccountPage = () => {
-  const { token, user, logout } = useAuth();
+  const { token, user, logout, setSession } = useAuth();
   const queryClient = useQueryClient();
   const [phone, setPhone] = useState(user?.phoneNumber ?? "");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const mutation = useMutation({
     mutationFn: () => updateProfile(token!, phone),
     onSuccess: async ({ user: updated }) => {
@@ -24,6 +28,33 @@ const AccountPage = () => {
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     mutation.mutate();
+  };
+  const passwordMutation = useMutation({
+    mutationFn: () => changePassword(token!, currentPassword, newPassword),
+    onSuccess: (session) => {
+      queryClient.clear();
+      setSession(session);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordError(null);
+      toast.success("Пароль изменён. Выполнен вход с новым паролем.");
+    },
+    onError: () =>
+      setPasswordError("Не удалось сменить пароль. Проверьте текущий пароль и повторите попытку."),
+  });
+  const submitPassword = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setPasswordError(null);
+    if (newPassword.length < 12) {
+      setPasswordError("Новый пароль должен содержать не менее 12 символов.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Новые пароли не совпадают.");
+      return;
+    }
+    passwordMutation.mutate();
   };
   return (
     <AppShell active="/account">
@@ -73,9 +104,60 @@ const AccountPage = () => {
                 : "Клиент"}
           </p>
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            Если вы забыли пароль, восстановление по электронной почте пока недоступно: почтовый
-            сервис не подключён. Для помощи обратитесь к администратору.
+            Сменить пароль может каждый вошедший пользователь. После смены остальные активные сеансы
+            будут завершены.
           </p>
+          <form onSubmit={submitPassword} className="mt-4 grid gap-3">
+            <label className="grid gap-1.5 text-sm font-medium">
+              Текущий пароль
+              <input
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+                required
+                maxLength={128}
+                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
+              />
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Новый пароль (не менее 12 символов)
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+                required
+                minLength={12}
+                maxLength={128}
+                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
+              />
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium">
+              Повторите новый пароль
+              <input
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                required
+                maxLength={128}
+                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
+              />
+            </label>
+            {passwordError && (
+              <p role="alert" className="text-sm text-rose-600">
+                {passwordError}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={passwordMutation.isPending}
+              className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {passwordMutation.isPending ? "Меняем пароль…" : "Сменить пароль"}
+            </button>
+          </form>
           <button
             onClick={logout}
             className="mt-5 min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800"

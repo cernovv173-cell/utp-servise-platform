@@ -251,6 +251,7 @@ private fun UtpServiseApp() {
                 }
             },
             onUserUpdated = { user = it },
+            onPasswordChanged = { auth -> onAuthenticated(auth.accessToken, auth.user) },
             busy = busy,
             errorMessage = errorMessage,
             onError = { errorMessage = it },

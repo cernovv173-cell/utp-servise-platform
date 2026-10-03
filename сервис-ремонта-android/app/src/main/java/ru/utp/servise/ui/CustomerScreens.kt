@@ -41,10 +41,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.R
 import ru.utp.servise.data.AppUser
+import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.deviceLabel
@@ -185,12 +187,17 @@ fun ProfileScreen(
     token: String,
     runAction: RunAction,
     onUserUpdated: (AppUser) -> Unit,
+    onPasswordChanged: (AuthResult) -> Unit,
     onLogout: () -> Unit,
 ) {
     val context = LocalContext.current
     var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
     var savedPhone by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
     var themeMode by remember(user.id) { mutableStateOf(readThemeMode(context)) }
+    var currentPassword by remember(user.id) { mutableStateOf("") }
+    var newPassword by remember(user.id) { mutableStateOf("") }
+    var confirmPassword by remember(user.id) { mutableStateOf("") }
+    var passwordError by remember(user.id) { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Профиль", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Spacer(Modifier.height(15.dp))
@@ -253,6 +260,65 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(18.dp),
                 ) { Text("Сохранить телефон") }
                 Text("UTP Servise · защищённый вход по электронной почте", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 11.dp))
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.fillMaxWidth().padding(18.dp)) {
+                Text("Смена пароля", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text("Новый пароль — не менее 12 символов. После смены остальные сеансы будут завершены.", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                OutlinedTextField(
+                    value = currentPassword,
+                    onValueChange = { currentPassword = it.take(128) },
+                    label = { Text("Текущий пароль") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(16.dp),
+                )
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = { newPassword = it.take(128) },
+                    label = { Text("Новый пароль (от 12 символов)") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(16.dp),
+                )
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = { confirmPassword = it.take(128) },
+                    label = { Text("Повторите новый пароль") },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(16.dp),
+                )
+                passwordError?.let { Text(it, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp)) }
+                Button(
+                    onClick = {
+                        val validationError = when {
+                            newPassword.length < 12 -> "Новый пароль должен содержать не менее 12 символов."
+                            newPassword != confirmPassword -> "Новые пароли не совпадают."
+                            else -> null
+                        }
+                        passwordError = validationError
+                        if (validationError == null) {
+                            runAction({ ru.utp.servise.data.ApiClient.changePassword(token, currentPassword, newPassword) }) { result ->
+                                (result as? AuthResult)?.let { auth ->
+                                    currentPassword = ""
+                                    newPassword = ""
+                                    confirmPassword = ""
+                                    passwordError = null
+                                    onPasswordChanged(auth)
+                                }
+                            }
+                        }
+                    },
+                    enabled = currentPassword.isNotEmpty() && newPassword.isNotEmpty() && confirmPassword.isNotEmpty(),
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    shape = RoundedCornerShape(18.dp),
+                ) { Text("Сменить пароль") }
             }
         }
         Spacer(Modifier.height(12.dp))
