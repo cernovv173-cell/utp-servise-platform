@@ -72,3 +72,7 @@ this pattern; HTML inputs also carry `required`, while native inputs name their 
 The `/catalog` page uses the API catalog shared with Android. Administrators can add and edit
 service and spare-part names/prices and deactivate or reactivate entries; technicians can view active
 items. Customer accounts do not have permission to browse this internal price catalog.
+
+The `/login` screen can request a password-reset email. Its one-time link opens `/reset-password`,
+where the account owner can set a new password. The API enforces the 8-character minimum and
+invalidates active sessions after a successful reset.

@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { createAuthRouter } from "./features/auth/auth.routes.js";
+import { createPasswordResetRouter } from "./features/auth/password-reset.routes.js";
 import { createBannersRouter } from "./features/banners/banners.routes.js";
 import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
 import { createChatRouter } from "./features/chat/chat.routes.js";
@@ -20,10 +21,12 @@ import { HttpError } from "./lib/http/http-error.js";
 
 type CreateApiRouterOptions = {
   readonly database?: Database;
+  readonly onPasswordResetEmailFailure?: () => void;
 };
 
 export const createApiRouter = ({
   database,
+  onPasswordResetEmailFailure,
 }: CreateApiRouterOptions): Router => {
   const router = Router();
 
@@ -52,6 +55,11 @@ export const createApiRouter = ({
 
   if (database) {
     router.use(createCompanyRouter(database.client));
+    router.use(
+      createPasswordResetRouter(database.client, {
+        onDeliveryFailure: onPasswordResetEmailFailure,
+      }),
+    );
     router.use(createAuthRouter(database.client));
     router.use(createStaffRouter(database.client));
     router.use(createCustomerAdminRouter(database.client));

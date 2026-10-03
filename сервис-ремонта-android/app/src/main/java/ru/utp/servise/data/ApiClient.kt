@@ -16,6 +16,10 @@ object ApiClient {
         request("POST", "/auth/login", body = JSONObject().put("email", email).put("password", password).put("portal", portal))
     )
 
+    fun requestPasswordReset(email: String) {
+        request("POST", "/auth/password-reset/request", body = JSONObject().put("email", email))
+    }
+
     fun register(email: String, displayName: String, password: String, phoneNumber: String?): AuthResult = authResult(
         request("POST", "/auth/register", body = JSONObject()
             .put("email", email)

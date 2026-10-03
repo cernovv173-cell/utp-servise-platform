@@ -127,23 +127,61 @@ private fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
+    var recovering by remember { mutableStateOf(false) }
+    var recoveryMessage by remember { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().background(UtpPale).padding(22.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
-        Text("Вход: ${portal.roleLabel()}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Введите выданный для этой роли адрес и пароль.", color = UtpMuted, modifier = Modifier.padding(top = 6.dp, bottom = 22.dp))
-        OutlinedTextField(email, { email = it }, label = { Text("Электронная почта") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(14.dp))
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(
-            password, { password = it }, label = { Text("Пароль") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
-            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = { TextButton(onClick = { showPassword = !showPassword }) { Text(if (showPassword) "Скрыть" else "Показать") } },
-            shape = RoundedCornerShape(14.dp),
+        Text(if (recovering) "Восстановление пароля" else "Вход: ${portal.roleLabel()}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Text(
+            if (recovering) "Укажите адрес аккаунта — мы отправим ссылку для создания нового пароля."
+            else "Введите выданный для этой роли адрес и пароль.",
+            color = UtpMuted,
+            modifier = Modifier.padding(top = 6.dp, bottom = 22.dp),
         )
-        Spacer(Modifier.height(18.dp))
-        Button(onClick = {
-            onError(null)
-            performAuth(scope, onBusy, onError, onAuthenticated) { ru.utp.servise.data.ApiClient.login(email.trim(), password, portal) }
-        }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = email.isNotBlank() && password.isNotEmpty(), shape = RoundedCornerShape(15.dp)) { Text("Войти") }
+        OutlinedTextField(email, { email = it }, label = { Text("Электронная почта") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(14.dp))
+        if (recovering) {
+            recoveryMessage?.let {
+                Text(it, color = UtpBlue, modifier = Modifier.padding(top = 12.dp))
+            }
+            Spacer(Modifier.height(18.dp))
+            Button(onClick = {
+                onError(null)
+                scope.launch {
+                    onBusy(true)
+                    try {
+                        withContext(Dispatchers.IO) {
+                            ru.utp.servise.data.ApiClient.requestPasswordReset(email.trim())
+                        }
+                        recoveryMessage = "Если аккаунт с таким адресом существует, письмо отправлено. Откройте ссылку из письма в браузере, чтобы задать новый пароль."
+                    } catch (error: Throwable) {
+                        onError(error.message ?: "Не удалось отправить запрос. Проверьте подключение.")
+                    } finally {
+                        onBusy(false)
+                    }
+                }
+            }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = email.isNotBlank(), shape = RoundedCornerShape(15.dp)) {
+                Text("Отправить ссылку")
+            }
+            TextButton(onClick = { recovering = false; recoveryMessage = null; onError(null) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Вернуться ко входу")
+            }
+        } else {
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                password, { password = it }, label = { Text("Пароль") }, modifier = Modifier.fillMaxWidth(), singleLine = true,
+                visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = { TextButton(onClick = { showPassword = !showPassword }) { Text(if (showPassword) "Скрыть" else "Показать") } },
+                shape = RoundedCornerShape(14.dp),
+            )
+            Spacer(Modifier.height(18.dp))
+            Button(onClick = {
+                onError(null)
+                performAuth(scope, onBusy, onError, onAuthenticated) { ru.utp.servise.data.ApiClient.login(email.trim(), password, portal) }
+            }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = email.isNotBlank() && password.isNotEmpty(), shape = RoundedCornerShape(15.dp)) { Text("Войти") }
+            TextButton(onClick = { recovering = true; recoveryMessage = null; onError(null) }, modifier = Modifier.fillMaxWidth()) {
+                Text("Забыли пароль?")
+            }
+        }
     }
 }
 

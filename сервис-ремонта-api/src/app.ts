@@ -62,7 +62,14 @@ export const createApp = ({ database, logger }: CreateAppOptions): Express => {
   app.get("/health", (_request, response) => {
     response.json({ status: "ok" });
   });
-  app.use("/api", createApiRouter({ database }));
+  app.use(
+    "/api",
+    createApiRouter({
+      database,
+      onPasswordResetEmailFailure: () =>
+        logger.error("Password reset email delivery failed"),
+    }),
+  );
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -4,12 +4,14 @@ import { type FormEvent, useState } from "react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { type Role, loginRequest, registerRequest } from "@/lib/api";
+import { type Role, loginRequest, registerRequest, requestPasswordReset } from "@/lib/api";
 
 const LoginPage = () => {
   const { setSession } = useAuth();
   const navigate = useNavigate();
   const [registering, setRegistering] = useState(false);
+  const [recovering, setRecovering] = useState(false);
+  const [recoverySent, setRecoverySent] = useState(false);
   const [role, setRole] = useState<Role>("CUSTOMER");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -20,6 +22,11 @@ const LoginPage = () => {
     setBusy(true);
     setError("");
     try {
+      if (recovering) {
+        await requestPasswordReset(String(values.get("email")));
+        setRecoverySent(true);
+        return;
+      }
       const session = registering
         ? await registerRequest(
             String(values.get("name")),
@@ -48,13 +55,19 @@ const LoginPage = () => {
             UTP Servise
           </Link>
           <h1 className="mt-10 text-3xl font-semibold">
-            {registering ? "Создать аккаунт" : "Добро пожаловать!"}
+            {recovering
+              ? "Восстановление пароля"
+              : registering
+                ? "Создать аккаунт"
+                : "Добро пожаловать!"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            Войдите, чтобы управлять заявками, получать новости и видеть историю ремонта.
+            {recovering
+              ? "Укажите адрес аккаунта — мы отправим ссылку для создания нового пароля."
+              : "Войдите, чтобы управлять заявками, получать новости и видеть историю ремонта."}
           </p>
           <form onSubmit={submit} className="mt-8 grid gap-4">
-            {registering && (
+            {registering && !recovering && (
               <label className="grid gap-1.5 text-sm font-medium">
                 Имя
                 <input
@@ -77,7 +90,7 @@ const LoginPage = () => {
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"
               />
             </label>
-            {registering && (
+            {registering && !recovering && (
               <label className="grid gap-1.5 text-sm font-medium">
                 Телефон, необязательно
                 <input
@@ -88,7 +101,7 @@ const LoginPage = () => {
                 />
               </label>
             )}
-            {!registering && (
+            {!registering && !recovering && (
               <fieldset className="grid gap-2">
                 <legend className="mb-1 text-sm font-medium">Войти как</legend>
                 <div className="grid grid-cols-3 gap-2">
@@ -123,6 +136,28 @@ const LoginPage = () => {
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"
               />
             </label>
+            {!recovering && (
+              <label className="grid gap-1.5 text-sm font-medium">
+                Пароль
+                <input
+                  required
+                  type="password"
+                  name="password"
+                  minLength={registering ? 8 : 1}
+                  maxLength={128}
+                  autoComplete={registering ? "new-password" : "current-password"}
+                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                />
+              </label>
+            )}
+            {recoverySent && recovering && (
+              <p
+                role="status"
+                className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
+              >
+                Если аккаунт с таким адресом существует, письмо с инструкциями уже отправлено.
+              </p>
+            )}
             {error && (
               <p role="alert" className="text-sm text-rose-600">
                 {error}
@@ -132,23 +167,52 @@ const LoginPage = () => {
               disabled={busy}
               className="mt-1 min-h-11 rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
-              {busy ? "Подождите…" : registering ? "Зарегистрироваться" : "Войти"}
+              {busy
+                ? "Подождите…"
+                : recovering
+                  ? "Отправить ссылку"
+                  : registering
+                    ? "Зарегистрироваться"
+                    : "Войти"}
             </button>
           </form>
-          <button
-            onClick={() => {
-              setRegistering((value) => !value);
-              setError("");
-            }}
-            className="mt-5 w-full text-sm text-slate-600 hover:text-blue-700 dark:text-slate-300"
-          >
-            {registering ? "Уже есть аккаунт? Войти" : "Нет аккаунта? Зарегистрироваться"}
-          </button>
-          {!registering && (
-            <p className="mt-4 text-center text-xs leading-5 text-slate-400">
-              Восстановление пароля по электронной почте пока недоступно, так как почтовый сервис не
-              подключён. Обратитесь к администратору.
-            </p>
+          {recovering ? (
+            <button
+              type="button"
+              onClick={() => {
+                setRecovering(false);
+                setRecoverySent(false);
+                setError("");
+              }}
+              className="mt-5 w-full text-sm text-slate-600 hover:text-blue-700 dark:text-slate-300"
+            >
+              Вернуться ко входу
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setRegistering((value) => !value);
+                  setError("");
+                }}
+                className="mt-5 w-full text-sm text-slate-600 hover:text-blue-700 dark:text-slate-300"
+              >
+                {registering ? "Уже есть аккаунт? Войти" : "Нет аккаунта? Зарегистрироваться"}
+              </button>
+              {!registering && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecovering(true);
+                    setRecoverySent(false);
+                    setError("");
+                  }}
+                  className="mt-3 w-full text-sm font-medium text-blue-700 hover:text-blue-800 dark:text-blue-300"
+                >
+                  Забыли пароль?
+                </button>
+              )}
+            </>
           )}
         </div>
       </section>

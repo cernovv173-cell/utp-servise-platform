@@ -194,6 +194,18 @@ export const loginRequest = (email: string, password: string, portal: Role) =>
     body: JSON.stringify({ email, password, portal }),
   });
 
+export const requestPasswordReset = (email: string) =>
+  apiRequest<{ message: string }>("/auth/password-reset/request", null, {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+export const confirmPasswordReset = (token: string, newPassword: string) =>
+  apiRequest<{ message: string }>("/auth/password-reset/confirm", null, {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+  });
+
 export const registerRequest = (
   displayName: string,
   email: string,
