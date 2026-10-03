@@ -89,6 +89,12 @@ test("only administrators write news and customer-facing reads exclude drafts", 
     },
   ];
   let requestedNewsRecipientRole: string | null = null;
+  const pushDeliveries: Array<{
+    id: string;
+    articleId: string;
+    nextAttemptAt: Date;
+    sentAt: Date | null;
+  }> = [];
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
@@ -112,7 +118,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       },
       create: async ({ data }: { data: Record<string, unknown> }) => {
         const created = {
-          id: "33333333-3333-4333-8333-333333333333",
+          id: `news-created-${articles.length + 1}`,
           ...data,
         };
         articles.push(created as (typeof articles)[number]);
@@ -141,6 +147,37 @@ test("only administrators write news and customer-facing reads exclude drafts", 
         return article;
       },
     },
+    newsPushDelivery: {
+      findUnique: async ({ where }: { where: { articleId: string } }) =>
+        pushDeliveries.find((entry) => entry.articleId === where.articleId) ??
+        null,
+      upsert: async ({
+        where,
+        create,
+        update,
+      }: {
+        where: { articleId: string };
+        create: { articleId: string; nextAttemptAt: Date };
+        update: Record<string, unknown>;
+      }) => {
+        const existing = pushDeliveries.find(
+          (entry) => entry.articleId === where.articleId,
+        );
+        if (existing) {
+          Object.assign(existing, update);
+          return existing;
+        }
+        const delivery = {
+          id: `delivery-${pushDeliveries.length + 1}`,
+          ...create,
+          sentAt: null,
+        };
+        pushDeliveries.push(delivery);
+        return delivery;
+      },
+      updateMany: async () => ({ count: 0 }),
+      deleteMany: async () => ({ count: 0 }),
+    },
     user: {
       findMany: async ({
         where,
@@ -161,6 +198,16 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       findMany: async () => [],
     },
   };
+  Object.assign(client, {
+    $transaction: async (
+      operation: (transaction: typeof client) => Promise<unknown>,
+    ) => operation(client),
+  });
+  Object.assign(client, {
+    $transaction: async (
+      operation: (transaction: typeof client) => Promise<unknown>,
+    ) => operation(client),
+  });
   const app = express();
   app.use(express.json());
   app.use("/api", createNewsRouter(client as unknown as DatabaseClient));
@@ -222,6 +269,12 @@ test("only administrators write news and customer-facing reads exclude drafts", 
     new Date(scheduledArticle.startsAt).toISOString(),
     scheduledStartsAt,
   );
+  assert.equal(pushDeliveries.length, 1);
+  assert.equal(pushDeliveries[0]?.articleId, scheduledArticle.id);
+  assert.equal(
+    pushDeliveries[0]?.nextAttemptAt.toISOString(),
+    scheduledStartsAt,
+  );
   assert.equal(requestedNewsRecipientRole, null);
 
   const immediatePublication = await fetch(baseUrl, {
@@ -234,7 +287,8 @@ test("only administrators write news and customer-facing reads exclude drafts", 
     }),
   });
   assert.equal(immediatePublication.status, 201);
-  assert.equal(requestedNewsRecipientRole, "CUSTOMER");
+  assert.equal(pushDeliveries.length, 2);
+  assert.equal(requestedNewsRecipientRole, null);
 
   const invalidSchedule = await fetch(baseUrl, {
     method: "POST",

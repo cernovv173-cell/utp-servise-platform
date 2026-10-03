@@ -36,7 +36,7 @@ const phoneValueSchema = z
   )
   .nullable();
 const phoneNumberSchema = phoneValueSchema.optional();
-const passwordSchema = z.string().min(12).max(128);
+const passwordSchema = z.string().min(8).max(128);
 const registerSchema = z
   .object({
     email: emailSchema,

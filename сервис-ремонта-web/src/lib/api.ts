@@ -339,6 +339,15 @@ export const searchOrders = (token: string, serviceNumber: string) =>
 export const getStaff = (token: string, signal?: AbortSignal) =>
   apiRequest<{ staff: StaffMember[] }>("/staff", token, { signal });
 
+export const setStaffActive = (token: string, userId: string, active: boolean) =>
+  apiRequest<{ staff: StaffMember }>(`/staff/${userId}/active`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ active }),
+  });
+
+export const deleteTechnician = (token: string, userId: string) =>
+  apiRequest<{ staff: StaffMember }>(`/staff/${userId}`, token, { method: "DELETE" });
+
 export const assignOrder = (token: string, orderId: string, technicianId: string) =>
   apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/assign`, token, {
     method: "PATCH",

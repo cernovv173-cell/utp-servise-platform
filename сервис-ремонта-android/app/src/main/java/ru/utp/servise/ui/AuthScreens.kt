@@ -178,14 +178,14 @@ private fun RegisterScreen(
         )
         Text("Контакт будет доступен только участникам вашей заявки.", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
         Spacer(Modifier.height(10.dp))
-        OutlinedTextField(password, { password = it }, label = { Text("Пароль (не менее 12 символов)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(14.dp))
+        OutlinedTextField(password, { password = it }, label = { Text("Пароль (не менее 8 символов)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(14.dp))
         Spacer(Modifier.height(18.dp))
         Button(onClick = {
             onError(null)
             performAuth(scope, onBusy, onError, onAuthenticated) {
                 ru.utp.servise.data.ApiClient.register(email.trim(), name.trim(), password, phoneNumber.trim().takeIf { it.isNotEmpty() })
             }
-        }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2 && email.isNotBlank() && password.length >= 12, shape = RoundedCornerShape(18.dp)) { Text("Зарегистрироваться") }
+        }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2 && email.isNotBlank() && password.length >= 8, shape = RoundedCornerShape(18.dp)) { Text("Зарегистрироваться") }
     }
 }
 

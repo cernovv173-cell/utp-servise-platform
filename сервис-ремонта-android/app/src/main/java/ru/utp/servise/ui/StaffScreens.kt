@@ -226,12 +226,12 @@ fun ChangeTemporaryPasswordScreen(onChange: (String, String, (AuthResult) -> Uni
         Text("Смените временный пароль", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("До смены пароля доступ к заказам и сотрудникам закрыт.", color = UtpMuted, modifier = Modifier.padding(top = 6.dp, bottom = 15.dp))
         OutlinedTextField(current, { current = it }, label = { Text("Временный пароль") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(12.dp))
-        OutlinedTextField(next, { next = it }, label = { Text("Новый пароль — от 12 символов") }, modifier = Modifier.fillMaxWidth().padding(top = 9.dp), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(12.dp))
+        OutlinedTextField(next, { next = it }, label = { Text("Новый пароль — от 8 символов") }, modifier = Modifier.fillMaxWidth().padding(top = 9.dp), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(12.dp))
         OutlinedTextField(confirm, { confirm = it }, label = { Text("Повторите новый пароль") }, modifier = Modifier.fillMaxWidth().padding(top = 9.dp), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(12.dp))
         localError?.let { Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 8.dp)) }
         Button(
             onClick = {
-                if (next.length < 12) localError = "Новый пароль должен содержать не менее 12 символов."
+                if (next.length < 8) localError = "Новый пароль должен содержать не менее 8 символов."
                 else if (next != confirm) localError = "Пароли не совпадают."
                 else {
                     localError = null

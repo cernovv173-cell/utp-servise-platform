@@ -42,7 +42,7 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
         }
         val pendingIntent = PendingIntent.getActivity(
             this,
-            message.data["orderId"]?.hashCode() ?: 0,
+            (message.data["notificationId"] ?: message.data["orderId"])?.hashCode() ?: 0,
             launchIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
@@ -55,7 +55,11 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
             .setAutoCancel(true)
             .build()
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        runCatching { manager.notify(System.currentTimeMillis().toInt(), notification) }
+        val notificationId =
+            (message.data["notificationId"] ?: message.data["orderId"])
+                ?.hashCode()
+                ?: System.currentTimeMillis().toInt()
+        runCatching { manager.notify(notificationId, notification) }
     }
 }
 

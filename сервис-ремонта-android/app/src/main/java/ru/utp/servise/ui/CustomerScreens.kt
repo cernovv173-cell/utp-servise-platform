@@ -266,7 +266,7 @@ fun ProfileScreen(
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Text("Смена пароля", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Text("Новый пароль — не менее 12 символов. После смены остальные сеансы будут завершены.", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
+                Text("Новый пароль — не менее 8 символов. После смены остальные сеансы будут завершены.", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp, bottom = 10.dp))
                 OutlinedTextField(
                     value = currentPassword,
                     onValueChange = { currentPassword = it.take(128) },
@@ -279,7 +279,7 @@ fun ProfileScreen(
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = { newPassword = it.take(128) },
-                    label = { Text("Новый пароль (от 12 символов)") },
+                    label = { Text("Новый пароль (от 8 символов)") },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
@@ -298,7 +298,7 @@ fun ProfileScreen(
                 Button(
                     onClick = {
                         val validationError = when {
-                            newPassword.length < 12 -> "Новый пароль должен содержать не менее 12 символов."
+                            newPassword.length < 8 -> "Новый пароль должен содержать не менее 8 символов."
                             newPassword != confirmPassword -> "Новые пароли не совпадают."
                             else -> null
                         }

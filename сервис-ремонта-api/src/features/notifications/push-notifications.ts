@@ -12,6 +12,7 @@ export type PushNotification = {
   readonly title: string;
   readonly body: string;
   readonly data: Readonly<Record<string, string>>;
+  readonly androidTag?: string;
 };
 
 export type ChatMessageRecipients = {
@@ -93,18 +94,20 @@ export const sendPushNotification = async (
   database: DatabaseClient,
   recipientUserIds: readonly string[],
   notification: PushNotification,
-): Promise<void> => {
+): Promise<boolean> => {
   const userIds = [...new Set(recipientUserIds)];
-  if (userIds.length === 0) return;
+  if (userIds.length === 0) return true;
 
   try {
     const messaging = getMessagingClient();
-    if (!messaging) return;
+    if (!messaging) return false;
 
     const devices = await database.pushDeviceToken.findMany({
       where: { userId: { in: userIds } },
       select: { token: true },
     });
+    if (devices.length === 0) return true;
+    let deliverySucceeded = true;
 
     for (
       let offset = 0;
@@ -118,8 +121,20 @@ export const sendPushNotification = async (
         const result = await messaging.sendEachForMulticast({
           tokens,
           notification: { title: notification.title, body: notification.body },
+          ...(notification.androidTag
+            ? { android: { notification: { tag: notification.androidTag } } }
+            : {}),
           data: { ...notification.data },
         });
+        if (
+          result.responses.some(
+            (response) =>
+              !response.success &&
+              !isInvalidRegistrationToken(response.error?.code),
+          )
+        ) {
+          deliverySucceeded = false;
+        }
         const staleTokens = result.responses.flatMap((response, index) =>
           !response.success && isInvalidRegistrationToken(response.error?.code)
             ? [tokens[index]!]
@@ -131,18 +146,21 @@ export const sendPushNotification = async (
           });
         }
       } catch {
+        deliverySucceeded = false;
         logger.warn(
           { code: "FCM_SEND_FAILED" },
           "push_notification_delivery_failed",
         );
       }
     }
+    return deliverySucceeded;
   } catch {
     // A committed chat action must not fail because push delivery is unavailable.
     logger.warn(
       { code: "FCM_DELIVERY_UNAVAILABLE" },
       "push_notification_delivery_skipped",
     );
+    return false;
   }
 };
 
@@ -202,19 +220,25 @@ export const sendRepairOrderNotificationForId = async (
 export const sendNewsPublicationNotification = async (
   database: DatabaseClient,
   article: { readonly id: string; readonly title: string },
-): Promise<void> => {
+  notificationId = article.id,
+): Promise<boolean> => {
   try {
     const customers = await database.user.findMany({
       where: { role: "CUSTOMER", active: true },
       select: { id: true },
     });
-    await sendPushNotification(
+    return await sendPushNotification(
       database,
       customers.map(({ id }) => id),
       {
         title: "Новая новость UTP Servise",
         body: article.title,
-        data: { type: "news_published", articleId: article.id },
+        data: {
+          type: "news_published",
+          articleId: article.id,
+          notificationId,
+        },
+        androidTag: `news-${article.id}`,
       },
     );
   } catch {
@@ -222,5 +246,6 @@ export const sendNewsPublicationNotification = async (
       { code: "NEWS_PUSH_RECIPIENTS_UNAVAILABLE" },
       "push_notification_delivery_skipped",
     );
+    return false;
   }
 };

@@ -117,7 +117,7 @@ const LoginPage = () => {
                 required
                 type="password"
                 name="password"
-                minLength={registering ? 12 : 1}
+                minLength={registering ? 8 : 1}
                 maxLength={128}
                 autoComplete={registering ? "new-password" : "current-password"}
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"

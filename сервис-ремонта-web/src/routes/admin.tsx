@@ -8,6 +8,7 @@ import { LoyaltyManagement } from "@/features/admin/loyalty-management";
 import { NewsAdmin } from "@/features/admin/news-admin";
 import { OrderManagement } from "@/features/admin/order-management";
 import { ReviewManagement } from "@/features/admin/review-management";
+import { StaffManagement } from "@/features/admin/staff-management";
 import { useAuth } from "@/features/auth/auth-context";
 
 const AdminPage = () => {
@@ -27,6 +28,7 @@ const AdminPage = () => {
         <div className="grid gap-6">
           <NewsAdmin />
           <OrderManagement />
+          <StaffManagement />
           <ReviewManagement />
           <LoyaltyManagement />
           <BannerManagement />

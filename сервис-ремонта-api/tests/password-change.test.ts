@@ -90,22 +90,33 @@ for (const role of ["CUSTOMER", "TECHNICIAN", "ADMIN"] as const) {
       true,
     );
 
+    const tooShort = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        currentPassword: "Current-password-123",
+        newPassword: "short7",
+      }),
+    });
+    assert.equal(tooShort.status, 400);
+    assert.equal(
+      await verifyPassword("Current-password-123", user.passwordHash),
+      true,
+    );
+
     const changed = await fetch(endpoint, {
       method: "POST",
       headers,
       body: JSON.stringify({
         currentPassword: "Current-password-123",
-        newPassword: "New-password-456",
+        newPassword: "New-pass-8",
       }),
     });
     assert.equal(changed.status, 200);
     const result = await changed.json();
     assert.equal(result.user.role, role);
     assert.equal(result.user.mustChangePassword, false);
-    assert.equal(
-      await verifyPassword("New-password-456", user.passwordHash),
-      true,
-    );
+    assert.equal(await verifyPassword("New-pass-8", user.passwordHash), true);
     assert.equal(deletedSessionsFor, user.id);
     assert.equal(renewedSessionUserId, user.id);
     assert.equal(typeof result.accessToken, "string");

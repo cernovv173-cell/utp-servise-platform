@@ -9,7 +9,30 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
-import { sendNewsPublicationNotification } from "../notifications/push-notifications.js";
+
+const scheduleNewsPush = async (
+  database: Pick<DatabaseClient, "newsPushDelivery">,
+  articleId: string,
+  startsAt: Date | null,
+): Promise<void> => {
+  const existing = await database.newsPushDelivery.findUnique({
+    where: { articleId },
+    select: { sentAt: true },
+  });
+  if (existing?.sentAt) return;
+  const now = new Date();
+  const nextAttemptAt = startsAt && startsAt > now ? startsAt : now;
+  await database.newsPushDelivery.upsert({
+    where: { articleId },
+    create: { articleId, nextAttemptAt },
+    update: {
+      nextAttemptAt,
+      lockedUntil: null,
+      attemptCount: 0,
+      lastError: null,
+    },
+  });
+};
 
 const articleIdParams = z.object({ articleId: z.string().uuid() });
 const scheduleFields = {
@@ -105,26 +128,24 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
       const input = bodyOf<z.infer<typeof createArticleBody>>(response);
       const isPublished = input.isPublished ?? false;
       const startsAt = input.startsAt ? new Date(input.startsAt) : null;
-      const article = await database.newsArticle.create({
-        data: {
-          title: input.title,
-          content: input.content,
-          isPublished,
-          startsAt,
-          endsAt: input.endsAt ? new Date(input.endsAt) : null,
-          isFeatured: input.isFeatured ?? false,
-          publishedAt: isPublished ? (startsAt ?? new Date()) : null,
-          createdById: user.id,
-        },
+      const article = await database.$transaction(async (transaction) => {
+        const created = await transaction.newsArticle.create({
+          data: {
+            title: input.title,
+            content: input.content,
+            isPublished,
+            startsAt,
+            endsAt: input.endsAt ? new Date(input.endsAt) : null,
+            isFeatured: input.isFeatured ?? false,
+            publishedAt: isPublished ? (startsAt ?? new Date()) : null,
+            createdById: user.id,
+          },
+        });
+        if (isPublished) {
+          await scheduleNewsPush(transaction, created.id, startsAt);
+        }
+        return created;
       });
-      const now = new Date();
-      if (
-        isPublished &&
-        (!startsAt || startsAt <= now) &&
-        (!article.endsAt || article.endsAt > now)
-      ) {
-        await sendNewsPublicationNotification(database, article);
-      }
       response.status(201).json({ article });
     },
   );
@@ -177,27 +198,38 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
             ? ((startsAt === undefined ? current.startsAt : startsAt) ??
               new Date())
             : null;
-      const article = await database.newsArticle.update({
-        where: { id: articleId },
-        data: {
-          title: input.title,
-          content: input.content,
-          isPublished: input.isPublished,
-          startsAt,
-          endsAt: input.endsAt === undefined ? undefined : endsAt,
-          isFeatured: input.isFeatured,
-          publishedAt,
-        },
+      const article = await database.$transaction(async (transaction) => {
+        const updated = await transaction.newsArticle.update({
+          where: { id: articleId },
+          data: {
+            title: input.title,
+            content: input.content,
+            isPublished: input.isPublished,
+            startsAt,
+            endsAt: input.endsAt === undefined ? undefined : endsAt,
+            isFeatured: input.isFeatured,
+            publishedAt,
+          },
+        });
+        if (!current.isPublished && nextPublished) {
+          await scheduleNewsPush(transaction, updated.id, effectiveStartsAt);
+        } else if (current.isPublished && input.startsAt !== undefined) {
+          const nextAttemptAt =
+            effectiveStartsAt && effectiveStartsAt > new Date()
+              ? effectiveStartsAt
+              : new Date();
+          await transaction.newsPushDelivery.updateMany({
+            where: { articleId, sentAt: null },
+            data: { nextAttemptAt, lockedUntil: null },
+          });
+        }
+        if (current.isPublished && input.isPublished === false) {
+          await transaction.newsPushDelivery.deleteMany({
+            where: { articleId, sentAt: null },
+          });
+        }
+        return updated;
       });
-      const now = new Date();
-      if (
-        !current.isPublished &&
-        nextPublished &&
-        (!effectiveStartsAt || effectiveStartsAt <= now) &&
-        (!endsAt || endsAt > now)
-      ) {
-        await sendNewsPublicationNotification(database, article);
-      }
       response.json({ article });
     },
   );

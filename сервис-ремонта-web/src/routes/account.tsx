@@ -46,8 +46,8 @@ const AccountPage = () => {
   const submitPassword = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPasswordError(null);
-    if (newPassword.length < 12) {
-      setPasswordError("Новый пароль должен содержать не менее 12 символов.");
+    if (newPassword.length < 8) {
+      setPasswordError("Новый пароль должен содержать не менее 8 символов.");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -121,14 +121,14 @@ const AccountPage = () => {
               />
             </label>
             <label className="grid gap-1.5 text-sm font-medium">
-              Новый пароль (не менее 12 символов)
+              Новый пароль (не менее 8 символов)
               <input
                 type="password"
                 autoComplete="new-password"
                 value={newPassword}
                 onChange={(event) => setNewPassword(event.target.value)}
                 required
-                minLength={12}
+                minLength={8}
                 maxLength={128}
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
               />
