@@ -11,6 +11,10 @@ import {
   requireRoles,
 } from "../auth/auth.middleware.js";
 import {
+  sendRepairOrderNotification,
+  sendRepairOrderNotificationForId,
+} from "../notifications/push-notifications.js";
+import {
   TECHNICIAN_SALARY_RATE_PERCENT,
   calculateTechnicianSalaryRub,
 } from "../salary/salary-calculation.js";
@@ -285,6 +289,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           include: orderDetails(user.role),
         });
       });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        user.id,
+        "Создана новая заявка на ремонт.",
+      );
       response.status(201).json({ order });
     },
   );
@@ -394,6 +404,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           include: orderDetails(user.role),
         });
       });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        user.id,
+        "Изменены данные заявки на ремонт.",
+      );
       response.json({ order });
     },
   );
@@ -416,6 +432,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         },
         include: orderDetails("ADMIN"),
       });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        getAuthenticatedUser(response).id,
+        "Обновлён плановый срок завершения ремонта.",
+      );
       response.json({ order });
     },
   );
@@ -474,6 +496,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         }
         return saved;
       });
+      await sendRepairOrderNotification(
+        database,
+        updated,
+        user.id,
+        "Изменено использование бонусов по заявке.",
+      );
       response.json({ order: updated });
     },
   );
@@ -557,6 +585,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             })
           : transaction.repairReceipt.create({ data });
       });
+      await sendRepairOrderNotificationForId(
+        database,
+        orderId,
+        user.id,
+        "По заявке сформирован или обновлён расчётный документ.",
+      );
       response.status(201).json({
         receipt: {
           ...receipt,
@@ -669,6 +703,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           where: { id: currentReceipt.id },
         });
       });
+      await sendRepairOrderNotificationForId(
+        database,
+        orderId,
+        admin.id,
+        "По заявке обновлён статус оплаты.",
+      );
       response.json({
         receipt: {
           ...receipt,
@@ -748,6 +788,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           include: orderDetails(admin.role),
         });
       });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        admin.id,
+        "К заявке назначен или переназначен мастер.",
+      );
       response.json({ order });
     },
   );
@@ -827,6 +873,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           include: orderDetails(user.role),
         });
       });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        user.id,
+        "Изменён статус заявки на ремонт.",
+      );
       response.json({ order });
     },
   );
@@ -873,6 +925,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           include: orderDetails(user.role),
         });
       });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        user.id,
+        "Изменён состав услуг или запчастей по заявке.",
+      );
       response.status(201).json({ order });
     },
   );
@@ -918,10 +976,23 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const { reviewId } = paramsOf<z.infer<typeof reviewIdParams>>(response);
       const { isPublished } =
         bodyOf<z.infer<typeof moderateReviewBody>>(response);
+      const current = await database.review.findUnique({
+        where: { id: reviewId },
+        select: { orderId: true },
+      });
+      const user = getAuthenticatedUser(response);
       const review = await database.review.update({
         where: { id: reviewId },
         data: { isPublished },
       });
+      if (current) {
+        await sendRepairOrderNotificationForId(
+          database,
+          current.orderId,
+          user.id,
+          "Изменён статус отзыва по заявке.",
+        );
+      }
       response.json({ review });
     },
   );
@@ -961,6 +1032,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             isPublished: false,
           },
         });
+        await sendRepairOrderNotification(
+          database,
+          order,
+          user.id,
+          "К завершённой заявке добавлен отзыв.",
+        );
         response.status(201).json({ review });
       } catch (error) {
         if (isUniqueViolation(error))

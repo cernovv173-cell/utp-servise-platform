@@ -9,6 +9,7 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { sendNewsPublicationNotification } from "../notifications/push-notifications.js";
 
 const articleIdParams = z.object({ articleId: z.string().uuid() });
 const scheduleFields = {
@@ -116,6 +117,14 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
           createdById: user.id,
         },
       });
+      const now = new Date();
+      if (
+        isPublished &&
+        (!startsAt || startsAt <= now) &&
+        (!article.endsAt || article.endsAt > now)
+      ) {
+        await sendNewsPublicationNotification(database, article);
+      }
       response.status(201).json({ article });
     },
   );
@@ -180,6 +189,15 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
           publishedAt,
         },
       });
+      const now = new Date();
+      if (
+        !current.isPublished &&
+        nextPublished &&
+        (!effectiveStartsAt || effectiveStartsAt <= now) &&
+        (!endsAt || endsAt > now)
+      ) {
+        await sendNewsPublicationNotification(database, article);
+      }
       response.json({ article });
     },
   );

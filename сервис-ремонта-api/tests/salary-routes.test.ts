@@ -49,6 +49,7 @@ test("salary summaries are personal for technicians and administrator-only acros
     token: user.token,
   }));
   let requestedTechnicianIds: string[] | undefined;
+  const earnedAtThisPeriod = new Date(Date.now() - 60_000);
   const database = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
@@ -79,7 +80,7 @@ test("salary summaries are personal for technicians and administrator-only acros
         return [
           {
             technicianId: users[1]!.id,
-            earnedAt: new Date("2026-10-02T08:00:00.000Z"),
+            earnedAt: earnedAtThisPeriod,
             salaryRub: 1_125,
           },
         ].filter((entry) =>

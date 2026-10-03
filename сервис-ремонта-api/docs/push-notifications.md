@@ -6,6 +6,14 @@ when a repair-chat message is posted, and to active administrators when a techni
 help. A repeated help request does not create a second alert. Message previews and repair details are
 not included in the push payload; the payload carries only an event type and order ID.
 
+Repair-order push events cover order creation and edits, planned completion changes, technician
+assignment, status changes, service/part additions, bonus redemption, receipt generation/payment,
+order photos, and review creation/moderation. Recipients are the customer, assigned technician, and
+active administrators; the user who performed the action is excluded. News push goes to active
+customers when an article is first published and is already visible. Draft edits and changes to an
+already-published article do not send another alert. Future-scheduled news is not pushed when its
+start time arrives because this API has no scheduled delivery worker.
+
 FCM delivery is best-effort: a saved chat action remains successful if Firebase is temporarily
 unavailable. Invalid and expired device tokens are deleted. A user may register the same app token
 again after signing in, and a token is associated with only one account at a time.

@@ -88,6 +88,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       createdById: "admin-1",
     },
   ];
+  let requestedNewsRecipientRole: string | null = null;
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
@@ -140,6 +141,22 @@ test("only administrators write news and customer-facing reads exclude drafts", 
         return article;
       },
     },
+    user: {
+      findMany: async ({
+        where,
+      }: {
+        where: { role: string; active: boolean };
+      }) => {
+        requestedNewsRecipientRole = where.role;
+        return users
+          .filter((user) => user.role === where.role && where.active)
+          .map((user) => ({ id: user.id }));
+      },
+    },
+    pushDeviceToken: {
+      findMany: async () => [],
+      deleteMany: async () => ({ count: 0 }),
+    },
     review: {
       findMany: async () => [],
     },
@@ -184,6 +201,8 @@ test("only administrators write news and customer-facing reads exclude drafts", 
   assert.equal(createDraft.status, 201);
   assert.equal((await createDraft.json()).article.isPublished, false);
 
+  const scheduledStartsAt = new Date(Date.now() + 60_000).toISOString();
+  const scheduledEndsAt = new Date(Date.now() + 86_400_000).toISOString();
   const createScheduled = await fetch(baseUrl, {
     method: "POST",
     headers: headers(adminToken),
@@ -191,8 +210,8 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       title: "Плановая акция",
       content: "Текст акции для клиентов.",
       isPublished: true,
-      startsAt: "2026-10-02T09:00:00.000Z",
-      endsAt: "2026-10-05T18:00:00.000Z",
+      startsAt: scheduledStartsAt,
+      endsAt: scheduledEndsAt,
       isFeatured: true,
     }),
   });
@@ -201,8 +220,21 @@ test("only administrators write news and customer-facing reads exclude drafts", 
   assert.equal(scheduledArticle.isFeatured, true);
   assert.equal(
     new Date(scheduledArticle.startsAt).toISOString(),
-    "2026-10-02T09:00:00.000Z",
+    scheduledStartsAt,
   );
+  assert.equal(requestedNewsRecipientRole, null);
+
+  const immediatePublication = await fetch(baseUrl, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({
+      title: "Новая услуга",
+      content: "Опубликованное объявление.",
+      isPublished: true,
+    }),
+  });
+  assert.equal(immediatePublication.status, 201);
+  assert.equal(requestedNewsRecipientRole, "CUSTOMER");
 
   const invalidSchedule = await fetch(baseUrl, {
     method: "POST",

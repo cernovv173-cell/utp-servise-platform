@@ -66,3 +66,9 @@ no next cursor and disable load-more while fetching. Clear user-specific caches 
 Keep the label text and its required asterisk in one text wrapper, separated by a non-breaking space.
 The marker must not be a separate child of a field grid or flex layout. The form example demonstrates
 this pattern; HTML inputs also carry `required`, while native inputs name their required state for accessibility.
+
+## Repair catalog
+
+The `/catalog` page uses the API catalog shared with Android. Administrators can add and edit
+service and spare-part names/prices and deactivate or reactivate entries; technicians can view active
+items. Customer accounts do not have permission to browse this internal price catalog.

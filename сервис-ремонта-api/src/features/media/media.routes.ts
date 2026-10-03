@@ -16,6 +16,7 @@ import {
   publicUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { sendRepairOrderNotification } from "../notifications/push-notifications.js";
 import { canViewRepairOrder } from "../orders/order-policy.js";
 
 const imageBody: RequestHandler = express.raw({
@@ -235,13 +236,24 @@ export const createMediaRouter = (
         select: { id: true, customerId: true, assignedTechnicianId: true },
       });
       if (!order || !canViewRepairOrder(user.role, user.id, order))
-        invalidMedia();
+        return invalidMedia();
+      const notificationOrder = {
+        id: order.id,
+        customerId: order.customerId,
+        assignedTechnicianId: order.assignedTechnicianId,
+      };
       const image = imageOf(request);
       const objectId = await storage.upload(image.bytes, image.contentType);
       try {
         const photo = await database.repairOrderPhoto.create({
           data: { orderId, objectId, createdById: user.id },
         });
+        await sendRepairOrderNotification(
+          database,
+          notificationOrder,
+          user.id,
+          "К заявке добавлена фотография.",
+        );
         response.status(201).json({ photo });
       } catch (error) {
         await storage.delete(objectId).catch(() => undefined);

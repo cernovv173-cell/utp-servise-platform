@@ -21,6 +21,25 @@ export type ChatMessageRecipients = {
   readonly senderId: string;
 };
 
+export type RepairOrderNotificationContext = {
+  readonly id: string;
+  readonly customerId: string;
+  readonly assignedTechnicianId: string | null;
+};
+
+export const getRepairOrderNotificationRecipientIds = ({
+  customerId,
+  assignedTechnicianId,
+  administratorIds,
+  actorId,
+}: RepairOrderNotificationContext & {
+  readonly administratorIds: readonly string[];
+  readonly actorId: string;
+}): string[] =>
+  [...new Set([customerId, assignedTechnicianId, ...administratorIds])].filter(
+    (userId): userId is string => userId !== null && userId !== actorId,
+  );
+
 export const getChatMessageRecipientIds = ({
   customerId,
   assignedTechnicianId,
@@ -122,6 +141,85 @@ export const sendPushNotification = async (
     // A committed chat action must not fail because push delivery is unavailable.
     logger.warn(
       { code: "FCM_DELIVERY_UNAVAILABLE" },
+      "push_notification_delivery_skipped",
+    );
+  }
+};
+
+export const sendRepairOrderNotification = async (
+  database: DatabaseClient,
+  order: RepairOrderNotificationContext,
+  actorId: string,
+  body: string,
+): Promise<void> => {
+  try {
+    const administrators = await database.user.findMany({
+      where: { role: "ADMIN", active: true },
+      select: { id: true },
+    });
+    await sendPushNotification(
+      database,
+      getRepairOrderNotificationRecipientIds({
+        ...order,
+        administratorIds: administrators.map(({ id }) => id),
+        actorId,
+      }),
+      {
+        title: "Обновление по заявке",
+        body,
+        data: { type: "repair_order_update", orderId: order.id },
+      },
+    );
+  } catch {
+    logger.warn(
+      { code: "ORDER_PUSH_RECIPIENTS_UNAVAILABLE" },
+      "push_notification_delivery_skipped",
+    );
+  }
+};
+
+export const sendRepairOrderNotificationForId = async (
+  database: DatabaseClient,
+  orderId: string,
+  actorId: string,
+  body: string,
+): Promise<void> => {
+  try {
+    const order = await database.repairOrder.findUnique({
+      where: { id: orderId },
+      select: { id: true, customerId: true, assignedTechnicianId: true },
+    });
+    if (order)
+      await sendRepairOrderNotification(database, order, actorId, body);
+  } catch {
+    logger.warn(
+      { code: "ORDER_PUSH_CONTEXT_UNAVAILABLE" },
+      "push_notification_delivery_skipped",
+    );
+  }
+};
+
+export const sendNewsPublicationNotification = async (
+  database: DatabaseClient,
+  article: { readonly id: string; readonly title: string },
+): Promise<void> => {
+  try {
+    const customers = await database.user.findMany({
+      where: { role: "CUSTOMER", active: true },
+      select: { id: true },
+    });
+    await sendPushNotification(
+      database,
+      customers.map(({ id }) => id),
+      {
+        title: "Новая новость UTP Servise",
+        body: article.title,
+        data: { type: "news_published", articleId: article.id },
+      },
+    );
+  } catch {
+    logger.warn(
+      { code: "NEWS_PUSH_RECIPIENTS_UNAVAILABLE" },
       "push_notification_delivery_skipped",
     );
   }

@@ -85,6 +85,14 @@ export type NewsArticle = {
   imageObjectId?: string | null;
 };
 
+export type RepairCatalogItem = {
+  id: string;
+  type: "SERVICE" | "SPARE_PART";
+  name: string;
+  unitPriceRub: number;
+  active: boolean;
+};
+
 export type Review = {
   id: string;
   rating: number;
@@ -250,6 +258,28 @@ export const updateRepairOrder = (
 
 export const getNews = (token: string, signal?: AbortSignal) =>
   apiRequest<{ articles: NewsArticle[]; reviews: Review[] }>("/news", token, { signal });
+
+export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ catalogItems: RepairCatalogItem[] }>("/catalog", token, { signal });
+
+export const createRepairCatalogItem = (
+  token: string,
+  input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub">,
+) =>
+  apiRequest<{ catalogItem: RepairCatalogItem }>("/catalog", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const updateRepairCatalogItem = (
+  token: string,
+  id: string,
+  input: Partial<Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "active">>,
+) =>
+  apiRequest<{ catalogItem: RepairCatalogItem }>(`/catalog/${id}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
 
 export const createNews = (
   token: string,

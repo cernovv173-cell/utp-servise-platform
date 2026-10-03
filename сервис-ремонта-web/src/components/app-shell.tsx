@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   Bell,
+  Boxes,
   CircleUserRound,
   ClipboardList,
   FileText,
@@ -21,6 +22,7 @@ import { useAuth } from "@/features/auth/auth-context";
 const links = [
   { to: "/", label: "Главная", icon: Home },
   { to: "/orders", label: "Заявки", icon: ClipboardList },
+  { to: "/catalog", label: "Каталог ремонта", icon: Boxes },
   { to: "/checks", label: "Чеки и номера", icon: FileText },
   { to: "/news", label: "Новости", icon: Newspaper },
   { to: "/loyalty", label: "Бонусы", icon: Star },
@@ -69,9 +71,11 @@ export const AppShell = ({ active, children }: { active: string; children: React
   }
 
   const nav = links.filter((link) =>
-    link.to === "/salary"
+    link.to === "/catalog"
       ? user.role === "TECHNICIAN" || user.role === "ADMIN"
-      : link.to !== "/loyalty" || user.role === "CUSTOMER",
+      : link.to === "/salary"
+        ? user.role === "TECHNICIAN" || user.role === "ADMIN"
+        : link.to !== "/loyalty" || user.role === "CUSTOMER",
   );
   return (
     <div className="min-h-dvh bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
