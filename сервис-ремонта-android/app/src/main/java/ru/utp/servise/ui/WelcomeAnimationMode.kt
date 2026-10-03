@@ -14,6 +14,18 @@ enum class WelcomeAnimationMode(
         title = "Спокойная",
         description = "Мягкое появление без покачивания",
     ),
+    SLIDE_UP(
+        title = "Снизу вверх",
+        description = "Заставка плавно поднимается снизу",
+    ),
+    ZOOM(
+        title = "Увеличение",
+        description = "Маскот появляется с эффектом приближения",
+    ),
+    TURN(
+        title = "Поворот",
+        description = "Маскот плавно поворачивается при появлении",
+    ),
     OFF(
         title = "Без заставки",
         description = "Сразу открыть приложение",

@@ -51,9 +51,19 @@ fun WelcomeAnimation(
     onFinished: () -> Unit,
 ) {
     val isDynamic = mode == WelcomeAnimationMode.BOUNCE
+    val hasMascotRotation =
+        mode == WelcomeAnimationMode.BOUNCE || mode == WelcomeAnimationMode.TURN
     var visible by remember { mutableStateOf(false) }
     var signVisible by remember { mutableStateOf(false) }
-    val mascotRotation = remember(mode) { Animatable(if (isDynamic) -9f else 0f) }
+    val mascotRotation = remember(mode) {
+        Animatable(
+            when (mode) {
+                WelcomeAnimationMode.BOUNCE -> -9f
+                WelcomeAnimationMode.TURN -> -75f
+                else -> 0f
+            },
+        )
+    }
     var finished by remember { mutableStateOf(false) }
 
     val finish = {
@@ -65,26 +75,34 @@ fun WelcomeAnimation(
 
     LaunchedEffect(mode) {
         visible = true
-        if (isDynamic) {
-            mascotRotation.animateTo(
-                targetValue = 5f,
+        when (mode) {
+            WelcomeAnimationMode.BOUNCE -> {
+                mascotRotation.animateTo(
+                    targetValue = 5f,
+                    animationSpec = spring(
+                        dampingRatio = 0.48f,
+                        stiffness = Spring.StiffnessLow,
+                    ),
+                )
+                mascotRotation.animateTo(
+                    targetValue = -2f,
+                    animationSpec = spring(dampingRatio = 0.55f),
+                )
+                mascotRotation.animateTo(
+                    targetValue = 0f,
+                    animationSpec = spring(dampingRatio = 0.62f),
+                )
+            }
+            WelcomeAnimationMode.TURN -> mascotRotation.animateTo(
+                targetValue = 0f,
                 animationSpec = spring(
-                    dampingRatio = 0.48f,
+                    dampingRatio = 0.78f,
                     stiffness = Spring.StiffnessLow,
                 ),
             )
-            mascotRotation.animateTo(
-                targetValue = -2f,
-                animationSpec = spring(dampingRatio = 0.55f),
-            )
-            mascotRotation.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(dampingRatio = 0.62f),
-            )
-            delay(180)
-        } else {
-            delay(420)
+            else -> delay(420)
         }
+        if (isDynamic || mode == WelcomeAnimationMode.TURN) delay(180)
         signVisible = true
         delay(if (isDynamic) 1_350 else 850)
         visible = false
@@ -116,8 +134,9 @@ fun WelcomeAnimation(
             }
             AnimatedVisibility(
                 visible = visible,
-                enter = if (isDynamic) {
-                    fadeIn(tween(500, easing = FastOutSlowInEasing)) +
+                enter = when (mode) {
+                    WelcomeAnimationMode.BOUNCE ->
+                        fadeIn(tween(500, easing = FastOutSlowInEasing)) +
                         slideInVertically(
                             initialOffsetY = { it / 5 },
                             animationSpec = spring(
@@ -131,12 +150,37 @@ fun WelcomeAnimation(
                                 stiffness = Spring.StiffnessLow,
                             ),
                         )
-                } else {
-                    fadeIn(tween(650, easing = FastOutSlowInEasing)) +
+                    WelcomeAnimationMode.FADE ->
+                        fadeIn(tween(650, easing = FastOutSlowInEasing)) +
                         scaleIn(
                             initialScale = 0.96f,
                             animationSpec = tween(650, easing = FastOutSlowInEasing),
                         )
+                    WelcomeAnimationMode.SLIDE_UP ->
+                        fadeIn(tween(500, easing = FastOutSlowInEasing)) +
+                            slideInVertically(
+                                initialOffsetY = { it / 2 },
+                                animationSpec = tween(
+                                    durationMillis = 750,
+                                    easing = FastOutSlowInEasing,
+                                ),
+                            )
+                    WelcomeAnimationMode.ZOOM ->
+                        fadeIn(tween(550, easing = FastOutSlowInEasing)) +
+                            scaleIn(
+                                initialScale = 0.45f,
+                                animationSpec = spring(
+                                    dampingRatio = 0.72f,
+                                    stiffness = Spring.StiffnessLow,
+                                ),
+                            )
+                    WelcomeAnimationMode.TURN ->
+                        fadeIn(tween(650, easing = FastOutSlowInEasing)) +
+                            scaleIn(
+                                initialScale = 0.9f,
+                                animationSpec = tween(650, easing = FastOutSlowInEasing),
+                            )
+                    WelcomeAnimationMode.OFF -> fadeIn(tween(1))
                 },
                 exit = fadeOut(tween(350, easing = FastOutSlowInEasing)),
             ) {
@@ -155,7 +199,8 @@ fun WelcomeAnimation(
                                 .fillMaxWidth()
                                 .heightIn(max = 560.dp)
                                 .graphicsLayer {
-                                    rotationZ = if (isDynamic) mascotRotation.value else 0f
+                                    rotationZ =
+                                        if (hasMascotRotation) mascotRotation.value else 0f
                                 },
                             contentScale = ContentScale.Fit,
                         )
