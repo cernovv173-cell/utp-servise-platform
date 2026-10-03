@@ -1,10 +1,14 @@
 package ru.utp.servise.ui
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -42,22 +46,54 @@ import kotlinx.coroutines.delay
 import ru.utp.servise.R
 
 @Composable
-fun WelcomeAnimation(onFinished: () -> Unit) {
+fun WelcomeAnimation(
+    mode: WelcomeAnimationMode,
+    onFinished: () -> Unit,
+) {
+    val isDynamic = mode == WelcomeAnimationMode.BOUNCE
     var visible by remember { mutableStateOf(false) }
     var signVisible by remember { mutableStateOf(false) }
+    val mascotRotation = remember(mode) { Animatable(if (isDynamic) -9f else 0f) }
+    var finished by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    val finish = {
+        if (!finished) {
+            finished = true
+            onFinished()
+        }
+    }
+
+    LaunchedEffect(mode) {
         visible = true
-        delay(700)
+        if (isDynamic) {
+            mascotRotation.animateTo(
+                targetValue = 5f,
+                animationSpec = spring(
+                    dampingRatio = 0.48f,
+                    stiffness = Spring.StiffnessLow,
+                ),
+            )
+            mascotRotation.animateTo(
+                targetValue = -2f,
+                animationSpec = spring(dampingRatio = 0.55f),
+            )
+            mascotRotation.animateTo(
+                targetValue = 0f,
+                animationSpec = spring(dampingRatio = 0.62f),
+            )
+            delay(180)
+        } else {
+            delay(420)
+        }
         signVisible = true
-        delay(1_250)
+        delay(if (isDynamic) 1_350 else 850)
         visible = false
         delay(350)
-        onFinished()
+        finish()
     }
 
     Dialog(
-        onDismissRequest = onFinished,
+        onDismissRequest = finish,
         properties = DialogProperties(
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false,
@@ -71,7 +107,7 @@ fun WelcomeAnimation(onFinished: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Button(
-                onClick = onFinished,
+                onClick = finish,
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .padding(16.dp),
@@ -80,8 +116,28 @@ fun WelcomeAnimation(onFinished: () -> Unit) {
             }
             AnimatedVisibility(
                 visible = visible,
-                enter = fadeIn(tween(500, easing = FastOutSlowInEasing)) +
-                    scaleIn(initialScale = 0.78f, animationSpec = tween(600, easing = FastOutSlowInEasing)),
+                enter = if (isDynamic) {
+                    fadeIn(tween(500, easing = FastOutSlowInEasing)) +
+                        slideInVertically(
+                            initialOffsetY = { it / 5 },
+                            animationSpec = spring(
+                                dampingRatio = 0.72f,
+                                stiffness = Spring.StiffnessLow,
+                            ),
+                        ) + scaleIn(
+                            initialScale = 0.82f,
+                            animationSpec = spring(
+                                dampingRatio = 0.68f,
+                                stiffness = Spring.StiffnessLow,
+                            ),
+                        )
+                } else {
+                    fadeIn(tween(650, easing = FastOutSlowInEasing)) +
+                        scaleIn(
+                            initialScale = 0.96f,
+                            animationSpec = tween(650, easing = FastOutSlowInEasing),
+                        )
+                },
                 exit = fadeOut(tween(350, easing = FastOutSlowInEasing)),
             ) {
                 Column(
@@ -97,7 +153,10 @@ fun WelcomeAnimation(onFinished: () -> Unit) {
                             contentDescription = "Енот UTP Servise приветствует вас",
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 560.dp),
+                                .heightIn(max = 560.dp)
+                                .graphicsLayer {
+                                    rotationZ = if (isDynamic) mascotRotation.value else 0f
+                                },
                             contentScale = ContentScale.Fit,
                         )
                         androidx.compose.animation.AnimatedVisibility(
@@ -113,9 +172,9 @@ fun WelcomeAnimation(onFinished: () -> Unit) {
                                 modifier = Modifier.graphicsLayer { translationY = 48f },
                             ) {
                                 Text(
-                                    "Привет!",
+                                    if (isDynamic) "Ремонт техники — просто" else "Добро пожаловать!",
                                     modifier = Modifier.padding(horizontal = 28.dp, vertical = 14.dp),
-                                    style = MaterialTheme.typography.headlineMedium,
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
                                 )
                             }

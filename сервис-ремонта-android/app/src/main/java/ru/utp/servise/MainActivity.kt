@@ -60,6 +60,8 @@ import ru.utp.servise.ui.UtpBlue
 import ru.utp.servise.ui.UtpPale
 import ru.utp.servise.ui.UtpServiseTheme
 import ru.utp.servise.ui.WelcomeAnimation
+import ru.utp.servise.ui.WelcomeAnimationMode
+import ru.utp.servise.ui.readWelcomeAnimationMode
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +75,10 @@ class MainActivity : ComponentActivity() {
 private fun UtpServiseApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
-    var showWelcome by remember { mutableStateOf(true) }
+    val welcomeAnimationMode = remember(context) { readWelcomeAnimationMode(context) }
+    var showWelcome by remember {
+        mutableStateOf(welcomeAnimationMode != WelcomeAnimationMode.OFF)
+    }
     val tokenStore = remember { SessionStore(context) }
     var token by remember { mutableStateOf("") }
     var user by remember { mutableStateOf<AppUser?>(null) }
@@ -293,6 +298,7 @@ private fun UtpServiseApp() {
         }
         if (showWelcome) {
             WelcomeAnimation(
+                mode = welcomeAnimationMode,
                 onFinished = { showWelcome = false },
             )
         }
