@@ -87,7 +87,36 @@ data class RepairOrder(
     val additionalInfo: String? = null,
     val receipt: RepairReceipt? = null,
     val archivedAt: String? = null,
+    val intake: RepairOrderIntake? = null,
+    val warranty: RepairWarranty? = null,
 )
+
+data class RepairOrderIntake(
+    val frontCondition: String = "",
+    val frontPhotoObjectId: String? = null,
+    val backCondition: String = "",
+    val backPhotoObjectId: String? = null,
+    val leftCondition: String = "",
+    val leftPhotoObjectId: String? = null,
+    val rightCondition: String = "",
+    val rightPhotoObjectId: String? = null,
+    val serialNumber: String? = null,
+    val includedAccessories: String = "",
+    val intakeNotes: String = "",
+)
+
+data class RepairWarranty(
+    val warrantyNumber: String,
+    val customerName: String,
+    val deviceType: String,
+    val repairSummary: String,
+    val warrantyDays: Int,
+    val terms: String,
+    val issuedAt: String,
+    val expiresAt: String,
+)
+
+data class PickupCode(val qrPayload: String, val expiresAt: String)
 
 data class RepairOrderPhoto(val id: String, val objectId: String)
 

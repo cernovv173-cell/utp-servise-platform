@@ -7,7 +7,10 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
+import { CustomerPickupQr } from "@/features/orders/customer-pickup-qr";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
+import { OrderPaperwork } from "@/features/orders/order-paperwork";
+import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
 
 import {
   createOrder,
@@ -22,6 +25,7 @@ const statusLabels: Record<string, string> = {
   REQUESTED: "Новая",
   ASSIGNED: "Назначен мастер",
   IN_PROGRESS: "В ремонте",
+  READY_FOR_PICKUP: "Готова к выдаче",
   COMPLETED: "Завершена",
   CANCELLED: "Отменена",
 };
@@ -293,6 +297,11 @@ const OrdersPage = () => {
         </p>
       )}
       <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
+      {(user?.role === "ADMIN" || user?.role === "TECHNICIAN") && token && (
+        <div className="mb-4">
+          <PickupQrScanner token={token} />
+        </div>
+      )}
       <div className="grid gap-4">
         {visibleOrders.map((order) => (
           <SectionCard key={order.id}>
@@ -325,6 +334,21 @@ const OrdersPage = () => {
                 Детали и чек →
               </Link>
             </div>
+            {token && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <OrderPaperwork
+                  order={order}
+                  token={token}
+                  canEditIntake={
+                    user?.role === "ADMIN" ||
+                    (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id)
+                  }
+                />
+                {user?.role === "CUSTOMER" && order.status === "READY_FOR_PICKUP" && (
+                  <CustomerPickupQr token={token} orderId={order.id} />
+                )}
+              </div>
+            )}
             {user?.role === "CUSTOMER" &&
               order.status === "COMPLETED" &&
               order.receipt?.paymentStatus !== "PAID" && (

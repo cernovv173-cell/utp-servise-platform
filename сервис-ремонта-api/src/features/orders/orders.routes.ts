@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 
 import type { UserRole } from "../../generated/prisma/client.js";
@@ -88,8 +89,28 @@ const editOrderBody = z
   .refine((body) => Object.keys(body).length > 0);
 const statusBody = z
   .object({
-    status: z.enum(["IN_PROGRESS", "COMPLETED", "CANCELLED"]),
+    status: z.enum(["IN_PROGRESS", "READY_FOR_PICKUP", "CANCELLED"]),
     note: z.string().trim().max(500).optional(),
+  })
+  .strict();
+const intakeBody = z
+  .object({
+    frontCondition: z.string().trim().min(2).max(1000),
+    backCondition: z.string().trim().min(2).max(1000),
+    leftCondition: z.string().trim().min(2).max(1000),
+    rightCondition: z.string().trim().min(2).max(1000),
+    serialNumber: z.string().trim().max(160).optional(),
+    includedAccessories: z.string().trim().max(1000).optional(),
+    intakeNotes: z.string().trim().max(2000).optional(),
+  })
+  .strict();
+const pickupCodeBody = z
+  .object({ qrPayload: z.string().trim().min(20).max(200) })
+  .strict();
+const closeWithQrBody = pickupCodeBody
+  .extend({
+    warrantyDays: z.number().int().min(1).max(3650),
+    warrantyTerms: z.string().trim().min(5).max(2000),
   })
   .strict();
 const expectedCompletionBody = z
@@ -208,6 +229,39 @@ const orderDetails = (role: UserRole) => ({
       objectId: true,
       createdAt: true,
       createdBy: { select: { displayName: true } },
+    },
+  },
+  intake: {
+    select: {
+      id: true,
+      orderId: true,
+      frontCondition: true,
+      frontPhotoObjectId: true,
+      backCondition: true,
+      backPhotoObjectId: true,
+      leftCondition: true,
+      leftPhotoObjectId: true,
+      rightCondition: true,
+      rightPhotoObjectId: true,
+      serialNumber: true,
+      includedAccessories: true,
+      intakeNotes: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
+  warranty: {
+    select: {
+      id: true,
+      orderId: true,
+      warrantyNumber: true,
+      customerName: true,
+      deviceType: true,
+      repairSummary: true,
+      warrantyDays: true,
+      terms: true,
+      issuedAt: true,
+      expiresAt: true,
     },
   },
   review: true,
@@ -1042,6 +1096,244 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.put(
+    "/orders/:orderId/intake",
+    requireAuth,
+    requireRoles("TECHNICIAN", "ADMIN"),
+    validateRequest({ params: orderIdParams, body: intakeBody }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const input = bodyOf<z.infer<typeof intakeBody>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.repairOrder.findUnique({
+        where: { id: orderId },
+        select: {
+          id: true,
+          customerId: true,
+          assignedTechnicianId: true,
+          status: true,
+        },
+      });
+      if (!order || !canViewRepairOrder(user.role, user.id, order)) {
+        throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+      }
+      if (["READY_FOR_PICKUP", "COMPLETED", "CANCELLED"].includes(order.status)) {
+        throw new HttpError(409, "INTAKE_LOCKED", "Акт приёма нельзя изменять после завершения ремонта.");
+      }
+      const existing = await database.repairOrderIntake.findUnique({
+        where: { orderId },
+        select: {
+          frontPhotoObjectId: true,
+          backPhotoObjectId: true,
+          leftPhotoObjectId: true,
+          rightPhotoObjectId: true,
+        },
+      });
+      if (
+        !existing?.frontPhotoObjectId ||
+        !existing.backPhotoObjectId ||
+        !existing.leftPhotoObjectId ||
+        !existing.rightPhotoObjectId
+      ) {
+        throw new HttpError(
+          409,
+          "INTAKE_PHOTOS_REQUIRED",
+          "Для акта приёма загрузите фотографии всех четырёх сторон устройства.",
+        );
+      }
+      const intake = await database.repairOrderIntake.update({
+        where: { orderId },
+        data: {
+          ...input,
+          serialNumber: input.serialNumber || null,
+          includedAccessories: input.includedAccessories || "",
+          intakeNotes: input.intakeNotes || "",
+          updatedById: user.id,
+        },
+      });
+      response.json({ intake });
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/pickup-code",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    validateRequest({ params: orderIdParams }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.repairOrder.findFirst({
+        where: { id: orderId, customerId: user.id },
+        select: { id: true, status: true },
+      });
+      if (!order)
+        throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+      if (order.status !== "READY_FOR_PICKUP") {
+        throw new HttpError(
+          409,
+          "ORDER_NOT_READY_FOR_PICKUP",
+          "QR-код станет доступен, когда сервис отметит заказ готовым к выдаче.",
+        );
+      }
+      const rawToken = randomBytes(32).toString("base64url");
+      const qrPayload = `UTP-PICKUP:${rawToken}`;
+      const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+      const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      await database.repairOrderPickupCode.upsert({
+        where: { orderId },
+        create: { orderId, tokenHash, expiresAt },
+        update: { tokenHash, expiresAt, usedAt: null },
+      });
+      response.status(201).json({ qrPayload, expiresAt });
+    },
+  );
+
+  router.post(
+    "/orders/close-by-qr",
+    requireAuth,
+    requireRoles("TECHNICIAN", "ADMIN"),
+    validateRequest({ body: closeWithQrBody }),
+    async (_request, response) => {
+      const user = getAuthenticatedUser(response);
+      const input = bodyOf<z.infer<typeof closeWithQrBody>>(response);
+      const tokenMatch = /^UTP-PICKUP:([A-Za-z0-9_-]{40,60})$/u.exec(
+        input.qrPayload,
+      );
+      if (!tokenMatch)
+        throw new HttpError(
+          404,
+          "PICKUP_CODE_INVALID",
+          "QR-код недействителен или уже использован.",
+        );
+      const tokenHash = createHash("sha256")
+        .update(tokenMatch[1]!)
+        .digest("hex");
+      const candidate = await database.repairOrderPickupCode.findUnique({
+        where: { tokenHash },
+        select: { orderId: true },
+      });
+      if (!candidate)
+        throw new HttpError(
+          404,
+          "PICKUP_CODE_INVALID",
+          "QR-код недействителен или уже использован.",
+        );
+
+      const result = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_orders" WHERE "id" = ${candidate.orderId}::uuid FOR UPDATE
+        `;
+        const code = await transaction.repairOrderPickupCode.findUnique({
+          where: { orderId: candidate.orderId },
+          include: {
+            order: {
+              include: { customer: { select: { displayName: true } } },
+            },
+          },
+        });
+        const now = new Date();
+        if (
+          !code ||
+          code.tokenHash !== tokenHash ||
+          code.usedAt ||
+          code.expiresAt <= now
+        ) {
+          throw new HttpError(
+            404,
+            "PICKUP_CODE_INVALID",
+            "QR-код недействителен, истёк или уже использован.",
+          );
+        }
+        const order = code.order;
+        if (!canViewRepairOrder(user.role, user.id, order)) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
+        if (order.status !== "READY_FOR_PICKUP") {
+          throw new HttpError(
+            409,
+            "ORDER_NOT_READY_FOR_PICKUP",
+            "Заказ больше не ожидает выдачи.",
+          );
+        }
+        const changed = await transaction.repairOrder.updateMany({
+          where: { id: order.id, status: "READY_FOR_PICKUP" },
+          data: { status: "COMPLETED", bonusDiscountRub: 0 },
+        });
+        if (changed.count !== 1) {
+          throw new HttpError(
+            409,
+            "ORDER_CHANGED",
+            "Заявка уже изменилась. Обновите список.",
+          );
+        }
+        await transaction.repairOrderPickupCode.update({
+          where: { id: code.id },
+          data: { usedAt: now },
+        });
+        await transaction.repairStatusEvent.create({
+          data: {
+            orderId: order.id,
+            actorId: user.id,
+            from: "READY_FOR_PICKUP",
+            to: "COMPLETED",
+            note: "Заказ выдан клиенту по QR-коду",
+          },
+        });
+        const warranty = await transaction.repairWarranty.create({
+          data: {
+            orderId: order.id,
+            warrantyNumber: `WTY-${order.serviceNumber}`,
+            customerName: order.customer.displayName,
+            deviceType: order.deviceType,
+            repairSummary: order.problem,
+            warrantyDays: input.warrantyDays,
+            terms: input.warrantyTerms,
+            issuedAt: now,
+            expiresAt: new Date(
+              now.getTime() + input.warrantyDays * 24 * 60 * 60 * 1000,
+            ),
+            issuedById: user.id,
+          },
+        });
+        if (order.assignedTechnicianId) {
+          const serviceItems = await transaction.repairOrderItem.findMany({
+            where: { orderId: order.id, type: "SERVICE" },
+            select: { quantity: true, unitPriceRub: true },
+          });
+          const serviceTotalRub = serviceItems.reduce(
+            (total, item) => total + item.quantity * item.unitPriceRub,
+            0,
+          );
+          await transaction.technicianSalaryEntry.create({
+            data: {
+              orderId: order.id,
+              technicianId: order.assignedTechnicianId,
+              serviceTotalRub,
+              salaryRub: calculateTechnicianSalaryRub(serviceTotalRub),
+              ratePercent: TECHNICIAN_SALARY_RATE_PERCENT,
+              earnedAt: now,
+            },
+          });
+        }
+        return {
+          warranty,
+          order: await transaction.repairOrder.findUniqueOrThrow({
+            where: { id: order.id },
+            include: orderDetails(user.role),
+          }),
+        };
+      });
+      await sendRepairOrderNotification(
+        database,
+        result.order,
+        user.id,
+        "Заказ выдан клиенту по QR-коду.",
+      );
+      response.json(result);
+    },
+  );
+
   router.patch(
     "/orders/:orderId/status",
     requireAuth,
@@ -1071,12 +1363,43 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Эта роль не может выполнить такой переход статуса.",
           );
         }
+        if (status === "READY_FOR_PICKUP") {
+          const intake = await transaction.repairOrderIntake.findUnique({
+            where: { orderId },
+            select: {
+              frontCondition: true,
+              frontPhotoObjectId: true,
+              backCondition: true,
+              backPhotoObjectId: true,
+              leftCondition: true,
+              leftPhotoObjectId: true,
+              rightCondition: true,
+              rightPhotoObjectId: true,
+            },
+          });
+          if (
+            !intake ||
+            !intake.frontCondition ||
+            !intake.frontPhotoObjectId ||
+            !intake.backCondition ||
+            !intake.backPhotoObjectId ||
+            !intake.leftCondition ||
+            !intake.leftPhotoObjectId ||
+            !intake.rightCondition ||
+            !intake.rightPhotoObjectId
+          ) {
+            throw new HttpError(
+              409,
+              "INTAKE_REQUIRED",
+              "Перед выдачей заполните акт приёма и сохраните фотографии всех сторон.",
+            );
+          }
+        }
         const changed = await transaction.repairOrder.updateMany({
           where: { id: current.id, status: current.status },
           data: {
             status,
-            bonusDiscountRub:
-              status === "COMPLETED" ? 0 : current.bonusDiscountRub,
+            bonusDiscountRub: current.bonusDiscountRub,
           },
         });
         if (changed.count !== 1)
@@ -1113,26 +1436,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           },
           select: { createdAt: true },
         });
-        if (status === "COMPLETED" && current.assignedTechnicianId) {
-          const serviceItems = await transaction.repairOrderItem.findMany({
-            where: { orderId, type: "SERVICE" },
-            select: { quantity: true, unitPriceRub: true },
-          });
-          const serviceTotalRub = serviceItems.reduce(
-            (total, item) => total + item.quantity * item.unitPriceRub,
-            0,
-          );
-          await transaction.technicianSalaryEntry.create({
-            data: {
-              orderId,
-              technicianId: current.assignedTechnicianId,
-              serviceTotalRub,
-              salaryRub: calculateTechnicianSalaryRub(serviceTotalRub),
-              ratePercent: TECHNICIAN_SALARY_RATE_PERCENT,
-              earnedAt: statusEvent.createdAt,
-            },
-          });
-        }
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
           include: orderDetails(user.role),

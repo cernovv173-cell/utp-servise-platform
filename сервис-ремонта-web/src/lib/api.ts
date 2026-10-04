@@ -54,9 +54,42 @@ export type RepairOrder = {
   }[];
   review?: { id: string } | null;
   receipt?: RepairReceipt | null;
+  intake?: RepairOrderIntake | null;
+  warranty?: RepairWarranty | null;
   assignedTechnicianId?: string | null;
   assignedTechnician?: { id: string; displayName: string } | null;
   customer?: { id: string; displayName: string; email: string; phoneNumber?: string | null };
+};
+
+export type RepairOrderIntake = {
+  id: string;
+  orderId: string;
+  frontCondition: string;
+  frontPhotoObjectId: string | null;
+  backCondition: string;
+  backPhotoObjectId: string | null;
+  leftCondition: string;
+  leftPhotoObjectId: string | null;
+  rightCondition: string;
+  rightPhotoObjectId: string | null;
+  serialNumber: string | null;
+  includedAccessories: string;
+  intakeNotes: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type RepairWarranty = {
+  id: string;
+  orderId: string;
+  warrantyNumber: string;
+  customerName: string;
+  deviceType: string;
+  repairSummary: string;
+  warrantyDays: number;
+  terms: string;
+  issuedAt: string;
+  expiresAt: string;
 };
 
 export type StaffMember = {
@@ -350,6 +383,51 @@ export const getAdminCustomers = (
     token,
     { signal },
   );
+
+export const uploadIntakePhoto = (
+  token: string,
+  orderId: string,
+  side: "front" | "back" | "left" | "right",
+  file: File,
+) =>
+  apiRequest<{ intake: RepairOrderIntake }>(`/orders/${orderId}/intake-photos/${side}`, token, {
+    method: "POST",
+    headers: { "Content-Type": file.type || "image/jpeg" },
+    body: file,
+  });
+
+export const saveOrderIntake = (
+  token: string,
+  orderId: string,
+  input: Pick<
+    RepairOrderIntake,
+    | "frontCondition"
+    | "backCondition"
+    | "leftCondition"
+    | "rightCondition"
+    | "serialNumber"
+    | "includedAccessories"
+    | "intakeNotes"
+  >,
+) =>
+  apiRequest<{ intake: RepairOrderIntake }>(`/orders/${orderId}/intake`, token, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+
+export const createOrderPickupCode = (token: string, orderId: string) =>
+  apiRequest<{ qrPayload: string; expiresAt: string }>(`/orders/${orderId}/pickup-code`, token, {
+    method: "POST",
+  });
+
+export const closeOrderByQr = (
+  token: string,
+  input: { qrPayload: string; warrantyDays: number; warrantyTerms: string },
+) =>
+  apiRequest<{ order: RepairOrder; warranty: RepairWarranty }>("/orders/close-by-qr", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 
 export const createAdminCustomer = (
   token: string,

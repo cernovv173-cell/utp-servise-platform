@@ -74,8 +74,35 @@ internal fun JSONObject.toOrder(): RepairOrder {
         additionalPhone = nullableString("additionalPhone"),
         additionalInfo = nullableString("additionalInfo"),
         receipt = optJSONObject("receipt")?.toRepairReceipt(),
+        intake = optJSONObject("intake")?.toRepairOrderIntake(),
+        warranty = optJSONObject("warranty")?.toRepairWarranty(),
     )
 }
+
+internal fun JSONObject.toRepairOrderIntake() = RepairOrderIntake(
+    frontCondition = optString("frontCondition"),
+    frontPhotoObjectId = nullableString("frontPhotoObjectId"),
+    backCondition = optString("backCondition"),
+    backPhotoObjectId = nullableString("backPhotoObjectId"),
+    leftCondition = optString("leftCondition"),
+    leftPhotoObjectId = nullableString("leftPhotoObjectId"),
+    rightCondition = optString("rightCondition"),
+    rightPhotoObjectId = nullableString("rightPhotoObjectId"),
+    serialNumber = nullableString("serialNumber"),
+    includedAccessories = optString("includedAccessories"),
+    intakeNotes = optString("intakeNotes"),
+)
+
+private fun JSONObject.toRepairWarranty() = RepairWarranty(
+    warrantyNumber = optString("warrantyNumber"),
+    customerName = optString("customerName"),
+    deviceType = optString("deviceType"),
+    repairSummary = optString("repairSummary"),
+    warrantyDays = optInt("warrantyDays"),
+    terms = optString("terms"),
+    issuedAt = optString("issuedAt"),
+    expiresAt = optString("expiresAt"),
+)
 
 internal fun JSONObject.toRepairReceipt() = RepairReceipt(
     id = getString("id"),
@@ -304,6 +331,7 @@ fun String.statusLabel(): String = when (this) {
     "REQUESTED" -> "Новая"
     "ASSIGNED" -> "Назначен мастер"
     "IN_PROGRESS" -> "В ремонте"
+    "READY_FOR_PICKUP" -> "Готов к выдаче"
     "COMPLETED" -> "Завершена"
     "CANCELLED" -> "Отменена"
     else -> this

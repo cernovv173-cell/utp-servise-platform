@@ -6,6 +6,8 @@ import { SectionCard } from "@/components/app-shell";
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { useAuth } from "@/features/auth/auth-context";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
+import { OrderPaperwork } from "@/features/orders/order-paperwork";
+import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
 
 import {
   assignOrder,
@@ -23,13 +25,15 @@ const statusLabels: Record<string, string> = {
   REQUESTED: "Новая",
   ASSIGNED: "Назначена",
   IN_PROGRESS: "В ремонте",
+  READY_FOR_PICKUP: "Готова к выдаче",
   COMPLETED: "Завершена",
   CANCELLED: "Отменена",
 };
 const availableStatuses: Record<string, string[]> = {
   REQUESTED: ["REQUESTED", "CANCELLED"],
   ASSIGNED: ["ASSIGNED", "IN_PROGRESS", "CANCELLED"],
-  IN_PROGRESS: ["IN_PROGRESS", "COMPLETED", "CANCELLED"],
+  IN_PROGRESS: ["IN_PROGRESS", "READY_FOR_PICKUP", "CANCELLED"],
+  READY_FOR_PICKUP: ["READY_FOR_PICKUP", "CANCELLED"],
   COMPLETED: ["COMPLETED"],
   CANCELLED: ["CANCELLED"],
 };
@@ -87,7 +91,10 @@ export const OrderManagement = () => {
     <SectionCard>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-semibold">Заявки на ремонт</h2>
-        <AdminOrderCreate onCreated={refresh} />
+        <div className="flex flex-wrap gap-2">
+          {token && <PickupQrScanner token={token} />}
+          <AdminOrderCreate onCreated={refresh} />
+        </div>
       </div>
       <div className="mt-4">
         <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
@@ -190,6 +197,19 @@ export const OrderManagement = () => {
                 </button>
               </div>
             </div>
+            {token && (
+              <div className="mt-3">
+                <OrderPaperwork
+                  order={order}
+                  token={token}
+                  canEditIntake={
+                    order.status !== "READY_FOR_PICKUP" &&
+                    order.status !== "COMPLETED" &&
+                    order.status !== "CANCELLED"
+                  }
+                />
+              </div>
+            )}
             <button
               type="button"
               disabled={order.status !== "REQUESTED" && order.status !== "ASSIGNED"}

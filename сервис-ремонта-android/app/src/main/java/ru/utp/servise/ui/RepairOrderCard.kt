@@ -63,6 +63,8 @@ internal fun RepairOrderCard(
     var showAssignment by remember { mutableStateOf(false) }
     var showAddItem by remember { mutableStateOf(false) }
     var showEdit by remember { mutableStateOf(false) }
+    var showPaperwork by remember { mutableStateOf(false) }
+    var showPickupScanner by remember { mutableStateOf(false) }
 
     Card(
         Modifier.fillMaxWidth().padding(bottom = 11.dp),
@@ -209,17 +211,30 @@ internal fun RepairOrderCard(
 
             RepairReceiptPanel(order, role, token, loyaltyBalance, runAction)
 
+            OutlinedButton(
+                onClick = { showPaperwork = true },
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                shape = RoundedCornerShape(12.dp),
+            ) { Text("Акт приёма · заказ-наряд · гарантия") }
+            if (role in listOf("ADMIN", "TECHNICIAN") && order.status == "READY_FOR_PICKUP") {
+                Button(
+                    onClick = { showPickupScanner = true },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                ) { Text("Сканировать QR и выдать заказ") }
+            }
+
             val actions = mutableListOf<Pair<String, String>>()
             when (role) {
                 "CUSTOMER" -> if (order.status == "REQUESTED") actions.add("Отменить заявку" to "CANCELLED")
                 "TECHNICIAN" -> when (order.status) {
                     "ASSIGNED" -> actions.add("Начать ремонт" to "IN_PROGRESS")
-                    "IN_PROGRESS" -> actions.add("Завершить ремонт" to "COMPLETED")
+                    "IN_PROGRESS" -> actions.add("Готов к выдаче" to "READY_FOR_PICKUP")
                 }
                 "ADMIN" -> when (order.status) {
                     "ASSIGNED" -> actions.add("Начать ремонт" to "IN_PROGRESS")
                     "IN_PROGRESS" -> {
-                        actions.add("Завершить ремонт" to "COMPLETED")
+                        actions.add("Готов к выдаче" to "READY_FOR_PICKUP")
                         actions.add("Отменить" to "CANCELLED")
                     }
                     "REQUESTED" -> actions.add("Отменить" to "CANCELLED")
@@ -301,5 +316,11 @@ internal fun RepairOrderCard(
                 }
             },
         )
+    }
+    if (showPaperwork) {
+        OrderPaperworkDialog(order, role, token, runAction) { showPaperwork = false }
+    }
+    if (showPickupScanner) {
+        PickupQrScannerDialog(token, runAction) { showPickupScanner = false }
     }
 }

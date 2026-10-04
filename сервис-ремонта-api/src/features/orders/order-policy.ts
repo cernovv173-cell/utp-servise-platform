@@ -3,7 +3,8 @@ import type { RepairStatus, UserRole } from "../../generated/prisma/client.js";
 const transitions: Readonly<Record<RepairStatus, readonly RepairStatus[]>> = {
   REQUESTED: ["ASSIGNED", "CANCELLED"],
   ASSIGNED: ["IN_PROGRESS", "CANCELLED"],
-  IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+  IN_PROGRESS: ["READY_FOR_PICKUP", "CANCELLED"],
+  READY_FOR_PICKUP: ["CANCELLED"],
   COMPLETED: [],
   CANCELLED: [],
 };
@@ -19,7 +20,7 @@ export const canTransitionRepairStatus = (
     return current === "REQUESTED" && next === "CANCELLED";
   return (
     (current === "ASSIGNED" && next === "IN_PROGRESS") ||
-    (current === "IN_PROGRESS" && next === "COMPLETED")
+    (current === "IN_PROGRESS" && next === "READY_FOR_PICKUP")
   );
 };
 
@@ -45,7 +46,10 @@ export const calculateMaxBonusDiscount = (
   totalRub: number,
   balancePoints: number,
 ): number =>
-  Math.min(Math.max(0, Math.floor(balancePoints)), Math.floor(Math.max(0, totalRub) * 3 / 10));
+  Math.min(
+    Math.max(0, Math.floor(balancePoints)),
+    Math.floor((Math.max(0, totalRub) * 3) / 10),
+  );
 
 export const calculateEarnedPoints = (cashPaidRub: number): number =>
   Math.floor(Math.max(0, cashPaidRub) / 10);

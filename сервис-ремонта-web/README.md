@@ -99,3 +99,10 @@ Orders are automatically archived after their creation day in the `Europe/Moscow
 active/archive tabs on `/orders` and `/admin/orders` load separate role-authorized lists; archiving
 preserves the order and its status. The dark interface uses the existing `repair-nebula-bg.png`
 background asset.
+
+Order cards expose the intake act, work-order summary, and any issued warranty card. Administrators
+and assigned technicians record front/back/left/right condition notes and upload a protected photo
+for each side; the service will not mark an order ready for pickup until the act is complete. A
+customer can create a short-lived, one-time pickup QR from their own ready order. Staff scan the
+customer's code and enter the applicable warranty duration and terms to close the repair and issue
+its warranty card. The QR is not a password; only the server-side hashed token is retained.

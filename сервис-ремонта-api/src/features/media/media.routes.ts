@@ -29,6 +29,10 @@ const craftItemParams = z.object({ itemId: z.string().uuid() });
 const bannerParams = z.object({ bannerId: z.string().uuid() });
 const reviewParams = z.object({ reviewId: z.string().uuid() });
 const orderParams = z.object({ orderId: z.string().uuid() });
+const intakePhotoParams = z.object({
+  orderId: z.string().uuid(),
+  side: z.enum(["front", "back", "left", "right"]),
+});
 
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
@@ -233,10 +237,24 @@ export const createMediaRouter = (
       const user = getAuthenticatedUser(response);
       const order = await database.repairOrder.findUnique({
         where: { id: orderId },
-        select: { id: true, customerId: true, assignedTechnicianId: true },
+        select: {
+          id: true,
+          customerId: true,
+          assignedTechnicianId: true,
+          status: true,
+        },
       });
       if (!order || !canViewRepairOrder(user.role, user.id, order))
         return invalidMedia();
+      if (
+        ["READY_FOR_PICKUP", "COMPLETED", "CANCELLED"].includes(order.status)
+      ) {
+        throw new HttpError(
+          409,
+          "INTAKE_LOCKED",
+          "Фотографии акта нельзя изменить после завершения ремонта.",
+        );
+      }
       const notificationOrder = {
         id: order.id,
         customerId: order.customerId,
@@ -255,6 +273,68 @@ export const createMediaRouter = (
           "К заявке добавлена фотография.",
         );
         response.status(201).json({ photo });
+      } catch (error) {
+        await storage.delete(objectId).catch(() => undefined);
+        throw error;
+      }
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/intake-photos/:side",
+    requireAuth,
+    requireRoles("TECHNICIAN", "ADMIN"),
+    validateRequest({ params: intakePhotoParams }),
+    imageBody,
+    async (request, response) => {
+      const { orderId, side } = (
+        response.locals.input as {
+          readonly params: z.infer<typeof intakePhotoParams>;
+        }
+      ).params;
+      const user = getAuthenticatedUser(response);
+      const order = await database.repairOrder.findUnique({
+        where: { id: orderId },
+        select: { id: true, customerId: true, assignedTechnicianId: true },
+      });
+      if (!order || !canViewRepairOrder(user.role, user.id, order))
+        return invalidMedia();
+      const photoField = {
+        front: "frontPhotoObjectId",
+        back: "backPhotoObjectId",
+        left: "leftPhotoObjectId",
+        right: "rightPhotoObjectId",
+      }[side] as
+        | "frontPhotoObjectId"
+        | "backPhotoObjectId"
+        | "leftPhotoObjectId"
+        | "rightPhotoObjectId";
+      const previous = await database.repairOrderIntake.findUnique({
+        where: { orderId },
+        select: {
+          frontPhotoObjectId: true,
+          backPhotoObjectId: true,
+          leftPhotoObjectId: true,
+          rightPhotoObjectId: true,
+        },
+      });
+      const image = imageOf(request);
+      const objectId = await storage.upload(image.bytes, image.contentType);
+      try {
+        const intake = await database.repairOrderIntake.upsert({
+          where: { orderId },
+          create: {
+            orderId,
+            createdById: user.id,
+            updatedById: user.id,
+            [photoField]: objectId,
+          },
+          update: { updatedById: user.id, [photoField]: objectId },
+        });
+        const previousObjectId = previous?.[photoField];
+        if (previousObjectId)
+          await storage.delete(previousObjectId).catch(() => undefined);
+        response.status(201).json({ intake });
       } catch (error) {
         await storage.delete(objectId).catch(() => undefined);
         throw error;
@@ -375,11 +455,34 @@ export const createMediaRouter = (
                     },
                   },
                 });
-                if (
-                  !photo ||
-                  !canViewRepairOrder(user.role, user.id, photo.order)
-                )
-                  invalidMedia();
+                if (photo) {
+                  if (!canViewRepairOrder(user.role, user.id, photo.order))
+                    invalidMedia();
+                } else {
+                  const intake = await database.repairOrderIntake.findFirst({
+                    where: {
+                      OR: [
+                        { frontPhotoObjectId: objectId },
+                        { backPhotoObjectId: objectId },
+                        { leftPhotoObjectId: objectId },
+                        { rightPhotoObjectId: objectId },
+                      ],
+                    },
+                    select: {
+                      order: {
+                        select: {
+                          customerId: true,
+                          assignedTechnicianId: true,
+                        },
+                      },
+                    },
+                  });
+                  if (
+                    !intake ||
+                    !canViewRepairOrder(user.role, user.id, intake.order)
+                  )
+                    invalidMedia();
+                }
               }
             }
           }

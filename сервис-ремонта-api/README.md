@@ -49,3 +49,9 @@ Repair orders are archived automatically after the Moscow calendar day in which 
 The worker checks once per minute and marks older orders with `archived_at`; it never deletes the
 order or changes its status. `GET /orders?archive=active` and `GET /orders?archive=archived`
 return the corresponding role-scoped list. Omitting `archive` retains the unfiltered legacy response.
+
+## Intake, work orders, and customer pickup
+
+Administrators and the assigned technician maintain one intake act per repair order. It records the visible condition and a protected photo for the front, back, left, and right sides, plus the serial number, included accessories, and notes. The order cannot be marked ready for pickup until all four condition notes and photos are saved; the act becomes read-only once the order is ready, completed, or cancelled.
+
+The service moves a repair from `IN_PROGRESS` to `READY_FOR_PICKUP`; staff cannot directly set `COMPLETED`. The customer requests a pickup QR code from their own ready order. The server stores only its SHA-256 token hash; the raw payload expires after two hours, and requesting a replacement invalidates the previous code. An administrator or assigned technician scans or enters the code and supplies the warranty duration and terms. One transaction consumes the code, closes the order, records the status event, issues the warranty card, and calculates technician salary. Expired or replayed codes do not close an order.

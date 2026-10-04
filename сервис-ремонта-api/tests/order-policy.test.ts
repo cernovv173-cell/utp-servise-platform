@@ -90,8 +90,12 @@ test("technicians can only progress assigned work and cannot access another tech
     true,
   );
   assert.equal(
-    canTransitionRepairStatus("TECHNICIAN", "IN_PROGRESS", "COMPLETED"),
+    canTransitionRepairStatus("TECHNICIAN", "IN_PROGRESS", "READY_FOR_PICKUP"),
     true,
+  );
+  assert.equal(
+    canTransitionRepairStatus("TECHNICIAN", "IN_PROGRESS", "COMPLETED"),
+    false,
   );
   assert.equal(
     canTransitionRepairStatus("TECHNICIAN", "REQUESTED", "COMPLETED"),

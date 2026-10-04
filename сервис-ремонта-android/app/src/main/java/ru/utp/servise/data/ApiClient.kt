@@ -370,6 +370,40 @@ object ApiClient {
         MediaApiClient.binaryRequest("POST", "/orders/$orderId/photos", token, image)
     }
 
+    fun uploadIntakePhoto(token: String, orderId: String, side: String, image: ByteArray) {
+        require(side in setOf("front", "back", "left", "right"))
+        MediaApiClient.binaryRequest("POST", "/orders/$orderId/intake-photos/$side", token, image)
+    }
+
+    fun saveOrderIntake(
+        token: String,
+        orderId: String,
+        frontCondition: String,
+        backCondition: String,
+        leftCondition: String,
+        rightCondition: String,
+        serialNumber: String,
+        includedAccessories: String,
+        intakeNotes: String,
+    ): RepairOrderIntake = request(
+        "PUT", "/orders/$orderId/intake", token,
+        JSONObject().put("frontCondition", frontCondition).put("backCondition", backCondition)
+            .put("leftCondition", leftCondition).put("rightCondition", rightCondition)
+            .put("serialNumber", serialNumber).put("includedAccessories", includedAccessories)
+            .put("intakeNotes", intakeNotes),
+    ).getJSONObject("intake").toRepairOrderIntake()
+
+    fun createPickupCode(token: String, orderId: String): PickupCode {
+        val response = request("POST", "/orders/$orderId/pickup-code", token)
+        return PickupCode(response.getString("qrPayload"), response.getString("expiresAt"))
+    }
+
+    fun closeOrderByQr(token: String, qrPayload: String, warrantyDays: Int, warrantyTerms: String): RepairOrder = request(
+        "POST", "/orders/close-by-qr", token,
+        JSONObject().put("qrPayload", qrPayload).put("warrantyDays", warrantyDays)
+            .put("warrantyTerms", warrantyTerms),
+    ).getJSONObject("order").toOrder()
+
     fun downloadMedia(token: String, objectId: String): ByteArray =
         MediaApiClient.download(token, objectId)
 
