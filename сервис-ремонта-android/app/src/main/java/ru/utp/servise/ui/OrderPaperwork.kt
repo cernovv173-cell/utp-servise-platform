@@ -2,6 +2,9 @@ package ru.utp.servise.ui
 
 import android.graphics.Bitmap
 import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -73,6 +76,78 @@ internal fun OrderPaperworkDialog(
     var notes by remember(order.id) { mutableStateOf(intake?.intakeNotes.orEmpty()) }
     var pickupCode by remember(order.id) { mutableStateOf<PickupCode?>(null) }
     val uploaded = remember(order.id) { mutableStateMapOf<String, Boolean>() }
+    val pdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/pdf"),
+    ) { uri ->
+        if (uri != null) {
+            runAction({
+                val pdfSections = buildList {
+                    add(
+                        OrderPaperworkPdfSection(
+                            "Акт приёма устройства",
+                            listOf(
+                                "Клиент: ${order.customerName}",
+                                "Устройство: ${order.deviceType}",
+                                "Серийный номер: ${serial.ifBlank { "—" }}",
+                                "Заявленная неисправность: ${order.problem}",
+                                "Передняя сторона: ${front.ifBlank { "Не указано" }}",
+                                "Задняя сторона: ${back.ifBlank { "Не указано" }}",
+                                "Левая сторона: ${left.ifBlank { "Не указано" }}",
+                                "Правая сторона: ${right.ifBlank { "Не указано" }}",
+                                "Комплектность: ${accessories.ifBlank { "—" }}",
+                                "Примечания: ${notes.ifBlank { "—" }}",
+                                "Подпись клиента: ____________________    Представитель сервиса: ____________________",
+                            ),
+                        ),
+                    )
+                    add(
+                        OrderPaperworkPdfSection(
+                            "Заказ-наряд",
+                            listOf(
+                                "Клиент: ${order.customerName}",
+                                "Устройство: ${order.deviceType} · ${order.status.statusLabel()}",
+                                "Дата заявки: ${order.createdAt.take(10)}",
+                                "Неисправность: ${order.problem}",
+                                "Адрес: ${order.address.ifBlank { "—" }}",
+                            ) + order.items.map { item ->
+                                "${item.name} · ${item.quantity} шт. × ${item.unitPriceRub} ₽ = " +
+                                    "${item.quantity.toLong() * item.unitPriceRub} ₽"
+                            } + "Подпись клиента: ____________________    Представитель сервиса: ____________________",
+                        ),
+                    )
+                    order.warranty?.let { warranty ->
+                        add(
+                            OrderPaperworkPdfSection(
+                                "Гарантийный талон ${warranty.warrantyNumber}",
+                                listOf(
+                                    "Клиент: ${warranty.customerName}",
+                                    "Устройство: ${warranty.deviceType}",
+                                    "Выполненные работы: ${warranty.repairSummary}",
+                                    "Срок гарантии: ${warranty.warrantyDays.warrantyDaysLabel()}",
+                                    "Выдан: ${warranty.issuedAt.take(10)}",
+                                    "Действует до: ${warranty.expiresAt.take(10)}",
+                                    "Условия гарантии:",
+                                    warranty.terms,
+                                ),
+                            ),
+                        )
+                    }
+                }
+                val photos = listOf(
+                    "Передняя сторона" to intake?.frontPhotoObjectId,
+                    "Задняя сторона" to intake?.backPhotoObjectId,
+                    "Левая сторона" to intake?.leftPhotoObjectId,
+                    "Правая сторона" to intake?.rightPhotoObjectId,
+                ).mapNotNull { (title, objectId) ->
+                    objectId?.let {
+                        OrderPaperworkPdfPhoto("Фото приёма · $title", ApiClient.downloadMedia(token, it))
+                    }
+                }
+                saveOrderPaperworkPdf(context, uri, order.serviceNumber, pdfSections, photos)
+                true
+            }) { Toast.makeText(context, "PDF сохранён.", Toast.LENGTH_SHORT).show() }
+        }
+    }
     val sides = listOf(
         DeviceSide("front", "Передняя сторона", front, intake?.frontPhotoObjectId),
         DeviceSide("back", "Задняя сторона", back, intake?.backPhotoObjectId),
@@ -89,6 +164,10 @@ internal fun OrderPaperworkDialog(
                 Modifier.fillMaxWidth().heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
+                OutlinedButton(
+                    onClick = { pdfLauncher.launch("Документы_${order.serviceNumber}.pdf") },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Сохранить акт, заказ-наряд и гарантию в PDF") }
                 Text("Акт приёма устройства", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = UtpBlue)
                 sides.forEach { side ->
                     Text(side.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
