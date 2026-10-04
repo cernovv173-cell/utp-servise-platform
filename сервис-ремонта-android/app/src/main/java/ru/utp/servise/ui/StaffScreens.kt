@@ -124,10 +124,15 @@ fun StaffManagementScreen(
                             TextButton(onClick = { editedStaff = member }) { Text("Изменить") }
                             TextButton(
                                 onClick = {
-                                    if (member.active) deletingStaff = member
-                                    else runAction({ ApiClient.setStaffActive(token, member.id, true) }, {})
+                                    runAction(
+                                        { ApiClient.setStaffActive(token, member.id, !member.active) },
+                                        { refresh() },
+                                    )
                                 },
-                            ) { Text(if (member.active) "Удалить" else "Восстановить") }
+                            ) { Text(if (member.active) "Отключить" else "Восстановить") }
+                            TextButton(onClick = { deletingStaff = member }) {
+                                Text("Удалить навсегда")
+                            }
                         } else if (member.id != currentUser.id) {
                             TextButton(onClick = {
                                 runAction({ ApiClient.setStaffActive(token, member.id, !member.active) }, {})
@@ -160,11 +165,14 @@ fun StaffManagementScreen(
             onDismissRequest = { deletingStaff = null },
             title = { Text("Удалить мастера?") },
             text = {
-                Text("Учётная запись ${member.displayName} будет отключена, а вход в приложение — закрыт. История заявок сохранится. Сначала переназначьте все незавершённые заявки мастера.")
+                Text("Учётная запись ${member.displayName} будет удалена без возможности восстановления, а вход в приложение закрыт. Завершённые заявки, чеки и начисления сохранятся без привязки к мастеру. Сначала переназначьте или завершите все незавершённые заявки.")
             },
             confirmButton = {
                 TextButton(onClick = {
-                    runAction({ ApiClient.deleteTechnician(token, member.id) }) { deletingStaff = null }
+                    runAction({ ApiClient.deleteTechnician(token, member.id) }) {
+                        deletingStaff = null
+                        refresh()
+                    }
                 }) { Text("Удалить") }
             },
             dismissButton = { TextButton(onClick = { deletingStaff = null }) { Text("Отмена") } },

@@ -59,6 +59,12 @@ const isUniqueViolation = (error: unknown): boolean =>
   "code" in error &&
   error.code === "P2002";
 
+const isForeignKeyViolation = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  error.code === "P2003";
+
 export const createStaffRouter = (database: DatabaseClient): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
@@ -232,48 +238,57 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
     validateRequest({ params: userIdParams }),
     async (_request, response, next) => {
       const userId = userIdOf(response);
-      const target = await database.user.findFirst({
-        where: { id: userId, role: "TECHNICIAN" },
-        select: { id: true },
-      });
-      if (!target) {
-        next(new HttpError(404, "STAFF_NOT_FOUND", "Мастер не найден."));
-        return;
-      }
+      try {
+        const staff = await database.$transaction(async (transaction) => {
+          await transaction.$queryRaw<Array<{ id: string }>>`
+            SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE
+          `;
+          const target = await transaction.user.findFirst({
+            where: { id: userId, role: "TECHNICIAN" },
+            select: {
+              id: true,
+              email: true,
+              displayName: true,
+              phoneNumber: true,
+              avatarObjectId: true,
+              role: true,
+              active: true,
+              createdAt: true,
+            },
+          });
+          if (!target)
+            throw new HttpError(404, "STAFF_NOT_FOUND", "Мастер не найден.");
 
-      const activeAssignments = await database.repairOrder.count({
-        where: {
-          assignedTechnicianId: userId,
-          status: { notIn: ["COMPLETED", "CANCELLED"] },
-        },
-      });
-      if (activeAssignments > 0) {
-        next(
-          new HttpError(
-            409,
-            "TECHNICIAN_HAS_ACTIVE_ORDERS",
-            "Сначала переназначьте или завершите активные заявки этого мастера.",
-          ),
-        );
-        return;
-      }
+          const activeAssignments = await transaction.repairOrder.count({
+            where: {
+              assignedTechnicianId: userId,
+              status: { notIn: ["COMPLETED", "CANCELLED"] },
+            },
+          });
+          if (activeAssignments > 0)
+            throw new HttpError(
+              409,
+              "TECHNICIAN_HAS_ACTIVE_ORDERS",
+              "Сначала переназначьте или завершите активные заявки этого мастера.",
+            );
 
-      const staff = await database.user.update({
-        where: { id: userId },
-        data: { active: false },
-        select: {
-          id: true,
-          email: true,
-          displayName: true,
-          phoneNumber: true,
-          avatarObjectId: true,
-          role: true,
-          active: true,
-          createdAt: true,
-        },
-      });
-      await database.session.deleteMany({ where: { userId } });
-      response.json({ staff });
+          await transaction.user.delete({ where: { id: userId } });
+          return { ...target, active: false };
+        });
+        response.json({ staff });
+      } catch (error) {
+        if (isForeignKeyViolation(error)) {
+          next(
+            new HttpError(
+              409,
+              "STAFF_HAS_LINKED_CUSTOMER_RECORDS",
+              "Нельзя удалить мастера: его учётная запись используется в клиентских записях.",
+            ),
+          );
+          return;
+        }
+        next(error);
+      }
     },
   );
 

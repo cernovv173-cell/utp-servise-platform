@@ -23,12 +23,14 @@ export const StaffManagement = () => {
     mutationFn: (userId: string) => deleteTechnician(token!, userId),
     onSuccess: async ({ staff: removed }) => {
       setConfirmingId(null);
-      toast.success(`Учётная запись мастера ${removed.displayName} отключена. История сохранена.`);
+      toast.success(
+        `Учётная запись мастера ${removed.displayName} удалена без возможности восстановления. Чеки и начисления сохранены без привязки к нему.`,
+      );
       await refresh();
     },
     onError: () =>
       toast.error(
-        "Не удалось удалить мастера. Проверьте, что ему не назначены незавершённые заявки.",
+        "Не удалось удалить мастера. Проверьте его незавершённые заявки и связанные клиентские записи.",
       ),
   });
   const activeMutation = useMutation({
@@ -45,7 +47,8 @@ export const StaffManagement = () => {
         <div>
           <h2 className="font-semibold">Сотрудники</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Управление доступом к рабочим учётным записям. История ремонта сохраняется.
+            Доступ можно отключить и восстановить. Удаление мастера безвозвратно; история ремонта и
+            документы сохраняются.
           </p>
         </div>
       </div>
@@ -84,13 +87,13 @@ export const StaffManagement = () => {
                     {member.active ? "Отключить" : "Восстановить доступ"}
                   </button>
                 )}
-                {member.role === "TECHNICIAN" && member.active && (
+                {member.role === "TECHNICIAN" && (
                   <button
                     type="button"
                     onClick={() => setConfirmingId(confirmingId === member.id ? null : member.id)}
                     className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 dark:border-rose-900 dark:text-rose-300"
                   >
-                    <UserRoundX size={16} /> Удалить мастера
+                    <UserRoundX size={16} /> Удалить навсегда
                   </button>
                 )}
               </div>
@@ -98,8 +101,9 @@ export const StaffManagement = () => {
             {confirmingId === member.id && (
               <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">
                 <p>
-                  Учётная запись будет отключена, сеансы завершены, а история останется. Сначала
-                  переназначьте все незавершённые заявки.
+                  Учётная запись {member.displayName} будет удалена без возможности восстановления,
+                  а сеансы завершены. Завершённые заявки, чеки и начисления сохранятся без привязки
+                  к мастеру. Сначала переназначьте или завершите все незавершённые заявки.
                 </p>
                 <div className="mt-3 flex gap-2">
                   <button

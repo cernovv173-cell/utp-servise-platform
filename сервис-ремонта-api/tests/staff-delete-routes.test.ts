@@ -44,14 +44,39 @@ test("only administrators can remove a technician, and unfinished jobs block rem
       role: "TECHNICIAN" as const,
       active: true,
       mustChangePassword: false,
+      token: "T".repeat(48),
       createdAt: new Date(),
     },
   ];
-  const sessions = users
-    .slice(0, 2)
-    .map((user) => ({ ...user, expiresAt: new Date(Date.now() + 60_000) }));
+  const sessions = users.map((user) => ({
+    ...user,
+    expiresAt: new Date(Date.now() + 60_000),
+  }));
   let activeAssignments = 1;
   let revokedSessions = false;
+  const transaction = {
+    $queryRaw: async () => [{ id: technicianId }],
+    user: {
+      findFirst: async ({ where }: { where: { id: string; role: string } }) => {
+        const user = users.find(
+          (item) => item.id === where.id && item.role === where.role,
+        );
+        return user ?? null;
+      },
+      delete: async ({ where }: { where: { id: string } }) => {
+        const index = users.findIndex((item) => item.id === where.id);
+        assert.notEqual(index, -1);
+        const [removed] = users.splice(index, 1);
+        const sessionIndex = sessions.findIndex(
+          (session) => session.id === where.id,
+        );
+        if (sessionIndex !== -1) sessions.splice(sessionIndex, 1);
+        revokedSessions = true;
+        return removed;
+      },
+    },
+    repairOrder: { count: async () => activeAssignments },
+  };
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
@@ -72,7 +97,7 @@ test("only administrators can remove a technician, and unfinished jobs block rem
         const user = users.find(
           (item) => item.id === where.id && item.role === where.role,
         );
-        return user ? { id: user.id } : null;
+        return user ?? null;
       },
       update: async ({
         where,
@@ -88,6 +113,9 @@ test("only administrators can remove a technician, and unfinished jobs block rem
       },
     },
     repairOrder: { count: async () => activeAssignments },
+    $transaction: async <T>(
+      operation: (tx: typeof transaction) => Promise<T>,
+    ) => operation(transaction),
   };
   const app = express();
   app.use(express.json());
@@ -125,6 +153,9 @@ test("only administrators can remove a technician, and unfinished jobs block rem
   });
   assert.equal(removed.status, 200);
   assert.equal((await removed.json()).staff.active, false);
-  assert.equal(users[2]!.active, false);
+  assert.equal(
+    users.some((user) => user.id === technicianId),
+    false,
+  );
   assert.equal(revokedSessions, true);
 });

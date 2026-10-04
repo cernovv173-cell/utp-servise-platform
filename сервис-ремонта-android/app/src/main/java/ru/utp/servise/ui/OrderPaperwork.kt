@@ -88,6 +88,7 @@ internal fun OrderPaperworkDialog(
                             listOf(
                                 "Клиент: ${order.customerName}",
                                 "Устройство: ${order.deviceType}",
+                                "Дата приёма: ${order.createdAt.take(10)}",
                                 "Серийный номер: ${serial.ifBlank { "—" }}",
                                 "Заявленная неисправность: ${order.problem}",
                                 "Передняя сторона: ${front.ifBlank { "Не указано" }}",
@@ -115,7 +116,8 @@ internal fun OrderPaperworkDialog(
                             } + "Подпись клиента: ____________________    Представитель сервиса: ____________________",
                         ),
                     )
-                    order.warranty?.let { warranty ->
+                    val warranty = order.warranty
+                    if (warranty != null) {
                         add(
                             OrderPaperworkPdfSection(
                                 "Гарантийный талон ${warranty.warrantyNumber}",
@@ -129,6 +131,13 @@ internal fun OrderPaperworkDialog(
                                     "Условия гарантии:",
                                     warranty.terms,
                                 ),
+                            ),
+                        )
+                    } else {
+                        add(
+                            OrderPaperworkPdfSection(
+                                "Гарантийный талон",
+                                listOf("Будет сформирован после закрытия и выдачи заказа."),
                             ),
                         )
                     }
@@ -167,7 +176,14 @@ internal fun OrderPaperworkDialog(
                 OutlinedButton(
                     onClick = { pdfLauncher.launch("Документы_${order.serviceNumber}.pdf") },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Сохранить акт, заказ-наряд и гарантию в PDF") }
+                ) { Text("Сохранить акт приёма, заказ-наряд и гарантийный талон в PDF") }
+                if (order.warranty == null) {
+                    Text(
+                        "Гарантийный талон будет включён после закрытия заказа.",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                    )
+                }
                 Text("Акт приёма устройства", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = UtpBlue)
                 sides.forEach { side ->
                     Text(side.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
