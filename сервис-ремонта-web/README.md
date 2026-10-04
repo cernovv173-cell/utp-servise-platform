@@ -89,6 +89,12 @@ Administrators can open the dedicated `/admin/orders` page from the navigation o
 It keeps the full repair-request list together while status, technician, deadline and contact edits
 are scoped to each individual order card.
 
+Administrators can also start a repair order from the fixed “СТАРТ / СТОП — Создать заявку” action.
+The form supports an existing client or registering a new client with their email as the login;
+the generated temporary password is shown once after account creation, and the client must change
+it at first sign-in. If order creation fails after account registration, the client remains in the
+customer list and the order can be retried for that account.
+
 Orders are automatically archived after their creation day in the `Europe/Moscow` time zone. The
 active/archive tabs on `/orders` and `/admin/orders` load separate role-authorized lists; archiving
 preserves the order and its status. The dark interface uses the existing `repair-nebula-bg.png`

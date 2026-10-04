@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
@@ -36,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.AdminCustomer
 import ru.utp.servise.data.AdminCustomerPage
 import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.NewAdminCustomerResult
 import ru.utp.servise.data.OrderAddress
 import ru.utp.servise.data.RepairOrder
 
@@ -44,6 +48,12 @@ private val orderDevices = listOf(
     "LAPTOP" to "Ноутбук",
     "PHONE" to "Телефон",
     "TABLET" to "Планшет",
+)
+
+private data class AdminOrderSubmission(
+    val orderCreated: Boolean,
+    val newCustomer: NewAdminCustomerResult? = null,
+    val failureMessage: String? = null,
 )
 
 @Composable
@@ -59,6 +69,12 @@ fun AdminOrderCreationScreen(
     var loadRevision by remember { mutableStateOf(0) }
     var customers by remember { mutableStateOf<List<AdminCustomer>>(emptyList()) }
     var selectedCustomer by remember { mutableStateOf<AdminCustomer?>(null) }
+    var createNewCustomer by remember { mutableStateOf(false) }
+    var newCustomerName by remember { mutableStateOf("") }
+    var newCustomerEmail by remember { mutableStateOf("") }
+    var oneTimeCredentials by remember { mutableStateOf<NewAdminCustomerResult?>(null) }
+    var credentialsForCompletedOrder by remember { mutableStateOf(false) }
+    var credentialOrderError by remember { mutableStateOf<String?>(null) }
     var deviceType by remember { mutableStateOf(orderDevices.first().first) }
     var deviceMenu by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf("") }
@@ -81,12 +97,47 @@ fun AdminOrderCreationScreen(
     ) {
         TextButton(onClick = onBack) { Text("←  Управление заявками") }
         Text("Новая заявка", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Оформите заказ от имени сервиса для выбранного клиента.", fontSize = 12.sp, color = UtpMuted)
+        Text("Оформите заказ от имени сервиса для существующего или нового клиента.", fontSize = 12.sp, color = UtpMuted)
 
         Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Клиент", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                selectedCustomer?.let { customer ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = !createNewCustomer,
+                        onClick = { createNewCustomer = false; selectedCustomer = null },
+                        label = { Text("Из базы") },
+                    )
+                    FilterChip(
+                        selected = createNewCustomer,
+                        onClick = { createNewCustomer = true; selectedCustomer = null },
+                        label = { Text("Новый клиент") },
+                    )
+                }
+                if (createNewCustomer) {
+                    Text(
+                        "Создадим логин по электронной почте и временный пароль. При первом входе клиент должен сменить пароль.",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                    )
+                    OutlinedTextField(
+                        value = newCustomerName,
+                        onValueChange = { newCustomerName = it.take(120) },
+                        label = { Text("Имя клиента") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    OutlinedTextField(
+                        value = newCustomerEmail,
+                        onValueChange = { newCustomerEmail = it.take(320) },
+                        label = { Text("Электронная почта — логин") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                } else selectedCustomer?.let { customer ->
                     Text(customer.displayName, fontWeight = FontWeight.Medium, color = UtpInk)
                     Text("${customer.email} · ${customer.phoneNumber ?: "телефон не указан"}", fontSize = 12.sp, color = UtpMuted)
                     TextButton(onClick = { selectedCustomer = null }) { Text("Выбрать другого") }
@@ -141,7 +192,7 @@ fun AdminOrderCreationScreen(
             modifier = Modifier.fillMaxWidth().height(130.dp),
             shape = RoundedCornerShape(14.dp),
         )
-        AdminOrderField(phone, { phone = it.take(32) }, "Телефон для связи", KeyboardType.Phone)
+        AdminOrderField(phone, { phone = it.take(32) }, "Телефон для связи${if (createNewCustomer) " клиента" else ""}", KeyboardType.Phone)
         AdminOrderField(city, { city = it.take(120) }, "Город")
         AdminOrderField(street, { street = it.take(180) }, "Улица")
         AdminOrderField(house, { house = it.take(30) }, "Дом")
@@ -155,33 +206,94 @@ fun AdminOrderCreationScreen(
         )
         Button(
             onClick = {
-                val customerId = selectedCustomer?.id ?: return@Button
                 runAction({
-                    ApiClient.createAdministratorOrder(
-                        token,
-                        customerId,
-                        deviceType,
-                        problem.trim(),
-                        OrderAddress(
-                            contactPhone = phone.trim(),
-                            city = city.trim(),
-                            street = street.trim(),
-                            house = house.trim(),
-                            apartment = apartment.trim(),
-                            additionalInfo = additionalInfo.trim(),
-                        ),
-                    )
+                    var newCustomer: NewAdminCustomerResult? = null
+                    val customer = if (createNewCustomer) {
+                        ApiClient.createAdministratorCustomer(
+                            token,
+                            newCustomerName.trim(),
+                            newCustomerEmail.trim(),
+                            phone.trim(),
+                        ).also { newCustomer = it }.customer
+                    } else {
+                        selectedCustomer ?: error("Выберите клиента из базы.")
+                    }
+                    try {
+                        ApiClient.createAdministratorOrder(
+                            token,
+                            customer.id,
+                            deviceType,
+                            problem.trim(),
+                            OrderAddress(
+                                contactPhone = phone.trim(),
+                                city = city.trim(),
+                                street = street.trim(),
+                                house = house.trim(),
+                                apartment = apartment.trim(),
+                                additionalInfo = additionalInfo.trim(),
+                            ),
+                        )
+                        AdminOrderSubmission(orderCreated = true, newCustomer = newCustomer)
+                    } catch (failure: Exception) {
+                        if (newCustomer == null) throw failure
+                        AdminOrderSubmission(
+                            orderCreated = false,
+                            newCustomer = newCustomer,
+                            failureMessage = failure.message ?: "Не удалось создать заявку.",
+                        )
+                    }
                 }) { result ->
-                    if (result is RepairOrder) onCreated()
+                    val submission = result as? AdminOrderSubmission ?: return@runAction
+                    if (submission.newCustomer != null) {
+                        oneTimeCredentials = submission.newCustomer
+                        credentialsForCompletedOrder = submission.orderCreated
+                        credentialOrderError = submission.failureMessage
+                        selectedCustomer = submission.newCustomer.customer
+                        createNewCustomer = false
+                    } else if (submission.orderCreated) {
+                        onCreated()
+                    }
                 }
             },
-            enabled = !busy && selectedCustomer != null && problem.trim().length >= 5 &&
+            enabled = !busy && (if (createNewCustomer) {
+                newCustomerName.trim().length >= 2 && newCustomerEmail.contains('@')
+            } else selectedCustomer != null) && problem.trim().length >= 5 &&
                 phone.count(Char::isDigit) >= 7 && city.trim().length >= 2 &&
                 street.trim().length >= 2 && house.isNotBlank(),
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(14.dp),
         ) { Text(if (busy) "Создаём…" else "Создать заявку") }
         Spacer(Modifier.height(12.dp))
+    }
+
+    oneTimeCredentials?.let { credentials ->
+        AlertDialog(
+            onDismissRequest = {
+                oneTimeCredentials = null
+                if (credentialsForCompletedOrder) onCreated()
+            },
+            title = { Text("Данные для первого входа") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SelectionContainer {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Логин: ${credentials.customer.email}", fontWeight = FontWeight.SemiBold)
+                            Text("Временный пароль: ${credentials.temporaryPassword}", fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                    Text("Передайте данные клиенту безопасно. При первом входе пароль нужно сменить.")
+                    credentialOrderError?.let {
+                        Text("Аккаунт создан, но заявка не создана. Клиент сохранён в базе; можно повторить заявку, выбрав его.", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    oneTimeCredentials = null
+                    if (credentialsForCompletedOrder) onCreated()
+                }) { Text("Я сохранил данные") }
+            },
+        )
     }
 }
 

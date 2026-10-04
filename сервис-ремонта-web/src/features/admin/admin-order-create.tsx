@@ -14,7 +14,13 @@ import {
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { type AdminCustomer, createAdminOrder, getAdminCustomers } from "@/lib/api";
+import {
+  type AdminCustomer,
+  type NewAdminCustomer,
+  createAdminCustomer,
+  createAdminOrder,
+  getAdminCustomers,
+} from "@/lib/api";
 
 const fieldClassName =
   "h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal dark:border-slate-700 dark:bg-slate-950";
@@ -32,6 +38,12 @@ export const AdminOrderCreate = ({
   const [open, setOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customer, setCustomer] = useState<AdminCustomer | null>(null);
+  const [customerMode, setCustomerMode] = useState<"existing" | "new">("existing");
+  const [credentials, setCredentials] = useState<{
+    login: string;
+    password: string;
+    orderCreated: boolean;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const candidates = useQuery({
     queryKey: ["admin-order-customers", token, customerSearch],
@@ -41,14 +53,22 @@ export const AdminOrderCreate = ({
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!customer || !token) return;
+    if ((!customer && customerMode === "existing") || !token) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     const phone = String(data.get("contactPhone")).trim();
+    let newCustomer: NewAdminCustomer | null = null;
     setSaving(true);
     try {
+      if (customerMode === "new") {
+        newCustomer = await createAdminCustomer(token, {
+          displayName: String(data.get("customerName")).trim(),
+          email: String(data.get("customerEmail")).trim(),
+          ...(phone ? { phoneNumber: phone } : {}),
+        });
+      }
       await createAdminOrder(token, {
-        customerId: customer.id,
+        customerId: newCustomer?.customer.id ?? customer!.id,
         deviceType: String(data.get("deviceType")),
         problem: String(data.get("problem")).trim(),
         ...(phone ? { contactPhone: phone } : {}),
@@ -59,13 +79,32 @@ export const AdminOrderCreate = ({
         additionalInfo: String(data.get("additionalInfo")).trim(),
       });
       toast.success("Заявка создана и добавлена в общий список.");
+      if (newCustomer) {
+        setCredentials({
+          login: newCustomer.customer.email,
+          password: newCustomer.temporaryPassword,
+          orderCreated: true,
+        });
+      }
       setOpen(false);
       setCustomer(null);
+      setCustomerMode("existing");
       setCustomerSearch("");
       form.reset();
       onCreated();
     } catch {
-      toast.error("Не удалось создать заявку. Проверьте данные клиента и адрес.");
+      if (newCustomer) {
+        setCredentials({
+          login: newCustomer.customer.email,
+          password: newCustomer.temporaryPassword,
+          orderCreated: false,
+        });
+        setOpen(false);
+        toast.error("Учётная запись клиента создана, но заявка не отправлена.");
+        onCreated();
+      } else {
+        toast.error("Не удалось создать заявку. Проверьте данные клиента и адрес.");
+      }
     } finally {
       setSaving(false);
     }
@@ -85,13 +124,62 @@ export const AdminOrderCreate = ({
       </button>
       <ModalContent className="max-w-2xl dark:border-slate-700 dark:bg-slate-900 dark:text-white">
         <ModalHeader>
-          <ModalTitle>Новая заявка для клиента</ModalTitle>
+          <ModalTitle>Новая заявка от имени сервиса</ModalTitle>
           <ModalDescription className="dark:text-slate-400">
             Заявка появится в общем списке, а её создание будет записано в истории.
           </ModalDescription>
         </ModalHeader>
         <form onSubmit={submit} className="mt-4 grid gap-3 sm:grid-cols-2">
-          {!customer ? (
+          <div className="flex gap-2 sm:col-span-2">
+            <button
+              type="button"
+              onClick={() => {
+                setCustomerMode("existing");
+                setCustomer(null);
+              }}
+              className={`min-h-10 rounded-lg border px-3 text-sm font-medium ${customerMode === "existing" ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200" : "border-slate-200 dark:border-slate-700"}`}
+            >
+              Существующий клиент
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setCustomerMode("new");
+                setCustomer(null);
+              }}
+              className={`min-h-10 rounded-lg border px-3 text-sm font-medium ${customerMode === "new" ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200" : "border-slate-200 dark:border-slate-700"}`}
+            >
+              Новый клиент
+            </button>
+          </div>
+          {customerMode === "new" ? (
+            <>
+              <p className="text-xs text-slate-500 sm:col-span-2">
+                Создадим клиентский вход с логином по электронной почте и временным паролем. При
+                первом входе клиент должен будет сменить пароль.
+              </p>
+              <label className="grid gap-1 text-sm font-medium">
+                Имя клиента <span aria-hidden="true">*</span>
+                <input
+                  name="customerName"
+                  required
+                  minLength={2}
+                  maxLength={120}
+                  className={fieldClassName}
+                />
+              </label>
+              <label className="grid gap-1 text-sm font-medium">
+                Электронная почта — логин <span aria-hidden="true">*</span>
+                <input
+                  name="customerEmail"
+                  type="email"
+                  required
+                  maxLength={320}
+                  className={fieldClassName}
+                />
+              </label>
+            </>
+          ) : !customer ? (
             <div className="grid gap-2 sm:col-span-2">
               <label className="grid gap-1 text-sm font-medium">
                 Найти активного клиента <span aria-hidden="true">*</span>
@@ -157,11 +245,19 @@ export const AdminOrderCreate = ({
             </select>
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Телефон для связи
+            <span>
+              Телефон для связи
+              {customerMode === "new" && (
+                <>
+                  &nbsp;<span aria-hidden="true">*</span>
+                </>
+              )}
+            </span>
             <input
               name="contactPhone"
               defaultValue={customer?.phoneNumber ?? ""}
               type="tel"
+              required={customerMode === "new"}
               minLength={7}
               maxLength={32}
               className={fieldClassName}
@@ -220,7 +316,7 @@ export const AdminOrderCreate = ({
             </ModalClose>
             <button
               type="submit"
-              disabled={!customer || saving}
+              disabled={saving || (customerMode === "existing" && !customer)}
               className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               {saving ? "Создаём…" : "Создать заявку"}
@@ -228,6 +324,44 @@ export const AdminOrderCreate = ({
           </ModalFooter>
         </form>
       </ModalContent>
+      <Modal open={Boolean(credentials)} onOpenChange={(next) => !next && setCredentials(null)}>
+        <ModalContent className="dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+          <ModalHeader>
+            <ModalTitle>Данные для первого входа</ModalTitle>
+            <ModalDescription className="dark:text-slate-400">
+              Передайте данные клиенту безопасным способом. Временный пароль будет запрошен к смене
+              при первом входе и больше не будет показан.
+            </ModalDescription>
+          </ModalHeader>
+          {!credentials?.orderCreated && (
+            <p className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
+              Аккаунт создан, но заявка не создалась. Клиент сохранён в базе; заявку можно оформить
+              повторно, выбрав его как существующего.
+            </p>
+          )}
+          <dl className="mt-4 grid gap-3 rounded-xl border border-slate-200 p-4 text-sm dark:border-slate-700">
+            <div>
+              <dt className="text-xs text-slate-500">Логин (электронная почта)</dt>
+              <dd className="mt-1 font-semibold break-all">{credentials?.login}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-slate-500">Временный пароль</dt>
+              <dd className="mt-1 font-mono font-semibold break-all select-all">
+                {credentials?.password}
+              </dd>
+            </div>
+          </dl>
+          <ModalFooter>
+            <button
+              type="button"
+              onClick={() => setCredentials(null)}
+              className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white"
+            >
+              Я сохранил данные
+            </button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Modal>
   );
 };
