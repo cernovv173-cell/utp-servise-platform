@@ -321,6 +321,6 @@ internal fun RepairOrderCard(
         OrderPaperworkDialog(order, role, token, runAction) { showPaperwork = false }
     }
     if (showPickupScanner) {
-        PickupQrScannerDialog(token, runAction) { showPickupScanner = false }
+        PickupQrScannerDialog(order.serviceNumber, token, runAction) { showPickupScanner = false }
     }
 }

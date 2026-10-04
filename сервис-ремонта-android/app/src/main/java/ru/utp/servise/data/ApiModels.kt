@@ -116,7 +116,7 @@ data class RepairWarranty(
     val expiresAt: String,
 )
 
-data class PickupCode(val qrPayload: String, val expiresAt: String)
+data class PickupCode(val qrPayload: String, val fallbackPin: String, val expiresAt: String)
 
 data class RepairOrderPhoto(val id: String, val objectId: String)
 

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, randomInt } from "node:crypto";
 import { z } from "zod";
 
 import type { UserRole } from "../../generated/prisma/client.js";
@@ -104,15 +104,35 @@ const intakeBody = z
     intakeNotes: z.string().trim().max(2000).optional(),
   })
   .strict();
-const pickupCodeBody = z
-  .object({ qrPayload: z.string().trim().min(20).max(200) })
-  .strict();
-const closeWithQrBody = pickupCodeBody
-  .extend({
+const closeWithQrBody = z
+  .object({
+    qrPayload: z.string().trim().min(20).max(200).optional(),
+    serviceNumber: z.string().trim().min(1).max(32).optional(),
+    pickupPin: z
+      .string()
+      .regex(/^\d{4}$/u)
+      .optional(),
     warrantyDays: z.number().int().min(1).max(3650),
     warrantyTerms: z.string().trim().min(5).max(2000),
   })
-  .strict();
+  .strict()
+  .superRefine(({ qrPayload, serviceNumber, pickupPin }, context) => {
+    const hasQrPayload = Boolean(qrPayload);
+    const hasCompleteFallback = Boolean(serviceNumber && pickupPin);
+    const hasPartialFallback = Boolean(serviceNumber) !== Boolean(pickupPin);
+    if (hasPartialFallback || hasQrPayload === hasCompleteFallback) {
+      context.addIssue({
+        code: "custom",
+        path: ["pickupPin"],
+        message: "Укажите QR-код либо номер заявки и 4-значный код.",
+      });
+    }
+  });
+
+const MAX_PICKUP_PIN_ATTEMPTS = 5;
+
+const hashPickupPin = (salt: string, pin: string) =>
+  createHash("sha256").update(`${salt}:${pin}`).digest("hex");
 const expectedCompletionBody = z
   .object({
     expectedCompletionAt: z.string().datetime({ offset: true }).nullable(),
@@ -1117,8 +1137,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       if (!order || !canViewRepairOrder(user.role, user.id, order)) {
         throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
       }
-      if (["READY_FOR_PICKUP", "COMPLETED", "CANCELLED"].includes(order.status)) {
-        throw new HttpError(409, "INTAKE_LOCKED", "Акт приёма нельзя изменять после завершения ремонта.");
+      if (
+        ["READY_FOR_PICKUP", "COMPLETED", "CANCELLED"].includes(order.status)
+      ) {
+        throw new HttpError(
+          409,
+          "INTAKE_LOCKED",
+          "Акт приёма нельзя изменять после завершения ремонта.",
+        );
       }
       const existing = await database.repairOrderIntake.findUnique({
         where: { orderId },
@@ -1179,13 +1205,30 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const rawToken = randomBytes(32).toString("base64url");
       const qrPayload = `UTP-PICKUP:${rawToken}`;
       const tokenHash = createHash("sha256").update(rawToken).digest("hex");
+      const fallbackPin = randomInt(0, 10_000).toString().padStart(4, "0");
+      const fallbackCodeSalt = randomBytes(16).toString("hex");
+      const fallbackCodeHash = hashPickupPin(fallbackCodeSalt, fallbackPin);
       const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
       await database.repairOrderPickupCode.upsert({
         where: { orderId },
-        create: { orderId, tokenHash, expiresAt },
-        update: { tokenHash, expiresAt, usedAt: null },
+        create: {
+          orderId,
+          tokenHash,
+          fallbackCodeHash,
+          fallbackCodeSalt,
+          fallbackCodeAttempts: 0,
+          expiresAt,
+        },
+        update: {
+          tokenHash,
+          fallbackCodeHash,
+          fallbackCodeSalt,
+          fallbackCodeAttempts: 0,
+          expiresAt,
+          usedAt: null,
+        },
       });
-      response.status(201).json({ qrPayload, expiresAt });
+      response.status(201).json({ qrPayload, fallbackPin, expiresAt });
     },
   );
 
@@ -1197,35 +1240,44 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof closeWithQrBody>>(response);
-      const tokenMatch = /^UTP-PICKUP:([A-Za-z0-9_-]{40,60})$/u.exec(
-        input.qrPayload,
-      );
-      if (!tokenMatch)
+      const tokenMatch = input.qrPayload
+        ? /^UTP-PICKUP:([A-Za-z0-9_-]{40,60})$/u.exec(input.qrPayload)
+        : null;
+      if (input.qrPayload && !tokenMatch)
         throw new HttpError(
           404,
           "PICKUP_CODE_INVALID",
           "QR-код недействителен или уже использован.",
         );
-      const tokenHash = createHash("sha256")
-        .update(tokenMatch[1]!)
-        .digest("hex");
-      const candidate = await database.repairOrderPickupCode.findUnique({
-        where: { tokenHash },
-        select: { orderId: true },
-      });
-      if (!candidate)
+      const tokenHash = tokenMatch
+        ? createHash("sha256").update(tokenMatch[1]!).digest("hex")
+        : null;
+      const orderId = tokenHash
+        ? (
+            await database.repairOrderPickupCode.findUnique({
+              where: { tokenHash },
+              select: { orderId: true },
+            })
+          )?.orderId
+        : (
+            await database.repairOrder.findUnique({
+              where: { serviceNumber: input.serviceNumber! },
+              select: { id: true },
+            })
+          )?.id;
+      if (!orderId)
         throw new HttpError(
           404,
           "PICKUP_CODE_INVALID",
-          "QR-код недействителен или уже использован.",
+          "Код выдачи недействителен или уже использован.",
         );
 
       const result = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
-          SELECT "id" FROM "repair_orders" WHERE "id" = ${candidate.orderId}::uuid FOR UPDATE
+          SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
         `;
         const code = await transaction.repairOrderPickupCode.findUnique({
-          where: { orderId: candidate.orderId },
+          where: { orderId },
           include: {
             order: {
               include: { customer: { select: { displayName: true } } },
@@ -1235,7 +1287,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         const now = new Date();
         if (
           !code ||
-          code.tokenHash !== tokenHash ||
+          (tokenHash !== null && code.tokenHash !== tokenHash) ||
           code.usedAt ||
           code.expiresAt <= now
         ) {
@@ -1255,6 +1307,21 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "ORDER_NOT_READY_FOR_PICKUP",
             "Заказ больше не ожидает выдачи.",
           );
+        }
+        if (input.pickupPin) {
+          const expectedHash = code.fallbackCodeSalt
+            ? hashPickupPin(code.fallbackCodeSalt, input.pickupPin)
+            : null;
+          if (code.fallbackCodeAttempts >= MAX_PICKUP_PIN_ATTEMPTS) {
+            return { invalidPin: true as const };
+          }
+          if (!expectedHash || expectedHash !== code.fallbackCodeHash) {
+            await transaction.repairOrderPickupCode.update({
+              where: { id: code.id },
+              data: { fallbackCodeAttempts: { increment: 1 } },
+            });
+            return { invalidPin: true as const };
+          }
         }
         const changed = await transaction.repairOrder.updateMany({
           where: { id: order.id, status: "READY_FOR_PICKUP" },
@@ -1324,6 +1391,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           }),
         };
       });
+      if ("invalidPin" in result) {
+        throw new HttpError(
+          404,
+          "PICKUP_CODE_INVALID",
+          "4-значный код неверен или исчерпаны попытки. Запросите новый QR у клиента.",
+        );
+      }
       await sendRepairOrderNotification(
         database,
         result.order,

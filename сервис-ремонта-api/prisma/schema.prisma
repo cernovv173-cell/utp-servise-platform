@@ -264,14 +264,17 @@ model RepairOrderIntake {
 }
 
 model RepairOrderPickupCode {
-  id        String      @id @default(uuid()) @db.Uuid
-  orderId   String      @unique @map("order_id") @db.Uuid
-  tokenHash String      @unique @map("token_hash") @db.Char(64)
-  expiresAt DateTime    @map("expires_at") @db.Timestamptz(3)
-  usedAt    DateTime?   @map("used_at") @db.Timestamptz(3)
-  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
-  order     RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  id                   String      @id @default(uuid()) @db.Uuid
+  orderId              String      @unique @map("order_id") @db.Uuid
+  tokenHash            String      @unique @map("token_hash") @db.Char(64)
+  fallbackCodeHash     String?     @map("fallback_code_hash") @db.Char(64)
+  fallbackCodeSalt     String?     @map("fallback_code_salt") @db.Char(32)
+  fallbackCodeAttempts Int         @default(0) @map("fallback_code_attempts")
+  expiresAt            DateTime    @map("expires_at") @db.Timestamptz(3)
+  usedAt               DateTime?   @map("used_at") @db.Timestamptz(3)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order                RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([expiresAt, usedAt])
   @@map("repair_order_pickup_codes")

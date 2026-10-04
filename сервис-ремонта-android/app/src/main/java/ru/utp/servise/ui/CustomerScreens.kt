@@ -26,7 +26,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -194,9 +193,6 @@ fun ProfileScreen(
     var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
     var savedPhone by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
     var themeMode by remember(user.id) { mutableStateOf(readThemeMode(context)) }
-    var welcomeAnimationMode by remember(user.id) {
-        mutableStateOf(readWelcomeAnimationMode(context))
-    }
     var currentPassword by remember(user.id) { mutableStateOf("") }
     var newPassword by remember(user.id) { mutableStateOf("") }
     var confirmPassword by remember(user.id) { mutableStateOf("") }
@@ -352,41 +348,6 @@ fun ProfileScreen(
                             },
                         )
                         Text(mode.title, color = UtpInk, fontSize = 14.sp)
-                    }
-                }
-                Text(
-                    "Анимация при запуске",
-                    fontWeight = FontWeight.SemiBold,
-                    color = UtpInk,
-                    modifier = Modifier.padding(top = 12.dp),
-                )
-                Text(
-                    "Выберите заставку для следующего открытия приложения",
-                    fontSize = 12.sp,
-                    color = UtpMuted,
-                    modifier = Modifier.padding(top = 4.dp, bottom = 6.dp),
-                )
-                WelcomeAnimationMode.entries.forEach { mode ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                welcomeAnimationMode = mode
-                                saveWelcomeAnimationMode(context, mode)
-                            },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = welcomeAnimationMode == mode,
-                            onClick = {
-                                welcomeAnimationMode = mode
-                                saveWelcomeAnimationMode(context, mode)
-                            },
-                        )
-                        Column(Modifier.padding(vertical = 6.dp)) {
-                            Text(mode.title, color = UtpInk, fontSize = 14.sp)
-                            Text(mode.description, color = UtpMuted, fontSize = 11.sp)
-                        }
                     }
                 }
             }

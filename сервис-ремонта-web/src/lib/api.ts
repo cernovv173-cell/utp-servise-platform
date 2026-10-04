@@ -416,13 +416,22 @@ export const saveOrderIntake = (
   });
 
 export const createOrderPickupCode = (token: string, orderId: string) =>
-  apiRequest<{ qrPayload: string; expiresAt: string }>(`/orders/${orderId}/pickup-code`, token, {
-    method: "POST",
-  });
+  apiRequest<{ qrPayload: string; fallbackPin: string; expiresAt: string }>(
+    `/orders/${orderId}/pickup-code`,
+    token,
+    { method: "POST" },
+  );
 
 export const closeOrderByQr = (
   token: string,
-  input: { qrPayload: string; warrantyDays: number; warrantyTerms: string },
+  input:
+    | { qrPayload: string; warrantyDays: number; warrantyTerms: string }
+    | {
+        serviceNumber: string;
+        pickupPin: string;
+        warrantyDays: number;
+        warrantyTerms: string;
+      },
 ) =>
   apiRequest<{ order: RepairOrder; warranty: RepairWarranty }>("/orders/close-by-qr", token, {
     method: "POST",

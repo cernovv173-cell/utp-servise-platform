@@ -50,6 +50,14 @@ export const CustomerPickupQr = ({ token, orderId }: { token: string; orderId: s
               title="Одноразовый QR-код выдачи заказа"
               className="max-w-full"
             />
+            <div className="grid justify-items-center gap-1 rounded-xl bg-slate-100 px-5 py-3 dark:bg-slate-800">
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                Если QR не сканируется, сообщите сотруднику код:
+              </p>
+              <p className="font-mono text-3xl font-bold tracking-[0.35em] text-slate-950 dark:text-white">
+                {pickupCode.data.fallbackPin}
+              </p>
+            </div>
             <p className="text-xs text-slate-500">
               Действует до{" "}
               {new Date(pickupCode.data.expiresAt).toLocaleTimeString("ru-RU", {

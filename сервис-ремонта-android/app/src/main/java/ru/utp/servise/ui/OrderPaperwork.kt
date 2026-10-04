@@ -32,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -245,6 +247,18 @@ internal fun OrderPaperworkDialog(
                     pickupCode?.let { code ->
                         QrPayloadImage(code.qrPayload)
                         Text(
+                            "Если QR не сканируется, сообщите сотруднику код:",
+                            color = UtpMuted,
+                            fontSize = 12.sp,
+                        )
+                        Text(
+                            code.fallbackPin,
+                            color = UtpBlue,
+                            fontSize = 30.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 8.sp,
+                        )
+                        Text(
                             "Покажите код сотруднику для получения заказа. " +
                                 "Код действует до ${code.expiresAt.take(16).replace('T', ' ')}; " +
                                 "новый код отменит предыдущий.",
@@ -260,9 +274,15 @@ internal fun OrderPaperworkDialog(
 }
 
 @Composable
-internal fun PickupQrScannerDialog(token: String, runAction: RunAction, onDismiss: () -> Unit) {
+internal fun PickupQrScannerDialog(
+    serviceNumber: String,
+    token: String,
+    runAction: RunAction,
+    onDismiss: () -> Unit,
+) {
     val context = LocalContext.current
     var payload by remember { mutableStateOf("") }
+    var pickupPin by remember { mutableStateOf("") }
     var warrantyDays by remember { mutableStateOf("90") }
     var terms by remember {
         mutableStateOf(
@@ -292,15 +312,38 @@ internal fun PickupQrScannerDialog(token: String, runAction: RunAction, onDismis
                 )
                 OutlinedButton(onClick = {
                     GmsBarcodeScanning.getClient(context).startScan()
-                        .addOnSuccessListener { barcode -> barcode.rawValue?.let { payload = it } }
+                        .addOnSuccessListener { barcode ->
+                            barcode.rawValue?.let {
+                                payload = it
+                                pickupPin = ""
+                            }
+                        }
                 }, modifier = Modifier.fillMaxWidth()) {
                     Text("Сканировать QR клиента")
                 }
                 OutlinedTextField(
                     payload,
-                    { payload = it },
+                    {
+                        payload = it
+                        pickupPin = ""
+                    },
                     label = { Text("QR-код · можно ввести вручную") },
                     minLines = 2,
+                )
+                Text(
+                    "Если QR не сканируется, попросите у клиента 4-значный код и введите его здесь.",
+                    fontSize = 12.sp,
+                    color = UtpMuted,
+                )
+                OutlinedTextField(
+                    pickupPin,
+                    {
+                        pickupPin = it.filter(Char::isDigit).take(4)
+                        payload = ""
+                    },
+                    label = { Text("Резервный код · 4 цифры") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    singleLine = true,
                 )
                 Text(
                     "Код одноразовый. После подтверждения заявка закроется " +
@@ -312,16 +355,26 @@ internal fun PickupQrScannerDialog(token: String, runAction: RunAction, onDismis
         },
         confirmButton = {
             TextButton(
-                enabled = payload.isNotBlank() &&
+                enabled = (payload.isNotBlank() || pickupPin.length == 4) &&
                     (warrantyDays.toIntOrNull() ?: 0) in 1..3650 && terms.trim().length >= 5,
                 onClick = {
                     runAction({
-                        ApiClient.closeOrderByQr(
-                            token,
-                            payload.trim(),
-                            warrantyDays.toInt(),
-                            terms.trim(),
-                        )
+                        if (payload.isNotBlank()) {
+                            ApiClient.closeOrderByQr(
+                                token,
+                                payload.trim(),
+                                warrantyDays.toInt(),
+                                terms.trim(),
+                            )
+                        } else {
+                            ApiClient.closeOrderByPickupPin(
+                                token,
+                                serviceNumber,
+                                pickupPin,
+                                warrantyDays.toInt(),
+                                terms.trim(),
+                            )
+                        }
                     }) { onDismiss() }
                 },
             ) { Text("Подтвердить выдачу") }

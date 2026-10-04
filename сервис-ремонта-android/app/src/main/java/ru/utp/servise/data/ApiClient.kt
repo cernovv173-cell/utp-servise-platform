@@ -395,13 +395,29 @@ object ApiClient {
 
     fun createPickupCode(token: String, orderId: String): PickupCode {
         val response = request("POST", "/orders/$orderId/pickup-code", token)
-        return PickupCode(response.getString("qrPayload"), response.getString("expiresAt"))
+        return PickupCode(
+            response.getString("qrPayload"),
+            response.getString("fallbackPin"),
+            response.getString("expiresAt"),
+        )
     }
 
     fun closeOrderByQr(token: String, qrPayload: String, warrantyDays: Int, warrantyTerms: String): RepairOrder = request(
         "POST", "/orders/close-by-qr", token,
         JSONObject().put("qrPayload", qrPayload).put("warrantyDays", warrantyDays)
             .put("warrantyTerms", warrantyTerms),
+    ).getJSONObject("order").toOrder()
+
+    fun closeOrderByPickupPin(
+        token: String,
+        serviceNumber: String,
+        pickupPin: String,
+        warrantyDays: Int,
+        warrantyTerms: String,
+    ): RepairOrder = request(
+        "POST", "/orders/close-by-qr", token,
+        JSONObject().put("serviceNumber", serviceNumber).put("pickupPin", pickupPin)
+            .put("warrantyDays", warrantyDays).put("warrantyTerms", warrantyTerms),
     ).getJSONObject("order").toOrder()
 
     fun downloadMedia(token: String, objectId: String): ByteArray =

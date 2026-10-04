@@ -25,24 +25,37 @@ export const PickupQrScanner = ({ token }: { token: string }) => {
   const [warrantyDays, setWarrantyDays] = useState("");
   const [warrantyTerms, setWarrantyTerms] = useState("");
   const [qrPayload, setQrPayload] = useState("");
+  const [serviceNumber, setServiceNumber] = useState("");
+  const [pickupPin, setPickupPin] = useState("");
   const mutation = useMutation({
-    mutationFn: () =>
-      closeOrderByQr(token, {
-        qrPayload: qrPayload.trim(),
+    mutationFn: () => {
+      const handoff =
+        qrPayload.trim().length >= 20
+          ? { qrPayload: qrPayload.trim() }
+          : { serviceNumber: serviceNumber.trim(), pickupPin: pickupPin.trim() };
+      return closeOrderByQr(token, {
+        ...handoff,
         warrantyDays: Number(warrantyDays),
         warrantyTerms: warrantyTerms.trim(),
-      }),
+      });
+    },
     onSuccess: async ({ order }) => {
       toast.success(`Заявка ${order.serviceNumber} закрыта. Гарантийный талон сформирован.`);
       setOpen(false);
       setQrPayload("");
+      setServiceNumber("");
+      setPickupPin("");
       await queryClient.invalidateQueries({ queryKey: ["orders", token] });
       await queryClient.invalidateQueries({ queryKey: ["admin-order-search", token] });
       await queryClient.invalidateQueries({ queryKey: ["order-search", token] });
     },
     onError: () => toast.error("QR не принят. Проверьте срок действия и статус заявки."),
   });
-  const receiveScan = useCallback((value: string) => setQrPayload(value), []);
+  const receiveScan = useCallback((value: string) => {
+    setQrPayload(value);
+    setServiceNumber("");
+    setPickupPin("");
+  }, []);
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     mutation.mutate();
@@ -62,13 +75,15 @@ export const PickupQrScanner = ({ token }: { token: string }) => {
         <ModalHeader>
           <ModalTitle>Подтверждение выдачи заказа</ModalTitle>
           <ModalDescription className="dark:text-slate-400">
-            Укажите гарантийный срок и условия, затем отсканируйте QR клиента. После проверки заявка
-            закроется, а талон сохранится в её документах.
+            Укажите гарантийный срок и условия. Если QR клиента не сканируется, введите номер заявки
+            и резервный 4-значный код. После проверки заявка закроется, а талон сохранится в её
+            документах.
           </ModalDescription>
         </ModalHeader>
         <form onSubmit={submit} className="mt-4 grid gap-3">
           <label className="grid gap-1 text-sm font-medium">
-            Срок гарантии, дней <span aria-hidden="true">*</span>
+            Срок гарантии, дней{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <input
               type="number"
               required
@@ -80,7 +95,8 @@ export const PickupQrScanner = ({ token }: { token: string }) => {
             />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Условия гарантии <span aria-hidden="true">*</span>
+            Условия гарантии{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <textarea
               required
               minLength={5}
@@ -100,11 +116,48 @@ export const PickupQrScanner = ({ token }: { token: string }) => {
             Или введите данные QR вручную
             <input
               value={qrPayload}
-              onChange={(event) => setQrPayload(event.target.value)}
+              onChange={(event) => {
+                setQrPayload(event.target.value);
+                setServiceNumber("");
+                setPickupPin("");
+              }}
               placeholder="UTP-PICKUP:…"
               className={inputClass}
             />
           </label>
+          <div className="grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+              QR не сканируется? Используйте данные с карточки заявки и код клиента.
+            </p>
+            <label className="grid gap-1 text-sm font-medium">
+              Номер заявки
+              <input
+                value={serviceNumber}
+                onChange={(event) => {
+                  setServiceNumber(event.target.value);
+                  setQrPayload("");
+                }}
+                placeholder="Например, SRV-2026-000081"
+                className={inputClass}
+              />
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              Резервный код, 4 цифры
+              <input
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={4}
+                pattern="[0-9]{4}"
+                value={pickupPin}
+                onChange={(event) => {
+                  setPickupPin(event.target.value.replace(/\D/gu, "").slice(0, 4));
+                  setQrPayload("");
+                }}
+                placeholder="0000"
+                className={`${inputClass} font-mono tracking-[0.3em]`}
+              />
+            </label>
+          </div>
           <ModalFooter>
             <button
               type="button"
@@ -115,7 +168,11 @@ export const PickupQrScanner = ({ token }: { token: string }) => {
             </button>
             <button
               type="submit"
-              disabled={mutation.isPending || qrPayload.trim().length < 20}
+              disabled={
+                mutation.isPending ||
+                (qrPayload.trim().length < 20 &&
+                  (!serviceNumber.trim() || !/^\d{4}$/u.test(pickupPin)))
+              }
               className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               {mutation.isPending ? "Проверяем…" : "Проверить и закрыть"}
