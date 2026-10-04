@@ -133,7 +133,8 @@ test("pickup QR closes a ready order once and issues warranty and technician sal
     body: JSON.stringify({
       qrPayload,
       warrantyDays: 90,
-      warrantyTerms: "Гарантия действует на выполненные работы.",
+      warrantyTerms:
+        "Старые приложения могут отправлять эти поля; сервер использует единый срок.",
     }),
   });
   assert.equal(response.status, 200);
@@ -143,7 +144,13 @@ test("pickup QR closes a ready order once and issues warranty and technician sal
   assert.equal(recordedEvent?.from, "READY_FOR_PICKUP");
   assert.equal(recordedEvent?.to, "COMPLETED");
   assert.equal(recordedWarranty?.warrantyNumber, `WTY-${serviceNumber}`);
-  assert.equal(recordedWarranty?.warrantyDays, 90);
+  assert.equal(recordedWarranty?.warrantyDays, 365);
+  assert.match(
+    String(recordedWarranty?.terms),
+    /Гарантия на ремонт компьютеров/u,
+  );
+  assert.match(String(recordedWarranty?.terms), /статья 29/u);
+  assert.ok(String(recordedWarranty?.terms).length > 2000);
   assert.equal(recordedWarranty?.issuedById, technician.id);
   assert.equal(recordedSalary?.technicianId, technician.id);
   assert.equal(recordedSalary?.serviceTotalRub, 1_200);
@@ -159,8 +166,6 @@ test("pickup QR closes a ready order once and issues warranty and technician sal
     headers,
     body: JSON.stringify({
       qrPayload,
-      warrantyDays: 90,
-      warrantyTerms: "Гарантия действует на выполненные работы.",
     }),
   });
   assert.equal(replay.status, 404);

@@ -22,8 +22,6 @@ const inputClass =
 export const PickupQrScanner = ({ token }: { token: string }) => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [warrantyDays, setWarrantyDays] = useState("");
-  const [warrantyTerms, setWarrantyTerms] = useState("");
   const [qrPayload, setQrPayload] = useState("");
   const [serviceNumber, setServiceNumber] = useState("");
   const [pickupPin, setPickupPin] = useState("");
@@ -33,11 +31,7 @@ export const PickupQrScanner = ({ token }: { token: string }) => {
         qrPayload.trim().length >= 20
           ? { qrPayload: qrPayload.trim() }
           : { serviceNumber: serviceNumber.trim(), pickupPin: pickupPin.trim() };
-      return closeOrderByQr(token, {
-        ...handoff,
-        warrantyDays: Number(warrantyDays),
-        warrantyTerms: warrantyTerms.trim(),
-      });
+      return closeOrderByQr(token, handoff);
     },
     onSuccess: async ({ order }) => {
       toast.success(`Заявка ${order.serviceNumber} закрыта. Гарантийный талон сформирован.`);
@@ -49,7 +43,8 @@ export const PickupQrScanner = ({ token }: { token: string }) => {
       await queryClient.invalidateQueries({ queryKey: ["admin-order-search", token] });
       await queryClient.invalidateQueries({ queryKey: ["order-search", token] });
     },
-    onError: () => toast.error("QR не принят. Проверьте срок действия и статус заявки."),
+    onError: () =>
+      toast.error("Код выдачи не принят. Проверьте данные клиента, срок действия и статус заявки."),
   });
   const receiveScan = useCallback((value: string) => {
     setQrPayload(value);
@@ -75,38 +70,18 @@ export const PickupQrScanner = ({ token }: { token: string }) => {
         <ModalHeader>
           <ModalTitle>Подтверждение выдачи заказа</ModalTitle>
           <ModalDescription className="dark:text-slate-400">
-            Укажите гарантийный срок и условия. Если QR клиента не сканируется, введите номер заявки
-            и резервный 4-значный код. После проверки заявка закроется, а талон сохранится в её
-            документах.
+            Если QR клиента не сканируется, введите номер заявки и резервный 4-значный код. После
+            проверки заявка закроется, а талон с постоянными условиями сохранится в её документах.
           </ModalDescription>
         </ModalHeader>
         <form onSubmit={submit} className="mt-4 grid gap-3">
-          <label className="grid gap-1 text-sm font-medium">
-            Срок гарантии, дней{"\u00a0"}
-            <span aria-hidden="true">*</span>
-            <input
-              type="number"
-              required
-              min={1}
-              max={3650}
-              value={warrantyDays}
-              onChange={(event) => setWarrantyDays(event.target.value)}
-              className={inputClass}
-            />
-          </label>
-          <label className="grid gap-1 text-sm font-medium">
-            Условия гарантии{"\u00a0"}
-            <span aria-hidden="true">*</span>
-            <textarea
-              required
-              minLength={5}
-              maxLength={2000}
-              rows={3}
-              value={warrantyTerms}
-              onChange={(event) => setWarrantyTerms(event.target.value)}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-slate-700 dark:bg-slate-950"
-            />
-          </label>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/40">
+            <p className="font-semibold">Постоянные условия гарантии: 1 год</p>
+            <p className="mt-1 text-slate-600 dark:text-slate-300">
+              Талон с датами, перечнем работ и полным текстом условий автоматически сохранится в
+              документах заявки после выдачи.
+            </p>
+          </div>
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Camera size={16} aria-hidden="true" />
             Сканер QR клиента

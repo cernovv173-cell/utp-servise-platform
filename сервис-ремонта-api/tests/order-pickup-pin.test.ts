@@ -6,6 +6,11 @@ import test from "node:test";
 
 import { hashSessionToken } from "../src/features/auth/auth.middleware.js";
 import { createOrdersRouter } from "../src/features/orders/orders.routes.js";
+import {
+  REPAIR_WARRANTY_DAYS,
+  REPAIR_WARRANTY_TERMS,
+} from "../src/features/orders/warranty-policy.js";
+import { getRepairWarrantyExpiresAt } from "../src/features/orders/warranty-policy.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
@@ -86,12 +91,18 @@ test("pickup QR issues a fallback PIN and the PIN closes only its service order"
       findUniqueOrThrow: async () => order,
     },
     repairStatusEvent: { create: async ({ data }: { data: unknown }) => data },
-    repairWarranty: { create: async ({ data }: { data: unknown }) => data },
+    repairWarranty: {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        Object.assign(issuedWarranty, data);
+        return data;
+      },
+    },
     repairOrderItem: { findMany: async () => [] },
     technicianSalaryEntry: {
       create: async ({ data }: { data: unknown }) => data,
     },
   };
+  const issuedWarranty: Record<string, unknown> = {};
   const usersByTokenHash = new Map([
     [hashSessionToken(customerToken), customer],
     [hashSessionToken(staffToken), technician],
@@ -158,18 +169,34 @@ test("pickup QR issues a fallback PIN and the PIN closes only its service order"
       body: JSON.stringify({
         serviceNumber,
         pickupPin,
-        warrantyDays: 90,
-        warrantyTerms: "Гарантия действует на выполненные работы.",
       }),
     });
   const wrongPin = issuedCode.fallbackPin === "0000" ? "0001" : "0000";
-  const rejected = await closeRequest(wrongPin);
-  assert.equal(rejected.status, 404);
-  assert.equal(pickupCode.fallbackCodeAttempts, 1);
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    const rejected = await closeRequest(wrongPin);
+    assert.equal(rejected.status, 404);
+    assert.equal(pickupCode.fallbackCodeAttempts, attempt);
+  }
   assert.equal(order.status, "READY_FOR_PICKUP");
+  const blocked = await closeRequest(issuedCode.fallbackPin);
+  assert.equal(blocked.status, 404);
 
-  const accepted = await closeRequest(issuedCode.fallbackPin);
+  const renewed = await fetch(`${baseUrl}/orders/${order.id}/pickup-code`, {
+    method: "POST",
+    headers: headers(customerToken),
+  });
+  assert.equal(renewed.status, 201);
+  const renewedCode = (await renewed.json()) as { fallbackPin: string };
+  assert.equal(pickupCode.fallbackCodeAttempts, 0);
+
+  const accepted = await closeRequest(renewedCode.fallbackPin);
   assert.equal(accepted.status, 200);
   assert.equal(order.status, "COMPLETED");
   assert.ok(pickupCode.usedAt instanceof Date);
+  assert.equal(issuedWarranty.warrantyDays, REPAIR_WARRANTY_DAYS);
+  assert.equal(issuedWarranty.terms, REPAIR_WARRANTY_TERMS);
+  assert.equal(
+    (issuedWarranty.expiresAt as Date).toISOString(),
+    getRepairWarrantyExpiresAt(issuedWarranty.issuedAt as Date).toISOString(),
+  );
 });

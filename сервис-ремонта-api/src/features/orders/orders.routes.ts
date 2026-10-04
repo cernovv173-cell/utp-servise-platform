@@ -27,6 +27,12 @@ import {
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "./order-policy.js";
+import { createPickupPinCredential, verifyPickupPin } from "./pickup-pin.js";
+import {
+  REPAIR_WARRANTY_DAYS,
+  REPAIR_WARRANTY_TERMS,
+  getRepairWarrantyExpiresAt,
+} from "./warranty-policy.js";
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
 const orderListQuery = z
@@ -112,8 +118,9 @@ const closeWithQrBody = z
       .string()
       .regex(/^\d{4}$/u)
       .optional(),
-    warrantyDays: z.number().int().min(1).max(3650),
-    warrantyTerms: z.string().trim().min(5).max(2000),
+    // Accepted temporarily for installed older clients; warranty policy is server-owned.
+    warrantyDays: z.number().int().min(1).max(3650).optional(),
+    warrantyTerms: z.string().trim().min(5).max(2000).optional(),
   })
   .strict()
   .superRefine(({ qrPayload, serviceNumber, pickupPin }, context) => {
@@ -130,9 +137,6 @@ const closeWithQrBody = z
   });
 
 const MAX_PICKUP_PIN_ATTEMPTS = 5;
-
-const hashPickupPin = (salt: string, pin: string) =>
-  createHash("sha256").update(`${salt}:${pin}`).digest("hex");
 const expectedCompletionBody = z
   .object({
     expectedCompletionAt: z.string().datetime({ offset: true }).nullable(),
@@ -1206,8 +1210,8 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const qrPayload = `UTP-PICKUP:${rawToken}`;
       const tokenHash = createHash("sha256").update(rawToken).digest("hex");
       const fallbackPin = randomInt(0, 10_000).toString().padStart(4, "0");
-      const fallbackCodeSalt = randomBytes(16).toString("hex");
-      const fallbackCodeHash = hashPickupPin(fallbackCodeSalt, fallbackPin);
+      const { hash: fallbackCodeHash, salt: fallbackCodeSalt } =
+        await createPickupPinCredential(fallbackPin);
       const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
       await database.repairOrderPickupCode.upsert({
         where: { orderId },
@@ -1309,13 +1313,18 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           );
         }
         if (input.pickupPin) {
-          const expectedHash = code.fallbackCodeSalt
-            ? hashPickupPin(code.fallbackCodeSalt, input.pickupPin)
-            : null;
           if (code.fallbackCodeAttempts >= MAX_PICKUP_PIN_ATTEMPTS) {
             return { invalidPin: true as const };
           }
-          if (!expectedHash || expectedHash !== code.fallbackCodeHash) {
+          const isValidPin =
+            code.fallbackCodeSalt && code.fallbackCodeHash
+              ? await verifyPickupPin(
+                  input.pickupPin,
+                  code.fallbackCodeSalt,
+                  code.fallbackCodeHash,
+                )
+              : false;
+          if (!isValidPin) {
             await transaction.repairOrderPickupCode.update({
               where: { id: code.id },
               data: { fallbackCodeAttempts: { increment: 1 } },
@@ -1344,7 +1353,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             actorId: user.id,
             from: "READY_FOR_PICKUP",
             to: "COMPLETED",
-            note: "Заказ выдан клиенту по QR-коду",
+            note: input.pickupPin
+              ? "Заказ выдан клиенту по резервному коду"
+              : "Заказ выдан клиенту по QR-коду",
           },
         });
         const warranty = await transaction.repairWarranty.create({
@@ -1354,12 +1365,10 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             customerName: order.customer.displayName,
             deviceType: order.deviceType,
             repairSummary: order.problem,
-            warrantyDays: input.warrantyDays,
-            terms: input.warrantyTerms,
+            warrantyDays: REPAIR_WARRANTY_DAYS,
+            terms: REPAIR_WARRANTY_TERMS,
             issuedAt: now,
-            expiresAt: new Date(
-              now.getTime() + input.warrantyDays * 24 * 60 * 60 * 1000,
-            ),
+            expiresAt: getRepairWarrantyExpiresAt(now),
             issuedById: user.id,
           },
         });
@@ -1402,7 +1411,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         database,
         result.order,
         user.id,
-        "Заказ выдан клиенту по QR-коду.",
+        input.pickupPin
+          ? "Заказ выдан клиенту по резервному коду."
+          : "Заказ выдан клиенту по QR-коду.",
       );
       response.json(result);
     },

@@ -424,14 +424,7 @@ export const createOrderPickupCode = (token: string, orderId: string) =>
 
 export const closeOrderByQr = (
   token: string,
-  input:
-    | { qrPayload: string; warrantyDays: number; warrantyTerms: string }
-    | {
-        serviceNumber: string;
-        pickupPin: string;
-        warrantyDays: number;
-        warrantyTerms: string;
-      },
+  input: { qrPayload: string } | { serviceNumber: string; pickupPin: string },
 ) =>
   apiRequest<{ order: RepairOrder; warranty: RepairWarranty }>("/orders/close-by-qr", token, {
     method: "POST",

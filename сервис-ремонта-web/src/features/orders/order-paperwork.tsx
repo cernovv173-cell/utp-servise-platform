@@ -365,8 +365,14 @@ export const OrderPaperwork = ({
                   Устройство: {order.warranty.deviceType} · работы: {order.warranty.repairSummary}
                 </p>
                 <p className="text-sm">
-                  Срок: {order.warranty.warrantyDays} дней · до{" "}
-                  {new Date(order.warranty.expiresAt).toLocaleDateString("ru-RU")}
+                  Срок:{" "}
+                  {order.warranty.warrantyDays === 365 || order.warranty.warrantyDays === 366
+                    ? "1 год"
+                    : `${order.warranty.warrantyDays} дней`}{" "}
+                  · до {new Date(order.warranty.expiresAt).toLocaleDateString("ru-RU")}
+                </p>
+                <p className="text-sm">
+                  Выдан: {new Date(order.warranty.issuedAt).toLocaleDateString("ru-RU")}
                 </p>
                 <p className="text-sm whitespace-pre-wrap">Условия: {order.warranty.terms}</p>
                 <button
@@ -380,8 +386,7 @@ export const OrderPaperwork = ({
               </>
             ) : (
               <p className="text-sm text-slate-500">
-                Талон сформируется при выдаче заказа после подтверждения QR-кодом клиента и ввода
-                срока гарантии.
+                Талон сформируется автоматически при выдаче заказа. Единый срок гарантии — 1 год.
               </p>
             )}
           </section>

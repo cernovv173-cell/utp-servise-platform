@@ -76,7 +76,11 @@ export const printOrderDocument = async (
       .join("");
     body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake?.serialNumber)}</p><p>Адрес: ${escapeHtml(order.address)}</p><p>Неисправность со слов клиента: ${escapeHtml(order.problem)}</p><p>Диагностика / выполненные работы: ${escapeHtml(order.items.map((item) => item.name).join(", ") || "Заполните состав работ в карточке заявки")}</p><table><thead><tr><th>Работа / материал</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table><p>Состояние при приёме: ${escapeHtml(intake ? [intake.frontCondition, intake.backCondition, intake.leftCondition, intake.rightCondition].join("; ") : "Акт приёма ещё не заполнен")}</p>`;
   } else if (warranty) {
-    body = `<p>Номер талона: ${escapeHtml(warranty.warrantyNumber)}</p><p>Клиент: ${escapeHtml(warranty.customerName)}</p><p>Устройство: ${escapeHtml(warranty.deviceType)}</p><p>Работы по заявке: ${escapeHtml(warranty.repairSummary)}</p><p>Срок гарантии: ${escapeHtml(warranty.warrantyDays)} дней</p><p>Выдан: ${escapeHtml(date(warranty.issuedAt))}</p><p>Действует до: ${escapeHtml(date(warranty.expiresAt))}</p><h2>Условия</h2><p>${escapeHtml(warranty.terms)}</p>`;
+    const warrantyPeriod =
+      warranty.warrantyDays === 365 || warranty.warrantyDays === 366
+        ? "1 год"
+        : `${warranty.warrantyDays} дней`;
+    body = `<p>Номер талона: ${escapeHtml(warranty.warrantyNumber)}</p><p>Клиент: ${escapeHtml(warranty.customerName)}</p><p>Устройство: ${escapeHtml(warranty.deviceType)}</p><p>Работы по заявке: ${escapeHtml(warranty.repairSummary)}</p><p>Срок гарантии: ${escapeHtml(warrantyPeriod)}</p><p>Выдан: ${escapeHtml(date(warranty.issuedAt))}</p><p>Действует до: ${escapeHtml(date(warranty.expiresAt))}</p><h2>Условия</h2><p style="white-space:pre-wrap">${escapeHtml(warranty.terms)}</p>`;
   } else {
     printWindow.close();
     throw new Error("Этот документ пока не сформирован.");

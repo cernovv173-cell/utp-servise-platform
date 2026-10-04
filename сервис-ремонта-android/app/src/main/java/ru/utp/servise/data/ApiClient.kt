@@ -402,22 +402,18 @@ object ApiClient {
         )
     }
 
-    fun closeOrderByQr(token: String, qrPayload: String, warrantyDays: Int, warrantyTerms: String): RepairOrder = request(
+    fun closeOrderByQr(token: String, qrPayload: String): RepairOrder = request(
         "POST", "/orders/close-by-qr", token,
-        JSONObject().put("qrPayload", qrPayload).put("warrantyDays", warrantyDays)
-            .put("warrantyTerms", warrantyTerms),
+        JSONObject().put("qrPayload", qrPayload),
     ).getJSONObject("order").toOrder()
 
     fun closeOrderByPickupPin(
         token: String,
         serviceNumber: String,
         pickupPin: String,
-        warrantyDays: Int,
-        warrantyTerms: String,
     ): RepairOrder = request(
         "POST", "/orders/close-by-qr", token,
         JSONObject().put("serviceNumber", serviceNumber).put("pickupPin", pickupPin)
-            .put("warrantyDays", warrantyDays).put("warrantyTerms", warrantyTerms),
     ).getJSONObject("order").toOrder()
 
     fun downloadMedia(token: String, objectId: String): ByteArray =

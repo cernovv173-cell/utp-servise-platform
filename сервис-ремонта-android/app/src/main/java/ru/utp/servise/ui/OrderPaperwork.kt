@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -32,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -230,9 +230,10 @@ internal fun OrderPaperworkDialog(
                     Text("Клиент: ${warranty.customerName} · ${warranty.deviceType}", color = UtpInk)
                     Text("Работы: ${warranty.repairSummary}", color = UtpMuted)
                     Text(
-                        "Срок: ${warranty.warrantyDays} дней · до ${warranty.expiresAt.take(10)}",
+                        "Срок: ${warranty.warrantyDays.warrantyDaysLabel()} · до ${warranty.expiresAt.take(10)}",
                         color = UtpMuted,
                     )
+                    Text("Выдан: ${warranty.issuedAt.take(10)}", color = UtpMuted)
                     Text("Условия: ${warranty.terms}", color = UtpMuted)
                 }
                 if (role == "CUSTOMER" && order.status == "READY_FOR_PICKUP") {
@@ -283,13 +284,6 @@ internal fun PickupQrScannerDialog(
     val context = LocalContext.current
     var payload by remember { mutableStateOf("") }
     var pickupPin by remember { mutableStateOf("") }
-    var warrantyDays by remember { mutableStateOf("90") }
-    var terms by remember {
-        mutableStateOf(
-            "Гарантия распространяется на выполненные работы и установленные запчасти. " +
-                "Условия исключений уточняются при выдаче.",
-        )
-    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Выдача заказа") },
@@ -298,17 +292,10 @@ internal fun PickupQrScannerDialog(
                 Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                OutlinedTextField(
-                    warrantyDays,
-                    { warrantyDays = it.filter(Char::isDigit).take(4) },
-                    label = { Text("Гарантия, дней") },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    terms,
-                    { terms = it },
-                    label = { Text("Условия гарантии") },
-                    minLines = 3,
+                Text(
+                    "Постоянные условия гарантии: 1 год. После выдачи талон с датами, перечнем " +
+                        "работ и полным текстом условий сохранится в документах заявки.",
+                    color = UtpMuted,
                 )
                 OutlinedButton(onClick = {
                     GmsBarcodeScanning.getClient(context).startScan()
@@ -355,24 +342,16 @@ internal fun PickupQrScannerDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = (payload.isNotBlank() || pickupPin.length == 4) &&
-                    (warrantyDays.toIntOrNull() ?: 0) in 1..3650 && terms.trim().length >= 5,
+                enabled = payload.isNotBlank() || pickupPin.length == 4,
                 onClick = {
                     runAction({
                         if (payload.isNotBlank()) {
-                            ApiClient.closeOrderByQr(
-                                token,
-                                payload.trim(),
-                                warrantyDays.toInt(),
-                                terms.trim(),
-                            )
+                            ApiClient.closeOrderByQr(token, payload.trim())
                         } else {
                             ApiClient.closeOrderByPickupPin(
                                 token,
                                 serviceNumber,
                                 pickupPin,
-                                warrantyDays.toInt(),
-                                terms.trim(),
                             )
                         }
                     }) { onDismiss() }
@@ -382,6 +361,9 @@ internal fun PickupQrScannerDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
     )
 }
+
+private fun Int.warrantyDaysLabel(): String =
+    if (this == 365 || this == 366) "1 год" else "$this дней"
 
 @Composable
 private fun QrPayloadImage(payload: String) {
