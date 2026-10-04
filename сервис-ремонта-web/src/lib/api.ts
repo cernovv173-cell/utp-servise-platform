@@ -37,6 +37,7 @@ export type RepairOrder = {
   additionalPhone: string | null;
   additionalInfo: string | null;
   status: string;
+  archivedAt: string | null;
   preferredAt: string | null;
   expectedCompletionAt: string | null;
   redeemBonuses: boolean;

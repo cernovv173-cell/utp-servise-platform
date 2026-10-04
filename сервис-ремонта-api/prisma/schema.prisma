@@ -162,6 +162,7 @@ model RepairOrder {
   status               RepairStatus           @default(REQUESTED)
   createdAt            DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt           DateTime?              @map("archived_at") @db.Timestamptz(3)
   customer             User                   @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
   assignedTechnician   User?                  @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusEvents         RepairStatusEvent[]
@@ -176,6 +177,7 @@ model RepairOrder {
   @@index([customerId, createdAt])
   @@index([assignedTechnicianId, status, updatedAt])
   @@index([status, createdAt])
+  @@index([archivedAt, createdAt])
   @@map("repair_orders")
 }
 

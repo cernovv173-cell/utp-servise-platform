@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { ensureInitialAdmin } from "./features/auth/auth.routes.js";
 import { startNewsPushWorker } from "./features/news/news-push-worker.js";
+import { startOrderArchiveWorker } from "./features/orders/order-archive-worker.js";
 import { readConfig } from "./lib/config.js";
 import { createDatabase } from "./lib/database/database.js";
 import { runDatabaseMigrations } from "./lib/database/migrations.js";
@@ -38,6 +39,9 @@ const start = async (): Promise<void> => {
   const stopNewsPushWorker = database
     ? startNewsPushWorker(database.client)
     : () => undefined;
+  const stopOrderArchiveWorker = database
+    ? startOrderArchiveWorker(database.client)
+    : () => undefined;
   const server = app.listen(config.port, host, () => {
     logger.info({ host, port: config.port }, "Backend server started");
   });
@@ -48,6 +52,7 @@ const start = async (): Promise<void> => {
     isShuttingDown = true;
     logger.info({ signal }, "Backend server stopping");
     stopNewsPushWorker();
+    stopOrderArchiveWorker();
     server.close((serverError) => {
       void (database?.close() ?? Promise.resolve())
         .catch(() => {
