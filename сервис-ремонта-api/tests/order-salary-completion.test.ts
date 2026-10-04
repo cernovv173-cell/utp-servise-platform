@@ -30,6 +30,7 @@ test("completing a repair records 75 percent of service lines at the completion 
   let recordedSalary: Record<string, unknown> | undefined;
   let itemQuery: Record<string, unknown> | undefined;
   const transaction = {
+    $queryRaw: async () => [],
     repairOrder: {
       findUnique: async () => currentOrder,
       updateMany: async ({

@@ -19,17 +19,33 @@ const catalogCreateBody = z
     type: itemType,
     name: z.string().trim().min(2).max(160),
     unitPriceRub: z.number().int().min(0).max(10_000_000),
+    stockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (body) => body.type === "SPARE_PART" || body.stockQuantity === undefined,
+    {
+      message: "Услуги не учитываются на складе.",
+      path: ["stockQuantity"],
+    },
+  );
 const catalogUpdateBody = z
   .object({
     type: itemType.optional(),
     name: z.string().trim().min(2).max(160).optional(),
     unitPriceRub: z.number().int().min(0).max(10_000_000).optional(),
+    stockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
     active: z.boolean().optional(),
   })
   .strict()
-  .refine((body) => Object.keys(body).length > 0);
+  .refine((body) => Object.keys(body).length > 0)
+  .refine(
+    (body) => body.type !== "SERVICE" || body.stockQuantity === undefined,
+    {
+      message: "Услуги не учитываются на складе.",
+      path: ["stockQuantity"],
+    },
+  );
 
 const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly body: T }).body;
@@ -64,7 +80,12 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof catalogCreateBody>>(response);
       const catalogItem = await database.repairCatalogItem.create({
-        data: { ...input, createdById: user.id },
+        data: {
+          ...input,
+          stockQuantity:
+            input.type === "SPARE_PART" ? (input.stockQuantity ?? 0) : null,
+          createdById: user.id,
+        },
       });
       response.status(201).json({ catalogItem });
     },
@@ -84,7 +105,7 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
       const input = bodyOf<z.infer<typeof catalogUpdateBody>>(response);
       const existing = await database.repairCatalogItem.findUnique({
         where: { id: catalogItemId },
-        select: { id: true },
+        select: { id: true, type: true, stockQuantity: true },
       });
       if (!existing)
         throw new HttpError(
@@ -92,9 +113,36 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
           "CATALOG_ITEM_NOT_FOUND",
           "Позиция каталога не найдена.",
         );
+      const nextType = input.type ?? existing.type;
+      if (input.stockQuantity !== undefined && nextType !== "SPARE_PART") {
+        throw new HttpError(
+          400,
+          "SERVICE_STOCK_NOT_SUPPORTED",
+          "Остаток можно указать только для запчасти.",
+        );
+      }
+      if (
+        input.type === "SERVICE" &&
+        existing.type === "SPARE_PART" &&
+        existing.stockQuantity !== null &&
+        existing.stockQuantity > 0
+      ) {
+        throw new HttpError(
+          409,
+          "CATALOG_STOCK_NOT_EMPTY",
+          "Сначала обнулите остаток запчасти, затем измените тип позиции.",
+        );
+      }
       const catalogItem = await database.repairCatalogItem.update({
         where: { id: catalogItemId },
-        data: input,
+        data: {
+          ...input,
+          ...(input.type === "SERVICE"
+            ? { stockQuantity: null }
+            : input.type === "SPARE_PART" && existing.type === "SERVICE"
+              ? { stockQuantity: input.stockQuantity ?? 0 }
+              : {}),
+        },
       });
       response.json({ catalogItem });
     },

@@ -71,7 +71,14 @@ this pattern; HTML inputs also carry `required`, while native inputs name their 
 
 The `/catalog` page uses the API catalog shared with Android. Administrators can add and edit
 service and spare-part names/prices and deactivate or reactivate entries; technicians can view active
-items. Customer accounts do not have permission to browse this internal price catalog.
+items. Administrators can enter and correct spare-part stock balances; both administrators and
+technicians see recorded stock, while unrecorded legacy stock is identified separately. Services do
+not carry stock. Customer accounts do not have permission to browse this internal price catalog.
+
+On `/checks`, administrators manage each completed order's receipt separately in the shared list:
+they can adjust its service and spare-part quantities, add one manual service or product line, and
+save or revise an unpaid receipt. The server synchronizes those changes with the order, bonus
+discount and service-pay calculation. Paid receipts remain read-only.
 
 The `/login` screen can request a password-reset email. Its one-time link opens `/reset-password`,
 where the account owner can set a new password. The API enforces the 8-character minimum and

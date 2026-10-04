@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.RepairOrder
+import ru.utp.servise.data.FreeSaleReceiptDraftItem
+import ru.utp.servise.data.ReceiptDraftItemQuantity
 
 @Composable
 internal fun RepairReceiptPanel(
@@ -32,6 +34,7 @@ internal fun RepairReceiptPanel(
     runAction: RunAction,
 ) {
     var showPaymentMethods by remember(order.id) { mutableStateOf(false) }
+    var showReceiptEditor by remember(order.id) { mutableStateOf(false) }
     order.receipt?.let { receipt ->
         Spacer(Modifier.height(10.dp))
         Text("Чек ${receipt.receiptNumber}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
@@ -67,12 +70,35 @@ internal fun RepairReceiptPanel(
         ) { Text(if (order.redeemBonuses) "Не использовать бонусы" else "Использовать бонусы при оплате") }
     }
 
-    if (role == "ADMIN" && order.status == "COMPLETED" && order.receipt == null) {
+    if (
+        role == "ADMIN" && order.status == "COMPLETED" &&
+        order.receipt?.paymentStatus != "PAID"
+    ) {
         OutlinedButton(
-            onClick = { runAction({ ApiClient.createReceipt(token, order.id) }, {}) },
+            onClick = { showReceiptEditor = true },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             shape = RoundedCornerShape(12.dp),
-        ) { Text("Создать чек") }
+        ) { Text(if (order.receipt == null) "Составить чек" else "Изменить состав чека") }
+    }
+    if (showReceiptEditor) {
+        ReceiptDraftDialog(
+            order = order,
+            saving = false,
+            onDismiss = { showReceiptEditor = false },
+            onSave = { quantities: List<ReceiptDraftItemQuantity>, freeSale: FreeSaleReceiptDraftItem? ->
+                runAction(
+                    {
+                        ApiClient.createReceipt(
+                            token,
+                            order.id,
+                            quantities,
+                            freeSale,
+                        )
+                    },
+                    { showReceiptEditor = false },
+                )
+            },
+        )
     }
     if (role == "ADMIN" && order.receipt?.paymentStatus == "PENDING") {
         OutlinedButton(

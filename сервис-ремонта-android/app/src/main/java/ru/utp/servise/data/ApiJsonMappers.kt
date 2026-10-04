@@ -145,6 +145,7 @@ internal fun JSONObject.toCatalogItem() = CatalogItem(
     name = getString("name"),
     unitPriceRub = getInt("unitPriceRub"),
     active = optBoolean("active", true),
+    stockQuantity = if (isNull("stockQuantity")) null else optInt("stockQuantity"),
 )
 
 internal fun JSONObject.toCraftItem() = CraftItem(

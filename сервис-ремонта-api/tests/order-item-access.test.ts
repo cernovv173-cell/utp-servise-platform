@@ -71,6 +71,7 @@ test("only admins and the assigned technician can append order items", async (t)
   ];
   const userById = new Map(users.map((user) => [user.id, user]));
   const client = {
+    $queryRaw: async () => [],
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
         const user = users.find(

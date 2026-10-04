@@ -62,10 +62,17 @@ object ApiClient {
     fun catalog(token: String): List<CatalogItem> = request("GET", "/catalog", token)
         .getJSONArray("catalogItems").mapObjects { it.toCatalogItem() }
 
-    fun createCatalogItem(token: String, type: String, name: String, unitPriceRub: Int): CatalogItem = request(
-        "POST", "/catalog", token,
-        JSONObject().put("type", type).put("name", name).put("unitPriceRub", unitPriceRub),
-    ).getJSONObject("catalogItem").toCatalogItem()
+    fun createCatalogItem(
+        token: String,
+        type: String,
+        name: String,
+        unitPriceRub: Int,
+        stockQuantity: Int? = null,
+    ): CatalogItem {
+        val body = JSONObject().put("type", type).put("name", name).put("unitPriceRub", unitPriceRub)
+        if (type == "SPARE_PART") body.put("stockQuantity", stockQuantity ?: 0)
+        return request("POST", "/catalog", token, body).getJSONObject("catalogItem").toCatalogItem()
+    }
 
     fun updateCatalogItem(token: String, item: CatalogItem): CatalogItem = request(
         "PATCH", "/catalog/${item.id}", token,
@@ -73,7 +80,12 @@ object ApiClient {
             .put("type", item.type)
             .put("name", item.name)
             .put("unitPriceRub", item.unitPriceRub)
-            .put("active", item.active),
+            .put("active", item.active)
+            .apply {
+                if (item.type == "SPARE_PART" && item.stockQuantity != null) {
+                    put("stockQuantity", item.stockQuantity)
+                }
+            },
     ).getJSONObject("catalogItem").toCatalogItem()
 
     fun craftItems(token: String): List<CraftItem> = request("GET", "/craft-items", token)
@@ -280,9 +292,37 @@ object ApiClient {
         JSONObject().put("redeemBonuses", redeem),
     ).getJSONObject("order").toOrder()
 
-    fun createReceipt(token: String, orderId: String): RepairReceipt = request(
-        "POST", "/orders/$orderId/receipt", token,
-    ).getJSONObject("receipt").toRepairReceipt()
+    fun createReceipt(
+        token: String,
+        orderId: String,
+        itemQuantities: List<ReceiptDraftItemQuantity>,
+        freeSaleItem: FreeSaleReceiptDraftItem?,
+    ): RepairReceipt {
+        val quantitiesJson = org.json.JSONArray().apply {
+            itemQuantities.forEach { item ->
+                put(JSONObject().put("itemId", item.itemId).put("quantity", item.quantity))
+            }
+        }
+        val freeSaleJson = org.json.JSONArray().apply {
+            freeSaleItem?.let { item ->
+                put(
+                    JSONObject()
+                        .put("type", item.type)
+                        .put("name", item.name)
+                        .put("quantity", item.quantity)
+                        .put("unitPriceRub", item.unitPriceRub),
+                )
+            }
+        }
+        return request(
+            "POST",
+            "/orders/$orderId/receipt",
+            token,
+            JSONObject()
+                .put("itemQuantities", quantitiesJson)
+                .put("freeSaleItems", freeSaleJson),
+        ).getJSONObject("receipt").toRepairReceipt()
+    }
 
     fun markReceiptPaid(token: String, orderId: String, method: String): RepairReceipt = request(
         "PATCH", "/orders/$orderId/receipt/payment", token,

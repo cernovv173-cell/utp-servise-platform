@@ -43,18 +43,21 @@ fun OrderItemPickerDialog(
     onDismiss: () -> Unit,
     onAdd: (catalogItemId: String, quantity: Int) -> Unit,
 ) {
-    var selectedId by remember(catalogItems) {
-        mutableStateOf(catalogItems.firstOrNull()?.id.orEmpty())
+    val availableItems = catalogItems.filterNot {
+        it.type == "SPARE_PART" && it.stockQuantity == 0
+    }
+    var selectedId by remember(availableItems) {
+        mutableStateOf(availableItems.firstOrNull()?.id.orEmpty())
     }
     var quantityText by remember { mutableStateOf("1") }
-    val selectedItem = catalogItems.firstOrNull { it.id == selectedId }
+    val selectedItem = availableItems.firstOrNull { it.id == selectedId }
     val quantity = quantityText.toIntOrNull()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Добавить из каталога") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                if (catalogItems.isEmpty()) {
+                if (availableItems.isEmpty()) {
                     Text("Активных позиций пока нет. Попросите администратора добавить их в каталог.", color = UtpMuted)
                 } else {
                     Text("Выберите услугу или запчасть:", fontSize = 12.sp, color = UtpMuted)
@@ -62,20 +65,20 @@ fun OrderItemPickerDialog(
                         Modifier.fillMaxWidth().heightIn(max = 330.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        catalogItems.forEach { item ->
+                        availableItems.forEach { item ->
                             val onSelected = selectedId == item.id
                             if (onSelected) {
                                 Button(onClick = { selectedId = item.id }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                                         Text("${item.type.orderItemTypeLabel()} · ${item.name}")
-                                        Text("${item.unitPriceRub} ₽ за единицу", fontSize = 11.sp)
+                                        Text(itemStockLabel(item), fontSize = 11.sp)
                                     }
                                 }
                             } else {
                                 OutlinedButton(onClick = { selectedId = item.id }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                                         Text("${item.type.orderItemTypeLabel()} · ${item.name}", color = UtpInk)
-                                        Text("${item.unitPriceRub} ₽ за единицу", fontSize = 11.sp, color = UtpMuted)
+                                        Text(itemStockLabel(item), fontSize = 11.sp, color = UtpMuted)
                                     }
                                 }
                             }
@@ -117,6 +120,7 @@ fun CatalogManagementScreen(
     var type by remember { mutableStateOf("SERVICE") }
     var name by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
+    var stockText by remember { mutableStateOf("0") }
     var editedItem by remember { mutableStateOf<CatalogItem?>(null) }
     val price = priceText.toIntOrNull()
 
@@ -153,14 +157,35 @@ fun CatalogManagementScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 )
+                if (type == "SPARE_PART") {
+                    OutlinedTextField(
+                        value = stockText,
+                        onValueChange = { stockText = it.filter(Char::isDigit).take(10) },
+                        label = { Text("Начальный остаток, шт.") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                }
                 Button(
                     onClick = {
-                        runAction({ ApiClient.createCatalogItem(token, type, name.trim(), price!!) }) {
+                        runAction({
+                            ApiClient.createCatalogItem(
+                                token,
+                                type,
+                                name.trim(),
+                                price!!,
+                                if (type == "SPARE_PART") stockText.toIntOrNull() ?: 0 else null,
+                            )
+                        }) {
                             name = ""
                             priceText = ""
+                            stockText = "0"
                         }
                     },
-                    enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000,
+                    enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
+                        (type != "SPARE_PART" || stockText.toIntOrNull() != null),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Добавить в каталог") }
@@ -175,7 +200,13 @@ fun CatalogManagementScreen(
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     Text("${item.type.orderItemTypeLabel()} · ${item.name}", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("${item.unitPriceRub} ₽ · ${if (item.active) "Активна" else "Скрыта из выбора"}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 3.dp))
+                    Text(
+                        "${item.unitPriceRub} ₽ · ${if (item.active) "Активна" else "Скрыта из выбора"}" +
+                            if (item.type == "SPARE_PART") " · ${item.stockQuantity?.let { "$it шт. в наличии" } ?: "остаток не задан"}" else "",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 3.dp),
+                    )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { editedItem = item }) { Text("Изменить") }
                         TextButton(
@@ -210,6 +241,7 @@ private fun CatalogItemEditDialog(
     var type by remember(item.id) { mutableStateOf(item.type) }
     var name by remember(item.id) { mutableStateOf(item.name) }
     var priceText by remember(item.id) { mutableStateOf(item.unitPriceRub.toString()) }
+    var stockText by remember(item.id) { mutableStateOf((item.stockQuantity ?: 0).toString()) }
     val price = priceText.toIntOrNull()
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -232,15 +264,42 @@ private fun CatalogItemEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 )
+                if (type == "SPARE_PART") {
+                    OutlinedTextField(
+                        value = stockText,
+                        onValueChange = { stockText = it.filter(Char::isDigit).take(10) },
+                        label = { Text("Остаток, шт.") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                }
                 Text("Изменение каталога не меняет цены уже добавленных в заказы позиций.", fontSize = 11.sp, color = UtpMuted)
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(item.copy(type = type, name = name.trim(), unitPriceRub = price!!)) },
-                enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000,
+                onClick = {
+                    onSave(
+                        item.copy(
+                            type = type,
+                            name = name.trim(),
+                            unitPriceRub = price!!,
+                            stockQuantity = if (type == "SPARE_PART") stockText.toIntOrNull() else null,
+                        ),
+                    )
+                },
+                enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
+                    (type != "SPARE_PART" || stockText.toIntOrNull() != null),
             ) { Text("Сохранить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
     )
 }
+
+private fun itemStockLabel(item: CatalogItem): String =
+    "${item.unitPriceRub} ₽ за единицу" +
+        if (item.type == "SPARE_PART") {
+            " · ${item.stockQuantity?.let { "$it шт. в наличии" } ?: "остаток не задан"}"
+        } else ""

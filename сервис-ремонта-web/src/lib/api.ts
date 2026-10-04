@@ -42,7 +42,13 @@ export type RepairOrder = {
   redeemBonuses: boolean;
   bonusDiscountRub: number;
   createdAt: string;
-  items: { id: string; name: string; quantity: number; unitPriceRub: number }[];
+  items: {
+    id: string;
+    type: "SERVICE" | "SPARE_PART";
+    name: string;
+    quantity: number;
+    unitPriceRub: number;
+  }[];
   review?: { id: string } | null;
   receipt?: RepairReceipt | null;
   assignedTechnicianId?: string | null;
@@ -73,6 +79,16 @@ export type RepairReceipt = {
   itemsSnapshot: { name: string; quantity: number; unitPriceRub: number; totalRub: number }[];
 };
 
+export type ReceiptDraft = {
+  itemQuantities: { itemId: string; quantity: number }[];
+  freeSaleItems: {
+    type: "SERVICE" | "SPARE_PART";
+    name: string;
+    quantity: number;
+    unitPriceRub: number;
+  }[];
+};
+
 export type NewsArticle = {
   id: string;
   title: string;
@@ -90,6 +106,7 @@ export type RepairCatalogItem = {
   type: "SERVICE" | "SPARE_PART";
   name: string;
   unitPriceRub: number;
+  stockQuantity: number | null;
   active: boolean;
 };
 
@@ -276,7 +293,9 @@ export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
 
 export const createRepairCatalogItem = (
   token: string,
-  input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub">,
+  input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
+    stockQuantity?: number;
+  },
 ) =>
   apiRequest<{ catalogItem: RepairCatalogItem }>("/catalog", token, {
     method: "POST",
@@ -286,7 +305,9 @@ export const createRepairCatalogItem = (
 export const updateRepairCatalogItem = (
   token: string,
   id: string,
-  input: Partial<Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "active">>,
+  input: Partial<
+    Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "stockQuantity" | "active">
+  >,
 ) =>
   apiRequest<{ catalogItem: RepairCatalogItem }>(`/catalog/${id}`, token, {
     method: "PATCH",
@@ -378,8 +399,15 @@ export const requestBonusRedemption = (token: string, orderId: string, redeemBon
     body: JSON.stringify({ redeemBonuses }),
   });
 
-export const createRepairReceipt = (token: string, orderId: string) =>
-  apiRequest<{ receipt: RepairReceipt }>(`/orders/${orderId}/receipt`, token, { method: "POST" });
+export const createRepairReceipt = (
+  token: string,
+  orderId: string,
+  draft: ReceiptDraft = { itemQuantities: [], freeSaleItems: [] },
+) =>
+  apiRequest<{ receipt: RepairReceipt }>(`/orders/${orderId}/receipt`, token, {
+    method: "POST",
+    body: JSON.stringify(draft),
+  });
 
 export const markReceiptPaid = (
   token: string,

@@ -48,6 +48,7 @@ test("only administrators manage the shared catalog and technicians see active p
       type: "SERVICE",
       name: "Диагностика",
       unitPriceRub: 1800,
+      stockQuantity: null,
       active: true,
       createdById: "admin-1",
     },
@@ -56,6 +57,7 @@ test("only administrators manage the shared catalog and technicians see active p
       type: "SPARE_PART",
       name: "Старый аккумулятор",
       unitPriceRub: 4500,
+      stockQuantity: null,
       active: false,
       createdById: "admin-1",
     },
@@ -142,7 +144,28 @@ test("only administrators manage the shared catalog and technicians see active p
     }),
   });
   assert.equal(createItem.status, 201);
-  assert.equal((await createItem.json()).catalogItem.createdById, "admin-1");
+  const createdSparePart = (await createItem.json()).catalogItem;
+  assert.equal(createdSparePart.createdById, "admin-1");
+  assert.equal(createdSparePart.stockQuantity, 0);
+
+  const activeCatalogItemId = "33333333-3333-4333-8333-333333333334";
+  const stockUpdate = await fetch(
+    `${baseUrl}/33333333-3333-4333-8333-333333333335`,
+    {
+      method: "PATCH",
+      headers: headers(adminToken),
+      body: JSON.stringify({ stockQuantity: 12 }),
+    },
+  );
+  assert.equal(stockUpdate.status, 200);
+  assert.equal((await stockUpdate.json()).catalogItem.stockQuantity, 12);
+
+  const serviceStockUpdate = await fetch(`${baseUrl}/${activeCatalogItemId}`, {
+    method: "PATCH",
+    headers: headers(adminToken),
+    body: JSON.stringify({ stockQuantity: 12 }),
+  });
+  assert.equal(serviceStockUpdate.status, 400);
 
   const technicianCreate = await fetch(baseUrl, {
     method: "POST",
@@ -155,7 +178,6 @@ test("only administrators manage the shared catalog and technicians see active p
   });
   assert.equal(technicianCreate.status, 403);
 
-  const activeCatalogItemId = "33333333-3333-4333-8333-333333333334";
   const technicianUpdate = await fetch(`${baseUrl}/${activeCatalogItemId}`, {
     method: "PATCH",
     headers: headers(technicianToken),

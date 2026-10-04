@@ -27,6 +27,10 @@ import {
 } from "./order-policy.js";
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
+const orderItemParams = z.object({
+  orderId: z.string().uuid(),
+  itemId: z.string().uuid(),
+});
 const reviewIdParams = z.object({ reviewId: z.string().uuid() });
 const moderateReviewBody = z.object({ isPublished: z.boolean() }).strict();
 const contactPhone = z
@@ -598,6 +602,36 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         for (const requestedItem of requestedItems) {
           const currentItem = itemById.get(requestedItem.itemId)!;
           if (currentItem.quantity === requestedItem.quantity) continue;
+          const quantityDelta = requestedItem.quantity - currentItem.quantity;
+          if (
+            quantityDelta > 0 &&
+            currentItem.type === "SPARE_PART" &&
+            currentItem.catalogItemId
+          ) {
+            const stockUpdate = await transaction.repairCatalogItem.updateMany({
+              where: {
+                id: currentItem.catalogItemId,
+                stockQuantity: { gte: quantityDelta },
+              },
+              data: { stockQuantity: { decrement: quantityDelta } },
+            });
+            if (stockUpdate.count !== 1) {
+              throw new HttpError(
+                409,
+                "INSUFFICIENT_SPARE_PART_STOCK",
+                "Недостаточно запчастей на складе для изменения количества.",
+              );
+            }
+          } else if (
+            quantityDelta < 0 &&
+            currentItem.type === "SPARE_PART" &&
+            currentItem.catalogItemId
+          ) {
+            await transaction.repairCatalogItem.updateMany({
+              where: { id: currentItem.catalogItemId },
+              data: { stockQuantity: { increment: -quantityDelta } },
+            });
+          }
           const updatedItem = await transaction.repairOrderItem.update({
             where: { id: currentItem.id },
             data: { quantity: requestedItem.quantity },
@@ -911,6 +945,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const { status, note } = bodyOf<z.infer<typeof statusBody>>(response);
       const user = getAuthenticatedUser(response);
       const order = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
+        `;
         const current = await transaction.repairOrder.findUnique({
           where: { id: orderId },
         });
@@ -938,6 +975,24 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "ORDER_CHANGED",
             "Заявка уже изменилась. Обновите список и повторите действие.",
           );
+        if (status === "CANCELLED") {
+          const reservedParts = await transaction.repairOrderItem.findMany({
+            where: {
+              orderId,
+              type: "SPARE_PART",
+              catalogItemId: { not: null },
+            },
+            select: { catalogItemId: true, quantity: true },
+          });
+          for (const part of reservedParts) {
+            if (part.catalogItemId) {
+              await transaction.repairCatalogItem.updateMany({
+                where: { id: part.catalogItemId },
+                data: { stockQuantity: { increment: part.quantity } },
+              });
+            }
+          }
+        }
         const statusEvent = await transaction.repairStatusEvent.create({
           data: {
             orderId,
@@ -993,15 +1048,34 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const input = bodyOf<z.infer<typeof orderItemBody>>(response);
       const user = getAuthenticatedUser(response);
       const order = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
+        `;
         const existing = await transaction.repairOrder.findUnique({
           where: { id: orderId },
-          select: { id: true, assignedTechnicianId: true },
+          select: { id: true, assignedTechnicianId: true, status: true },
         });
         if (!existing || !canAddRepairOrderItem(user.role, user.id, existing))
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        if (
+          existing.status === "COMPLETED" ||
+          existing.status === "CANCELLED"
+        ) {
+          throw new HttpError(
+            409,
+            "ORDER_NOT_EDITABLE",
+            "Нельзя добавлять позиции в закрытую заявку.",
+          );
+        }
         const catalogItem = await transaction.repairCatalogItem.findFirst({
           where: { id: input.catalogItemId, active: true },
-          select: { id: true, type: true, name: true, unitPriceRub: true },
+          select: {
+            id: true,
+            type: true,
+            name: true,
+            unitPriceRub: true,
+            stockQuantity: true,
+          },
         });
         if (!catalogItem)
           throw new HttpError(
@@ -1009,6 +1083,25 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "CATALOG_ITEM_NOT_AVAILABLE",
             "Позиция больше недоступна в каталоге. Обновите список.",
           );
+        if (
+          catalogItem.type === "SPARE_PART" &&
+          catalogItem.stockQuantity !== null
+        ) {
+          const stockUpdate = await transaction.repairCatalogItem.updateMany({
+            where: {
+              id: catalogItem.id,
+              stockQuantity: { gte: input.quantity },
+            },
+            data: { stockQuantity: { decrement: input.quantity } },
+          });
+          if (stockUpdate.count !== 1) {
+            throw new HttpError(
+              409,
+              "INSUFFICIENT_SPARE_PART_STOCK",
+              "Недостаточно запчастей на складе.",
+            );
+          }
+        }
         await transaction.repairOrderItem.create({
           data: {
             orderId,
@@ -1032,6 +1125,77 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         "Изменён состав услуг или запчастей по заявке.",
       );
       response.status(201).json({ order });
+    },
+  );
+
+  router.delete(
+    "/orders/:orderId/items/:itemId",
+    requireAuth,
+    requireRoles("ADMIN", "TECHNICIAN"),
+    validateRequest({ params: orderItemParams }),
+    async (_request, response) => {
+      const { orderId, itemId } =
+        paramsOf<z.infer<typeof orderItemParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
+        `;
+        const currentOrder = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          select: {
+            id: true,
+            assignedTechnicianId: true,
+            status: true,
+            receipt: { select: { paymentStatus: true } },
+          },
+        });
+        if (
+          !currentOrder ||
+          !canAddRepairOrderItem(user.role, user.id, currentOrder)
+        ) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
+        if (
+          currentOrder.status === "COMPLETED" ||
+          currentOrder.status === "CANCELLED" ||
+          currentOrder.receipt?.paymentStatus === "PAID"
+        ) {
+          throw new HttpError(
+            409,
+            "ORDER_NOT_EDITABLE",
+            "Нельзя удалить позицию из закрытой или оплаченной заявки.",
+          );
+        }
+        const item = await transaction.repairOrderItem.findFirst({
+          where: { id: itemId, orderId },
+        });
+        if (!item) {
+          throw new HttpError(
+            404,
+            "ORDER_ITEM_NOT_FOUND",
+            "Позиция не найдена в этой заявке.",
+          );
+        }
+        if (item.type === "SPARE_PART" && item.catalogItemId) {
+          await transaction.repairCatalogItem.updateMany({
+            where: { id: item.catalogItemId },
+            data: { stockQuantity: { increment: item.quantity } },
+          });
+        }
+        await transaction.repairOrderItem.delete({ where: { id: item.id } });
+        return transaction.repairOrder.findUniqueOrThrow({
+          where: { id: orderId },
+          include: orderDetails(user.role),
+        });
+      });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        user.id,
+        "Изменён состав услуг или запчастей по заявке.",
+      );
+      response.json({ order });
     },
   );
 

@@ -2,12 +2,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileText, Printer } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { ReceiptDraftEditor } from "@/features/checks/receipt-draft-editor";
 
-import { type RepairReceipt, createRepairReceipt, getOrders, markReceiptPaid } from "@/lib/api";
+import {
+  type ReceiptDraft,
+  type RepairReceipt,
+  createRepairReceipt,
+  getOrders,
+  markReceiptPaid,
+} from "@/lib/api";
 
 const paymentLabels: Record<NonNullable<RepairReceipt["paymentMethod"]>, string> = {
   CASH: "Наличные",
@@ -28,8 +36,10 @@ const ChecksPage = () => {
     enabled: Boolean(token),
   });
   const issue = useMutation({
-    mutationFn: (orderId: string) => createRepairReceipt(token!, orderId),
+    mutationFn: ({ orderId, draft }: { orderId: string; draft: ReceiptDraft }) =>
+      createRepairReceipt(token!, orderId, draft),
     onSuccess: () => client.invalidateQueries({ queryKey: ["orders", token] }),
+    onError: () => toast.error("Не удалось сохранить состав чека."),
   });
   const markPaid = useMutation({
     mutationFn: ({
@@ -148,15 +158,18 @@ const ChecksPage = () => {
                   )}
                 </div>
               )}
+              {user?.role === "ADMIN" &&
+                order.status === "COMPLETED" &&
+                order.receipt?.paymentStatus !== "PAID" && (
+                  <ReceiptDraftEditor
+                    items={order.items}
+                    receiptExists={Boolean(order.receipt)}
+                    saving={issue.isPending}
+                    onSubmit={(draft) => issue.mutate({ orderId: order.id, draft })}
+                  />
+                )}
               {user?.role === "ADMIN" && order.status === "COMPLETED" && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 print:hidden">
-                  <button
-                    disabled={order.receipt?.paymentStatus === "PAID" || issue.isPending}
-                    onClick={() => issue.mutate(order.id)}
-                    className="min-h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
-                  >
-                    {order.receipt ? "Обновить чек" : "Создать чек"}
-                  </button>
                   {order.receipt?.paymentStatus === "PENDING" && (
                     <>
                       <select

@@ -28,8 +28,11 @@ const CatalogPage = () => {
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["repair-catalog", token] });
   const create = useMutation({
-    mutationFn: (input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub">) =>
-      createRepairCatalogItem(token!, input),
+    mutationFn: (
+      input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
+        stockQuantity?: number;
+      },
+    ) => createRepairCatalogItem(token!, input),
     onSuccess: async () => {
       toast.success("Позиция добавлена в каталог.");
       await refresh();
@@ -42,7 +45,9 @@ const CatalogPage = () => {
       input,
     }: {
       id: string;
-      input: Partial<Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "active">>;
+      input: Partial<
+        Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "stockQuantity" | "active">
+      >;
     }) => updateRepairCatalogItem(token!, id, input),
     onSuccess: async () => {
       toast.success("Каталог обновлён.");
@@ -61,6 +66,7 @@ const CatalogPage = () => {
         type: newType,
         name: String(data.get("name")).trim(),
         unitPriceRub: Number(data.get("unitPriceRub")),
+        ...(newType === "SPARE_PART" ? { stockQuantity: Number(data.get("stockQuantity")) } : {}),
       },
       { onSuccess: () => form.reset() },
     );
@@ -126,6 +132,21 @@ const CatalogPage = () => {
                     className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
                   />
                 </label>
+                {newType === "SPARE_PART" && (
+                  <label className="grid gap-1 text-sm font-medium">
+                    Начальный остаток, шт. <span aria-hidden="true">*</span>
+                    <input
+                      name="stockQuantity"
+                      type="number"
+                      min={0}
+                      max={2147483647}
+                      step={1}
+                      required
+                      defaultValue={0}
+                      className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
+                    />
+                  </label>
+                )}
                 <button
                   type="submit"
                   disabled={create.isPending}
@@ -195,7 +216,9 @@ const CatalogItemRow = ({
   editable: boolean;
   saving: boolean;
   onSave: (
-    input: Partial<Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "active">>,
+    input: Partial<
+      Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "stockQuantity" | "active">
+    >,
   ) => void;
 }) => {
   const [type, setType] = useState(item.type);
@@ -207,6 +230,7 @@ const CatalogItemRow = ({
       type,
       name: String(data.get("name")).trim(),
       unitPriceRub: Number(data.get("unitPriceRub")),
+      ...(type === "SPARE_PART" ? { stockQuantity: Number(data.get("stockQuantity")) } : {}),
     });
     setShowEditor(false);
   };
@@ -217,7 +241,11 @@ const CatalogItemRow = ({
         <div>
           <p className="font-medium">{item.name}</p>
           <p className="mt-1 text-sm text-slate-500">
-            {item.unitPriceRub.toLocaleString("ru-RU")} ₽ · {item.active ? "Активна" : "Скрыта"}
+            {item.unitPriceRub.toLocaleString("ru-RU")} ₽
+            {item.type === "SPARE_PART"
+              ? ` · Остаток: ${item.stockQuantity === null ? "не задан" : `${item.stockQuantity} шт.`}`
+              : ""}
+            {` · ${item.active ? "Активна" : "Скрыта"}`}
           </p>
         </div>
         {editable && (
@@ -282,6 +310,21 @@ const CatalogItemRow = ({
               className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
+          {type === "SPARE_PART" && (
+            <label className="grid gap-1 text-sm font-medium">
+              Остаток, шт.
+              <input
+                name="stockQuantity"
+                type="number"
+                defaultValue={item.type === "SPARE_PART" ? (item.stockQuantity ?? 0) : 0}
+                min={0}
+                max={2147483647}
+                step={1}
+                required
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
+              />
+            </label>
+          )}
           <button
             type="submit"
             disabled={saving}

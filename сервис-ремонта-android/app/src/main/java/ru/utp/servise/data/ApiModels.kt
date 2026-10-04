@@ -30,6 +30,15 @@ data class ReceiptItem(
     val totalRub: Int,
 )
 
+data class ReceiptDraftItemQuantity(val itemId: String, val quantity: Int)
+
+data class FreeSaleReceiptDraftItem(
+    val type: String,
+    val name: String,
+    val quantity: Int,
+    val unitPriceRub: Int,
+)
+
 data class RepairReceipt(
     val id: String,
     val receiptNumber: String,
@@ -136,6 +145,7 @@ data class CatalogItem(
     val name: String,
     val unitPriceRub: Int,
     val active: Boolean,
+    val stockQuantity: Int? = null,
 )
 
 data class CraftItem(
