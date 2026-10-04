@@ -11,6 +11,7 @@ import { CustomerPickupQr } from "@/features/orders/customer-pickup-qr";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
   createOrder,
@@ -317,6 +318,7 @@ const OrdersPage = () => {
                 {statusLabels[order.status] ?? order.status}
               </span>
             </div>
+            <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
             {order.archivedAt && (
               <p className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 dark:border-[#7855c7]/50 dark:bg-[#211841] dark:text-[#d4b7ff]">
                 В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}

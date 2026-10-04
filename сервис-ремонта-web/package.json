@@ -26,6 +26,7 @@
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "^1.170.18",
     "@zxing/browser": "^0.2.1",
+    "jsbarcode": "^3.12.3",
     "lucide-react": "^1.41.0",
     "motion": "^13.1.1",
     "qrcode.react": "^4.2.0",

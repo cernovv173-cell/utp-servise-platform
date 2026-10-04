@@ -73,6 +73,7 @@ internal fun RepairOrderCard(
     ) {
         Column(Modifier.padding(16.dp)) {
             Text(order.serviceNumber, fontSize = 11.sp, color = UtpBlue, fontWeight = FontWeight.SemiBold)
+            ServiceNumberBarcode(order.serviceNumber)
             order.archivedAt?.let { archivedAt ->
                 Text(
                     "АРХИВ · ${formatArchiveDate(archivedAt)}",

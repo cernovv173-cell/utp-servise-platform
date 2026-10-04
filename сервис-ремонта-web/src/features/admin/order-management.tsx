@@ -8,6 +8,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
   assignOrder,
@@ -133,6 +134,7 @@ export const OrderManagement = () => {
                 {statusLabels[order.status] ?? order.status}
               </span>
             </div>
+            <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <label className="grid gap-1 text-xs font-medium">
                 Срок ремонта

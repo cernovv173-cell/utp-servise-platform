@@ -89,6 +89,10 @@ Administrators can open the dedicated `/admin/orders` page from the navigation o
 It keeps the full repair-request list together while status, technician, deadline and contact edits
 are scoped to each individual order card.
 
+Customer and administrator order cards show a Code 128 barcode generated from the order's existing
+unique service number. The barcode is derived at display time, so it adds no database field and does
+not replace the separate pickup QR code.
+
 Administrators can also start a repair order from the fixed “СТАРТ / СТОП — Создать заявку” action.
 The form supports an existing client or registering a new client with their email as the login;
 the generated temporary password is shown once after account creation, and the client must change
