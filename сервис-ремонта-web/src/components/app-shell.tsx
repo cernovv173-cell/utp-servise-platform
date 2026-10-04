@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   Bell,
@@ -9,6 +10,7 @@ import {
   LogOut,
   Moon,
   Newspaper,
+  Power,
   Sparkles,
   Star,
   Sun,
@@ -17,6 +19,7 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 
+import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { useAuth } from "@/features/auth/auth-context";
 
 const links = [
@@ -35,6 +38,7 @@ const links = [
 
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
   const { user, ready, logout } = useAuth();
+  const queryClient = useQueryClient();
   const [dark, setDark] = useState(() => localStorage.getItem("utp-web-theme") !== "light");
 
   useEffect(() => {
@@ -172,6 +176,23 @@ export const AppShell = ({ active, children }: { active: string; children: React
         </nav>
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">{children}</main>
       </div>
+      {user.role === "ADMIN" && (
+        <div className="fixed right-5 bottom-5 z-30">
+          <AdminOrderCreate
+            onCreated={() => queryClient.invalidateQueries({ queryKey: ["orders"] })}
+            trigger={
+              <>
+                <Power size={18} aria-hidden="true" />
+                <span className="grid text-left leading-tight">
+                  <span className="text-[10px] tracking-[0.16em]">СТАРТ / СТОП</span>
+                  <span>Создать заявку</span>
+                </span>
+              </>
+            }
+            triggerClassName="flex min-h-14 items-center gap-3 rounded-full border border-cyan-200/50 bg-gradient-to-r from-[#102a4e] via-[#2855a8] to-[#57378e] px-5 text-sm font-semibold text-white shadow-[0_8px_32px_rgba(49,114,255,0.38)] transition hover:scale-[1.03] hover:shadow-[0_10px_38px_rgba(64,204,255,0.4)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300"
+          />
+        </div>
+      )}
     </div>
   );
 };

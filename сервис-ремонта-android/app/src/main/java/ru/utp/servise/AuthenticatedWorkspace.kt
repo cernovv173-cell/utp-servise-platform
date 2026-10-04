@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -17,7 +18,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -152,6 +156,22 @@ internal fun AuthenticatedWorkspace(
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        floatingActionButton = {
+            if (user.role == "ADMIN" && currentRoute != "admin/new-order") {
+                ExtendedFloatingActionButton(
+                    onClick = { navController.navigate("admin/new-order") { launchSingleTop = true } },
+                    icon = { Text("⏻", fontSize = 20.sp) },
+                    text = {
+                        Column {
+                            Text("СТАРТ / СТОП", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                            Text("Создать заявку", fontWeight = FontWeight.SemiBold)
+                        }
+                    },
+                    containerColor = UtpBlue,
+                    contentColor = Color.White,
+                )
+            }
+        },
         bottomBar = {
             if (currentRoute in mainRoutes) {
                 NavigationBar {
@@ -237,7 +257,7 @@ internal fun AuthenticatedWorkspace(
                             composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
                         }
                         else -> {
-                            composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh, onReview = {}, onCreateOrder = { navController.navigate("admin/new-order") }) }
+                            composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh, onReview = {}) }
                             composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, catalogItems, true, runAction, refresh, onReview = {}) }
                             composable("admin/new-order") {
                                 AdminOrderCreationScreen(

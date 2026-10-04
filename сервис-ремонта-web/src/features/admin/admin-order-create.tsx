@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -19,7 +19,15 @@ import { type AdminCustomer, createAdminOrder, getAdminCustomers } from "@/lib/a
 const fieldClassName =
   "h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal dark:border-slate-700 dark:bg-slate-950";
 
-export const AdminOrderCreate = ({ onCreated }: { onCreated: () => void }) => {
+export const AdminOrderCreate = ({
+  onCreated,
+  trigger,
+  triggerClassName,
+}: {
+  onCreated: () => void;
+  trigger?: ReactNode;
+  triggerClassName?: string;
+}) => {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
   const [customerSearch, setCustomerSearch] = useState("");
@@ -68,9 +76,12 @@ export const AdminOrderCreate = ({ onCreated }: { onCreated: () => void }) => {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="min-h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+        className={
+          triggerClassName ??
+          "min-h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+        }
       >
-        Создать заявку
+        {trigger ?? "Создать заявку"}
       </button>
       <ModalContent className="max-w-2xl dark:border-slate-700 dark:bg-slate-900 dark:text-white">
         <ModalHeader>
