@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { FileText, Printer } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
@@ -30,6 +30,18 @@ const ChecksPage = () => {
   const [paymentMethods, setPaymentMethods] = useState<
     Record<string, NonNullable<RepairReceipt["paymentMethod"]>>
   >({});
+  const [printingOrderId, setPrintingOrderId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!printingOrderId) return;
+    const finishPrint = () => setPrintingOrderId(null);
+    const printFrame = window.setTimeout(() => window.print(), 0);
+    window.addEventListener("afterprint", finishPrint);
+    return () => {
+      window.clearTimeout(printFrame);
+      window.removeEventListener("afterprint", finishPrint);
+      document.body.classList.remove("print-single-receipt");
+    };
+  }, [printingOrderId]);
   const query = useQuery({
     queryKey: ["orders", token],
     queryFn: ({ signal }) => getOrders(token!, signal),
@@ -65,7 +77,11 @@ const ChecksPage = () => {
             0,
           );
           return (
-            <SectionCard key={order.id} className="print:break-inside-avoid">
+            <SectionCard
+              key={order.id}
+              dataPrintTarget={printingOrderId === order.id ? "true" : "false"}
+              className="print:break-inside-avoid"
+            >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-xs text-slate-400">Сервисный номер</p>
@@ -74,15 +90,20 @@ const ChecksPage = () => {
                     {order.deviceType} · {new Date(order.createdAt).toLocaleDateString("ru-RU")}
                   </p>
                 </div>
-                <button
-                  onClick={() => window.print()}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 print:hidden"
-                >
-                  <Printer size={16} />
-                  Печать
-                </button>
+                {order.receipt && (
+                  <button
+                    onClick={() => {
+                      document.body.classList.add("print-single-receipt");
+                      setPrintingOrderId(order.id);
+                    }}
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800 print:hidden"
+                  >
+                    <Printer size={16} />
+                    Печать чека
+                  </button>
+                )}
               </div>
-              <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800">
+              <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800 print:hidden">
                 {order.items.length ? (
                   order.items.map((item) => (
                     <div key={item.id} className="flex justify-between gap-4 py-2 text-sm">

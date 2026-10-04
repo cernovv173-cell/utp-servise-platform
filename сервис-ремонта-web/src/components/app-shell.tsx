@@ -101,13 +101,22 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </Link>
           ))}
           {user.role === "ADMIN" && (
-            <Link
-              to="/admin"
-              className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium ${active === "/admin" ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}
-            >
-              <UsersRound size={18} />
-              Администрирование
-            </Link>
+            <>
+              <Link
+                to="/admin/orders"
+                className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium ${active === "/admin/orders" ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}
+              >
+                <ClipboardList size={18} />
+                Управление заявками
+              </Link>
+              <Link
+                to="/admin"
+                className={`flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium ${active === "/admin" ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"}`}
+              >
+                <UsersRound size={18} />
+                Администрирование
+              </Link>
+            </>
           )}
         </nav>
         <div className="mt-auto border-t border-slate-100 pt-4 dark:border-slate-800">
@@ -156,12 +165,20 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </Link>
           ))}
           {user.role === "ADMIN" && (
-            <Link
-              to="/admin"
-              className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300"
-            >
-              Админ
-            </Link>
+            <>
+              <Link
+                to="/admin/orders"
+                className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300"
+              >
+                Управление заявками
+              </Link>
+              <Link
+                to="/admin"
+                className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300"
+              >
+                Админ
+              </Link>
+            </>
           )}
         </nav>
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">{children}</main>
@@ -202,11 +219,14 @@ export const PageTitle = ({
 export const SectionCard = ({
   children,
   className = "",
+  dataPrintTarget,
 }: {
   children: ReactNode;
   className?: string;
+  dataPrintTarget?: "true" | "false";
 }) => (
   <section
+    data-print-target={dataPrintTarget}
     className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 ${className}`}
   >
     {children}

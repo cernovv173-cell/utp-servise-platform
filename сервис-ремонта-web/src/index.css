@@ -28,3 +28,26 @@
     cursor: not-allowed;
   }
 }
+
+@media print {
+  body.print-single-receipt * {
+    visibility: hidden !important;
+  }
+
+  body.print-single-receipt [data-print-target="true"],
+  body.print-single-receipt [data-print-target="true"] * {
+    visibility: visible !important;
+    color: #111827 !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+  }
+
+  body.print-single-receipt [data-print-target="true"] {
+    position: fixed !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    border: 0 !important;
+    background-color: #fff !important;
+  }
+}

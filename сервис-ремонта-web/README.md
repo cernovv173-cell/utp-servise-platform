@@ -78,8 +78,13 @@ not carry stock. Customer accounts do not have permission to browse this interna
 On `/checks`, administrators manage each completed order's receipt separately in the shared list:
 they can adjust its service and spare-part quantities, add one manual service or product line, and
 save or revise an unpaid receipt. The server synchronizes those changes with the order, bonus
-discount and service-pay calculation. Paid receipts remain read-only.
+discount and service-pay calculation. Paid receipts remain read-only. Each saved receipt has its own
+print action, which prints that order's receipt rather than the whole list.
 
 The `/login` screen can request a password-reset email. Its one-time link opens `/reset-password`,
 where the account owner can set a new password. The API enforces the 8-character minimum and
 invalidates active sessions after a successful reset.
+
+Administrators can open the dedicated `/admin/orders` page from the navigation or admin dashboard.
+It keeps the full repair-request list together while status, technician, deadline and contact edits
+are scoped to each individual order card.

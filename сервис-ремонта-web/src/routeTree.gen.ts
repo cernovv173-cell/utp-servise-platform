@@ -23,6 +23,7 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SalaryRouteImport } from './routes/salary'
+import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -94,12 +95,17 @@ const SalaryRoute = SalaryRouteImport.update({
   path: '/salary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminOrdersRoute = AdminOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/catalog': typeof CatalogRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
@@ -110,12 +116,13 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/admin/orders': typeof AdminOrdersRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/catalog': typeof CatalogRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
@@ -126,13 +133,14 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/admin/orders': typeof AdminOrdersRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/catalog': typeof CatalogRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/admin/orders': typeof AdminOrdersRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,6 +170,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/admin/orders'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/admin/orders'
   id:
     | '__root__'
     | '/'
@@ -193,13 +204,14 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/admin/orders'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   CatalogRoute: typeof CatalogRoute
   ChecksRoute: typeof ChecksRoute
   CraftsRoute: typeof CraftsRoute
@@ -312,14 +324,31 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/orders': {
+      id: '/admin/orders'
+      path: '/orders'
+      fullPath: '/admin/orders'
+      preLoaderRoute: typeof AdminOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
+
+interface AdminRouteChildren {
+  AdminOrdersRoute: typeof AdminOrdersRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminOrdersRoute: AdminOrdersRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   CatalogRoute: CatalogRoute,
   ChecksRoute: ChecksRoute,
   CraftsRoute: CraftsRoute,
