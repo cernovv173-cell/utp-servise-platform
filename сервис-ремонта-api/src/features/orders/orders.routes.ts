@@ -88,6 +88,45 @@ const receiptPaymentBody = z
     paymentMethod: z.enum(["CASH", "CARD_TERMINAL", "BANK_TRANSFER", "OTHER"]),
   })
   .strict();
+const receiptDraftBody = z
+  .object({
+    itemQuantities: z
+      .array(
+        z
+          .object({
+            itemId: z.string().uuid(),
+            quantity: z.number().int().min(1).max(99),
+          })
+          .strict(),
+      )
+      .max(100)
+      .optional(),
+    freeSaleItems: z
+      .array(
+        z
+          .object({
+            type: z.enum(["SERVICE", "SPARE_PART"]),
+            name: z.string().trim().min(1).max(160),
+            quantity: z.number().int().min(1).max(99),
+            unitPriceRub: z.number().int().min(1).max(2_147_483_647),
+          })
+          .strict(),
+      )
+      .max(50)
+      .optional(),
+  })
+  .strict()
+  .superRefine((body, context) => {
+    const itemIds = body.itemQuantities?.map((item) => item.itemId) ?? [];
+    if (new Set(itemIds).size !== itemIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Each order item can be updated only once.",
+        path: ["itemQuantities"],
+      });
+    }
+  })
+  .optional();
 const receiptItems = z.array(
   z.object({
     name: z.string(),
@@ -510,17 +549,22 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     "/orders/:orderId/receipt",
     requireAuth,
     requireRoles("ADMIN"),
-    validateRequest({ params: orderIdParams }),
+    validateRequest({ params: orderIdParams, body: receiptDraftBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const input = bodyOf<z.infer<typeof receiptDraftBody>>(response) ?? {};
       const user = getAuthenticatedUser(response);
       const receipt = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
+        `;
         const order = await transaction.repairOrder.findUnique({
           where: { id: orderId },
           include: {
             items: { orderBy: { createdAt: "asc" } },
             customer: { select: { displayName: true, phoneNumber: true } },
             receipt: true,
+            salaryEntry: true,
           },
         });
         if (!order)
@@ -539,7 +583,48 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Оплаченный чек нельзя изменить.",
           );
         }
-        const snapshot = order.items.map((item) => ({
+
+        const itemById = new Map(order.items.map((item) => [item.id, item]));
+        const requestedItems = input.itemQuantities ?? [];
+        if (requestedItems.some((item) => !itemById.has(item.itemId))) {
+          throw new HttpError(
+            400,
+            "ORDER_ITEM_NOT_FOUND",
+            "Одна или несколько позиций не принадлежат этой заявке.",
+          );
+        }
+
+        const updatedItems = [...order.items];
+        for (const requestedItem of requestedItems) {
+          const currentItem = itemById.get(requestedItem.itemId)!;
+          if (currentItem.quantity === requestedItem.quantity) continue;
+          const updatedItem = await transaction.repairOrderItem.update({
+            where: { id: currentItem.id },
+            data: { quantity: requestedItem.quantity },
+          });
+          const index = updatedItems.findIndex(
+            (item) => item.id === updatedItem.id,
+          );
+          updatedItems[index] = updatedItem;
+        }
+
+        for (const freeSaleItem of input.freeSaleItems ?? []) {
+          updatedItems.push(
+            await transaction.repairOrderItem.create({
+              data: {
+                orderId,
+                catalogItemId: null,
+                type: freeSaleItem.type,
+                name: freeSaleItem.name,
+                quantity: freeSaleItem.quantity,
+                unitPriceRub: freeSaleItem.unitPriceRub,
+                addedById: user.id,
+              },
+            }),
+          );
+        }
+
+        const snapshot = updatedItems.map((item) => ({
           name: item.name,
           quantity: item.quantity,
           unitPriceRub: item.unitPriceRub,
@@ -567,6 +652,21 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           where: { id: orderId },
           data: { bonusDiscountRub },
         });
+        if (order.salaryEntry) {
+          const serviceTotalRub = updatedItems
+            .filter((item) => item.type === "SERVICE")
+            .reduce(
+              (total, item) => total + item.quantity * item.unitPriceRub,
+              0,
+            );
+          await transaction.technicianSalaryEntry.update({
+            where: { id: order.salaryEntry.id },
+            data: {
+              serviceTotalRub,
+              salaryRub: calculateTechnicianSalaryRub(serviceTotalRub),
+            },
+          });
+        }
         const data = {
           orderId,
           receiptNumber: `DOC-${order.serviceNumber}`,
