@@ -88,3 +88,8 @@ invalidates active sessions after a successful reset.
 Administrators can open the dedicated `/admin/orders` page from the navigation or admin dashboard.
 It keeps the full repair-request list together while status, technician, deadline and contact edits
 are scoped to each individual order card.
+
+Orders are automatically archived after their creation day in the `Europe/Moscow` time zone. The
+active/archive tabs on `/orders` and `/admin/orders` load separate role-authorized lists; archiving
+preserves the order and its status. The dark interface uses the existing `repair-nebula-bg.png`
+background asset.

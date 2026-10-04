@@ -15,6 +15,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -56,12 +58,28 @@ fun RepairOrdersScreen(
 ) {
     var searchText by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<RepairOrder>?>(null) }
-    val visibleOrders = if (historyOnly) {
-        orders.filter { it.status == "COMPLETED" || it.status == "CANCELLED" }
-    } else {
-        orders.filter { it.status != "COMPLETED" && it.status != "CANCELLED" }
+    var showArchive by remember { mutableStateOf(false) }
+    val visibleOrders = orders.filter { order ->
+        if (showArchive) {
+            order.archivedAt != null
+        } else {
+            order.archivedAt == null && if (historyOnly) {
+                order.status == "COMPLETED" || order.status == "CANCELLED"
+            } else {
+                order.status != "COMPLETED" && order.status != "CANCELLED"
+            }
+        }
     }
-    val displayedOrders = searchResults ?: visibleOrders
+    val displayedOrders = searchResults
+        ?.filter { (it.archivedAt != null) == showArchive }
+        ?.filter {
+            showArchive || if (historyOnly) {
+                it.status == "COMPLETED" || it.status == "CANCELLED"
+            } else {
+                it.status != "COMPLETED" && it.status != "CANCELLED"
+            }
+        }
+        ?: visibleOrders
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState())
             .padding(horizontal = 18.dp, vertical = 14.dp),
@@ -72,6 +90,29 @@ fun RepairOrdersScreen(
                 Text("${visibleOrders.size} заявок", fontSize = 12.sp, color = UtpMuted)
             }
             TextButton(onClick = refresh) { Text("Обновить") }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(
+                selected = !showArchive,
+                onClick = { showArchive = false; searchResults = null },
+                label = { Text("Активные · ${orders.count { it.archivedAt == null }}") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
+                    selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+            )
+            FilterChip(
+                selected = showArchive,
+                onClick = { showArchive = true; searchResults = null },
+                label = { Text("Архив · ${orders.count { it.archivedAt != null }}") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
+                    selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+            )
         }
         if (role == "ADMIN") {
             OutlinedTextField(
@@ -102,7 +143,11 @@ fun RepairOrdersScreen(
                 colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
             ) {
                 Text(
-                    if (historyOnly) "Завершённых ремонтов пока нет." else "Сейчас здесь нет заявок.",
+                    when {
+                        showArchive -> "В архиве пока нет заявок. Они переносятся автоматически после полуночи по времени Москвы."
+                        historyOnly -> "Завершённых ремонтов пока нет."
+                        else -> "Сейчас здесь нет заявок."
+                    },
                     Modifier.padding(18.dp),
                     color = UtpMuted,
                 )

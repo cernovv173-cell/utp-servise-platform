@@ -33,6 +33,19 @@ import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.orderItemTypeLabel
 import ru.utp.servise.data.statusLabel
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+private val archiveDateFormatter = DateTimeFormatter.ofPattern(
+    "dd.MM.yyyy HH:mm",
+    Locale.forLanguageTag("ru-RU"),
+)
+
+private fun formatArchiveDate(value: String): String = runCatching {
+    Instant.parse(value).atZone(ZoneId.systemDefault()).format(archiveDateFormatter)
+}.getOrDefault(value.take(10))
 
 @Composable
 internal fun RepairOrderCard(
@@ -58,6 +71,15 @@ internal fun RepairOrderCard(
     ) {
         Column(Modifier.padding(16.dp)) {
             Text(order.serviceNumber, fontSize = 11.sp, color = UtpBlue, fontWeight = FontWeight.SemiBold)
+            order.archivedAt?.let { archivedAt ->
+                Text(
+                    "АРХИВ · ${formatArchiveDate(archivedAt)}",
+                    fontSize = 10.sp,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.tertiary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     order.deviceType.deviceLabel(),

@@ -12,9 +12,9 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
-private val LightPrimary = Color(0xFF087F78)
-private val LightSecondary = Color(0xFF24754B)
-private val LightTertiary = Color(0xFFB86A18)
+private val LightPrimary = Color(0xFF405BE8)
+private val LightSecondary = Color(0xFF187EBC)
+private val LightTertiary = Color(0xFF7448C8)
 val UtpBlue: Color
     @Composable get() = MaterialTheme.colorScheme.primary
 val UtpInk: Color
@@ -41,35 +41,35 @@ fun UtpServiseTheme(content: @Composable () -> Unit) {
     }
     val colors = if (dark) {
         darkColorScheme(
-            primary = Color(0xFF71D5C7),
-            onPrimary = Color(0xFF003832),
-            primaryContainer = Color(0xFF12564D),
-            onPrimaryContainer = Color(0xFFB6F2E6),
-            secondary = Color(0xFF9AD8B1),
-            secondaryContainer = Color(0xFF204D3C),
-            onSecondaryContainer = Color(0xFFC1F0D1),
-            tertiary = Color(0xFFFFC16A),
-            background = Color(0xFF101816),
-            onBackground = Color(0xFFE4F0EB),
-            surface = Color(0xFF1A2522),
-            onSurface = Color(0xFFE4F0EB),
-            surfaceVariant = Color(0xFF293632),
-            onSurfaceVariant = Color(0xFFBBCBC4),
-            outline = Color(0xFF71827B),
+            primary = Color(0xFF83E8FF),
+            onPrimary = Color(0xFF002B44),
+            primaryContainer = Color(0xFF173B74),
+            onPrimaryContainer = Color(0xFFBBDFFF),
+            secondary = Color(0xFFD2B8FF),
+            secondaryContainer = Color(0xFF37235F),
+            onSecondaryContainer = Color(0xFFE8D9FF),
+            tertiary = Color(0xFFFFC66E),
+            background = Color(0xC90B1024),
+            onBackground = Color(0xFFEAF1FF),
+            surface = Color(0xF116203D),
+            onSurface = Color(0xFFEAF1FF),
+            surfaceVariant = Color(0xFF202E52),
+            onSurfaceVariant = Color(0xFFBECBEA),
+            outline = Color(0xFF7183B2),
         )
     } else {
         lightColorScheme(
             primary = LightPrimary,
             onPrimary = Color.White,
-            primaryContainer = Color(0xFFE1F2EC),
-            onPrimaryContainer = Color(0xFF173432),
-            background = Color(0xFFF4F7F3),
-            onBackground = Color(0xFF173432),
-            surface = Color(0xFFFFFEFC),
-            onSurface = Color(0xFF173432),
+            primaryContainer = Color(0xFFE5EAFF),
+            onPrimaryContainer = Color(0xFF1D2F82),
+            background = Color(0xF2F5F7FC),
+            onBackground = Color(0xFF141A35),
+            surface = Color(0xFFFEFEFF),
+            onSurface = Color(0xFF141A35),
             secondary = LightSecondary,
-            secondaryContainer = Color(0xFFE1F2EC),
-            onSecondaryContainer = Color(0xFF173432),
+            secondaryContainer = Color(0xFFDDF1FF),
+            onSecondaryContainer = Color(0xFF113953),
             tertiary = LightTertiary,
             onSurfaceVariant = Color(0xFF526760),
         )

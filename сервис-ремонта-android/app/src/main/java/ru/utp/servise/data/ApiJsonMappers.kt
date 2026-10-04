@@ -26,6 +26,7 @@ internal fun JSONObject.toOrder(): RepairOrder {
         address = getString("address"),
         status = getString("status"),
         createdAt = optString("createdAt"),
+        archivedAt = nullableString("archivedAt"),
         customerName = customer?.optString("displayName").orEmpty(),
         customerPhoneNumber = customer?.nullableString("phoneNumber"),
         customerAvatarObjectId = customer?.nullableString("avatarObjectId"),

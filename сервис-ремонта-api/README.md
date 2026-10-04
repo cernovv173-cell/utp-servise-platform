@@ -41,3 +41,8 @@ unpaid receipt; free-form lines are not linked to catalog stock. Saving the rece
 snapshot, bonus discount, and technician service calculation in the same database transaction. Only
 administrators can set catalog balances; technicians can read active item balances. A tracked zero
 balance blocks use of that spare part.
+
+Repair orders are archived automatically after the Moscow calendar day in which they were created.
+The worker checks once per minute and marks older orders with `archived_at`; it never deletes the
+order or changes its status. `GET /orders?archive=active` and `GET /orders?archive=archived`
+return the corresponding role-scoped list. Omitting `archive` retains the unfiltered legacy response.

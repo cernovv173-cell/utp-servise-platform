@@ -150,6 +150,7 @@ internal fun AuthenticatedWorkspace(
     val mainRoutes = destinations.map { it.route }
 
     Scaffold(
+        containerColor = androidx.compose.ui.graphics.Color.Transparent,
         bottomBar = {
             if (currentRoute in mainRoutes) {
                 NavigationBar {

@@ -51,7 +51,14 @@ object ApiClient {
         request("POST", "/auth/change-password", token, JSONObject().put("currentPassword", currentPassword).put("newPassword", newPassword))
     )
 
-    fun orders(token: String): List<RepairOrder> = request("GET", "/orders", token).getJSONArray("orders").mapObjects { it.toOrder() }
+    fun orders(token: String, archived: Boolean? = null): List<RepairOrder> {
+        val path = when (archived) {
+            true -> "/orders?archive=archived"
+            false -> "/orders?archive=active"
+            null -> "/orders"
+        }
+        return request("GET", path, token).getJSONArray("orders").mapObjects { it.toOrder() }
+    }
 
     fun searchOrders(token: String, serviceNumber: String): List<RepairOrder> {
         val query = URLEncoder.encode(serviceNumber.trim(), Charsets.UTF_8.name())

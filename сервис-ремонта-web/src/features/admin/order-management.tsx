@@ -4,6 +4,7 @@ import { type FormEvent, useState } from "react";
 import { SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 
 import {
   assignOrder,
@@ -15,6 +16,7 @@ import {
   updateOrderStatus,
   updateRepairOrder,
 } from "@/lib/api";
+import type { OrderArchiveView } from "@/lib/api";
 
 const statusLabels: Record<string, string> = {
   REQUESTED: "Новая",
@@ -42,13 +44,14 @@ export const OrderManagement = () => {
   const client = useQueryClient();
   const [search, setSearch] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
   const staff = useQuery({
     queryKey: ["staff", token],
     queryFn: ({ signal }) => getStaff(token!, signal),
   });
   const orders = useQuery({
-    queryKey: ["orders", token],
-    queryFn: ({ signal }) => getOrders(token!, signal),
+    queryKey: ["orders", token, archiveView],
+    queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
   });
   const found = useQuery({
     queryKey: ["admin-order-search", token, search],
@@ -73,10 +76,18 @@ export const OrderManagement = () => {
     },
     onSuccess: refresh,
   });
-  const list = search.trim().length >= 2 ? (found.data?.orders ?? []) : (orders.data?.orders ?? []);
+  const list =
+    search.trim().length >= 2
+      ? (found.data?.orders ?? []).filter(
+          (order) => Boolean(order.archivedAt) === (archiveView === "archived"),
+        )
+      : (orders.data?.orders ?? []);
   return (
     <SectionCard>
       <h2 className="font-semibold">Заявки на ремонт</h2>
+      <div className="mt-4">
+        <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
+      </div>
       <div className="mt-4">
         <label className="grid gap-1 text-sm font-medium">
           Поиск по сервисному номеру
@@ -97,6 +108,11 @@ export const OrderManagement = () => {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold text-blue-600">{order.serviceNumber}</p>
+                {order.archivedAt && (
+                  <p className="mt-1 inline-flex rounded-full border border-violet-300/40 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-800 dark:border-[#9b7bff]/40 dark:bg-[#241b45] dark:text-[#d4c4ff]">
+                    В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}
+                  </p>
+                )}
                 <h3 className="mt-1 font-semibold">
                   {order.customer?.displayName ?? "Клиент"} · {order.deviceType}
                 </h3>

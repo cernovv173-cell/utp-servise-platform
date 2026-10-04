@@ -4,6 +4,7 @@ const apiBase =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/u, "") ?? "";
 
 export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN";
+export type OrderArchiveView = "active" | "archived";
 
 export type User = {
   id: string;
@@ -235,8 +236,10 @@ export const registerRequest = (
     body: JSON.stringify({ displayName, email, phoneNumber: phoneNumber || undefined, password }),
   });
 
-export const getOrders = (token: string, signal?: AbortSignal) =>
-  apiRequest<{ orders: RepairOrder[] }>("/orders", token, { signal });
+export const getOrders = (token: string, signal?: AbortSignal, archive?: OrderArchiveView) =>
+  apiRequest<{ orders: RepairOrder[] }>(`/orders${archive ? `?archive=${archive}` : ""}`, token, {
+    signal,
+  });
 
 export const createOrder = (
   token: string,

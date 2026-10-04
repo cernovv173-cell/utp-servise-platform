@@ -86,6 +86,7 @@ data class RepairOrder(
     val additionalPhone: String? = null,
     val additionalInfo: String? = null,
     val receipt: RepairReceipt? = null,
+    val archivedAt: String? = null,
 )
 
 data class RepairOrderPhoto(val id: String, val objectId: String)

@@ -27,6 +27,9 @@ import {
 } from "./order-policy.js";
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
+const orderListQuery = z
+  .object({ archive: z.enum(["active", "archived"]).optional() })
+  .strict();
 const orderItemParams = z.object({
   orderId: z.string().uuid(),
   itemId: z.string().uuid(),
@@ -241,16 +244,28 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     "/orders",
     requireAuth,
     requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    validateRequest({ query: orderListQuery }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
-      const where =
+      const roleWhere =
         user.role === "CUSTOMER"
           ? { customerId: user.id }
           : user.role === "TECHNICIAN"
             ? { assignedTechnicianId: user.id }
             : {};
+      const { archive } = (
+        response.locals.input as {
+          readonly query: z.infer<typeof orderListQuery>;
+        }
+      ).query;
+      const archiveWhere =
+        archive === "active"
+          ? { archivedAt: null }
+          : archive === "archived"
+            ? { archivedAt: { not: null } }
+            : {};
       const orders = await database.repairOrder.findMany({
-        where,
+        where: { ...roleWhere, ...archiveWhere },
         include: orderDetails(user.role),
         orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
         take: 100,

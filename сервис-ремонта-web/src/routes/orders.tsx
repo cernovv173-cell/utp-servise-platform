@@ -7,8 +7,10 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
+import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 
 import { createOrder, getLoyalty, getOrders, requestBonusRedemption } from "@/lib/api";
+import type { OrderArchiveView } from "@/lib/api";
 
 const statusLabels: Record<string, string> = {
   REQUESTED: "Новая",
@@ -28,10 +30,10 @@ const OrdersPage = () => {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
-  const [showArchive, setShowArchive] = useState(false);
+  const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
   const query = useQuery({
-    queryKey: ["orders", token],
-    queryFn: ({ signal }) => getOrders(token!, signal),
+    queryKey: ["orders", token, archiveView],
+    queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
     enabled: Boolean(token),
   });
   const loyalty = useQuery({
@@ -225,31 +227,9 @@ const OrdersPage = () => {
           Не удалось получить список заявок.
         </p>
       )}
-      <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Заявки и архив">
-        {([
-          [false, "Активные"],
-          [true, "Архив"],
-        ] as const).map(([archived, label]) => {
-          const count = (query.data?.orders ?? []).filter(
-            (order) => Boolean(order.archivedAt) === archived,
-          ).length;
-          return (
-            <button
-              key={label}
-              type="button"
-              aria-pressed={showArchive === archived}
-              onClick={() => setShowArchive(archived)}
-              className={`min-h-10 rounded-xl border px-4 text-sm font-semibold transition ${showArchive === archived ? "border-[#526fff] bg-[#eaf0ff] text-[#334fc4] dark:border-[#5675ff]/70 dark:bg-[#17264b] dark:text-[#91eaff] dark:shadow-[0_0_22px_rgba(78,116,255,0.14)]" : "border-slate-200 text-slate-600 dark:border-[#293a65] dark:text-[#aab8d9]"}`}
-            >
-              {label} <span className="ml-1 text-xs opacity-70">{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
       <div className="grid gap-4">
-        {(query.data?.orders ?? [])
-          .filter((order) => Boolean(order.archivedAt) === showArchive)
-          .map((order) => (
+        {(query.data?.orders ?? []).map((order) => (
           <SectionCard key={order.id}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
@@ -316,15 +296,11 @@ const OrdersPage = () => {
               </div>
             )}
           </SectionCard>
-          ))}
-        {!query.isLoading &&
-          !query.isError &&
-          !(query.data?.orders ?? []).some(
-            (order) => Boolean(order.archivedAt) === showArchive,
-          ) && (
+        ))}
+        {!query.isLoading && !query.isError && !(query.data?.orders ?? []).length && (
           <SectionCard>
             <p className="text-sm text-slate-500">
-              {showArchive
+              {archiveView === "archived"
                 ? "В архиве пока нет заявок. Перенос предыдущего дня выполняется автоматически после полуночи по времени Москвы."
                 : "Активных заявок пока нет. Создайте новую заявку, чтобы начать."}
             </p>
