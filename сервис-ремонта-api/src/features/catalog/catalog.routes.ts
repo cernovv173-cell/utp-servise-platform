@@ -9,11 +9,12 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { isInventoryCatalogItem } from "./catalog-policy.js";
 
 const catalogItemIdParams = z.object({
   catalogItemId: z.string().uuid(),
 });
-const itemType = z.enum(["SERVICE", "SPARE_PART"]);
+const itemType = z.enum(["SERVICE", "SPARE_PART", "PRODUCT"]);
 const catalogCreateBody = z
   .object({
     type: itemType,
@@ -23,7 +24,8 @@ const catalogCreateBody = z
   })
   .strict()
   .refine(
-    (body) => body.type === "SPARE_PART" || body.stockQuantity === undefined,
+    (body) =>
+      isInventoryCatalogItem(body.type) || body.stockQuantity === undefined,
     {
       message: "Услуги не учитываются на складе.",
       path: ["stockQuantity"],
@@ -82,8 +84,9 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
       const catalogItem = await database.repairCatalogItem.create({
         data: {
           ...input,
-          stockQuantity:
-            input.type === "SPARE_PART" ? (input.stockQuantity ?? 0) : null,
+          stockQuantity: isInventoryCatalogItem(input.type)
+            ? (input.stockQuantity ?? 0)
+            : null,
           createdById: user.id,
         },
       });
@@ -114,23 +117,26 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
           "Позиция каталога не найдена.",
         );
       const nextType = input.type ?? existing.type;
-      if (input.stockQuantity !== undefined && nextType !== "SPARE_PART") {
+      if (
+        input.stockQuantity !== undefined &&
+        !isInventoryCatalogItem(nextType)
+      ) {
         throw new HttpError(
           400,
           "SERVICE_STOCK_NOT_SUPPORTED",
-          "Остаток можно указать только для запчасти.",
+          "Остаток можно указать только для товара или запчасти.",
         );
       }
       if (
         input.type === "SERVICE" &&
-        existing.type === "SPARE_PART" &&
+        isInventoryCatalogItem(existing.type) &&
         existing.stockQuantity !== null &&
         existing.stockQuantity > 0
       ) {
         throw new HttpError(
           409,
           "CATALOG_STOCK_NOT_EMPTY",
-          "Сначала обнулите остаток запчасти, затем измените тип позиции.",
+          "Сначала обнулите остаток, затем измените тип позиции.",
         );
       }
       const catalogItem = await database.repairCatalogItem.update({
@@ -139,7 +145,9 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
           ...input,
           ...(input.type === "SERVICE"
             ? { stockQuantity: null }
-            : input.type === "SPARE_PART" && existing.type === "SERVICE"
+            : input.type !== undefined &&
+                isInventoryCatalogItem(input.type) &&
+                existing.type === "SERVICE"
               ? { stockQuantity: input.stockQuantity ?? 0 }
               : {}),
         },

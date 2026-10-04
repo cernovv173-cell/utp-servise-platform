@@ -10,6 +10,7 @@ import {
 } from "../../lib/http/pagination.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import { generateTemporaryPassword, hashPassword } from "../auth/passwords.js";
 
 const customerQuery = paginationQuerySchema.extend({
   search: z.string().trim().max(120).default(""),
@@ -41,6 +42,13 @@ const updateCustomerBody = z
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0);
+const createCustomerBody = z
+  .object({
+    email: emailSchema,
+    displayName: z.string().trim().min(2).max(120),
+    phoneNumber: phoneNumberSchema,
+  })
+  .strict();
 
 const queryOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly query: T }).query;
@@ -58,6 +66,48 @@ const isUniqueViolation = (error: unknown): boolean =>
 export const createCustomerAdminRouter = (database: DatabaseClient): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
+
+  router.post(
+    "/admin/customers",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ body: createCustomerBody }),
+    async (_request, response, next) => {
+      const input = bodyOf<z.infer<typeof createCustomerBody>>(response);
+      const temporaryPassword = generateTemporaryPassword();
+      try {
+        const customer = await database.user.create({
+          data: {
+            email: input.email,
+            displayName: input.displayName,
+            phoneNumber: input.phoneNumber?.trim() || null,
+            role: "CUSTOMER",
+            passwordHash: await hashPassword(temporaryPassword),
+            mustChangePassword: true,
+          },
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            phoneNumber: true,
+            active: true,
+            createdAt: true,
+          },
+        });
+        response.status(201).json({ customer, temporaryPassword });
+      } catch (error) {
+        if (isUniqueViolation(error))
+          next(
+            new HttpError(
+              409,
+              "EMAIL_IN_USE",
+              "Этот адрес электронной почты уже зарегистрирован.",
+            ),
+          );
+        else next(error);
+      }
+    },
+  );
 
   router.get(
     "/admin/customers",

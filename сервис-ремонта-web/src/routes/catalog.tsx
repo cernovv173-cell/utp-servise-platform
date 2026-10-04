@@ -15,7 +15,8 @@ import {
   updateRepairCatalogItem,
 } from "@/lib/api";
 
-const itemTypeLabels = { SERVICE: "Услуги", SPARE_PART: "Запчасти" } as const;
+const itemTypeLabels = { SERVICE: "Услуги", SPARE_PART: "Запчасти", PRODUCT: "Товары" } as const;
+const tracksStock = (type: RepairCatalogItem["type"]) => type !== "SERVICE";
 
 const CatalogPage = () => {
   const { token, user } = useAuth();
@@ -66,7 +67,7 @@ const CatalogPage = () => {
         type: newType,
         name: String(data.get("name")).trim(),
         unitPriceRub: Number(data.get("unitPriceRub")),
-        ...(newType === "SPARE_PART" ? { stockQuantity: Number(data.get("stockQuantity")) } : {}),
+        ...(tracksStock(newType) ? { stockQuantity: Number(data.get("stockQuantity")) } : {}),
       },
       { onSuccess: () => form.reset() },
     );
@@ -97,7 +98,7 @@ const CatalogPage = () => {
                 <fieldset className="grid gap-2 md:col-span-2">
                   <legend className="text-sm font-medium">Тип позиции</legend>
                   <div className="flex flex-wrap gap-2">
-                    {(["SERVICE", "SPARE_PART"] as const).map((type) => (
+                    {(["SERVICE", "SPARE_PART", "PRODUCT"] as const).map((type) => (
                       <button
                         key={type}
                         type="button"
@@ -132,7 +133,7 @@ const CatalogPage = () => {
                     className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
                   />
                 </label>
-                {newType === "SPARE_PART" && (
+                {tracksStock(newType) && (
                   <label className="grid gap-1 text-sm font-medium">
                     Начальный остаток, шт. <span aria-hidden="true">*</span>
                     <input
@@ -166,7 +167,7 @@ const CatalogPage = () => {
               </p>
             </SectionCard>
           )}
-          {(["SERVICE", "SPARE_PART"] as const).map((type) => {
+          {(["SERVICE", "SPARE_PART", "PRODUCT"] as const).map((type) => {
             const sectionItems = catalogItems.filter((item) => item.type === type);
             const Icon = type === "SERVICE" ? Wrench : Package;
             return (
@@ -230,7 +231,7 @@ const CatalogItemRow = ({
       type,
       name: String(data.get("name")).trim(),
       unitPriceRub: Number(data.get("unitPriceRub")),
-      ...(type === "SPARE_PART" ? { stockQuantity: Number(data.get("stockQuantity")) } : {}),
+      ...(tracksStock(type) ? { stockQuantity: Number(data.get("stockQuantity")) } : {}),
     });
     setShowEditor(false);
   };
@@ -242,7 +243,7 @@ const CatalogItemRow = ({
           <p className="font-medium">{item.name}</p>
           <p className="mt-1 text-sm text-slate-500">
             {item.unitPriceRub.toLocaleString("ru-RU")} ₽
-            {item.type === "SPARE_PART"
+            {tracksStock(item.type)
               ? ` · Остаток: ${item.stockQuantity === null ? "не задан" : `${item.stockQuantity} шт.`}`
               : ""}
             {` · ${item.active ? "Активна" : "Скрыта"}`}
@@ -274,7 +275,7 @@ const CatalogItemRow = ({
           className="mt-4 grid gap-3 border-t border-slate-100 pt-4 md:grid-cols-2 dark:border-slate-800"
         >
           <div className="flex flex-wrap gap-2 md:col-span-2">
-            {(["SERVICE", "SPARE_PART"] as const).map((value) => (
+            {(["SERVICE", "SPARE_PART", "PRODUCT"] as const).map((value) => (
               <button
                 key={value}
                 type="button"
@@ -310,13 +311,13 @@ const CatalogItemRow = ({
               className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
-          {type === "SPARE_PART" && (
+          {tracksStock(type) && (
             <label className="grid gap-1 text-sm font-medium">
               Остаток, шт.
               <input
                 name="stockQuantity"
                 type="number"
-                defaultValue={item.type === "SPARE_PART" ? (item.stockQuantity ?? 0) : 0}
+                defaultValue={tracksStock(item.type) ? (item.stockQuantity ?? 0) : 0}
                 min={0}
                 max={2147483647}
                 step={1}

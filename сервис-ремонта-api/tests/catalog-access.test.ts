@@ -148,6 +148,28 @@ test("only administrators manage the shared catalog and technicians see active p
   assert.equal(createdSparePart.createdById, "admin-1");
   assert.equal(createdSparePart.stockQuantity, 0);
 
+  const createProduct = await fetch(baseUrl, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({
+      type: "PRODUCT",
+      name: "Кабель USB-C",
+      unitPriceRub: 900,
+      stockQuantity: 8,
+    }),
+  });
+  assert.equal(createProduct.status, 201);
+  const createdProduct = (await createProduct.json()).catalogItem;
+  assert.equal(createdProduct.type, "PRODUCT");
+  assert.equal(createdProduct.stockQuantity, 8);
+  const productStockUpdate = await fetch(`${baseUrl}/${createdProduct.id}`, {
+    method: "PATCH",
+    headers: headers(adminToken),
+    body: JSON.stringify({ stockQuantity: 12 }),
+  });
+  assert.equal(productStockUpdate.status, 200);
+  assert.equal((await productStockUpdate.json()).catalogItem.stockQuantity, 12);
+
   const activeCatalogItemId = "33333333-3333-4333-8333-333333333334";
   const stockUpdate = await fetch(
     `${baseUrl}/33333333-3333-4333-8333-333333333335`,

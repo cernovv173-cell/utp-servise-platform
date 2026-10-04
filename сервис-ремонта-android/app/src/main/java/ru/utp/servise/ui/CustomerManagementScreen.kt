@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.AdminCustomer
 import ru.utp.servise.data.AdminCustomerPage
 import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.NewAdminCustomerResult
 
 @Composable
 fun CustomerManagementScreen(
@@ -51,6 +52,8 @@ fun CustomerManagementScreen(
     var totalItems by remember { mutableStateOf(0) }
     var customers by remember { mutableStateOf<List<AdminCustomer>>(emptyList()) }
     var editingCustomer by remember { mutableStateOf<AdminCustomer?>(null) }
+    var showCreateCustomer by remember { mutableStateOf(false) }
+    var newCustomerCredentials by remember { mutableStateOf<NewAdminCustomerResult?>(null) }
 
     LaunchedEffect(appliedSearch, page, loadRevision) {
         runAction({ ApiClient.administratorCustomers(token, appliedSearch, page) }) { result ->
@@ -72,7 +75,10 @@ fun CustomerManagementScreen(
                 Text("База клиентов", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("$totalItems клиентов · изменяйте только контактные данные", fontSize = 12.sp, color = UtpMuted)
             }
-            TextButton(onClick = { page = 1; appliedSearch = searchText.trim(); loadRevision += 1 }) { Text("Обновить") }
+            Column(horizontalAlignment = Alignment.End) {
+                Button(onClick = { showCreateCustomer = true }, shape = RoundedCornerShape(12.dp)) { Text("Добавить") }
+                TextButton(onClick = { page = 1; appliedSearch = searchText.trim(); loadRevision += 1 }) { Text("Обновить") }
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
@@ -139,6 +145,75 @@ fun CustomerManagementScreen(
             },
         )
     }
+    if (showCreateCustomer) {
+        CreateCustomerDialog(
+            onDismiss = { showCreateCustomer = false },
+            onCreate = { displayName, email, phoneNumber ->
+                runAction({ ApiClient.createAdministratorCustomer(token, displayName, email, phoneNumber) }) { result ->
+                    (result as? NewAdminCustomerResult)?.let { created ->
+                        newCustomerCredentials = created
+                        showCreateCustomer = false
+                        page = 1
+                        appliedSearch = ""
+                        searchText = ""
+                        loadRevision += 1
+                    }
+                }
+            },
+        )
+    }
+    newCustomerCredentials?.let { result ->
+        NewCustomerCredentialsDialog(result) { newCustomerCredentials = null }
+    }
+}
+
+@Composable
+private fun CreateCustomerDialog(
+    onDismiss: () -> Unit,
+    onCreate: (displayName: String, email: String, phoneNumber: String) -> Unit,
+) {
+    var displayName by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Новый клиент") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Клиент получит временный пароль и сменит его при первом входе.", fontSize = 12.sp, color = UtpMuted)
+                OutlinedTextField(displayName, { displayName = it.take(120) }, label = { Text("Имя") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                OutlinedTextField(email, { email = it.take(320) }, label = { Text("Электронная почта") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+                OutlinedTextField(phoneNumber, { phoneNumber = it.take(32) }, label = { Text("Телефон (необязательно)") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onCreate(displayName.trim(), email.trim(), phoneNumber.trim()) },
+                enabled = displayName.trim().length >= 2 && email.contains("@"),
+            ) { Text("Создать") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
+    )
+}
+
+@Composable
+private fun NewCustomerCredentialsDialog(
+    result: NewAdminCustomerResult,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Данные для первого входа") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Передайте данные клиенту безопасным способом. После закрытия пароль больше не будет показан.", fontSize = 12.sp, color = UtpMuted)
+                Text("Клиент: ${result.customer.displayName}", fontWeight = FontWeight.SemiBold)
+                Text("Почта: ${result.customer.email}")
+                Text("Временный пароль: ${result.temporaryPassword}", fontWeight = FontWeight.Bold)
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Готово") } },
+    )
 }
 
 @Composable

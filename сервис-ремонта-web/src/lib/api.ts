@@ -5,6 +5,7 @@ const apiBase =
 
 export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN";
 export type OrderArchiveView = "active" | "archived";
+export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
 
 export type User = {
   id: string;
@@ -46,7 +47,7 @@ export type RepairOrder = {
   createdAt: string;
   items: {
     id: string;
-    type: "SERVICE" | "SPARE_PART";
+    type: RepairCatalogType;
     name: string;
     quantity: number;
     unitPriceRub: number;
@@ -84,7 +85,7 @@ export type RepairReceipt = {
 export type ReceiptDraft = {
   itemQuantities: { itemId: string; quantity: number }[];
   freeSaleItems: {
-    type: "SERVICE" | "SPARE_PART";
+    type: RepairCatalogType;
     name: string;
     quantity: number;
     unitPriceRub: number;
@@ -105,11 +106,30 @@ export type NewsArticle = {
 
 export type RepairCatalogItem = {
   id: string;
-  type: "SERVICE" | "SPARE_PART";
+  type: RepairCatalogType;
   name: string;
   unitPriceRub: number;
   stockQuantity: number | null;
   active: boolean;
+};
+
+export type AdminCustomer = {
+  id: string;
+  email: string;
+  displayName: string;
+  phoneNumber: string | null;
+  active: boolean;
+  createdAt: string;
+};
+
+export type AdminCustomerPage = {
+  customers: AdminCustomer[];
+  pagination: { page: number; totalPages: number; totalItems: number };
+};
+
+export type NewAdminCustomer = {
+  customer: AdminCustomer;
+  temporaryPassword: string;
 };
 
 export type Review = {
@@ -263,6 +283,29 @@ export const createOrder = (
     body: JSON.stringify(input),
   });
 
+export const createAdminOrder = (
+  token: string,
+  input: {
+    customerId: string;
+    deviceType: string;
+    problem: string;
+    contactPhone?: string;
+    city: string;
+    street: string;
+    house: string;
+    apartment?: string;
+    entrance?: string;
+    hasBarrier?: boolean;
+    floor?: string;
+    additionalPhone?: string;
+    additionalInfo?: string;
+  },
+) =>
+  apiRequest<{ order: RepairOrder }>("/admin/orders", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
 export const updateRepairOrder = (
   token: string,
   orderId: string,
@@ -294,6 +337,38 @@ export const getNews = (token: string, signal?: AbortSignal) =>
 
 export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
   apiRequest<{ catalogItems: RepairCatalogItem[] }>("/catalog", token, { signal });
+
+export const getAdminCustomers = (
+  token: string,
+  search = "",
+  page = 1,
+  pageSize = 20,
+  signal?: AbortSignal,
+) =>
+  apiRequest<AdminCustomerPage>(
+    `/admin/customers?search=${encodeURIComponent(search)}&page=${page}&pageSize=${pageSize}`,
+    token,
+    { signal },
+  );
+
+export const createAdminCustomer = (
+  token: string,
+  input: { email: string; displayName: string; phoneNumber?: string },
+) =>
+  apiRequest<NewAdminCustomer>("/admin/customers", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const updateAdminCustomer = (
+  token: string,
+  customerId: string,
+  input: { email: string; displayName: string; phoneNumber?: string | null },
+) =>
+  apiRequest<{ customer: AdminCustomer }>(`/admin/customers/${customerId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
 
 export const createRepairCatalogItem = (
   token: string,
@@ -367,10 +442,11 @@ export const setExpectedCompletion = (
     body: JSON.stringify({ expectedCompletionAt }),
   });
 
-export const searchOrders = (token: string, serviceNumber: string) =>
+export const searchOrders = (token: string, serviceNumber: string, signal?: AbortSignal) =>
   apiRequest<{ orders: RepairOrder[] }>(
     `/orders/search?serviceNumber=${encodeURIComponent(serviceNumber)}`,
     token,
+    { signal },
   );
 
 export const getStaff = (token: string, signal?: AbortSignal) =>

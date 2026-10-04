@@ -44,7 +44,7 @@ fun OrderItemPickerDialog(
     onAdd: (catalogItemId: String, quantity: Int) -> Unit,
 ) {
     val availableItems = catalogItems.filterNot {
-        it.type == "SPARE_PART" && it.stockQuantity == 0
+        it.type != "SERVICE" && it.stockQuantity == 0
     }
     var selectedId by remember(availableItems) {
         mutableStateOf(availableItems.firstOrNull()?.id.orEmpty())
@@ -129,8 +129,8 @@ fun CatalogManagementScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         TextButton(onClick = onBack) { Text("←  Управление") }
-        Text("Каталог услуг и запчастей", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Общий прайс. Мастерам доступны только активные позиции.", fontSize = 12.sp, color = UtpMuted)
+        Text("Каталог сервиса", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Text("Услуги, запчасти и товары. Мастерам доступны только активные позиции.", fontSize = 12.sp, color = UtpMuted)
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Новая позиция", fontWeight = FontWeight.SemiBold, color = UtpInk)
@@ -139,6 +139,8 @@ fun CatalogManagementScreen(
                     else OutlinedButton(onClick = { type = "SERVICE" }) { Text("Услуга") }
                     if (type == "SPARE_PART") Button(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
                     else OutlinedButton(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
+                    if (type == "PRODUCT") Button(onClick = { type = "PRODUCT" }) { Text("Товар") }
+                    else OutlinedButton(onClick = { type = "PRODUCT" }) { Text("Товар") }
                 }
                 OutlinedTextField(
                     value = name,
@@ -157,7 +159,7 @@ fun CatalogManagementScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 )
-                if (type == "SPARE_PART") {
+                if (type != "SERVICE") {
                     OutlinedTextField(
                         value = stockText,
                         onValueChange = { stockText = it.filter(Char::isDigit).take(10) },
@@ -176,7 +178,7 @@ fun CatalogManagementScreen(
                                 type,
                                 name.trim(),
                                 price!!,
-                                if (type == "SPARE_PART") stockText.toIntOrNull() ?: 0 else null,
+                                if (type != "SERVICE") stockText.toIntOrNull() ?: 0 else null,
                             )
                         }) {
                             name = ""
@@ -185,7 +187,7 @@ fun CatalogManagementScreen(
                         }
                     },
                     enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
-                        (type != "SPARE_PART" || stockText.toIntOrNull() != null),
+                        (type == "SERVICE" || stockText.toIntOrNull() != null),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Добавить в каталог") }
@@ -195,14 +197,14 @@ fun CatalogManagementScreen(
             Text("Позиции прайса", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.weight(1f))
             TextButton(onClick = refresh) { Text("Обновить") }
         }
-        if (catalogItems.isEmpty()) Text("Каталог пока пуст. Добавьте первую услугу или запчасть.", color = UtpMuted)
+        if (catalogItems.isEmpty()) Text("Каталог пока пуст. Добавьте первую позицию.", color = UtpMuted)
         catalogItems.forEach { item ->
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     Text("${item.type.orderItemTypeLabel()} · ${item.name}", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text(
                         "${item.unitPriceRub} ₽ · ${if (item.active) "Активна" else "Скрыта из выбора"}" +
-                            if (item.type == "SPARE_PART") " · ${item.stockQuantity?.let { "$it шт. в наличии" } ?: "остаток не задан"}" else "",
+                            if (item.type != "SERVICE") " · ${item.stockQuantity?.let { "$it шт. в наличии" } ?: "остаток не задан"}" else "",
                         fontSize = 12.sp,
                         color = UtpMuted,
                         modifier = Modifier.padding(top = 3.dp),
@@ -253,6 +255,8 @@ private fun CatalogItemEditDialog(
                     else OutlinedButton(onClick = { type = "SERVICE" }) { Text("Услуга") }
                     if (type == "SPARE_PART") Button(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
                     else OutlinedButton(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
+                    if (type == "PRODUCT") Button(onClick = { type = "PRODUCT" }) { Text("Товар") }
+                    else OutlinedButton(onClick = { type = "PRODUCT" }) { Text("Товар") }
                 }
                 OutlinedTextField(name, { name = it }, label = { Text("Название") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                 OutlinedTextField(
@@ -264,7 +268,7 @@ private fun CatalogItemEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 )
-                if (type == "SPARE_PART") {
+                if (type != "SERVICE") {
                     OutlinedTextField(
                         value = stockText,
                         onValueChange = { stockText = it.filter(Char::isDigit).take(10) },
@@ -286,12 +290,12 @@ private fun CatalogItemEditDialog(
                             type = type,
                             name = name.trim(),
                             unitPriceRub = price!!,
-                            stockQuantity = if (type == "SPARE_PART") stockText.toIntOrNull() else null,
+                            stockQuantity = if (type != "SERVICE") stockText.toIntOrNull() else null,
                         ),
                     )
                 },
                 enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
-                    (type != "SPARE_PART" || stockText.toIntOrNull() != null),
+                    (type == "SERVICE" || stockText.toIntOrNull() != null),
             ) { Text("Сохранить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
@@ -300,6 +304,6 @@ private fun CatalogItemEditDialog(
 
 private fun itemStockLabel(item: CatalogItem): String =
     "${item.unitPriceRub} ₽ за единицу" +
-        if (item.type == "SPARE_PART") {
+        if (item.type != "SERVICE") {
             " · ${item.stockQuantity?.let { "$it шт. в наличии" } ?: "остаток не задан"}"
         } else ""

@@ -45,6 +45,7 @@ import ru.utp.servise.data.SupportChat
 import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.ui.AdminChatInboxScreen
 import ru.utp.servise.ui.AdminManagementScreen
+import ru.utp.servise.ui.AdminOrderCreationScreen
 import ru.utp.servise.ui.CatalogManagementScreen
 import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
@@ -236,8 +237,17 @@ internal fun AuthenticatedWorkspace(
                             composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
                         }
                         else -> {
-                            composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh, onReview = {}) }
+                            composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh, onReview = {}, onCreateOrder = { navController.navigate("admin/new-order") }) }
                             composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, catalogItems, true, runAction, refresh, onReview = {}) }
+                            composable("admin/new-order") {
+                                AdminOrderCreationScreen(
+                                    token = token,
+                                    busy = busy,
+                                    runAction = runAction,
+                                    onBack = { navController.popBackStack() },
+                                    onCreated = { refresh(); navController.popBackStack() },
+                                )
+                            }
                             composable("admin/salary") { SalaryScreen(salary, isAdmin = true, onRefresh = refresh) }
                             composable("admin/manage") {
                                 AdminManagementScreen(

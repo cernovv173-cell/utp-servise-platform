@@ -24,6 +24,7 @@ enum RepairStatus {
 enum RepairOrderItemType {
   SERVICE
   SPARE_PART
+  PRODUCT
 }
 
 enum CraftOrderStatus {

@@ -131,7 +131,8 @@ export const ReceiptDraftEditor = ({
             <div className="flex gap-2">
               {(
                 [
-                  ["SPARE_PART", "Товар / запчасть"],
+                  ["PRODUCT", "Товар"],
+                  ["SPARE_PART", "Запчасть"],
                   ["SERVICE", "Услуга"],
                 ] as const
               ).map(([type, label]) => (

@@ -312,6 +312,7 @@ fun String.statusLabel(): String = when (this) {
 fun String.orderItemTypeLabel(): String = when (this) {
     "SERVICE" -> "Услуга"
     "SPARE_PART" -> "Запчасть"
+    "PRODUCT" -> "Товар"
     else -> this
 }
 

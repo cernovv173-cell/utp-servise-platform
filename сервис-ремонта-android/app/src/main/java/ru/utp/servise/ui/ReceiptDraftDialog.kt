@@ -93,8 +93,10 @@ internal fun ReceiptDraftDialog(
                     shape = RoundedCornerShape(12.dp),
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    if (freeSaleType == "SPARE_PART") Button(onClick = { freeSaleType = "SPARE_PART" }) { Text("Товар") }
-                    else OutlinedButton(onClick = { freeSaleType = "SPARE_PART" }) { Text("Товар") }
+                    if (freeSaleType == "SPARE_PART") Button(onClick = { freeSaleType = "SPARE_PART" }) { Text("Запчасть") }
+                    else OutlinedButton(onClick = { freeSaleType = "SPARE_PART" }) { Text("Запчасть") }
+                    if (freeSaleType == "PRODUCT") Button(onClick = { freeSaleType = "PRODUCT" }) { Text("Товар") }
+                    else OutlinedButton(onClick = { freeSaleType = "PRODUCT" }) { Text("Товар") }
                     if (freeSaleType == "SERVICE") Button(onClick = { freeSaleType = "SERVICE" }) { Text("Услуга") }
                     else OutlinedButton(onClick = { freeSaleType = "SERVICE" }) { Text("Услуга") }
                 }

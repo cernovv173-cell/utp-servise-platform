@@ -55,6 +55,7 @@ fun RepairOrdersScreen(
     onChat: (String) -> Unit = {},
     onReview: (String) -> Unit,
     loyaltyBalance: Int = 0,
+    onCreateOrder: (() -> Unit)? = null,
 ) {
     var searchText by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<RepairOrder>?>(null) }
@@ -89,7 +90,12 @@ fun RepairOrdersScreen(
                 Text(title, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("${visibleOrders.size} заявок", fontSize = 12.sp, color = UtpMuted)
             }
-            TextButton(onClick = refresh) { Text("Обновить") }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (role == "ADMIN" && !historyOnly && !showArchive && onCreateOrder != null) {
+                    Button(onClick = onCreateOrder, shape = RoundedCornerShape(11.dp)) { Text("Создать") }
+                }
+                TextButton(onClick = refresh) { Text("Обновить") }
+            }
         }
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),

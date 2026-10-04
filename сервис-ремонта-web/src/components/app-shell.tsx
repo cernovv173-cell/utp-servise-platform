@@ -110,6 +110,13 @@ export const AppShell = ({ active, children }: { active: string; children: React
                 Управление заявками
               </Link>
               <Link
+                to="/admin/customers"
+                className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium ${active === "/admin/customers" ? "border-[#405cc0]/50 bg-[#17264b] text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
+              >
+                <UsersRound size={18} />
+                База клиентов
+              </Link>
+              <Link
                 to="/admin"
                 className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium ${active === "/admin" ? "border-[#405cc0]/50 bg-[#17264b] text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
               >
@@ -173,6 +180,12 @@ export const AppShell = ({ active, children }: { active: string; children: React
                 className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300"
               >
                 Управление заявками
+              </Link>
+              <Link
+                to="/admin/customers"
+                className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300"
+              >
+                База клиентов
               </Link>
               <Link
                 to="/admin"

@@ -254,6 +254,11 @@ data class AdminCustomerPage(
     val totalItems: Int,
 )
 
+data class NewAdminCustomerResult(
+    val customer: AdminCustomer,
+    val temporaryPassword: String,
+)
+
 data class StaffMember(
     val id: String,
     val email: String,

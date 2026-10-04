@@ -23,6 +23,7 @@ test("tracked spare parts are decremented on add and restored on removal", async
     mustChangePassword: false,
   };
   let stockQuantity = 3;
+  let activeItemType = "SPARE_PART";
   let orderStatus = "IN_PROGRESS";
   const items: Array<Record<string, unknown>> = [];
   const databaseClient = {
@@ -53,8 +54,9 @@ test("tracked spare parts are decremented on add and restored on removal", async
     repairCatalogItem: {
       findFirst: async () => ({
         id: catalogItemId,
-        type: "SPARE_PART",
-        name: "Тестовая запчасть",
+        type: activeItemType,
+        name:
+          activeItemType === "PRODUCT" ? "Тестовый товар" : "Тестовая запчасть",
         unitPriceRub: 250,
         stockQuantity,
       }),
@@ -87,7 +89,9 @@ test("tracked spare parts are decremented on add and restored on removal", async
       findFirst: async () => items[0] ?? null,
       findMany: async () =>
         items.filter(
-          (item) => item.type === "SPARE_PART" && item.catalogItemId,
+          (item) =>
+            (item.type === "SPARE_PART" || item.type === "PRODUCT") &&
+            item.catalogItemId,
         ),
       delete: async () => {
         const [item] = items.splice(0, 1);
@@ -142,6 +146,29 @@ test("tracked spare parts are decremented on add and restored on removal", async
 
   const reserved = await addItem(2);
   assert.equal(reserved.status, 201);
+  assert.equal(stockQuantity, 1);
+
+  const removePart = await fetch(`${baseUrl}/${orderItemId}`, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${token}` },
+  });
+  assert.equal(removePart.status, 200);
+  assert.equal(stockQuantity, 3);
+
+  activeItemType = "PRODUCT";
+  const reservedProduct = await addItem(2);
+  assert.equal(reservedProduct.status, 201);
+  assert.equal(stockQuantity, 1);
+
+  const removeProduct = await fetch(`${baseUrl}/${orderItemId}`, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${token}` },
+  });
+  assert.equal(removeProduct.status, 200);
+  assert.equal(stockQuantity, 3);
+
+  const reservedProductForCancellation = await addItem(2);
+  assert.equal(reservedProductForCancellation.status, 201);
   assert.equal(stockQuantity, 1);
   const cancelled = await fetch(
     `http://127.0.0.1:${address.port}/api/orders/${orderId}/status`,

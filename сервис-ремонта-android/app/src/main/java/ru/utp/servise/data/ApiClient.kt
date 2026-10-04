@@ -77,7 +77,7 @@ object ApiClient {
         stockQuantity: Int? = null,
     ): CatalogItem {
         val body = JSONObject().put("type", type).put("name", name).put("unitPriceRub", unitPriceRub)
-        if (type == "SPARE_PART") body.put("stockQuantity", stockQuantity ?: 0)
+        if (type != "SERVICE") body.put("stockQuantity", stockQuantity ?: 0)
         return request("POST", "/catalog", token, body).getJSONObject("catalogItem").toCatalogItem()
     }
 
@@ -89,7 +89,7 @@ object ApiClient {
             .put("unitPriceRub", item.unitPriceRub)
             .put("active", item.active)
             .apply {
-                if (item.type == "SPARE_PART" && item.stockQuantity != null) {
+                if (item.type != "SERVICE" && item.stockQuantity != null) {
                     put("stockQuantity", item.stockQuantity)
                 }
             },
@@ -284,9 +284,39 @@ object ApiClient {
             .put("phoneNumber", customer.phoneNumber ?: JSONObject.NULL),
     ).getJSONObject("customer").toAdminCustomer()
 
+    fun createAdministratorCustomer(
+        token: String,
+        displayName: String,
+        email: String,
+        phoneNumber: String,
+    ): NewAdminCustomerResult {
+        val response = request(
+            "POST", "/admin/customers", token,
+            JSONObject().put("displayName", displayName).put("email", email).apply {
+                if (phoneNumber.isNotBlank()) put("phoneNumber", phoneNumber)
+            },
+        )
+        return NewAdminCustomerResult(
+            customer = response.getJSONObject("customer").toAdminCustomer(),
+            temporaryPassword = response.getString("temporaryPassword"),
+        )
+    }
+
     fun createOrder(token: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(
         "POST", "/orders", token,
         JSONObject().put("deviceType", deviceType).put("problem", problem).putAddress(address),
+    ).getJSONObject("order").toOrder()
+
+    fun createAdministratorOrder(
+        token: String,
+        customerId: String,
+        deviceType: String,
+        problem: String,
+        address: OrderAddress,
+    ): RepairOrder = request(
+        "POST", "/admin/orders", token,
+        JSONObject().put("customerId", customerId).put("deviceType", deviceType)
+            .put("problem", problem).putAddress(address),
     ).getJSONObject("order").toOrder()
 
     fun updateOrder(token: String, orderId: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(

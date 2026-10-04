@@ -10,6 +10,7 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { isInventoryCatalogItem } from "../catalog/catalog-policy.js";
 import {
   sendRepairOrderNotification,
   sendRepairOrderNotificationForId,
@@ -57,6 +58,13 @@ const createOrderBody = z
     additionalPhone: z.string().trim().max(32).optional(),
     additionalInfo: z.string().trim().max(500).optional(),
     preferredAt: z.string().datetime().nullable().optional(),
+  })
+  .strict();
+const createAdminOrderBody = createOrderBody
+  .omit({ contactPhone: true })
+  .extend({
+    customerId: z.string().uuid(),
+    contactPhone: contactPhone.optional(),
   })
   .strict();
 const editOrderBody = z
@@ -112,7 +120,7 @@ const receiptDraftBody = z
       .array(
         z
           .object({
-            type: z.enum(["SERVICE", "SPARE_PART"]),
+            type: z.enum(["SERVICE", "SPARE_PART", "PRODUCT"]),
             name: z.string().trim().min(1).max(160),
             quantity: z.number().int().min(1).max(99),
             unitPriceRub: z.number().int().min(1).max(2_147_483_647),
@@ -277,21 +285,29 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.get(
     "/orders/search",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
     validateRequest({
       query: z.object({ serviceNumber: z.string().trim().min(2).max(32) }),
     }),
     async (_request, response) => {
+      const user = getAuthenticatedUser(response);
       const query = (
         response.locals.input as {
           readonly query: { readonly serviceNumber: string };
         }
       ).query;
+      const roleWhere =
+        user.role === "CUSTOMER"
+          ? { customerId: user.id }
+          : user.role === "TECHNICIAN"
+            ? { assignedTechnicianId: user.id }
+            : {};
       const orders = await database.repairOrder.findMany({
         where: {
+          ...roleWhere,
           serviceNumber: { contains: query.serviceNumber, mode: "insensitive" },
         },
-        include: orderDetails("ADMIN"),
+        include: orderDetails(user.role),
         orderBy: { createdAt: "desc" },
         take: 50,
       });
@@ -351,6 +367,83 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         database,
         order,
         user.id,
+        "Создана новая заявка на ремонт.",
+      );
+      response.status(201).json({ order });
+    },
+  );
+
+  router.post(
+    "/admin/orders",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ body: createAdminOrderBody }),
+    async (_request, response) => {
+      const administrator = getAuthenticatedUser(response);
+      const input = bodyOf<z.infer<typeof createAdminOrderBody>>(response);
+      const customer = await database.user.findFirst({
+        where: { id: input.customerId, role: "CUSTOMER", active: true },
+        select: { id: true, phoneNumber: true },
+      });
+      if (!customer) {
+        throw new HttpError(
+          404,
+          "CUSTOMER_NOT_FOUND",
+          "Активный клиент не найден.",
+        );
+      }
+      const contactPhone = input.contactPhone?.trim() || customer.phoneNumber;
+      if (!contactPhone || (contactPhone.match(/\d/g)?.length ?? 0) < 7) {
+        throw new HttpError(
+          400,
+          "CUSTOMER_PHONE_REQUIRED",
+          "Укажите телефон для связи по заявке.",
+        );
+      }
+
+      const order = await database.$transaction(async (transaction) => {
+        const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
+          SELECT nextval('repair_service_number_seq') AS value
+        `;
+        const number = String(sequence[0]?.value ?? "1").padStart(6, "0");
+        const created = await transaction.repairOrder.create({
+          data: {
+            serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
+            customerId: customer.id,
+            deviceType: input.deviceType,
+            problem: input.problem,
+            address: addressFromFields(input),
+            contactPhone,
+            city: input.city,
+            street: input.street,
+            house: input.house,
+            apartment: input.apartment || null,
+            entrance: input.entrance || null,
+            hasBarrier: input.hasBarrier ?? false,
+            floor: input.floor || null,
+            additionalPhone: input.additionalPhone || null,
+            additionalInfo: input.additionalInfo || null,
+            preferredAt: input.preferredAt ? new Date(input.preferredAt) : null,
+          },
+        });
+        await transaction.repairStatusEvent.create({
+          data: {
+            orderId: created.id,
+            actorId: administrator.id,
+            from: null,
+            to: "REQUESTED",
+            note: "Заявка создана администратором",
+          },
+        });
+        return transaction.repairOrder.findUniqueOrThrow({
+          where: { id: created.id },
+          include: orderDetails("ADMIN"),
+        });
+      });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        administrator.id,
         "Создана новая заявка на ремонт.",
       );
       response.status(201).json({ order });
@@ -620,7 +713,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           const quantityDelta = requestedItem.quantity - currentItem.quantity;
           if (
             quantityDelta > 0 &&
-            currentItem.type === "SPARE_PART" &&
+            isInventoryCatalogItem(currentItem.type) &&
             currentItem.catalogItemId
           ) {
             const stockUpdate = await transaction.repairCatalogItem.updateMany({
@@ -633,13 +726,15 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             if (stockUpdate.count !== 1) {
               throw new HttpError(
                 409,
-                "INSUFFICIENT_SPARE_PART_STOCK",
-                "Недостаточно запчастей на складе для изменения количества.",
+                currentItem.type === "PRODUCT"
+                  ? "INSUFFICIENT_PRODUCT_STOCK"
+                  : "INSUFFICIENT_SPARE_PART_STOCK",
+                `Недостаточно ${currentItem.type === "PRODUCT" ? "товара" : "запчастей"} на складе для изменения количества.`,
               );
             }
           } else if (
             quantityDelta < 0 &&
-            currentItem.type === "SPARE_PART" &&
+            isInventoryCatalogItem(currentItem.type) &&
             currentItem.catalogItemId
           ) {
             await transaction.repairCatalogItem.updateMany({
@@ -994,7 +1089,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           const reservedParts = await transaction.repairOrderItem.findMany({
             where: {
               orderId,
-              type: "SPARE_PART",
+              type: { in: ["SPARE_PART", "PRODUCT"] },
               catalogItemId: { not: null },
             },
             select: { catalogItemId: true, quantity: true },
@@ -1099,7 +1194,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Позиция больше недоступна в каталоге. Обновите список.",
           );
         if (
-          catalogItem.type === "SPARE_PART" &&
+          isInventoryCatalogItem(catalogItem.type) &&
           catalogItem.stockQuantity !== null
         ) {
           const stockUpdate = await transaction.repairCatalogItem.updateMany({
@@ -1112,8 +1207,10 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           if (stockUpdate.count !== 1) {
             throw new HttpError(
               409,
-              "INSUFFICIENT_SPARE_PART_STOCK",
-              "Недостаточно запчастей на складе.",
+              catalogItem.type === "PRODUCT"
+                ? "INSUFFICIENT_PRODUCT_STOCK"
+                : "INSUFFICIENT_SPARE_PART_STOCK",
+              `Недостаточно ${catalogItem.type === "PRODUCT" ? "товара" : "запчастей"} на складе.`,
             );
           }
         }
@@ -1137,7 +1234,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         database,
         order,
         user.id,
-        "Изменён состав услуг или запчастей по заявке.",
+        "Изменён состав услуг, запчастей или товаров по заявке.",
       );
       response.status(201).json({ order });
     },
@@ -1192,7 +1289,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Позиция не найдена в этой заявке.",
           );
         }
-        if (item.type === "SPARE_PART" && item.catalogItemId) {
+        if (isInventoryCatalogItem(item.type) && item.catalogItemId) {
           await transaction.repairCatalogItem.updateMany({
             where: { id: item.catalogItemId },
             data: { stockQuantity: { increment: item.quantity } },
@@ -1208,7 +1305,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         database,
         order,
         user.id,
-        "Изменён состав услуг или запчастей по заявке.",
+        "Изменён состав услуг, запчастей или товаров по заявке.",
       );
       response.json({ order });
     },

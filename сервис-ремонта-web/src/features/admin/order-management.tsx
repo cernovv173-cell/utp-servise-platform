@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
 
+import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { useAuth } from "@/features/auth/auth-context";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 
@@ -84,7 +85,10 @@ export const OrderManagement = () => {
       : (orders.data?.orders ?? []);
   return (
     <SectionCard>
-      <h2 className="font-semibold">Заявки на ремонт</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-semibold">Заявки на ремонт</h2>
+        <AdminOrderCreate onCreated={refresh} />
+      </div>
       <div className="mt-4">
         <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
       </div>

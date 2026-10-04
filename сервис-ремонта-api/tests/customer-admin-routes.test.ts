@@ -8,7 +8,7 @@ import { createCustomerAdminRouter } from "../src/features/customers/customer.ro
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("customer directory is administrator-only, paginated, and edits only customer contacts", async (t) => {
+test("admins can create customers with forced password rotation and manage their contacts", async (t) => {
   const tokens = { admin: "A".repeat(48), customer: "C".repeat(48) };
   const users = [
     {
@@ -50,6 +50,7 @@ test("customer directory is administrator-only, paginated, and edits only custom
   ];
   let lastListArgs: Record<string, any> | undefined;
   let lastUpdate: Record<string, unknown> | undefined;
+  let lastCreate: Record<string, unknown> | undefined;
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
@@ -62,6 +63,17 @@ test("customer directory is administrator-only, paginated, and edits only custom
       },
     },
     user: {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        lastCreate = data;
+        return {
+          id: "44444444-4444-4444-8444-444444444444",
+          email: data.email,
+          displayName: data.displayName,
+          phoneNumber: data.phoneNumber,
+          active: true,
+          createdAt: new Date(),
+        };
+      },
       findMany: async (args: Record<string, any>) => {
         lastListArgs = args;
         return users
@@ -122,6 +134,25 @@ test("customer directory is administrator-only, paginated, and edits only custom
     authorization: `Bearer ${token}`,
     "content-type": "application/json",
   });
+
+  const created = await fetch(`${baseUrl}/admin/customers`, {
+    method: "POST",
+    headers: headers(tokens.admin),
+    body: JSON.stringify({
+      displayName: "Новый клиент",
+      email: "NEW@example.test",
+      phoneNumber: "+7 999 123-45-67",
+    }),
+  });
+  assert.equal(created.status, 201);
+  const createdBody = await created.json();
+  assert.equal(createdBody.customer.email, "new@example.test");
+  assert.equal(createdBody.customer.displayName, "Новый клиент");
+  assert.equal("passwordHash" in createdBody.customer, false);
+  assert.ok(createdBody.temporaryPassword.length >= 20);
+  assert.equal(lastCreate?.role, "CUSTOMER");
+  assert.equal(lastCreate?.mustChangePassword, true);
+  assert.equal(String(lastCreate?.passwordHash).startsWith("scrypt$"), true);
 
   const listed = await fetch(
     `${baseUrl}/admin/customers?search=client&page=2&pageSize=1`,

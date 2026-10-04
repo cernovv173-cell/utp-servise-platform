@@ -1,0 +1,1 @@
+ALTER TYPE "RepairOrderItemType" ADD VALUE 'PRODUCT';
