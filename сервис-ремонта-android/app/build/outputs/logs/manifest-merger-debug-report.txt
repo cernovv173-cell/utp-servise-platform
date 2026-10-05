@@ -526,7 +526,7 @@ ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/ca
 		ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:48:17-57
 	android:autoVerify
 		ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:47:17-42
-intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:yx.oauth.yandex.ru+data:path:/auth/finish+data:scheme:http+data:scheme:https
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:host:yx4c8ba41e88d24a649658e7a0d6740188.oauth.yandex.ru+data:path:/auth/finish+data:scheme:http+data:scheme:https
 ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:46:13-58:29
 	tools:ignore
 		ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:48:17-57
@@ -544,7 +544,7 @@ intent-filter#action:name:android.intent.action.VIEW+category:name:android.inten
 ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:59:13-69:29
 	tools:ignore
 		ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:59:28-58
-intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:path:/auth/finish+data:scheme:yx
+intent-filter#action:name:android.intent.action.VIEW+category:name:android.intent.category.BROWSABLE+category:name:android.intent.category.DEFAULT+data:path:/auth/finish+data:scheme:yx4c8ba41e88d24a649658e7a0d6740188
 ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:59:13-69:29
 	tools:ignore
 		ADDED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:59:28-58

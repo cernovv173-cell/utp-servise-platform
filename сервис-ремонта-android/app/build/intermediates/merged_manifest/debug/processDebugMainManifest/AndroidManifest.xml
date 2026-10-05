@@ -98,7 +98,7 @@
 
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-                <data android:host="yx.oauth.yandex.ru" />
+                <data android:host="yx4c8ba41e88d24a649658e7a0d6740188.oauth.yandex.ru" />
                 <data android:path="/auth/finish" />
             </intent-filter>
             <intent-filter>
@@ -109,13 +109,13 @@
 
                 <data
                     android:path="/auth/finish"
-                    android:scheme="yx" />
+                    android:scheme="yx4c8ba41e88d24a649658e7a0d6740188" />
             </intent-filter>
         </activity>
 
         <meta-data
             android:name="com.yandex.auth.CLIENT_ID"
-            android:value="" />
+            android:value="4c8ba41e88d24a649658e7a0d6740188" />
         <meta-data
             android:name="com.yandex.auth.OAUTH_HOST"
             android:value="oauth.yandex.ru" />

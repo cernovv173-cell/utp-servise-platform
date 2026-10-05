@@ -12,5 +12,5 @@ public final class BuildConfig {
   // Field from default config.
   public static final String API_BASE_URL = "https://843ed2b9-b284-4292-b868-b1e037af74ed--610ebc12.preview.amazi.pro";
   // Field from default config.
-  public static final String YANDEX_CLIENT_ID = "";
+  public static final String YANDEX_CLIENT_ID = "4c8ba41e88d24a649658e7a0d6740188";
 }
