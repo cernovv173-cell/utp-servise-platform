@@ -55,3 +55,9 @@ return the corresponding role-scoped list. Omitting `archive` retains the unfilt
 Administrators and the assigned technician maintain one intake act per repair order. It records the visible condition and a protected photo for the front, back, left, and right sides, plus the serial number, included accessories, and notes. The order cannot be marked ready for pickup until all four condition notes and photos are saved; the act becomes read-only once the order is ready, completed, or cancelled.
 
 The service moves a repair from `IN_PROGRESS` to `READY_FOR_PICKUP`; staff cannot directly set `COMPLETED`. The customer requests a pickup QR code from their own ready order. The server stores only its SHA-256 token hash; the raw payload expires after two hours, and requesting a replacement invalidates the previous code. An administrator or assigned technician scans or enters the code and supplies the warranty duration and terms. One transaction consumes the code, closes the order, records the status event, issues the warranty card, and calculates technician salary. Expired or replayed codes do not close an order.
+
+Yandex ID login accepts an OAuth access token at `POST /auth/yandex`; the server verifies it with
+Yandex ID and checks the returned OAuth client ID against `YANDEX_CLIENT_ID`. The OAuth app needs
+`login:info` and `login:email` permissions. New provider accounts are created as customers only.
+An existing account is linked only after the user confirms its current password; the provider token
+is never stored. Use the same public Yandex OAuth Client ID in the API, Web, and Android apps.

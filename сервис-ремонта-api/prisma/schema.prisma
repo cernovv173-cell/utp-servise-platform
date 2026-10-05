@@ -69,6 +69,7 @@ model User {
   phoneNumber             String?                 @map("phone_number") @db.VarChar(32)
   avatarObjectId          String?                 @map("avatar_object_id") @db.VarChar(255)
   passwordHash            String                  @map("password_hash") @db.VarChar(255)
+  yandexId                String?                 @unique @map("yandex_id") @db.VarChar(128)
   role                    UserRole                @default(CUSTOMER)
   active                  Boolean                 @default(true)
   mustChangePassword      Boolean                 @default(false) @map("must_change_password")

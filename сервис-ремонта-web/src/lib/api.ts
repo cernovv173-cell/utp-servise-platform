@@ -266,6 +266,42 @@ export const loginRequest = (email: string, password: string, portal: Role) =>
     body: JSON.stringify({ email, password, portal }),
   });
 
+export class ApiRequestError extends Error {
+  constructor(
+    readonly code: string,
+    readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = "ApiRequestError";
+  }
+}
+
+export const yandexLoginRequest = async (
+  accessToken: string,
+  portal: Role,
+  password?: string,
+): Promise<AuthResponse> => {
+  const response = await fetch(`${apiBase}/auth/yandex`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ accessToken, portal, ...(password ? { password } : {}) }),
+  });
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const error =
+      typeof body === "object" && body !== null && "error" in body
+        ? (body as { error?: { code?: unknown; message?: unknown } }).error
+        : undefined;
+    throw new ApiRequestError(
+      typeof error?.code === "string" ? error.code : "REQUEST_FAILED",
+      response.status,
+      typeof error?.message === "string" ? error.message : "Не удалось войти через Яндекс ID.",
+    );
+  }
+  return body as AuthResponse;
+};
+
 export const requestPasswordReset = (email: string) =>
   apiRequest<{ message: string }>("/auth/password-reset/request", null, {
     method: "POST",

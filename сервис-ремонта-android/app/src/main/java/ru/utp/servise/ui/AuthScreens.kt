@@ -1,6 +1,7 @@
 package ru.utp.servise.ui
 
 import androidx.compose.foundation.Image
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,10 +45,15 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.yandex.authsdk.YandexAuthLoginOptions
+import com.yandex.authsdk.YandexAuthOptions
+import com.yandex.authsdk.YandexAuthResult
+import com.yandex.authsdk.YandexAuthSdk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import ru.utp.servise.BuildConfig
 import ru.utp.servise.R
 import ru.utp.servise.data.AppUser
 
@@ -129,6 +136,38 @@ private fun LoginScreen(
     var showPassword by remember { mutableStateOf(false) }
     var recovering by remember { mutableStateOf(false) }
     var recoveryMessage by remember { mutableStateOf<String?>(null) }
+    var yandexTokenToLink by remember { mutableStateOf<String?>(null) }
+
+    fun completeYandexLogin(accessToken: String, linkPassword: String? = null) {
+        onError(null)
+        scope.launch {
+            onBusy(true)
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    ru.utp.servise.data.ApiClient.loginWithYandex(
+                        accessToken,
+                        portal,
+                        linkPassword,
+                    )
+                }
+                yandexTokenToLink = null
+                onAuthenticated(result.accessToken, result.user)
+            } catch (failure: Throwable) {
+                if (
+                    (failure as? ru.utp.servise.data.ApiException)?.errorCode ==
+                    "YANDEX_PASSWORD_REQUIRED"
+                ) {
+                    yandexTokenToLink = accessToken
+                    onError("Для привязки к существующему аккаунту введите его пароль и подтвердите вход.")
+                } else {
+                    onError(failure.message ?: "Не удалось выполнить вход через Яндекс ID.")
+                }
+            } finally {
+                onBusy(false)
+            }
+        }
+    }
+
     Column(Modifier.fillMaxSize().background(UtpPale).padding(22.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
         Text(if (recovering) "Восстановление пароля" else "Вход: ${portal.roleLabel()}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
@@ -178,10 +217,54 @@ private fun LoginScreen(
                 onError(null)
                 performAuth(scope, onBusy, onError, onAuthenticated) { ru.utp.servise.data.ApiClient.login(email.trim(), password, portal) }
             }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = email.isNotBlank() && password.isNotEmpty(), shape = RoundedCornerShape(15.dp)) { Text("Войти") }
+            if (BuildConfig.YANDEX_CLIENT_ID.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                YandexIdLoginButton(
+                    enabled = true,
+                    onToken = { completeYandexLogin(it) },
+                    onError = onError,
+                )
+                yandexTokenToLink?.let { pendingToken ->
+                    OutlinedButton(
+                        onClick = { completeYandexLogin(pendingToken, password) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        enabled = password.isNotEmpty(),
+                        shape = RoundedCornerShape(15.dp),
+                    ) { Text("Подтвердить привязку Яндекс ID") }
+                }
+            }
             TextButton(onClick = { recovering = true; recoveryMessage = null; onError(null) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Забыли пароль?")
             }
         }
+    }
+}
+
+@Composable
+private fun YandexIdLoginButton(
+    enabled: Boolean,
+    onToken: (String) -> Unit,
+    onError: (String?) -> Unit,
+) {
+    val context = LocalContext.current
+    val sdk = remember(context) {
+        YandexAuthSdk.create(YandexAuthOptions(context.applicationContext))
+    }
+    val launcher = rememberLauncherForActivityResult(sdk.contract) { result ->
+        when (result) {
+            is YandexAuthResult.Success -> onToken(result.token.value)
+            is YandexAuthResult.Failure -> onError("Не удалось войти через Яндекс ID. Попробуйте ещё раз.")
+            YandexAuthResult.Cancelled -> Unit
+        }
+    }
+
+    OutlinedButton(
+        onClick = { launcher.launch(YandexAuthLoginOptions()) },
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        enabled = enabled,
+        shape = RoundedCornerShape(15.dp),
+    ) {
+        Text("Войти через Яндекс ID")
     }
 }
 

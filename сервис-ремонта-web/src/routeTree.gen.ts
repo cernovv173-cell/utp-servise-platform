@@ -23,6 +23,7 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SalaryRouteImport } from './routes/salary'
+import { Route as YandexTokenRouteImport } from './routes/yandex-token'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 
@@ -96,6 +97,11 @@ const SalaryRoute = SalaryRouteImport.update({
   path: '/salary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const YandexTokenRoute = YandexTokenRouteImport.update({
+  id: '/yandex-token',
+  path: '/yandex-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/orders': typeof AdminOrdersRoute
 }
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/orders': typeof AdminOrdersRoute
 }
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/orders': typeof AdminOrdersRoute
 }
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/yandex-token'
     | '/admin/customers'
     | '/admin/orders'
   fileRoutesByTo: FileRoutesByTo
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/yandex-token'
     | '/admin/customers'
     | '/admin/orders'
   id:
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/yandex-token'
     | '/admin/customers'
     | '/admin/orders'
   fileRoutesById: FileRoutesById
@@ -234,6 +246,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ReviewsRoute: typeof ReviewsRoute
   SalaryRoute: typeof SalaryRoute
+  YandexTokenRoute: typeof YandexTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -336,6 +349,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/yandex-token': {
+      id: '/yandex-token'
+      path: '/yandex-token'
+      fullPath: '/yandex-token'
+      preLoaderRoute: typeof YandexTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/customers': {
       id: '/admin/customers'
       path: '/customers'
@@ -380,6 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ReviewsRoute: ReviewsRoute,
   SalaryRoute: SalaryRoute,
+  YandexTokenRoute: YandexTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -3,8 +3,16 @@ import { Wrench } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { YandexIdLogin } from "@/features/auth/yandex-id-login";
 
-import { type Role, loginRequest, registerRequest, requestPasswordReset } from "@/lib/api";
+import {
+  ApiRequestError,
+  type Role,
+  loginRequest,
+  registerRequest,
+  requestPasswordReset,
+  yandexLoginRequest,
+} from "@/lib/api";
 
 const LoginPage = () => {
   const { setSession } = useAuth();
@@ -15,6 +23,28 @@ const LoginPage = () => {
   const [role, setRole] = useState<Role>("CUSTOMER");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [password, setPassword] = useState("");
+  const [pendingYandexToken, setPendingYandexToken] = useState<string | null>(null);
+
+  const authenticateWithYandex = async (accessToken: string, linkPassword?: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      const session = await yandexLoginRequest(accessToken, role, linkPassword);
+      setPendingYandexToken(null);
+      setSession(session);
+      await navigate({ to: "/" });
+    } catch (failure) {
+      if (failure instanceof ApiRequestError && failure.code === "YANDEX_PASSWORD_REQUIRED") {
+        setPendingYandexToken(accessToken);
+        setError("Для защиты существующего аккаунта введите его пароль и подтвердите привязку.");
+      } else {
+        setError(failure instanceof Error ? failure.message : "Не удалось выполнить вход.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -124,18 +154,6 @@ const LoginPage = () => {
                 </div>
               </fieldset>
             )}
-            <label className="grid gap-1.5 text-sm font-medium">
-              Пароль
-              <input
-                required
-                type="password"
-                name="password"
-                minLength={registering ? 8 : 1}
-                maxLength={128}
-                autoComplete={registering ? "new-password" : "current-password"}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
             {!recovering && (
               <label className="grid gap-1.5 text-sm font-medium">
                 Пароль
@@ -143,6 +161,8 @@ const LoginPage = () => {
                   required
                   type="password"
                   name="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   minLength={registering ? 8 : 1}
                   maxLength={128}
                   autoComplete={registering ? "new-password" : "current-password"}
@@ -176,6 +196,25 @@ const LoginPage = () => {
                     : "Войти"}
             </button>
           </form>
+          {!registering && !recovering && (
+            <div className="mt-4 grid gap-3">
+              <YandexIdLogin
+                busy={busy}
+                onError={setError}
+                onToken={(accessToken) => void authenticateWithYandex(accessToken)}
+              />
+              {pendingYandexToken && (
+                <button
+                  type="button"
+                  disabled={busy || !password}
+                  onClick={() => void authenticateWithYandex(pendingYandexToken, password)}
+                  className="min-h-11 rounded-xl border border-red-300 px-4 text-sm font-semibold text-red-700 disabled:opacity-50 dark:border-red-900 dark:text-red-300"
+                >
+                  Подтвердить привязку существующего аккаунта
+                </button>
+              )}
+            </div>
+          )}
           {recovering ? (
             <button
               type="button"

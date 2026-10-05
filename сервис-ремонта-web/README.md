@@ -85,6 +85,11 @@ The `/login` screen can request a password-reset email. Its one-time link opens 
 where the account owner can set a new password. The API enforces the 8-character minimum and
 invalidates active sessions after a successful reset.
 
+When `YANDEX_CLIENT_ID` is configured, `/login` also supports Yandex ID. The Yandex OAuth callback
+page is `/yandex-token`; add that exact path for both development and production Web origins in the
+Yandex OAuth app. If the Yandex email matches an existing account, its current password is required
+once before the provider identity is linked.
+
 Administrators can open the dedicated `/admin/orders` page from the navigation or admin dashboard.
 It keeps the full repair-request list together while status, technician, deadline and contact edits
 are scoped to each individual order card.

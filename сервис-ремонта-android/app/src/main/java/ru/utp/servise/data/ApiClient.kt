@@ -16,6 +16,12 @@ object ApiClient {
         request("POST", "/auth/login", body = JSONObject().put("email", email).put("password", password).put("portal", portal))
     )
 
+    fun loginWithYandex(accessToken: String, portal: String, password: String? = null): AuthResult {
+        val body = JSONObject().put("accessToken", accessToken).put("portal", portal)
+        password?.let { body.put("password", it) }
+        return authResult(request("POST", "/auth/yandex", body = body))
+    }
+
     fun requestPasswordReset(email: String) {
         request("POST", "/auth/password-reset/request", body = JSONObject().put("email", email))
     }

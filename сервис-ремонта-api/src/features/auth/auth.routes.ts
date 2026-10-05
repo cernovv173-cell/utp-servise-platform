@@ -16,6 +16,7 @@ import {
   performDummyPasswordCheck,
   verifyPassword,
 } from "./passwords.js";
+import { type YandexIdentity, getYandexIdentity } from "./yandex-id.js";
 
 const SESSION_LIFETIME_MS = 14 * 24 * 60 * 60 * 1_000;
 const emailSchema = z
@@ -52,6 +53,13 @@ const loginSchema = z
     portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN"]),
   })
   .strict();
+const yandexLoginSchema = z
+  .object({
+    accessToken: z.string().trim().min(20).max(4096),
+    password: z.string().min(1).max(128).optional(),
+    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN"]),
+  })
+  .strict();
 const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1).max(128),
@@ -83,9 +91,23 @@ const isUniqueViolation = (error: unknown): boolean =>
   "code" in error &&
   error.code === "P2002";
 
-export const createAuthRouter = (database: DatabaseClient): Router => {
+type AuthRouterOptions = {
+  readonly yandexClientId?: string | undefined;
+  readonly fetchYandexIdentity?: (
+    accessToken: string,
+    clientId: string,
+  ) => Promise<YandexIdentity>;
+};
+
+export const createAuthRouter = (
+  database: DatabaseClient,
+  options: AuthRouterOptions = {},
+): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
+  const yandexClientId =
+    options.yandexClientId ?? process.env.YANDEX_CLIENT_ID?.trim();
+  const fetchYandexIdentity = options.fetchYandexIdentity ?? getYandexIdentity;
 
   router.post(
     "/auth/register",
@@ -149,6 +171,141 @@ export const createAuthRouter = (database: DatabaseClient): Router => {
         expiresAt: session.expiresAt,
         user: publicUser(user),
       });
+    },
+  );
+
+  router.post(
+    "/auth/yandex",
+    validateRequest({ body: yandexLoginSchema }),
+    async (_request, response, next) => {
+      if (!yandexClientId) {
+        next(
+          new HttpError(
+            503,
+            "YANDEX_NOT_CONFIGURED",
+            "Вход через Яндекс ID пока не настроен.",
+          ),
+        );
+        return;
+      }
+
+      const input = bodyOf<z.infer<typeof yandexLoginSchema>>(response);
+      try {
+        const identity = await fetchYandexIdentity(
+          input.accessToken,
+          yandexClientId,
+        );
+        let user = await database.user.findUnique({
+          where: { yandexId: identity.id },
+        });
+
+        if (!user) {
+          const emailAccount = await database.user.findUnique({
+            where: { email: identity.email },
+          });
+
+          if (emailAccount) {
+            if (!input.password) {
+              next(
+                new HttpError(
+                  409,
+                  "YANDEX_PASSWORD_REQUIRED",
+                  "Для защиты существующего аккаунта подтвердите его паролем один раз.",
+                ),
+              );
+              return;
+            }
+            if (
+              !(await verifyPassword(input.password, emailAccount.passwordHash))
+            ) {
+              next(
+                new HttpError(
+                  401,
+                  "INVALID_CREDENTIALS",
+                  "Неверный пароль существующего аккаунта.",
+                ),
+              );
+              return;
+            }
+            if (!emailAccount.active) {
+              next(
+                new HttpError(
+                  403,
+                  "ACCOUNT_DISABLED",
+                  "Эта учётная запись отключена.",
+                ),
+              );
+              return;
+            }
+            user = await database.user.update({
+              where: { id: emailAccount.id },
+              data: { yandexId: identity.id },
+            });
+          } else {
+            if (input.portal !== "CUSTOMER") {
+              next(
+                new HttpError(
+                  403,
+                  "ROLE_MISMATCH",
+                  "Новый аккаунт через Яндекс ID создаётся только для клиента.",
+                ),
+              );
+              return;
+            }
+            user = await database.user.create({
+              data: {
+                email: identity.email,
+                displayName: identity.displayName,
+                passwordHash: await hashPassword(
+                  randomBytes(32).toString("base64url"),
+                ),
+                yandexId: identity.id,
+                role: "CUSTOMER",
+              },
+            });
+          }
+        }
+
+        if (!user.active) {
+          next(
+            new HttpError(
+              403,
+              "ACCOUNT_DISABLED",
+              "Эта учётная запись отключена.",
+            ),
+          );
+          return;
+        }
+        if (user.role !== input.portal) {
+          next(
+            new HttpError(
+              403,
+              "ROLE_MISMATCH",
+              "Выберите в приложении роль, указанную для этого аккаунта.",
+            ),
+          );
+          return;
+        }
+
+        const session = await createSession(database, user.id);
+        response.json({
+          accessToken: session.accessToken,
+          expiresAt: session.expiresAt,
+          user: publicUser(user),
+        });
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          next(
+            new HttpError(
+              409,
+              "YANDEX_ACCOUNT_CONFLICT",
+              "Не удалось связать этот Яндекс ID с аккаунтом. Войдите с прежним способом и повторите попытку.",
+            ),
+          );
+          return;
+        }
+        next(error);
+      }
     },
   );
 

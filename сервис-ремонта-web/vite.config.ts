@@ -34,6 +34,11 @@ export default defineConfig(() => {
   };
 
   return {
+    define: {
+      "import.meta.env.VITE_YANDEX_CLIENT_ID": JSON.stringify(
+        process.env.YANDEX_CLIENT_ID?.trim() ?? "",
+      ),
+    },
     plugins: [tanstackRouter({ autoCodeSplitting: true }), react(), tailwindcss()],
     preview: server,
     resolve: {
