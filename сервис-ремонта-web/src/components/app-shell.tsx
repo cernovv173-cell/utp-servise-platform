@@ -17,7 +17,7 @@ import {
   UsersRound,
   Wallet,
 } from "lucide-react";
-import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
 

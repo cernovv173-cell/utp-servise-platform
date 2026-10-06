@@ -26,9 +26,6 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.18
         version: 1.170.25(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@vkid/sdk':
-        specifier: 2.6.1
-        version: 2.6.1
       '@zxing/browser':
         specifier: ^0.2.1
         version: 0.2.1(@zxing/library@0.23.0)
@@ -1343,9 +1340,6 @@ packages:
   '@vitest/utils@4.1.10':
     resolution: {integrity: sha512-fy9am/HWxbaGt/Sawrp90vt6Y6jQwf1RX77cz3uwoJwJVMli/e1IEwRPnMNJ7vKfPTwo0diXifkpPvwH9v7nGA==}
 
-  '@vkid/sdk@2.6.1':
-    resolution: {integrity: sha512-HDk2WeTgVM9+oxMzffxHeBmYYtu3lk7dWf3kPKDzHEjLpSbBoU0NRGHr8NVvNmZDrieAdEjWWe0X6TDgEFs7nA==}
-
   '@zxing/browser@0.2.1':
     resolution: {integrity: sha512-92pVfVDUXbc15xu9vIEmhNyqIEASMEkDF92CwT6T+7sg2EHXJRktH9CQKoQSXe51UtbNsj+Fm09H/JBWHMs/Sw==}
     peerDependencies:
@@ -1458,10 +1452,6 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
-
-  crypto-js@4.2.0:
-    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
-    deprecated: Active development of CryptoJS has been discontinued. This library is no longer maintained.
 
   css-tree@3.2.1:
     resolution: {integrity: sha512-X7sjQzceUhu1u7Y/ylrRZFU2FS6LRiFVp6rKLPg23y3x3c3DOKAwuXGDp+PAGjh6CSnCjYeAul8pcT8bAl+lSA==}
@@ -3539,10 +3529,6 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
 
-  '@vkid/sdk@2.6.1':
-    dependencies:
-      crypto-js: 4.2.0
-
   '@zxing/browser@0.2.1(@zxing/library@0.23.0)':
     dependencies:
       '@zxing/library': 0.23.0
@@ -3654,8 +3640,6 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
-
-  crypto-js@4.2.0: {}
 
   css-tree@3.2.1:
     dependencies:
