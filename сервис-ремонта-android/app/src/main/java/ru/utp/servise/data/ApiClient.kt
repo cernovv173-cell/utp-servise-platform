@@ -22,6 +22,12 @@ object ApiClient {
         return authResult(request("POST", "/auth/yandex", body = body))
     }
 
+    fun loginWithVk(accessToken: String, portal: String, password: String? = null): AuthResult {
+        val body = JSONObject().put("accessToken", accessToken).put("portal", portal)
+        password?.let { body.put("password", it) }
+        return authResult(request("POST", "/auth/vk", body = body))
+    }
+
     fun requestPasswordReset(email: String) {
         request("POST", "/auth/password-reset/request", body = JSONObject().put("email", email))
     }

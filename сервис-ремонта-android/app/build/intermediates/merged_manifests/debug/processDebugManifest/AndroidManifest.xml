@@ -12,6 +12,19 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>
+
+        <!-- For available browsers request -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+
+            <category android:name="android.intent.category.BROWSABLE" />
+
+            <data android:scheme="https" />
+        </intent>
+        <!-- For auth with vk client -->
+        <intent>
+            <action android:name="com.vk.silentauth.action.GET_INFO" />
+        </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
 
@@ -29,7 +42,12 @@
         <package android:name="ru.yandex.disk" /> <!-- Яндекс Диск -->
         <package android:name="com.yandex.bank" /> <!-- Яндекс Банк -->
         <package android:name="ru.yandex.key" /> <!-- Яндекс Ключ -->
-        <package android:name="ru.yandex.auth.client" /> <!-- Семпл АМа -->
+        <package android:name="ru.yandex.auth.client" />
+    </queries>
+    <queries>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
     </queries>
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -74,6 +92,39 @@
             </intent-filter>
         </service>
 
+        <activity
+            android:name="com.vk.id.internal.auth.AuthActivity"
+            android:configChanges="locale|orientation|screenSize|screenLayout|keyboardHidden|fontScale|fontWeightAdjustment|density"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:theme="@style/VKID.Light.Transparent" >
+            <meta-data
+                android:name="VKIDClientID"
+                android:value="54808157" />
+            <meta-data
+                android:name="VKIDClientSecret"
+                android:value="" />
+            <meta-data
+                android:name="VKIDRedirectHost"
+                android:value="vk.ru" />
+            <meta-data
+                android:name="VKIDRedirectScheme"
+                android:value="vk54808157" />
+        </activity>
+        <activity
+            android:name="com.vk.id.internal.auth.RedirectUriReceiverActivity"
+            android:exported="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="vk.ru"
+                    android:scheme="vk54808157" />
+            </intent-filter>
+        </activity>
         <activity
             android:name="com.yandex.authsdk.internal.AuthSdkActivity"
             android:label=""
@@ -226,6 +277,13 @@
                 android:value="androidx.startup" />
         </provider>
 
+        <uses-library
+            android:name="androidx.window.extensions"
+            android:required="false" />
+        <uses-library
+            android:name="androidx.window.sidecar"
+            android:required="false" />
+
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
@@ -265,6 +323,11 @@
                 <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name="com.vk.id.captcha.web.VKCaptchaWebViewActivity"
+            android:launchMode="singleTask"
+            android:theme="@style/VKCaptchaTheme" />
     </application>
 
 </manifest>

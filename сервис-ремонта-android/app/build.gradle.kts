@@ -6,6 +6,8 @@ plugins {
 
 val firebaseConfigJson = providers.environmentVariable("UTP_FIREBASE_ANDROID_CONFIG_JSON").orNull?.trim()
 val yandexClientId = providers.environmentVariable("YANDEX_CLIENT_ID").orNull?.trim().orEmpty()
+val vkIdAppId = providers.environmentVariable("VK_ID_APP_ID").orNull?.trim().orEmpty()
+val vkIdClientSecret = providers.environmentVariable("VK_ID_CLIENT_SECRET").orNull?.trim().orEmpty()
 val releaseKeystorePath = providers.environmentVariable("UTP_RELEASE_KEYSTORE_PATH").orNull
 val releaseStorePassword = providers.environmentVariable("UTP_RELEASE_STORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("UTP_RELEASE_KEY_ALIAS").orNull
@@ -44,6 +46,10 @@ android {
             throw GradleException("YANDEX_CLIENT_ID must be a valid Yandex OAuth app identifier.")
         }
         manifestPlaceholders["YANDEX_CLIENT_ID"] = yandexClientId
+        manifestPlaceholders["VKIDClientID"] = vkIdAppId
+        manifestPlaceholders["VKIDClientSecret"] = vkIdClientSecret
+        manifestPlaceholders["VKIDRedirectHost"] = "vk.ru"
+        manifestPlaceholders["VKIDRedirectScheme"] = "vk$vkIdAppId"
         applicationId = "ru.utp.servise"
         minSdk = 26
         targetSdk = 35
@@ -62,6 +68,7 @@ android {
             "\"${providers.environmentVariable("UTP_API_BASE_URL").orNull.orEmpty().trimEnd('/')}\""
         )
         buildConfigField("String", "YANDEX_CLIENT_ID", "\"$yandexClientId\"")
+        buildConfigField("String", "VK_ID_APP_ID", "\"$vkIdAppId\"")
     }
     signingConfigs {
         create("release") {
@@ -101,5 +108,6 @@ dependencies {
     implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
     implementation("com.google.zxing:core:3.5.4")
     implementation("com.yandex.android:authsdk:3.1.3")
+    implementation("com.vk.id:vkid:2.7.3")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

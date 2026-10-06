@@ -49,6 +49,10 @@ import com.yandex.authsdk.YandexAuthLoginOptions
 import com.yandex.authsdk.YandexAuthOptions
 import com.yandex.authsdk.YandexAuthResult
 import com.yandex.authsdk.YandexAuthSdk
+import com.vk.id.VKID
+import com.vk.id.VKIDAuthFail
+import com.vk.id.auth.VKIDAuthCallback
+import com.vk.id.auth.VKIDAuthParams
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -137,6 +141,7 @@ private fun LoginScreen(
     var recovering by remember { mutableStateOf(false) }
     var recoveryMessage by remember { mutableStateOf<String?>(null) }
     var yandexTokenToLink by remember { mutableStateOf<String?>(null) }
+    var vkTokenToLink by remember { mutableStateOf<String?>(null) }
 
     fun completeYandexLogin(accessToken: String, linkPassword: String? = null) {
         onError(null)
@@ -168,7 +173,39 @@ private fun LoginScreen(
         }
     }
 
-    Column(Modifier.fillMaxSize().background(UtpPale).padding(22.dp)) {
+    fun completeVkLogin(accessToken: String, linkPassword: String? = null) {
+        onError(null)
+        scope.launch {
+            onBusy(true)
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    ru.utp.servise.data.ApiClient.loginWithVk(
+                        accessToken,
+                        portal,
+                        linkPassword,
+                    )
+                }
+                vkTokenToLink = null
+                onAuthenticated(result.accessToken, result.user)
+            } catch (failure: Throwable) {
+                if ((failure as? ru.utp.servise.data.ApiException)?.errorCode == "VK_PASSWORD_REQUIRED") {
+                    vkTokenToLink = accessToken
+                    onError("Для привязки VK ID к существующему аккаунту подтвердите его пароль.")
+                } else {
+                    onError(failure.message ?: "Не удалось выполнить вход через VK ID.")
+                }
+            } finally {
+                onBusy(false)
+            }
+        }
+    }
+
+    Column(
+        Modifier.fillMaxSize()
+            .background(UtpPale)
+            .verticalScroll(rememberScrollState())
+            .padding(22.dp),
+    ) {
         TextButton(onClick = onBack) { Text("←  Назад") }
         Text(if (recovering) "Восстановление пароля" else "Вход: ${portal.roleLabel()}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text(
@@ -233,10 +270,65 @@ private fun LoginScreen(
                     ) { Text("Подтвердить привязку Яндекс ID") }
                 }
             }
+            if (BuildConfig.VK_ID_APP_ID.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                VkIdLoginButton(
+                    onToken = { completeVkLogin(it) },
+                    onError = onError,
+                )
+                vkTokenToLink?.let { pendingToken ->
+                    OutlinedButton(
+                        onClick = { completeVkLogin(pendingToken, password) },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        enabled = password.isNotEmpty(),
+                        shape = RoundedCornerShape(15.dp),
+                    ) { Text("Подтвердить привязку VK ID") }
+                }
+            }
             TextButton(onClick = { recovering = true; recoveryMessage = null; onError(null) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Забыли пароль?")
             }
         }
+    }
+}
+
+@Composable
+private fun VkIdLoginButton(
+    onToken: (String) -> Unit,
+    onError: (String?) -> Unit,
+) {
+    val scope = rememberCoroutineScope()
+    val callback = remember(onToken, onError) {
+        object : VKIDAuthCallback {
+            override fun onAuth(accessToken: com.vk.id.AccessToken) {
+                onToken(accessToken.token)
+            }
+
+            override fun onFail(fail: VKIDAuthFail) {
+                if (fail !is VKIDAuthFail.Canceled) {
+                    onError("Не удалось войти через VK ID. Попробуйте ещё раз.")
+                }
+            }
+        }
+    }
+    OutlinedButton(
+        onClick = {
+            onError(null)
+            scope.launch {
+                try {
+                    VKID.instance.authorize(
+                        callback = callback,
+                        params = VKIDAuthParams { scopes = setOf("email") },
+                    )
+                } catch (_: Throwable) {
+                    onError("Не удалось запустить вход через VK ID. Проверьте подключение и повторите попытку.")
+                }
+            }
+        },
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(15.dp),
+    ) {
+        Text("Войти через VK ID")
     }
 }
 

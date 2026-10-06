@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.FirebaseApp
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.messaging.FirebaseMessaging
+import com.vk.id.VKID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -66,6 +67,7 @@ import ru.utp.servise.ui.UtpServiseTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        if (BuildConfig.VK_ID_APP_ID.isNotBlank()) VKID.init(this)
         NotificationChannels.ensureCreated(this)
         setContent { UtpServiseTheme { UtpServiseApp() } }
     }
