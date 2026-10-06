@@ -1,0 +1,6 @@
+# Copy to signing.properties and fill in your own credentials, or run npm run signing:android.
+# Relative paths resolve from android/, never from android/app/.
+storeFile=signing/release.p12
+storePassword=
+keyAlias=release
+keyPassword=

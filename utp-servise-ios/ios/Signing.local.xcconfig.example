@@ -1,0 +1,4 @@
+// Copy to Signing.local.xcconfig and provide your Apple Developer Team ID.
+DEVELOPMENT_TEAM =
+PRODUCT_BUNDLE_IDENTIFIER = com.example.webviewapp
+// Automatic signing manages certificates and provisioning through Xcode.

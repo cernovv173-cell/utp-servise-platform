@@ -1,0 +1,54 @@
+plugins { id 'com.android.application' }
+
+def signingProperties = new Properties()
+def signingPropertiesFile = rootProject.file('signing.properties')
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+
+android {
+    namespace 'com.example.webviewapp'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'com.example.webviewapp'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '1.0.0'
+    }
+    sourceSets { main { assets.srcDirs = ['../../config'] } }
+    signingConfigs {
+        release {
+            if (signingPropertiesFile.exists()) {
+                storeFile rootProject.file(signingProperties.getProperty('storeFile', ''))
+                storePassword signingProperties.getProperty('storePassword')
+                keyAlias signingProperties.getProperty('keyAlias')
+                keyPassword signingProperties.getProperty('keyPassword')
+            }
+        }
+    }
+    buildTypes {
+        release { signingConfig signingConfigs.release }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+def validateReleaseSigning = tasks.register('validateReleaseSigning') {
+    doLast {
+        def required = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+        if (!signingPropertiesFile.exists() || required.any { !signingProperties.getProperty(it)?.trim() }) {
+            throw new GradleException('Configure android/signing.properties before a release build. See README.md.')
+        }
+        if (!rootProject.file(signingProperties.getProperty('storeFile')).isFile()) {
+            throw new GradleException('The signing keystore does not exist. Check storeFile in android/signing.properties.')
+        }
+    }
+}
+tasks.configureEach {
+    if (name == 'preReleaseBuild') { dependsOn validateReleaseSigning }
+}
+
+dependencies { implementation 'androidx.activity:activity:1.10.1' }

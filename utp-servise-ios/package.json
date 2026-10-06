@@ -1,0 +1,10 @@
+{
+  "name": "native-webview-application",
+  "version": "0.0.0",
+  "amazi_template_version": "1.2.0",
+  "private": true,
+  "scripts": {
+    "check": "node --test scripts/check-config.test.mjs",
+    "signing:android": "node scripts/create-android-signing.mjs"
+  }
+}
