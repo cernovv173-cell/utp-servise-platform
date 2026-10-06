@@ -103,7 +103,7 @@
                 android:value="54808157" />
             <meta-data
                 android:name="VKIDClientSecret"
-                android:value="" />
+                android:value="AtDs9TW3tSkJhYDQ3TwU" />
             <meta-data
                 android:name="VKIDRedirectHost"
                 android:value="vk.ru" />

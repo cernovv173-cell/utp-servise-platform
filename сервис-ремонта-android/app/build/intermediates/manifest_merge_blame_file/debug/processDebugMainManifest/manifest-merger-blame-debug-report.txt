@@ -192,7 +192,7 @@
 104-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:65:13-67:55
 105                android:name="VKIDClientSecret"
 105-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:66:17-48
-106                android:value="" />
+106                android:value="AtDs9TW3tSkJhYDQ3TwU" />
 106-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:67:17-52
 107            <meta-data
 107-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:68:13-70:55
