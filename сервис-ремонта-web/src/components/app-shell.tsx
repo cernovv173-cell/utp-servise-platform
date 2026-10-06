@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
 
+import { AppInstallButton } from "@/components/app-install-button";
+
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -69,6 +71,9 @@ export const AppShell = ({ active, children }: { active: string; children: React
           >
             Войти или зарегистрироваться
           </Link>
+          <div className="mt-4">
+            <AppInstallButton />
+          </div>
         </section>
       </main>
     );
@@ -174,7 +179,12 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </>
           )}
         </nav>
-        <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">{children}</main>
+        <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">
+          <div className="mb-5 flex justify-end">
+            <AppInstallButton />
+          </div>
+          {children}
+        </main>
       </div>
       {user.role === "ADMIN" && (
         <div className="fixed right-5 bottom-5 z-30">

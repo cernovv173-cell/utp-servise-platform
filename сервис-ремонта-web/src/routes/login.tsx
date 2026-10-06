@@ -2,6 +2,8 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Wrench } from "lucide-react";
 import { type FormEvent, useCallback, useState } from "react";
 
+import { AppInstallButton } from "@/components/app-install-button";
+
 import { useAuth } from "@/features/auth/auth-context";
 import { VkIdLogin } from "@/features/auth/vk-id-login";
 import { YandexIdLogin } from "@/features/auth/yandex-id-login";
@@ -122,6 +124,9 @@ const LoginPage = () => {
               ? "Укажите адрес аккаунта — мы отправим ссылку для создания нового пароля."
               : "Войдите, чтобы управлять заявками, получать новости и видеть историю ремонта."}
           </p>
+          <div className="mt-4">
+            <AppInstallButton />
+          </div>
           <form onSubmit={submit} className="mt-8 grid gap-4">
             {registering && !recovering && (
               <label className="grid gap-1.5 text-sm font-medium">
