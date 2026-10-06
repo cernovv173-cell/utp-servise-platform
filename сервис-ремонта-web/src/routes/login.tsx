@@ -1,8 +1,9 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Wrench } from "lucide-react";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useCallback, useState } from "react";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { VkIdLogin } from "@/features/auth/vk-id-login";
 import { YandexIdLogin } from "@/features/auth/yandex-id-login";
 
 import {
@@ -11,6 +12,7 @@ import {
   loginRequest,
   registerRequest,
   requestPasswordReset,
+  vkLoginRequest,
   yandexLoginRequest,
 } from "@/lib/api";
 
@@ -25,6 +27,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [pendingYandexToken, setPendingYandexToken] = useState<string | null>(null);
+  const [pendingVkToken, setPendingVkToken] = useState<string | null>(null);
 
   const authenticateWithYandex = async (accessToken: string, linkPassword?: string) => {
     setBusy(true);
@@ -45,6 +48,29 @@ const LoginPage = () => {
       setBusy(false);
     }
   };
+
+  const authenticateWithVk = useCallback(
+    async (accessToken: string, linkPassword?: string) => {
+      setBusy(true);
+      setError("");
+      try {
+        const session = await vkLoginRequest(accessToken, role, linkPassword);
+        setPendingVkToken(null);
+        setSession(session);
+        await navigate({ to: "/" });
+      } catch (failure) {
+        if (failure instanceof ApiRequestError && failure.code === "VK_PASSWORD_REQUIRED") {
+          setPendingVkToken(accessToken);
+          setError("Для защиты существующего аккаунта введите его пароль и подтвердите привязку.");
+        } else {
+          setError(failure instanceof Error ? failure.message : "Не удалось выполнить вход.");
+        }
+      } finally {
+        setBusy(false);
+      }
+    },
+    [navigate, role, setSession],
+  );
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -198,11 +224,22 @@ const LoginPage = () => {
           </form>
           {!registering && !recovering && (
             <div className="mt-4 grid gap-3">
+              <VkIdLogin onError={setError} onToken={authenticateWithVk} />
               <YandexIdLogin
                 busy={busy}
                 onError={setError}
                 onToken={(accessToken) => void authenticateWithYandex(accessToken)}
               />
+              {pendingVkToken && (
+                <button
+                  type="button"
+                  disabled={busy || !password}
+                  onClick={() => void authenticateWithVk(pendingVkToken, password)}
+                  className="min-h-11 rounded-xl border border-blue-300 px-4 text-sm font-semibold text-blue-700 disabled:opacity-50 dark:border-blue-900 dark:text-blue-300"
+                >
+                  Подтвердить привязку VK ID
+                </button>
+              )}
               {pendingYandexToken && (
                 <button
                   type="button"

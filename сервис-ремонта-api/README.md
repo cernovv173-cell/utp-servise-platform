@@ -61,3 +61,10 @@ Yandex ID and checks the returned OAuth client ID against `YANDEX_CLIENT_ID`. Th
 `login:info` and `login:email` permissions. New provider accounts are created as customers only.
 An existing account is linked only after the user confirms its current password; the provider token
 is never stored. Use the same public Yandex OAuth Client ID in the API, Web, and Android apps.
+
+VK ID login accepts a VK ID access token at `POST /auth/vk` and verifies the profile server-side
+using the public `VK_ID_APP_ID`. The Web widget uses `VITE_VK_ID_APP_ID`, asks for email access, and
+exchanges the authorization code through the VK ID SDK; provider tokens are never stored. New VK
+accounts are customers only. An existing account with the same email is linked only after its current
+password is confirmed. The VK ID app must allow `https://task.app.amazi.pro/` as its redirect URL and
+grant email access.

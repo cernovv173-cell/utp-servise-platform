@@ -90,6 +90,12 @@ page is `/yandex-token`; add that exact path for both development and production
 Yandex OAuth app. If the Yandex email matches an existing account, its current password is required
 once before the provider identity is linked.
 
+The `/login` screen also renders the VK ID Floating One Tap widget when `VITE_VK_ID_APP_ID` is
+configured. It uses the production redirect URL `https://task.app.amazi.pro/`, requests email access,
+exchanges the authorization code with the VK ID SDK, and sends the resulting access token to the API
+for server-side verification. The VK ID app must allow that exact redirect URL and email scope. If
+the VK email matches an existing account, its current password is required once before linking.
+
 Administrators can open the dedicated `/admin/orders` page from the navigation or admin dashboard.
 It keeps the full repair-request list together while status, technician, deadline and contact edits
 are scoped to each individual order card.

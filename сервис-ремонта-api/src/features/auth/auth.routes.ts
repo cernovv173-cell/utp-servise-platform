@@ -16,9 +16,13 @@ import {
   performDummyPasswordCheck,
   verifyPassword,
 } from "./passwords.js";
+import { createSession, isUniqueViolation } from "./session.js";
+import {
+  type VkAuthRouterOptions,
+  createVkAuthRouter,
+} from "./vk-auth.routes.js";
 import { type YandexIdentity, getYandexIdentity } from "./yandex-id.js";
 
-const SESSION_LIFETIME_MS = 14 * 24 * 60 * 60 * 1_000;
 const emailSchema = z
   .string()
   .trim()
@@ -76,22 +80,7 @@ type Body<T> = { readonly body: T };
 const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as Body<T>).body;
 
-const createSession = async (database: DatabaseClient, userId: string) => {
-  const token = randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + SESSION_LIFETIME_MS);
-  await database.session.create({
-    data: { tokenHash: hashSessionToken(token), userId, expiresAt },
-  });
-  return { accessToken: token, expiresAt };
-};
-
-const isUniqueViolation = (error: unknown): boolean =>
-  typeof error === "object" &&
-  error !== null &&
-  "code" in error &&
-  error.code === "P2002";
-
-type AuthRouterOptions = {
+type AuthRouterOptions = VkAuthRouterOptions & {
   readonly yandexClientId?: string | undefined;
   readonly fetchYandexIdentity?: (
     accessToken: string,
@@ -108,6 +97,7 @@ export const createAuthRouter = (
   const yandexClientId =
     options.yandexClientId ?? process.env.YANDEX_CLIENT_ID?.trim();
   const fetchYandexIdentity = options.fetchYandexIdentity ?? getYandexIdentity;
+  router.use(createVkAuthRouter(database, options));
 
   router.post(
     "/auth/register",
