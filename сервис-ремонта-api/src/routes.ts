@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { createAndroidAppRouter } from "./features/android-app/android-app.routes.js";
 import { createAuthRouter } from "./features/auth/auth.routes.js";
 import { createPasswordResetRouter } from "./features/auth/password-reset.routes.js";
 import { createBannersRouter } from "./features/banners/banners.routes.js";
@@ -61,6 +62,7 @@ export const createApiRouter = ({
       }),
     );
     router.use(createAuthRouter(database.client));
+    router.use(createAndroidAppRouter(database.client));
     router.use(createStaffRouter(database.client));
     router.use(createCustomerAdminRouter(database.client));
     router.use(createSupportChatRouter(database.client));
@@ -92,7 +94,9 @@ export const createApiRouter = ({
         request.path.startsWith("/craft-orders") ||
         request.path.startsWith("/loyalty") ||
         request.path.startsWith("/banners") ||
-        request.path.startsWith("/admin/loyalty")
+        request.path.startsWith("/admin/loyalty") ||
+        request.path.startsWith("/admin/android-app") ||
+        request.path.startsWith("/android-app")
       ) {
         next(
           new HttpError(

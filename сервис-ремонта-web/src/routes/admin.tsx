@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
+import { AndroidApkManagement } from "@/features/admin/android-apk-management";
 import { BannerManagement } from "@/features/admin/banner-management";
 import { CompanyAdmin } from "@/features/admin/company-admin";
 import { LoyaltyManagement } from "@/features/admin/loyalty-management";
@@ -25,6 +26,7 @@ const AdminPage = () => {
         </SectionCard>
       ) : (
         <div className="grid gap-6">
+          <AndroidApkManagement />
           <NewsAdmin />
           <SectionCard>
             <div className="flex flex-wrap items-center justify-between gap-4">

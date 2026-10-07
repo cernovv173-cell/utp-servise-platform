@@ -18,6 +18,15 @@ export type User = {
   mustChangePassword: boolean;
 };
 
+export type AndroidApkInfo = {
+  state: "available" | "legacy" | "deleted" | "unavailable";
+  fileName: string | null;
+  sizeBytes: number | null;
+  sha256?: string | null;
+  uploadedAt: string | null;
+  pendingDeletionCount?: number;
+};
+
 export type AuthResponse = {
   accessToken: string;
   expiresAt: string;
@@ -711,6 +720,33 @@ export const fetchProtectedMedia = async (
   if (!response.ok) throw new Error(`Не удалось загрузить изображение (${response.status}).`);
   return response.blob();
 };
+
+export const getAndroidApk = (signal?: AbortSignal) =>
+  apiRequest<{ apk: AndroidApkInfo }>("/android-app", null, { signal });
+
+export const getAdminAndroidApk = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ apk: AndroidApkInfo }>("/admin/android-app", token, { signal });
+
+export const uploadAndroidApk = (token: string, file: File) =>
+  apiRequest<{ apk: AndroidApkInfo; cleanupPending: boolean }>("/admin/android-app", token, {
+    method: "POST",
+    headers: { "Content-Type": "application/vnd.android.package-archive" },
+    body: file,
+  });
+
+export const deleteAndroidApk = (token: string) =>
+  apiRequest<{ apk: AndroidApkInfo; cleanupPending: boolean }>("/admin/android-app", token, {
+    method: "DELETE",
+  });
+
+export const cleanupAndroidApk = (token: string) =>
+  apiRequest<{ cleanupPending: boolean; pendingDeletionCount: number }>(
+    "/admin/android-app/cleanup",
+    token,
+    { method: "POST" },
+  );
+
+export const getAndroidApkDownloadUrl = () => `${apiBase || "/api"}/android-app/download`;
 
 export const moderateReview = (token: string, reviewId: string, isPublished: boolean) =>
   apiRequest<{ review: Review }>(`/reviews/${reviewId}`, token, {
