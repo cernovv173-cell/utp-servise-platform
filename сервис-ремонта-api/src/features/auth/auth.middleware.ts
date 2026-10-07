@@ -14,6 +14,7 @@ export type AuthenticatedUser = {
   readonly birthDate?: Date | null;
   readonly avatarObjectId: string | null;
   readonly role: UserRole;
+  readonly salaryRatePercent?: number;
   readonly active: boolean;
   readonly mustChangePassword: boolean;
 };
@@ -48,6 +49,7 @@ export const createRequireAuth =
             birthDate: true,
             avatarObjectId: true,
             role: true,
+            salaryRatePercent: true,
             active: true,
             mustChangePassword: true,
           },

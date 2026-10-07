@@ -19,6 +19,7 @@ test("pickup QR closes a ready order once and issues warranty and technician sal
     phoneNumber: null,
     avatarObjectId: null,
     role: "TECHNICIAN" as const,
+    salaryRatePercent: 60,
     active: true,
     mustChangePassword: false,
   };
@@ -95,6 +96,11 @@ test("pickup QR closes a ready order once and issues warranty and technician sal
         return data;
       },
     },
+    user: {
+      findUnique: async () => ({
+        salaryRatePercent: technician.salaryRatePercent,
+      }),
+    },
   };
   const database = {
     session: {
@@ -154,8 +160,8 @@ test("pickup QR closes a ready order once and issues warranty and technician sal
   assert.equal(recordedWarranty?.issuedById, technician.id);
   assert.equal(recordedSalary?.technicianId, technician.id);
   assert.equal(recordedSalary?.serviceTotalRub, 1_200);
-  assert.equal(recordedSalary?.salaryRub, 900);
-  assert.equal(recordedSalary?.ratePercent, 75);
+  assert.equal(recordedSalary?.salaryRub, 720);
+  assert.equal(recordedSalary?.ratePercent, 60);
   assert.equal(
     (recordedSalary?.earnedAt as Date).toISOString(),
     (recordedWarranty?.issuedAt as Date).toISOString(),

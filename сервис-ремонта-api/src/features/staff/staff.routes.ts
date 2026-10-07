@@ -42,6 +42,7 @@ const updateTechnicianSchema = z
   .object({
     displayName: z.string().trim().min(2).max(120).optional(),
     phoneNumber: phoneNumberSchema,
+    salaryRatePercent: z.number().int().min(0).max(100).optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0);
@@ -83,6 +84,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           phoneNumber: true,
           avatarObjectId: true,
           role: true,
+          salaryRatePercent: true,
           active: true,
           createdAt: true,
         },
@@ -151,6 +153,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
             input.phoneNumber === undefined
               ? undefined
               : input.phoneNumber?.trim() || null,
+          salaryRatePercent: input.salaryRatePercent,
         },
         select: {
           id: true,
@@ -159,6 +162,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           phoneNumber: true,
           avatarObjectId: true,
           role: true,
+          salaryRatePercent: true,
           active: true,
           createdAt: true,
         },

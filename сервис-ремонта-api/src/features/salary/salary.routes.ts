@@ -75,10 +75,17 @@ export const createSalaryRouter = (database: DatabaseClient): Router => {
         user.role === "ADMIN"
           ? await database.user.findMany({
               where: { role: "TECHNICIAN" },
-              select: { id: true, displayName: true },
+              select: { id: true, displayName: true, salaryRatePercent: true },
               orderBy: { displayName: "asc" },
             })
-          : [{ id: user.id, displayName: user.displayName }];
+          : [
+              {
+                id: user.id,
+                displayName: user.displayName,
+                salaryRatePercent:
+                  user.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT,
+              },
+            ];
       const entries = await database.technicianSalaryEntry.findMany({
         where: {
           technicianId: { in: technicians.map(({ id }) => id) },
@@ -112,7 +119,10 @@ export const createSalaryRouter = (database: DatabaseClient): Router => {
       );
 
       response.json({
-        ratePercent: TECHNICIAN_SALARY_RATE_PERCENT,
+        ratePercent:
+          user.role === "TECHNICIAN"
+            ? (user.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT)
+            : null,
         timeZone: query.timeZone,
         generatedAt: now,
         ranges: Object.fromEntries(

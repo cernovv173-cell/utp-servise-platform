@@ -107,6 +107,7 @@ export type StaffMember = {
   id: string;
   displayName: string;
   email: string;
+  salaryRatePercent: number;
   active: boolean;
   role: string;
 };
@@ -226,7 +227,7 @@ export type LoyaltyCustomer = {
 
 export type SalaryPeriodName = "day" | "week" | "month";
 export type SalarySummary = {
-  ratePercent: number;
+  ratePercent: number | null;
   timeZone: string;
   generatedAt: string;
   ranges: Record<SalaryPeriodName, { startsAt: string; endsAt: string }>;
@@ -234,6 +235,7 @@ export type SalarySummary = {
   technicians: Array<{
     id: string;
     displayName: string;
+    salaryRatePercent: number;
     amounts: Record<SalaryPeriodName, number>;
   }>;
 };
@@ -587,6 +589,16 @@ export const searchOrders = (token: string, serviceNumber: string, signal?: Abor
 
 export const getStaff = (token: string, signal?: AbortSignal) =>
   apiRequest<{ staff: StaffMember[] }>("/staff", token, { signal });
+
+export const updateTechnician = (
+  token: string,
+  userId: string,
+  input: { salaryRatePercent: number },
+) =>
+  apiRequest<{ staff: StaffMember }>(`/staff/${userId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
 
 export const setStaffActive = (token: string, userId: string, active: boolean) =>
   apiRequest<{ staff: StaffMember }>(`/staff/${userId}/active`, token, {

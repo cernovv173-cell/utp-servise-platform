@@ -8,7 +8,7 @@ import { createStaffRouter } from "../src/features/staff/staff.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("only administrators can edit technician names and phone numbers", async (t) => {
+test("only administrators can edit technician profiles and individual salary rates", async (t) => {
   const tokens = {
     admin: "A".repeat(48),
     technician: "T".repeat(48),
@@ -32,6 +32,7 @@ test("only administrators can edit technician names and phone numbers", async (t
     phoneNumber: null as string | null,
     avatarObjectId: null,
     role: "TECHNICIAN" as const,
+    salaryRatePercent: 75,
     active: true,
     mustChangePassword: false,
     createdAt: new Date(),
@@ -92,12 +93,19 @@ test("only administrators can edit technician names and phone numbers", async (t
     body: JSON.stringify({
       displayName: "Новый мастер",
       phoneNumber: "+7 999 123-45-67",
+      salaryRatePercent: 62,
     }),
   });
   assert.equal(saved.status, 200);
-  assert.equal((await saved.json()).staff.phoneNumber, "+7 999 123-45-67");
+  const savedBody = await saved.json();
+  assert.equal(savedBody.staff.phoneNumber, "+7 999 123-45-67");
+  assert.equal(savedBody.staff.salaryRatePercent, 62);
   assert.deepEqual(updates, [
-    { displayName: "Новый мастер", phoneNumber: "+7 999 123-45-67" },
+    {
+      displayName: "Новый мастер",
+      phoneNumber: "+7 999 123-45-67",
+      salaryRatePercent: 62,
+    },
   ]);
 
   const forbidden = await fetch(endpoint, {
@@ -113,5 +121,13 @@ test("only administrators can edit technician names and phone numbers", async (t
     body: JSON.stringify({ phoneNumber: "позвони мне" }),
   });
   assert.equal(invalidPhone.status, 400);
+  assert.equal(updates.length, 1);
+
+  const invalidRate = await fetch(endpoint, {
+    method: "PATCH",
+    headers: headers(tokens.admin),
+    body: JSON.stringify({ salaryRatePercent: 101 }),
+  });
+  assert.equal(invalidRate.status, 400);
   assert.equal(updates.length, 1);
 });

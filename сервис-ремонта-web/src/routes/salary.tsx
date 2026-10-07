@@ -45,7 +45,11 @@ const SalaryPage = () => {
       <PageTitle
         eyebrow="РАСЧЁТ ВОЗНАГРАЖДЕНИЯ"
         title={isAdmin ? "Зарплата мастеров" : canViewSalary ? "Моя зарплата" : "Доступ ограничен"}
-        description={`Начисление составляет ${query.data?.ratePercent ?? 75}% от стоимости услуг в завершённых ремонтах. Запчасти не учитываются.`}
+        description={
+          isAdmin
+            ? "Начисления рассчитаны по индивидуальной ставке каждого мастера только от стоимости услуг. Запчасти и товары не учитываются."
+            : `Ваша ставка: ${query.data?.ratePercent ?? 75}% от стоимости услуг в завершённых ремонтах. Запчасти и товары не учитываются.`
+        }
       />
       {!canViewSalary && (
         <SectionCard>
@@ -96,6 +100,7 @@ const SalaryPage = () => {
                 <TableHeader className="dark:bg-slate-800">
                   <TableRow className="dark:border-slate-700 dark:hover:bg-slate-800">
                     <TableHead className="dark:text-slate-300">Мастер</TableHead>
+                    <TableHead className="text-right dark:text-slate-300">Ставка</TableHead>
                     <TableHead className="text-right dark:text-slate-300">Сегодня</TableHead>
                     <TableHead className="text-right dark:text-slate-300">Неделя</TableHead>
                     <TableHead className="text-right dark:text-slate-300">Месяц</TableHead>
@@ -108,6 +113,9 @@ const SalaryPage = () => {
                       className="dark:border-slate-800 dark:hover:bg-slate-800"
                     >
                       <TableCell className="font-medium">{technician.displayName}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {technician.salaryRatePercent}%
+                      </TableCell>
                       {(["day", "week", "month"] as const).map((period) => (
                         <TableCell key={period} className="text-right tabular-nums">
                           {formatRubles(technician.amounts[period])}

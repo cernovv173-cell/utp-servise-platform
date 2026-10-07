@@ -79,6 +79,7 @@ model User {
   yandexId                String?                 @unique @map("yandex_id") @db.VarChar(128)
   vkId                    String?                 @unique @map("vk_id") @db.VarChar(128)
   role                    UserRole                @default(CUSTOMER)
+  salaryRatePercent       Int                     @default(75) @map("salary_rate_percent") @db.SmallInt
   active                  Boolean                 @default(true)
   mustChangePassword      Boolean                 @default(false) @map("must_change_password")
   createdAt               DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)

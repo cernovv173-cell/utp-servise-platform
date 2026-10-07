@@ -7,12 +7,13 @@ import { SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { deleteTechnician, getStaff, setStaffActive } from "@/lib/api";
+import { deleteTechnician, getStaff, setStaffActive, updateTechnician } from "@/lib/api";
 
 export const StaffManagement = () => {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [draftRates, setDraftRates] = useState<Record<string, string>>({});
   const staff = useQuery({
     queryKey: ["staff", token],
     queryFn: ({ signal }) => getStaff(token!, signal),
@@ -38,6 +39,22 @@ export const StaffManagement = () => {
       setStaffActive(token!, userId, active),
     onSuccess: refresh,
     onError: () => toast.error("Не удалось изменить доступ сотрудника."),
+  });
+  const rateMutation = useMutation({
+    mutationFn: ({ userId, salaryRatePercent }: { userId: string; salaryRatePercent: number }) =>
+      updateTechnician(token!, userId, { salaryRatePercent }),
+    onSuccess: async ({ staff: updated }) => {
+      setDraftRates((current) => {
+        const next = { ...current };
+        delete next[updated.id];
+        return next;
+      });
+      toast.success(
+        `Ставка мастера ${updated.displayName} сохранена: ${updated.salaryRatePercent}%.`,
+      );
+      await refresh();
+    },
+    onError: () => toast.error("Не удалось сохранить ставку. Укажите целое число от 0 до 100."),
   });
 
   return (
@@ -98,6 +115,51 @@ export const StaffManagement = () => {
                 )}
               </div>
             </div>
+            {member.role === "TECHNICIAN" && (
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const rate = Number(draftRates[member.id] ?? member.salaryRatePercent ?? 75);
+                  if (!Number.isInteger(rate) || rate < 0 || rate > 100) {
+                    toast.error("Укажите целое число от 0 до 100.");
+                    return;
+                  }
+                  rateMutation.mutate({ userId: member.id, salaryRatePercent: rate });
+                }}
+                className="mt-4 flex flex-wrap items-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800"
+              >
+                <label className="grid gap-1 text-sm font-medium">
+                  Процент от стоимости услуг
+                  <span className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      required
+                      value={draftRates[member.id] ?? String(member.salaryRatePercent ?? 75)}
+                      onChange={(event) => {
+                        const value = event.currentTarget.value;
+                        setDraftRates((current) => ({ ...current, [member.id]: value }));
+                      }}
+                      className="h-10 w-24 rounded-lg border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-950"
+                    />
+                    <span>%</span>
+                  </span>
+                  <span className="text-xs font-normal text-slate-500">
+                    Запчасти и товары не учитываются. Новая ставка применяется к будущим
+                    начислениям.
+                  </span>
+                </label>
+                <button
+                  type="submit"
+                  disabled={rateMutation.isPending}
+                  className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {rateMutation.isPending ? "Сохраняем…" : "Сохранить процент"}
+                </button>
+              </form>
+            )}
             {confirmingId === member.id && (
               <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">
                 <p>

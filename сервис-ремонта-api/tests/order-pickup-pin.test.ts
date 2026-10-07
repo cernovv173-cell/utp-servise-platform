@@ -25,6 +25,7 @@ test("pickup QR issues a fallback PIN and the PIN closes only its service order"
     phoneNumber: null,
     avatarObjectId: null,
     role: "TECHNICIAN" as const,
+    salaryRatePercent: 75,
     active: true,
     mustChangePassword: false,
   };
@@ -100,6 +101,11 @@ test("pickup QR issues a fallback PIN and the PIN closes only its service order"
     repairOrderItem: { findMany: async () => [] },
     technicianSalaryEntry: {
       create: async ({ data }: { data: unknown }) => data,
+    },
+    user: {
+      findUnique: async () => ({
+        salaryRatePercent: technician.salaryRatePercent,
+      }),
     },
   };
   const issuedWarranty: Record<string, unknown> = {};

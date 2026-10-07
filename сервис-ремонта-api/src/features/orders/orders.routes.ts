@@ -885,7 +885,10 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             where: { id: order.salaryEntry.id },
             data: {
               serviceTotalRub,
-              salaryRub: calculateTechnicianSalaryRub(serviceTotalRub),
+              salaryRub: calculateTechnicianSalaryRub(
+                serviceTotalRub,
+                order.salaryEntry.ratePercent,
+              ),
             },
           });
         }
@@ -1373,6 +1376,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           },
         });
         if (order.assignedTechnicianId) {
+          const technician = await transaction.user.findUnique({
+            where: { id: order.assignedTechnicianId },
+            select: { salaryRatePercent: true },
+          });
+          const ratePercent =
+            technician?.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT;
           const serviceItems = await transaction.repairOrderItem.findMany({
             where: { orderId: order.id, type: "SERVICE" },
             select: { quantity: true, unitPriceRub: true },
@@ -1386,8 +1395,11 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
               orderId: order.id,
               technicianId: order.assignedTechnicianId,
               serviceTotalRub,
-              salaryRub: calculateTechnicianSalaryRub(serviceTotalRub),
-              ratePercent: TECHNICIAN_SALARY_RATE_PERCENT,
+              salaryRub: calculateTechnicianSalaryRub(
+                serviceTotalRub,
+                ratePercent,
+              ),
+              ratePercent,
               earnedAt: now,
             },
           });

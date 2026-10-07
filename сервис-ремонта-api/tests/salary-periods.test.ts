@@ -4,10 +4,12 @@ import test from "node:test";
 import { calculateTechnicianSalaryRub } from "../src/features/salary/salary-calculation.js";
 import { getSalaryPeriodRanges } from "../src/features/salary/salary-periods.js";
 
-test("salary uses 75 percent of service work and rounds to the nearest ruble", () => {
+test("salary applies the technician's saved percentage to service work and rounds to the nearest ruble", () => {
   assert.equal(calculateTechnicianSalaryRub(1_500), 1_125);
   assert.equal(calculateTechnicianSalaryRub(1_001), 751);
   assert.equal(calculateTechnicianSalaryRub(0), 0);
+  assert.equal(calculateTechnicianSalaryRub(1_500, 60), 900);
+  assert.equal(calculateTechnicianSalaryRub(1_500, 0), 0);
 });
 
 test("salary periods use local calendar dates and Monday as the week start", () => {

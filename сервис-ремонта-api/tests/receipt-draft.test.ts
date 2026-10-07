@@ -75,7 +75,7 @@ test("receipt edits synchronize item quantities, stock, bonus discount and techn
                 id: "88888888-8888-4888-8888-888888888888",
                 paymentStatus: "PENDING",
               },
-              salaryEntry: { id: salaryEntryId },
+              salaryEntry: { id: salaryEntryId, ratePercent: 40 },
             }
           : {
               id: orderId,
@@ -192,7 +192,7 @@ test("receipt edits synchronize item quantities, stock, bonus discount and techn
   assert.equal(savedReceipt?.totalRub, 1100);
   assert.equal(savedReceipt?.bonusDiscountRub, 330);
   assert.equal(savedSalary?.serviceTotalRub, 500);
-  assert.equal(savedSalary?.salaryRub, 375);
+  assert.equal(savedSalary?.salaryRub, 200);
   assert.deepEqual(
     (savedReceipt?.itemsSnapshot as Array<{ quantity: number }>).map(
       (item) => item.quantity,

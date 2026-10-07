@@ -25,6 +25,7 @@ test("salary summaries are personal for technicians and administrator-only acros
       id: "22222222-2222-4222-8222-222222222222",
       displayName: "Мастер один",
       role: "TECHNICIAN" as const,
+      salaryRatePercent: 60,
       token: tokens.technician,
     },
     {
@@ -43,6 +44,8 @@ test("salary summaries are personal for technicians and administrator-only acros
       phoneNumber: null,
       avatarObjectId: null,
       role: user.role,
+      salaryRatePercent:
+        user.role === "TECHNICIAN" ? user.salaryRatePercent : undefined,
       active: true,
       mustChangePassword: false,
     },
@@ -63,10 +66,15 @@ test("salary summaries are personal for technicians and administrator-only acros
     },
     user: {
       findMany: async () => [
-        { id: users[1]!.id, displayName: users[1]!.displayName },
+        {
+          id: users[1]!.id,
+          displayName: users[1]!.displayName,
+          salaryRatePercent: 60,
+        },
         {
           id: "44444444-4444-4444-8444-444444444444",
           displayName: "Мастер два",
+          salaryRatePercent: 45,
         },
       ],
     },
@@ -113,12 +121,21 @@ test("salary summaries are personal for technicians and administrator-only acros
   assert.equal(technicianBody.totals.day, 1_125);
   assert.equal(technicianBody.totals.week, 1_125);
   assert.equal(technicianBody.totals.month, 1_125);
+  assert.equal(technicianBody.ratePercent, 60);
+  assert.equal(technicianBody.technicians[0].salaryRatePercent, 60);
 
   const adminResponse = await request(tokens.admin);
   assert.equal(adminResponse.status, 200);
   const adminBody = await adminResponse.json();
   assert.equal(adminBody.technicians.length, 2);
   assert.equal(adminBody.totals.month, 1_125);
+  assert.equal(adminBody.ratePercent, null);
+  assert.deepEqual(
+    adminBody.technicians.map(
+      (item: { salaryRatePercent: number }) => item.salaryRatePercent,
+    ),
+    [60, 45],
+  );
 
   assert.equal((await request(tokens.customer)).status, 403);
   const invalidTimeZone = await fetch(
