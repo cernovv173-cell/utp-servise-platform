@@ -9,6 +9,11 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { formatBirthdayGreeting } from "../notifications/birthday-greeting.js";
+import {
+  getMoscowBirthdayDate,
+  getMoscowBirthdayDayWindow,
+} from "../notifications/birthday-time.js";
 
 const scheduleNewsPush = async (
   database: Pick<DatabaseClient, "newsPushDelivery">,
@@ -114,7 +119,24 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
         orderBy: { createdAt: "desc" },
         take: 100,
       });
-      response.json({ articles, reviews });
+      const birthday = getMoscowBirthdayDate(now);
+      const birthdayGreeting =
+        user.role === "CUSTOMER" &&
+        user.birthDate?.toISOString().slice(5, 10) === birthday.monthDay
+          ? (() => {
+              const { startsAt, endsAt } = getMoscowBirthdayDayWindow(now);
+              return {
+                title: "С днём рождения!",
+                content: formatBirthdayGreeting(
+                  user.displayName,
+                  user.gender ?? null,
+                ),
+                startsAt: startsAt.toISOString(),
+                endsAt: endsAt.toISOString(),
+              };
+            })()
+          : null;
+      response.json({ articles, reviews, birthdayGreeting });
     },
   );
 

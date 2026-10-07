@@ -153,8 +153,34 @@ object ApiClient {
         "PATCH", "/craft-orders/$orderId", token, JSONObject().put("status", status),
     ).getJSONObject("order").toCraftOrder()
 
-    fun news(token: String): List<NewsArticle> = request("GET", "/news", token)
-        .getJSONArray("articles").mapObjects { it.toNewsArticle() }
+    fun news(token: String): List<NewsArticle> {
+        val response = request("GET", "/news", token)
+        val now = java.time.Instant.now()
+        val birthdayGreeting = response.optJSONObject("birthdayGreeting")?.let { greeting ->
+            val startsAt = greeting.nullableString("startsAt")
+            val endsAt = greeting.nullableString("endsAt")
+            val isCurrentBirthday = runCatching {
+                startsAt != null && endsAt != null &&
+                    !now.isBefore(java.time.Instant.parse(startsAt)) &&
+                    now.isBefore(java.time.Instant.parse(endsAt))
+            }.getOrDefault(false)
+            if (isCurrentBirthday) {
+                NewsArticle(
+                    id = "personal-birthday-${endsAt}",
+                    title = greeting.getString("title"),
+                    content = greeting.getString("content"),
+                    isPublished = true,
+                    publishedAt = startsAt,
+                    imageObjectId = null,
+                    startsAt = startsAt,
+                    endsAt = endsAt,
+                    isFeatured = false,
+                )
+            } else null
+        }
+        return listOfNotNull(birthdayGreeting) +
+            response.getJSONArray("articles").mapObjects { it.toNewsArticle() }
+    }
 
     fun banners(token: String): List<SiteBanner> = request("GET", "/banners", token)
         .getJSONArray("banners").mapObjects { banner ->

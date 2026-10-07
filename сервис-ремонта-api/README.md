@@ -82,3 +82,11 @@ worker runs only in production, because development and production share the
 managed database and push credentials. It sends the configured greeting to
 customers with a registered push device token on their birthday in Moscow time,
 at most once per customer per calendar year.
+
+On the same Moscow calendar day, `GET /news` also returns a personal birthday
+greeting only for the signed-in customer whose saved birth date matches that
+day. The Web and Android news feeds display it until the next Moscow midnight
+and hide it at expiry. Birthday push messages use the remaining time in that day as their
+Android delivery TTL; the existing worker retries only while the birthday is
+still the current Moscow date. Neither the card nor the date is exposed to
+other users.

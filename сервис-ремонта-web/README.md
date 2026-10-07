@@ -89,6 +89,10 @@ Customers can optionally save gender and date of birth in `/account`. The API se
 push greeting per customer per year, using the Moscow calendar date and only to devices with a
 registered, permitted push token. Staff profiles do not expose these fields.
 
+On the customer's birthday, `/news` shows a personalized greeting only to that signed-in customer.
+It expires at the next Moscow midnight (a 24-hour Moscow calendar day), matching the birthday push
+delivery window. Other users do not receive or see the customer's birthday card.
+
 When `YANDEX_CLIENT_ID` is configured, `/login` also supports Yandex ID. The Yandex OAuth callback
 page is `/yandex-token`; add that exact path for both development and production Web origins in the
 Yandex OAuth app. If the Yandex email matches an existing account, its current password is required

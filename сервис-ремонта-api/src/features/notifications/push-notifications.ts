@@ -3,6 +3,10 @@ import { getMessaging } from "firebase-admin/messaging";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { createLogger } from "../../lib/logger.js";
+import { formatBirthdayGreeting } from "./birthday-greeting.js";
+import { getMoscowBirthdayDayWindow } from "./birthday-time.js";
+
+export { formatBirthdayGreeting } from "./birthday-greeting.js";
 
 const logger = createLogger();
 const FIREBASE_APP_NAME = "utp-servise-push";
@@ -13,6 +17,7 @@ export type PushNotification = {
   readonly body: string;
   readonly data: Readonly<Record<string, string>>;
   readonly androidTag?: string;
+  readonly androidExpiresAt?: Date;
 };
 
 export type ChatMessageRecipients = {
@@ -117,12 +122,25 @@ export const sendPushNotification = async (
       const tokens = devices
         .slice(offset, offset + MAX_MULTICAST_TOKENS)
         .map(({ token }) => token);
+      const androidTtlMilliseconds = notification.androidExpiresAt
+        ? Math.max(0, notification.androidExpiresAt.getTime() - Date.now())
+        : undefined;
+      if (androidTtlMilliseconds === 0) break;
       try {
         const result = await messaging.sendEachForMulticast({
           tokens,
           notification: { title: notification.title, body: notification.body },
-          ...(notification.androidTag
-            ? { android: { notification: { tag: notification.androidTag } } }
+          ...(notification.androidTag || androidTtlMilliseconds !== undefined
+            ? {
+                android: {
+                  ...(notification.androidTag
+                    ? { notification: { tag: notification.androidTag } }
+                    : {}),
+                  ...(androidTtlMilliseconds !== undefined
+                    ? { ttl: androidTtlMilliseconds }
+                    : {}),
+                },
+              }
             : {}),
           data: { ...notification.data },
         });
@@ -256,6 +274,8 @@ export const sendCustomerBirthdayNotification = async (
   birthdayYear: number,
 ): Promise<boolean> => {
   try {
+    const { endsAt } = getMoscowBirthdayDayWindow(new Date());
+    if (endsAt.getTime() <= Date.now()) return true;
     const user = await database.user.findFirst({
       where: { id: userId, role: "CUSTOMER", active: true },
       select: { displayName: true, gender: true },
@@ -269,6 +289,7 @@ export const sendCustomerBirthdayNotification = async (
         notificationId: `birthday-${birthdayYear}-${userId}`,
       },
       androidTag: `birthday-${birthdayYear}-${userId}`,
+      androidExpiresAt: endsAt,
     });
   } catch {
     logger.warn(
@@ -277,20 +298,4 @@ export const sendCustomerBirthdayNotification = async (
     );
     return false;
   }
-};
-
-export const formatBirthdayGreeting = (
-  name: string,
-  gender: "MALE" | "FEMALE" | null,
-): string => {
-  const salutation =
-    gender === "FEMALE"
-      ? `Уважаемая ${name.trim()}`
-      : gender === "MALE"
-        ? `Уважаемый ${name.trim()}`
-        : `Здравствуйте, ${name.trim()}`;
-  return `${salutation},
-От всей души поздравляю Вас с днём рождения!
-Желаю Вам крепкого здоровья, неиссякаемой энергии и новых свершений! Пусть каждый день приносит радость, благополучие и гармонию, а все намеченные цели и планы успешно реализуются.
-С наилучшими пожеланиями и глубоким уважением, ваш ЕНОТ.`;
 };

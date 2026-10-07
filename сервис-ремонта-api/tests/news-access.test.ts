@@ -5,12 +5,21 @@ import { test } from "node:test";
 
 import { hashSessionToken } from "../src/features/auth/auth.middleware.js";
 import { createNewsRouter } from "../src/features/news/news.routes.js";
+import { getMoscowBirthdayDate } from "../src/features/notifications/birthday-time.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
 const adminToken = "A".repeat(48);
 const customerToken = "C".repeat(48);
 const technicianToken = "T".repeat(48);
+const otherCustomerToken = "O".repeat(48);
+const todayInMoscow = getMoscowBirthdayDate(new Date());
+const customerBirthday = new Date(
+  `${todayInMoscow.year}-${todayInMoscow.monthDay}T00:00:00.000Z`,
+);
+const otherCustomerBirthday = new Date(
+  customerBirthday.getTime() + 24 * 60 * 60 * 1_000,
+);
 
 test("only administrators write news and customer-facing reads exclude drafts", async (t) => {
   const users = [
@@ -27,6 +36,8 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       id: "customer-1",
       email: "customer@test.invalid",
       displayName: "Customer",
+      gender: "FEMALE" as const,
+      birthDate: customerBirthday,
       role: "CUSTOMER" as const,
       active: true,
       mustChangePassword: false,
@@ -40,6 +51,17 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       active: true,
       mustChangePassword: false,
       token: technicianToken,
+    },
+    {
+      id: "customer-2",
+      email: "other-customer@test.invalid",
+      displayName: "Other Customer",
+      role: "CUSTOMER" as const,
+      gender: "MALE" as const,
+      birthDate: otherCustomerBirthday,
+      active: true,
+      mustChangePassword: false,
+      token: otherCustomerToken,
     },
   ];
   const articles = [
@@ -227,15 +249,33 @@ test("only administrators write news and customer-facing reads exclude drafts", 
     headers: headers(customerToken),
   });
   assert.equal(customerNews.status, 200);
+  const customerNewsBody = await customerNews.json();
   assert.deepEqual(
-    (await customerNews.json()).articles.map(
+    customerNewsBody.articles.map(
       (article: { title: string }) => article.title,
     ),
     ["Работаем в праздники"],
   );
+  assert.equal(customerNewsBody.birthdayGreeting.title, "С днём рождения!");
+  assert.match(
+    customerNewsBody.birthdayGreeting.content,
+    /Уважаемая Customer,/u,
+  );
+  assert.equal(
+    new Date(customerNewsBody.birthdayGreeting.endsAt).getTime() -
+      new Date(customerNewsBody.birthdayGreeting.startsAt).getTime(),
+    24 * 60 * 60 * 1_000,
+  );
+
+  const otherCustomerNews = await fetch(baseUrl, {
+    headers: headers(otherCustomerToken),
+  });
+  assert.equal((await otherCustomerNews.json()).birthdayGreeting, null);
 
   const adminNews = await fetch(baseUrl, { headers: headers(adminToken) });
-  assert.equal((await adminNews.json()).articles.length, 4);
+  const adminNewsBody = await adminNews.json();
+  assert.equal(adminNewsBody.articles.length, 4);
+  assert.equal(adminNewsBody.birthdayGreeting, null);
 
   const createDraft = await fetch(baseUrl, {
     method: "POST",

@@ -1,6 +1,9 @@
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { createLogger } from "../../lib/logger.js";
+import { getMoscowBirthdayDate } from "./birthday-time.js";
 import { sendCustomerBirthdayNotification } from "./push-notifications.js";
+
+export { getMoscowBirthdayDate } from "./birthday-time.js";
 
 const logger = createLogger();
 const WORKER_INTERVAL_MILLISECONDS = 60_000;
@@ -16,21 +19,6 @@ type ClaimedBirthdayPush = {
 
 export const birthdayPushRetryDelayMilliseconds = (attempt: number): number =>
   Math.min(60 * 60 * 1_000, 10_000 * 2 ** Math.max(0, attempt - 1));
-
-export const getMoscowBirthdayDate = (now: Date) => {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Moscow",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(now);
-  const part = (type: string) =>
-    parts.find((item) => item.type === type)?.value ?? "";
-  return {
-    year: Number(part("year")),
-    monthDay: `${part("month")}-${part("day")}`,
-  };
-};
 
 const enqueueTodaysBirthdays = async (
   database: DatabaseClient,

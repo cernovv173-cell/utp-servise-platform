@@ -6,6 +6,7 @@ import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignBanner } from "@/features/campaigns/campaign-banner";
+import { BirthdayGreetingCard } from "@/features/news/birthday-greeting-card";
 
 import { getBanners, getNews } from "@/lib/api";
 
@@ -42,6 +43,9 @@ const NewsPage = () => {
             <CampaignBanner key={banner.id} banner={banner} />
           ))}
       </div>
+      {query.data?.birthdayGreeting && (
+        <BirthdayGreetingCard greeting={query.data.birthdayGreeting} />
+      )}
       <div className="grid gap-4 md:grid-cols-2">
         {(query.data?.articles ?? [])
           .filter((item) => item.isPublished)
@@ -95,7 +99,8 @@ const NewsPage = () => {
         {!query.isLoading &&
           !query.isError &&
           (query.data?.articles ?? []).filter((item) => item.isPublished).length === 0 &&
-          publishedReviews.length === 0 && (
+          publishedReviews.length === 0 &&
+          !query.data?.birthdayGreeting && (
             <SectionCard className="md:col-span-2">
               <p className="text-sm text-slate-500">
                 Сейчас нет опубликованных новостей и отзывов.

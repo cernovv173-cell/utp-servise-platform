@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { formatBirthdayGreeting } from "../src/features/notifications/birthday-greeting.js";
 import {
   birthdayPushRetryDelayMilliseconds,
   getMoscowBirthdayDate,
 } from "../src/features/notifications/birthday-push-worker.js";
-import { formatBirthdayGreeting } from "../src/features/notifications/push-notifications.js";
+import { getMoscowBirthdayDayWindow } from "../src/features/notifications/birthday-time.js";
 
 test("birthday dates use the Moscow calendar day around UTC midnight", () => {
   assert.deepEqual(
@@ -16,6 +17,15 @@ test("birthday dates use the Moscow calendar day around UTC midnight", () => {
     getMoscowBirthdayDate(new Date("2026-10-06T21:00:00.000Z")),
     { year: 2026, monthDay: "10-07" },
   );
+});
+
+test("birthday greeting window is exactly the Moscow calendar day", () => {
+  const { startsAt, endsAt } = getMoscowBirthdayDayWindow(
+    new Date("2026-10-06T20:59:00.000Z"),
+  );
+  assert.equal(startsAt.toISOString(), "2026-10-05T21:00:00.000Z");
+  assert.equal(endsAt.toISOString(), "2026-10-06T21:00:00.000Z");
+  assert.equal(endsAt.getTime() - startsAt.getTime(), 24 * 60 * 60 * 1_000);
 });
 
 test("birthday push retry delay is exponential and capped at one hour", () => {

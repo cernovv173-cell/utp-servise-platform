@@ -18,6 +18,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.SiteBanner
@@ -31,7 +37,23 @@ fun NewsFeedScreen(
     banners: List<SiteBanner>,
     onCampaignNavigate: (String) -> Unit,
 ) {
-    val visibleArticles = articles.filter { it.isPublished }
+    val birthdayEndsAt = articles.firstOrNull { it.id.startsWith("personal-birthday-") }?.endsAt
+    var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(birthdayEndsAt) {
+        birthdayEndsAt?.let { value ->
+            val millisecondsUntilExpiry = runCatching {
+                java.time.Instant.parse(value).toEpochMilli() - System.currentTimeMillis()
+            }.getOrDefault(0)
+            if (millisecondsUntilExpiry > 0) delay(millisecondsUntilExpiry)
+            currentTimeMillis = System.currentTimeMillis()
+        }
+    }
+    val visibleArticles = articles.filter { article ->
+        article.isPublished &&
+            (!article.id.startsWith("personal-birthday-") || runCatching {
+                article.endsAt?.let { java.time.Instant.parse(it).toEpochMilli() > currentTimeMillis } == true
+            }.getOrDefault(false))
+    }
     val visibleReviews = reviews.filter { it.isPublished }
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),

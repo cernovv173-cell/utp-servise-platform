@@ -149,6 +149,13 @@ export type NewsArticle = {
   imageObjectId?: string | null;
 };
 
+export type PersonalBirthdayGreeting = {
+  title: string;
+  content: string;
+  startsAt: string;
+  endsAt: string;
+};
+
 export type RepairCatalogItem = {
   id: string;
   type: RepairCatalogType;
@@ -415,7 +422,11 @@ export const updateRepairOrder = (
   });
 
 export const getNews = (token: string, signal?: AbortSignal) =>
-  apiRequest<{ articles: NewsArticle[]; reviews: Review[] }>("/news", token, { signal });
+  apiRequest<{
+    articles: NewsArticle[];
+    reviews: Review[];
+    birthdayGreeting: PersonalBirthdayGreeting | null;
+  }>("/news", token, { signal });
 
 export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
   apiRequest<{ catalogItems: RepairCatalogItem[] }>("/catalog", token, { signal });
