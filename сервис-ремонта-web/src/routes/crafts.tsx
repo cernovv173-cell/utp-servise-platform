@@ -8,6 +8,7 @@ import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
+import { CraftOrderChatPanel } from "@/features/crafts/craft-order-chat";
 
 import {
   createCraftItem,
@@ -248,6 +249,14 @@ const CraftsPage = () => {
                     )}
                   </div>
                 </div>
+                {token && (
+                  <CraftOrderChatPanel
+                    token={token}
+                    craftOrderId={order.id}
+                    isAdmin={isAdmin}
+                    status={order.status}
+                  />
+                )}
               </SectionCard>
             ))}
             {!orders.isLoading && (orders.data?.orders.length ?? 0) === 0 && (

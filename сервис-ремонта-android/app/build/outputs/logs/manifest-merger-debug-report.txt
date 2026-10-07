@@ -1,9 +1,20 @@
 -- Merging decision tree log ---
+provider#androidx.core.content.FileProvider
+INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:15:9-23:20
+	android:grantUriPermissions
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:19:13-47
+	android:authorities
+		INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:17:13-64
+	android:exported
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:18:13-37
+	android:name
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:16:13-62
 manifest
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:1:1-30:12
-INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:1:1-30:12
-INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:1:1-30:12
-INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:1:1-30:12
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:1:1-40:12
+INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:1:1-40:12
+INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:1:1-40:12
+INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:1:1-40:12
 MERGED from [com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:27:1-91:12
 MERGED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:2:1-80:12
 MERGED from [com.google.android.gms:play-services-code-scanner:16.1.0] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/0e3664e11cce15ee6c1bb6e82d410e1b/transformed/play-services-code-scanner-16.1.0/AndroidManifest.xml:2:1-23:12
@@ -157,9 +168,13 @@ MERGED from [com.google.firebase:firebase-messaging:25.1.3] /var/cache/amazi-and
 MERGED from [com.google.firebase:firebase-messaging:25.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/97e8f3a053aea2885be4946dab65e0ce/transformed/firebase-messaging-25.1.3/AndroidManifest.xml:23:5-77
 	android:name
 		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:3:22-74
+uses-permission#android.permission.REQUEST_INSTALL_PACKAGES
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:4:5-83
+	android:name
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:4:22-80
 application
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:4:5-29:19
-INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:4:5-29:19
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:5:5-39:19
+INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:5:5-39:19
 MERGED from [com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:55:5-89:19
 MERGED from [com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:55:5-89:19
 MERGED from [com.yandex.android:authsdk:3.1.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/e9189b9b31e1d27370befccd35c563cc/transformed/authsdk-3.1.3/AndroidManifest.xml:29:5-78:19
@@ -233,51 +248,57 @@ MERGED from [com.google.android.odml:image:1.0.0-beta1] /var/cache/amazi-android
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.15.0] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/4ad45ee727d0cf8d59dd73573c78d13a/transformed/core-1.15.0/AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:9:9-35
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:10:9-35
 	android:label
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:7:9-36
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:8:9-36
 	android:roundIcon
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:8:9-54
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:9:9-54
 	android:icon
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:6:9-43
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:7:9-43
 	android:allowBackup
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:5:9-36
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:6:9-36
 	android:theme
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:10:9-48
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:11:9-48
 meta-data#com.google.mlkit.vision.DEPENDENCIES
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:11:9-13:42
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:12:9-14:42
 	android:value
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:13:13-39
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:14:13-39
 	android:name
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:12:13-64
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:13:13-64
 activity#ru.utp.servise.MainActivity
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:14:9-21:20
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:24:9-31:20
 	android:exported
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:16:13-36
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:26:13-36
 	android:name
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:15:13-41
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:25:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:17:13-20:29
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:27:13-30:29
 action#android.intent.action.MAIN
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:18:17-69
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:28:17-69
 	android:name
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:18:25-66
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:28:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:19:17-77
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:29:17-77
 	android:name
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:19:27-74
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:29:27-74
 service#ru.utp.servise.notifications.UtpFirebaseMessagingService
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:22:9-28:19
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:32:9-38:19
 	android:exported
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:24:13-37
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:34:13-37
 	android:name
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:23:13-70
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:33:13-70
 intent-filter#action:name:com.google.firebase.MESSAGING_EVENT
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:25:13-27:29
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:35:13-37:29
 action#com.google.firebase.MESSAGING_EVENT
-ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:26:17-78
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:36:17-78
 	android:name
-		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:26:25-75
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:36:25-75
+meta-data#android.support.FILE_PROVIDER_PATHS
+ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:20:13-22:61
+	android:resource
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:22:17-58
+	android:name
+		ADDED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml:21:17-67
 uses-sdk
 INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from /workspace/сервис-ремонта-android/app/src/main/AndroidManifest.xml

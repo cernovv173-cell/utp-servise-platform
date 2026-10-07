@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,8 +33,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CraftItem
+import ru.utp.servise.data.CraftOrderChat
 import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.SiteBanner
 
@@ -85,7 +88,7 @@ fun CraftsScreen(
                 }
             }
             Text("Мои заявки", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-            orders.forEach { CustomerCraftOrderCard(it) }
+            orders.forEach { CustomerCraftOrderCard(it, token, runAction) }
         }
         if (items.isEmpty()) Text("В каталоге пока нет материалов.", color = UtpMuted)
     }
@@ -171,19 +174,176 @@ private fun AdminCraftOrderCard(order: CraftOrder, token: String, runAction: Run
                     DropdownMenuItem(text = { Text(status) }, onClick = { expanded = false; runAction({ ApiClient.updateCraftOrderStatus(token, order.id, status) }) { refresh() } })
                 }
             }
+            CraftOrderChatPanel(token, order.id, order.status, runAction)
         }
     }
 }
 
 @Composable
-private fun CustomerCraftOrderCard(order: CraftOrder) {
-    Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.fillMaxWidth().padding(14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
-                Text(order.itemTitle, fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Text("${order.quantity} шт. · ${order.status}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+private fun CustomerCraftOrderCard(order: CraftOrder, token: String, runAction: RunAction) {
+    Card(
+        shape = RoundedCornerShape(15.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface,
+        ),
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(order.itemTitle, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text(
+                        "${order.quantity} шт. · ${order.status}",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                }
+                Text(
+                    "${order.quotedPriceRub ?: order.unitPriceRub} ₽",
+                    fontWeight = FontWeight.SemiBold,
+                    color = UtpBlue,
+                )
             }
-            Text("${order.quotedPriceRub ?: order.unitPriceRub} ₽", fontWeight = FontWeight.SemiBold, color = UtpBlue)
+            CraftOrderChatPanel(token, order.id, order.status, runAction)
+        }
+    }
+}
+
+@Composable
+private fun CraftOrderChatPanel(
+    token: String,
+    craftOrderId: String,
+    status: String,
+    runAction: RunAction,
+) {
+    var isOpen by remember(craftOrderId) {
+        mutableStateOf(status == "IN_PROGRESS")
+    }
+    var chat by remember(craftOrderId) {
+        mutableStateOf<CraftOrderChat?>(null)
+    }
+    var message by remember(craftOrderId) { mutableStateOf("") }
+    val context = LocalContext.current
+
+    LaunchedEffect(status, craftOrderId) {
+        if (status == "IN_PROGRESS") isOpen = true
+    }
+    LaunchedEffect(isOpen, craftOrderId) {
+        while (isOpen) {
+            runAction({ ApiClient.craftOrderChat(token, craftOrderId) }) {
+                chat = it as? CraftOrderChat
+            }
+            delay(5_000)
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedButton(
+            onClick = { isOpen = !isOpen },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                if (isOpen) "Скрыть чат"
+                else "Открыть чат по заявке${if (status == "IN_PROGRESS") " · В работе" else ""}",
+            )
+        }
+
+        if (isOpen) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .background(UtpPale, RoundedCornerShape(12.dp))
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val messages = chat?.messages.orEmpty()
+                if (messages.isEmpty()) {
+                    Text(
+                        "Отправьте администратору вопрос или фото по этой заявке.",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                    )
+                }
+                messages.forEach { entry ->
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface,
+                        ),
+                    ) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                        ) {
+                            Text(
+                                "${entry.senderName.ifBlank { "Участник чата" }} · ${entry.senderRole}",
+                                fontSize = 10.sp,
+                                color = UtpMuted,
+                            )
+                            if (entry.content.isNotBlank()) {
+                                Text(entry.content, fontSize = 13.sp, color = UtpInk)
+                            }
+                            entry.imageObjectId?.let { image ->
+                                RemoteProjectImage(
+                                    image,
+                                    token,
+                                    Modifier.fillMaxWidth().height(170.dp),
+                                    "Фото в чате заявки",
+                                )
+                            }
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value = message,
+                    onValueChange = { message = it.take(2000) },
+                    label = { Text("Сообщение") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 1,
+                    maxLines = 4,
+                    shape = RoundedCornerShape(12.dp),
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    PhotoPickerButton("Отправить фото") { uri ->
+                        runAction({
+                            ApiClient.uploadCraftOrderChatImage(
+                                token,
+                                craftOrderId,
+                                compressSelectedImage(context, uri),
+                            )
+                            ApiClient.craftOrderChat(token, craftOrderId)
+                        }) {
+                            chat = it as? CraftOrderChat
+                        }
+                    }
+                    Button(
+                        onClick = {
+                            val content = message.trim()
+                            if (content.isNotEmpty()) {
+                                runAction({
+                                    ApiClient.sendCraftOrderChatMessage(
+                                        token,
+                                        craftOrderId,
+                                        content,
+                                    )
+                                }) {
+                                    chat = it as? CraftOrderChat
+                                    message = ""
+                                }
+                            }
+                        },
+                        enabled = message.isNotBlank(),
+                    ) { Text("Отправить") }
+                }
+            }
         }
     }
 }

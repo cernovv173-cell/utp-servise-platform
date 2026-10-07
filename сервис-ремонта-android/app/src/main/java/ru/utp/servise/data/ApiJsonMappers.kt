@@ -206,6 +206,24 @@ internal fun JSONObject.toCraftOrder(): CraftOrder {
     )
 }
 
+internal fun JSONObject.toCraftOrderChatMessage() = CraftOrderChatMessage(
+    id = getString("id"),
+    senderId = nullableString("senderId"),
+    senderName = optJSONObject("sender")?.optString("displayName").orEmpty(),
+    senderRole = optJSONObject("sender")?.optString("role").orEmpty(),
+    content = optString("content"),
+    imageObjectId = nullableString("imageObjectId"),
+    createdAt = optString("createdAt"),
+)
+
+internal fun JSONObject.toCraftOrderChat(): CraftOrderChat {
+    val chat = getJSONObject("chat")
+    return CraftOrderChat(
+        craftOrderId = chat.getString("craftOrderId"),
+        messages = chat.getJSONArray("messages").mapObjects { it.toCraftOrderChatMessage() },
+    )
+}
+
 internal fun JSONObject.toNewsArticle() = NewsArticle(
     id = getString("id"),
     title = getString("title"),

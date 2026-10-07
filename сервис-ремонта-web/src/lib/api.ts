@@ -218,6 +218,22 @@ export type CraftOrder = {
   customer?: { id: string; displayName: string; email: string; phoneNumber: string | null };
 };
 
+export type CraftOrderChatMessage = {
+  id: string;
+  craftOrderId: string;
+  senderId: string | null;
+  content: string;
+  imageObjectId: string | null;
+  createdAt: string;
+  sender: { id: string; displayName: string; role: Role } | null;
+};
+
+export type CraftOrderChat = {
+  id: string;
+  craftOrderId: string;
+  messages: CraftOrderChatMessage[];
+};
+
 export type LoyaltyTransaction = {
   id: string;
   type: "EARN" | "REDEEM" | "MANUAL_ADJUSTMENT";
@@ -682,6 +698,25 @@ export const updateCraftOrder = (
     method: "PATCH",
     body: JSON.stringify(data),
   });
+
+export const getCraftOrderChat = (token: string, id: string, signal?: AbortSignal) =>
+  apiRequest<{ chat: CraftOrderChat }>(`/craft-orders/${id}/chat`, token, { signal });
+
+export const sendCraftOrderChatMessage = (token: string, id: string, content: string) =>
+  apiRequest<{ chat: CraftOrderChat }>(`/craft-orders/${id}/chat/messages`, token, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+
+export const uploadCraftOrderChatImage = async (token: string, id: string, file: File) => {
+  const response = await fetch(`${apiBase}/craft-orders/${id}/chat/image`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": file.type },
+    body: file,
+  });
+  if (!response.ok) throw new Error(`Не удалось отправить фото (${response.status}).`);
+  return response.json() as Promise<{ message: CraftOrderChatMessage }>;
+};
 
 export const createCraftItem = (token: string, item: Omit<CraftItem, "id" | "imageObjectId">) =>
   apiRequest<{ item: CraftItem }>("/craft-items", token, {

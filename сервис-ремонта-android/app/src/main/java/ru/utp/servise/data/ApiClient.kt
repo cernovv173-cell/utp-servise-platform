@@ -2,6 +2,7 @@ package ru.utp.servise.data
 
 import org.json.JSONObject
 import ru.utp.servise.BuildConfig
+import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -11,6 +12,63 @@ class ApiException(val errorCode: String, override val message: String) : IOExce
 
 object ApiClient {
     internal val baseUrl: String = BuildConfig.API_BASE_URL.trimEnd('/')
+    private const val MAX_ANDROID_APK_BYTES = 100L * 1024 * 1024
+
+    fun downloadCurrentAndroidApk(destination: File) {
+        if (baseUrl.isBlank()) {
+            throw ApiException("API_NOT_CONFIGURED", "Адрес сервера ещё не настроен для этой сборки.")
+        }
+        if (!baseUrl.startsWith("https://")) {
+            throw ApiException("HTTPS_REQUIRED", "Сервер должен использовать защищённое HTTPS-подключение.")
+        }
+        val connection = URL("$baseUrl/api/android-app/download").openConnection() as HttpURLConnection
+        val parentDirectory = destination.parentFile ?: throw IOException("Не удалось подготовить папку загрузки.")
+        val temporaryFile = File(parentDirectory, "${destination.name}.part")
+        try {
+            connection.instanceFollowRedirects = true
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 60_000
+            connection.setRequestProperty("Accept", "application/vnd.android.package-archive")
+            val statusCode = connection.responseCode
+            if (statusCode !in 200..299) {
+                throw ApiException("APK_DOWNLOAD_FAILED", "Не удалось скачать обновление. Проверьте соединение и повторите попытку.")
+            }
+            if (connection.url.protocol != "https") {
+                throw ApiException("APK_HTTPS_REQUIRED", "Файл обновления должен загружаться по защищённому HTTPS-подключению.")
+            }
+            if (connection.contentLengthLong > MAX_ANDROID_APK_BYTES) {
+                throw ApiException("APK_TOO_LARGE", "Файл обновления превышает допустимый размер.")
+            }
+            if (!parentDirectory.exists() && !parentDirectory.mkdirs()) {
+                throw IOException("Не удалось подготовить папку загрузки.")
+            }
+            var totalBytes = 0L
+            connection.inputStream.buffered().use { input ->
+                temporaryFile.outputStream().buffered().use { output ->
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        totalBytes += count
+                        if (totalBytes > MAX_ANDROID_APK_BYTES) {
+                            throw ApiException("APK_TOO_LARGE", "Файл обновления превышает допустимый размер.")
+                        }
+                        output.write(buffer, 0, count)
+                    }
+                }
+            }
+            if (totalBytes == 0L || !temporaryFile.renameTo(destination)) {
+                throw IOException("Загруженный файл обновления не удалось сохранить.")
+            }
+        } catch (failure: Exception) {
+            temporaryFile.delete()
+            destination.delete()
+            throw failure
+        } finally {
+            connection.disconnect()
+        }
+    }
 
     fun login(email: String, password: String, portal: String): AuthResult = authResult(
         request("POST", "/auth/login", body = JSONObject().put("email", email).put("password", password).put("portal", portal))
@@ -152,6 +210,19 @@ object ApiClient {
     fun updateCraftOrderStatus(token: String, orderId: String, status: String): CraftOrder = request(
         "PATCH", "/craft-orders/$orderId", token, JSONObject().put("status", status),
     ).getJSONObject("order").toCraftOrder()
+
+    fun craftOrderChat(token: String, orderId: String): CraftOrderChat = request(
+        "GET", "/craft-orders/$orderId/chat", token,
+    ).toCraftOrderChat()
+
+    fun sendCraftOrderChatMessage(token: String, orderId: String, content: String): CraftOrderChat = request(
+        "POST", "/craft-orders/$orderId/chat/messages", token,
+        JSONObject().put("content", content),
+    ).toCraftOrderChat()
+
+    fun uploadCraftOrderChatImage(token: String, orderId: String, image: ByteArray) {
+        MediaApiClient.binaryRequest("POST", "/craft-orders/$orderId/chat/image", token, image)
+    }
 
     fun news(token: String): List<NewsArticle> {
         val response = request("GET", "/news", token)

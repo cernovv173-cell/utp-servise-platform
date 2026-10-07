@@ -94,6 +94,7 @@ model User {
   catalogItemsCreated     RepairCatalogItem[]     @relation("CatalogItemCreator")
   newsArticlesCreated     NewsArticle[]           @relation("NewsArticleCreator")
   orderChatMessages       OrderChatMessage[]      @relation("OrderChatMessageSender")
+  craftOrderChatMessages  CraftOrderChatMessage[] @relation("CraftOrderChatMessageSender")
   requestedChats          OrderChat[]             @relation("ChatEscalationRequester")
   joinedChats             OrderChat[]             @relation("ChatAdministratorJoiner")
   pushDeviceTokens        PushDeviceToken[]
@@ -505,26 +506,42 @@ model CraftItem {
 }
 
 model CraftOrder {
-  id                   String           @id @default(uuid()) @db.Uuid
-  customerId           String           @map("customer_id") @db.Uuid
-  itemId               String?          @map("item_id") @db.Uuid
-  itemTitleSnapshot    String           @map("item_title_snapshot") @db.VarChar(160)
-  unitPriceRubSnapshot Int              @map("unit_price_rub_snapshot")
-  quotedPriceRub       Int?             @map("quoted_price_rub")
-  quantity             Int              @default(1)
-  note                 String           @db.VarChar(2000)
-  isCustomOrder        Boolean          @default(false) @map("is_custom_order")
-  status               CraftOrderStatus @default(REQUESTED)
-  handledById          String?          @map("handled_by_id") @db.Uuid
-  createdAt            DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
-  customer             User             @relation("CraftOrderCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  item                 CraftItem?       @relation(fields: [itemId], references: [id], onDelete: SetNull)
-  handledBy            User?            @relation("CraftOrderHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  id                   String                  @id @default(uuid()) @db.Uuid
+  customerId           String                  @map("customer_id") @db.Uuid
+  itemId               String?                 @map("item_id") @db.Uuid
+  itemTitleSnapshot    String                  @map("item_title_snapshot") @db.VarChar(160)
+  unitPriceRubSnapshot Int                     @map("unit_price_rub_snapshot")
+  quotedPriceRub       Int?                    @map("quoted_price_rub")
+  quantity             Int                     @default(1)
+  note                 String                  @db.VarChar(2000)
+  isCustomOrder        Boolean                 @default(false) @map("is_custom_order")
+  status               CraftOrderStatus        @default(REQUESTED)
+  handledById          String?                 @map("handled_by_id") @db.Uuid
+  createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer             User                    @relation("CraftOrderCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  item                 CraftItem?              @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  handledBy            User?                   @relation("CraftOrderHandler", fields: [handledById], references: [id], onDelete: SetNull)
+  chatMessages         CraftOrderChatMessage[]
 
   @@index([customerId, createdAt])
   @@index([status, createdAt])
   @@map("craft_orders")
+}
+
+model CraftOrderChatMessage {
+  id            String     @id @default(uuid()) @db.Uuid
+  craftOrderId  String     @map("craft_order_id") @db.Uuid
+  senderId      String?    @map("sender_id") @db.Uuid
+  content       String     @default("") @db.VarChar(2000)
+  imageObjectId String?    @map("image_object_id") @db.VarChar(255)
+  createdAt     DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  craftOrder    CraftOrder @relation(fields: [craftOrderId], references: [id], onDelete: Cascade)
+  sender        User?      @relation("CraftOrderChatMessageSender", fields: [senderId], references: [id], onDelete: SetNull)
+
+  @@index([craftOrderId, createdAt])
+  @@index([imageObjectId])
+  @@map("craft_order_chat_messages")
 }
 
 model LoyaltyTransaction {

@@ -98,6 +98,9 @@ test("avatars and order photos remain visible only to their account or order par
     siteBanner: {
       findFirst: async () => null,
     },
+    craftOrderChatMessage: {
+      findFirst: async () => null,
+    },
     repairOrderPhoto: {
       findUnique: async () => ({
         order: { customerId: owner.id, assignedTechnicianId: null },

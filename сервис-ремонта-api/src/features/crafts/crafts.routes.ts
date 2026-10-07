@@ -9,6 +9,8 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { sendPushNotification } from "../notifications/push-notifications.js";
+import { canAccessCraftOrderChat } from "./craft-chat-policy.js";
 
 const productParams = z.object({ itemId: z.string().uuid() });
 const orderParams = z.object({ craftOrderId: z.string().uuid() });
@@ -51,13 +53,19 @@ const updateCraftOrderBody = z
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0);
+const craftChatMessageBody = z
+  .object({ content: z.string().trim().min(1).max(2000) })
+  .strict();
 
 const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly body: T }).body;
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
 
-export const createCraftsRouter = (database: DatabaseClient): Router => {
+export const createCraftsRouter = (
+  database: DatabaseClient,
+  notify: typeof sendPushNotification = sendPushNotification,
+): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
   const allRoles = requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN");
@@ -206,6 +214,92 @@ export const createCraftsRouter = (database: DatabaseClient): Router => {
         data: { ...input, handledById: user.id },
       });
       response.json({ order });
+    },
+  );
+
+  router.get(
+    "/craft-orders/:craftOrderId/chat",
+    requireAuth,
+    requireRoles("CUSTOMER", "ADMIN"),
+    validateRequest({ params: orderParams }),
+    async (_request, response) => {
+      const { craftOrderId } = paramsOf<z.infer<typeof orderParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.craftOrder.findUnique({
+        where: { id: craftOrderId },
+        select: { id: true, customerId: true },
+      });
+      if (!order || !canAccessCraftOrderChat(user.role, user.id, order))
+        throw new HttpError(404, "CRAFT_ORDER_NOT_FOUND", "Заявка не найдена.");
+
+      const messages = await database.craftOrderChatMessage.findMany({
+        where: { craftOrderId },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          sender: { select: { id: true, displayName: true, role: true } },
+        },
+      });
+      response.json({
+        chat: {
+          id: craftOrderId,
+          craftOrderId,
+          messages: [...messages].reverse(),
+        },
+      });
+    },
+  );
+
+  router.post(
+    "/craft-orders/:craftOrderId/chat/messages",
+    requireAuth,
+    requireRoles("CUSTOMER", "ADMIN"),
+    validateRequest({ params: orderParams, body: craftChatMessageBody }),
+    async (_request, response) => {
+      const { craftOrderId } = paramsOf<z.infer<typeof orderParams>>(response);
+      const { content } =
+        bodyOf<z.infer<typeof craftChatMessageBody>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.craftOrder.findUnique({
+        where: { id: craftOrderId },
+        select: { id: true, customerId: true },
+      });
+      if (!order || !canAccessCraftOrderChat(user.role, user.id, order))
+        throw new HttpError(404, "CRAFT_ORDER_NOT_FOUND", "Заявка не найдена.");
+
+      await database.craftOrderChatMessage.create({
+        data: { craftOrderId, senderId: user.id, content },
+      });
+      const recipientIds =
+        user.role === "ADMIN"
+          ? [order.customerId]
+          : (
+              await database.user.findMany({
+                where: { role: "ADMIN", active: true },
+                select: { id: true },
+              })
+            ).map(({ id }) => id);
+      await notify(database, recipientIds, {
+        title: "Новое сообщение по заявке на изделие",
+        body: "Откройте заявку, чтобы продолжить переписку.",
+        data: { type: "craft_order_chat_message", craftOrderId },
+      });
+
+      const messages = await database.craftOrderChatMessage.findMany({
+        where: { craftOrderId },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          sender: { select: { id: true, displayName: true, role: true } },
+        },
+      });
+      response.status(201).json({
+        chat: {
+          id: craftOrderId,
+          craftOrderId,
+          messages: [...messages].reverse(),
+        },
+      });
     },
   );
 

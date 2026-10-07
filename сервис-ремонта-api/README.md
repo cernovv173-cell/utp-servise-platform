@@ -56,6 +56,15 @@ customers with a registered push-device token. A unique `(user_id, birthday_year
 prevents duplicates across API instances; failed delivery is retried during that birthday only.
 Clearing the date stops future greetings. Customers without a registered push token are not queued.
 
+## Craft-order chat
+
+Each craft-product request has its own customer-and-administrator chat. The customer can send text
+and protected JPEG, PNG, or WebP photos (up to 5 MB) from the request; administrators can read and
+reply in that same thread. The chat is embedded in each request card and opens automatically when
+an administrator moves the request to `IN_PROGRESS`. Message and image endpoints verify the signed-in
+user is either an administrator or the owner of that request, and protected image reads repeat this
+ownership check. A message push is sent to the other side when a registered device is available.
+
 ## Intake, work orders, and customer pickup
 
 Administrators and the assigned technician maintain one intake act per repair order. It records the visible condition and a protected photo for the front, back, left, and right sides, plus the serial number, included accessories, and notes. The order cannot be marked ready for pickup until all four condition notes and photos are saved; the act becomes read-only once the order is ready, completed, or cancelled.

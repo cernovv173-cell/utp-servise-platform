@@ -204,6 +204,21 @@ data class CraftOrder(
     val customerPhone: String?,
 )
 
+data class CraftOrderChatMessage(
+    val id: String,
+    val senderId: String?,
+    val senderName: String,
+    val senderRole: String,
+    val content: String,
+    val imageObjectId: String?,
+    val createdAt: String,
+)
+
+data class CraftOrderChat(
+    val craftOrderId: String,
+    val messages: List<CraftOrderChatMessage>,
+)
+
 data class NewsArticle(
     val id: String,
     val title: String,

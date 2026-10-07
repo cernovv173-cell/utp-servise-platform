@@ -1230,6 +1230,7 @@ ru.utp.servise:attr/windowMinWidthMinor = 0x7f030196
 ru.utp.servise:color/background_floating_material_light = 0x7f05001e
 ru.utp.servise:string/abc_menu_enter_shortcut_label = 0x7f0e000b
 ru.utp.servise:attr/windowMinWidthMajor = 0x7f030195
+ru.utp.servise:xml/update_file_paths = 0x7f110001
 ru.utp.servise:dimen/abc_action_bar_subtitle_top_margin_material = 0x7f06000c
 ru.utp.servise:attr/windowFixedWidthMajor = 0x7f030193
 ru.utp.servise:id/off = 0x7f080094
