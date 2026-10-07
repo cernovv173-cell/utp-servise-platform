@@ -9,13 +9,19 @@ import {
   createAndroidAppRouter,
 } from "../src/features/android-app/android-app.routes.js";
 import { hashSessionToken } from "../src/features/auth/auth.middleware.js";
+import type { PushNotification } from "../src/features/notifications/push-notifications.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
 const zipFixture = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0, 0, 0]);
 
 test("public APK link follows the current upload and administrators can replace or delete it", async (t) => {
-  const tokens = { admin: "A".repeat(48), customer: "C".repeat(48) };
+  const tokens = {
+    admin: "A".repeat(48),
+    customer: "C".repeat(48),
+    technician: "T".repeat(48),
+    inactive: "I".repeat(48),
+  };
   const users = [
     {
       id: "11111111-1111-4111-8111-111111111111",
@@ -39,11 +45,38 @@ test("public APK link follows the current upload and administrators can replace 
       mustChangePassword: false,
       token: tokens.customer,
     },
+    {
+      id: "33333333-3333-4333-8333-333333333333",
+      email: "technician@example.test",
+      displayName: "Мастер",
+      phoneNumber: null,
+      avatarObjectId: null,
+      role: "TECHNICIAN" as const,
+      active: true,
+      mustChangePassword: false,
+      token: tokens.technician,
+    },
+    {
+      id: "44444444-4444-4444-8444-444444444444",
+      email: "inactive@example.test",
+      displayName: "Отключённый аккаунт",
+      phoneNumber: null,
+      avatarObjectId: null,
+      role: "CUSTOMER" as const,
+      active: false,
+      mustChangePassword: false,
+      token: tokens.inactive,
+    },
   ];
   const settings = new Map<string, unknown>();
   const storedObjects = new Map<string, Buffer>();
   const deleteFailures = new Set<string>();
   const deletedObjects: string[] = [];
+  let sentRecipientIds: string[] = [];
+  let sentNotification: PushNotification | undefined;
+  let notificationSendCount = 0;
+  let notificationDeliverySucceeded = true;
+  let registeredDeviceCount = 4;
   let nextObjectNumber = 0;
   const database = {
     session: {
@@ -71,6 +104,22 @@ test("public APK link follows the current upload and administrators can replace 
         const value = settings.has(where.key) ? update.value : create.value;
         settings.set(where.key, value);
         return { key: where.key, value };
+      },
+    },
+    user: {
+      findMany: async ({ where }: { where: { active: boolean } }) =>
+        users
+          .filter((user) => user.active === where.active)
+          .map(({ id }) => ({ id })),
+    },
+    pushDeviceToken: {
+      count: async ({ where }: { where: { userId: { in: string[] } } }) => {
+        assert.ok(
+          where.userId.in.every((userId) =>
+            users.some((user) => user.id === userId && user.active),
+          ),
+        );
+        return registeredDeviceCount;
       },
     },
   };
@@ -101,7 +150,16 @@ test("public APK link follows the current upload and administrators can replace 
   app.use(express.json());
   app.use(
     "/api",
-    createAndroidAppRouter(database as unknown as DatabaseClient, storage),
+    createAndroidAppRouter(
+      database as unknown as DatabaseClient,
+      storage,
+      async (_client, recipientUserIds, notification) => {
+        notificationSendCount += 1;
+        sentRecipientIds = [...recipientUserIds];
+        sentNotification = notification;
+        return notificationDeliverySucceeded;
+      },
+    ),
   );
   app.use(errorHandler);
   const server = app.listen(0);
@@ -120,6 +178,15 @@ test("public APK link follows the current upload and administrators can replace 
     legacy.headers.get("location"),
     "https://site.example.test/downloads/ru.utp.servise.apk",
   );
+
+  const notifyBeforeUpload = await fetch(
+    `${baseUrl}/admin/android-app/notify`,
+    {
+      method: "POST",
+      headers: authHeaders(tokens.admin),
+    },
+  );
+  assert.equal(notifyBeforeUpload.status, 409);
 
   const unauthenticated = await fetch(`${baseUrl}/admin/android-app`);
   assert.equal(unauthenticated.status, 401);
@@ -151,6 +218,49 @@ test("public APK link follows the current upload and administrators can replace 
   assert.equal(firstUpload.status, 200);
   assert.equal((await firstUpload.json()).apk.state, "available");
   assert.deepEqual(storedObjects.get("apk-1"), firstBytes);
+  assert.equal(notificationSendCount, 0);
+
+  const forbiddenNotification = await fetch(
+    `${baseUrl}/admin/android-app/notify`,
+    {
+      method: "POST",
+      headers: authHeaders(tokens.customer),
+    },
+  );
+  assert.equal(forbiddenNotification.status, 403);
+  assert.equal(notificationSendCount, 0);
+
+  const sentAnnouncement = await fetch(`${baseUrl}/admin/android-app/notify`, {
+    method: "POST",
+    headers: authHeaders(tokens.admin),
+  });
+  assert.equal(sentAnnouncement.status, 200);
+  assert.equal(notificationSendCount, 1);
+  assert.deepEqual(await sentAnnouncement.json(), {
+    recipientCount: 3,
+    deviceCount: 4,
+    deliverySucceeded: true,
+  });
+  assert.deepEqual(
+    sentRecipientIds.sort(),
+    users
+      .filter((user) => user.active)
+      .map((user) => user.id)
+      .sort(),
+  );
+  assert.equal(sentNotification?.data.type, "app_update");
+  assert.equal(sentNotification?.androidTag, "android-app-update");
+
+  notificationDeliverySucceeded = false;
+  const partialAnnouncement = await fetch(
+    `${baseUrl}/admin/android-app/notify`,
+    {
+      method: "POST",
+      headers: authHeaders(tokens.admin),
+    },
+  );
+  assert.equal(partialAnnouncement.status, 200);
+  assert.equal((await partialAnnouncement.json()).deliverySucceeded, false);
 
   const firstDownload = await fetch(`${baseUrl}/android-app/download`, {
     redirect: "manual",
@@ -200,6 +310,14 @@ test("public APK link follows the current upload and administrators can replace 
   assert.equal(removed.status, 200);
   assert.equal((await removed.json()).apk.state, "deleted");
   assert.equal(storedObjects.size, 0);
+  const notifyAfterRemoval = await fetch(
+    `${baseUrl}/admin/android-app/notify`,
+    {
+      method: "POST",
+      headers: authHeaders(tokens.admin),
+    },
+  );
+  assert.equal(notifyAfterRemoval.status, 409);
   const noLongerAvailable = await fetch(`${baseUrl}/android-app/download`);
   assert.equal(noLongerAvailable.status, 404);
 });

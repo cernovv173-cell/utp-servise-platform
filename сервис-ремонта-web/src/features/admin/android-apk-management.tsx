@@ -10,6 +10,7 @@ import {
   deleteAndroidApk,
   getAdminAndroidApk,
   getAndroidApkDownloadUrl,
+  notifyAndroidApkUpdate,
   uploadAndroidApk,
 } from "@/lib/api";
 
@@ -28,6 +29,7 @@ export const AndroidApkManagement = () => {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmNotify, setConfirmNotify] = useState(false);
 
   const query = useQuery({
     queryKey: ["admin-android-app", token],
@@ -83,6 +85,22 @@ export const AndroidApkManagement = () => {
       await refresh();
     },
     onError: () => setError("Не удалось завершить очистку старых APK."),
+  });
+
+  const notifyUsers = useMutation({
+    mutationFn: () => notifyAndroidApkUpdate(token!),
+    onSuccess: (result) => {
+      setConfirmNotify(false);
+      setError("");
+      setNotice(
+        result.deviceCount === 0
+          ? `Активных пользователей: ${result.recipientCount}. Рассылка не отправлена: нет зарегистрированных push-устройств.`
+          : result.deliverySucceeded
+            ? `Уведомление отправлено на ${result.deviceCount} зарегистрированных устройств.`
+            : `Рассылка запущена для ${result.deviceCount} устройств, но часть уведомлений не доставлена.`,
+      );
+    },
+    onError: () => setError("Не удалось отправить уведомление об обновлении."),
   });
 
   const chooseFile = (selected: File | null) => {
@@ -201,6 +219,53 @@ export const AndroidApkManagement = () => {
               : "Загрузить APK"}
         </button>
       </form>
+
+      {apk?.state === "available" && (
+        <div className="mt-5 rounded-xl border border-blue-100 p-4 dark:border-blue-900">
+          <h3 className="text-sm font-semibold">Уведомление пользователей</h3>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
+            Загрузка APK не отправляет уведомление. Нажмите отдельную кнопку, чтобы сообщить об
+            обновлении всем активным пользователям с зарегистрированными push-устройствами.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {confirmNotify ? (
+              <>
+                <p className="text-sm text-slate-600 dark:text-slate-300">
+                  Отправить push-уведомление об обновлении сейчас?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => notifyUsers.mutate()}
+                  disabled={notifyUsers.isPending}
+                  className="min-h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {notifyUsers.isPending ? "Отправляем…" : "Подтвердить рассылку"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmNotify(false)}
+                  disabled={notifyUsers.isPending}
+                  className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium dark:border-slate-700"
+                >
+                  Отмена
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setError("");
+                  setNotice("");
+                  setConfirmNotify(true);
+                }}
+                className="min-h-10 rounded-xl border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-blue-950"
+              >
+                Сообщить всем об обновлении
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {canDelete && (
         <div className="mt-4 flex flex-wrap items-center gap-3">

@@ -758,6 +758,13 @@ export const cleanupAndroidApk = (token: string) =>
     { method: "POST" },
   );
 
+export const notifyAndroidApkUpdate = (token: string) =>
+  apiRequest<{
+    recipientCount: number;
+    deviceCount: number;
+    deliverySucceeded: boolean;
+  }>("/admin/android-app/notify", token, { method: "POST" });
+
 export const getAndroidApkDownloadUrl = () => `${apiBase || "/api"}/android-app/download`;
 
 export const moderateReview = (token: string, reviewId: string, isPublished: boolean) =>

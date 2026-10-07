@@ -6,6 +6,7 @@ import { Prisma } from "../../generated/prisma/client.js";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import { sendPushNotification } from "../notifications/push-notifications.js";
 import {
   deleteProjectApk,
   getProjectApkDownloadUrl,
@@ -53,6 +54,8 @@ export type AndroidApkStorage = {
   readonly delete: typeof deleteProjectApk;
   readonly downloadUrl: typeof getProjectApkDownloadUrl;
 };
+
+export type AndroidAppUpdateNotificationSender = typeof sendPushNotification;
 
 const projectApkStorage: AndroidApkStorage = {
   upload: uploadProjectApk,
@@ -235,6 +238,7 @@ const cleanRequestBody = (request: express.Request): Buffer => {
 export const createAndroidAppRouter = (
   database: DatabaseClient,
   storage: AndroidApkStorage = projectApkStorage,
+  sendUpdateNotification: AndroidAppUpdateNotificationSender = sendPushNotification,
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
@@ -267,6 +271,58 @@ export const createAndroidAppRouter = (
     requireAdmin,
     async (_request, response) => {
       response.json({ apk: apkInfo(await findRecord(database)) });
+    },
+  );
+
+  router.post(
+    "/admin/android-app/notify",
+    requireAuth,
+    requireAdmin,
+    async (_request, response) => {
+      const record = await findRecord(database);
+      if (record?.status !== "available") {
+        throw new HttpError(
+          409,
+          "APK_NOT_AVAILABLE",
+          "Сначала загрузите новую версию APK.",
+        );
+      }
+
+      const activeUsers = await database.user.findMany({
+        where: { active: true },
+        select: { id: true },
+      });
+      const recipientUserIds = activeUsers.map(({ id }) => id);
+      const deviceCount = await database.pushDeviceToken.count({
+        where: { userId: { in: recipientUserIds } },
+      });
+      if (deviceCount === 0) {
+        response.json({
+          recipientCount: recipientUserIds.length,
+          deviceCount: 0,
+          deliverySucceeded: true,
+        });
+        return;
+      }
+
+      const deliverySucceeded = await sendUpdateNotification(
+        database,
+        recipientUserIds,
+        {
+          title: "Доступно обновление UTP Servise",
+          body: "Загружена новая версия приложения. Откройте сайт UTP Servise и скачайте обновление.",
+          data: {
+            type: "app_update",
+            notificationId: `android-app-update-${record.sha256}`,
+          },
+          androidTag: "android-app-update",
+        },
+      );
+      response.json({
+        recipientCount: recipientUserIds.length,
+        deviceCount,
+        deliverySucceeded,
+      });
     },
   );
 
