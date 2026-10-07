@@ -85,6 +85,10 @@ The `/login` screen can request a password-reset email. Its one-time link opens 
 where the account owner can set a new password. The API enforces the 8-character minimum and
 invalidates active sessions after a successful reset.
 
+Customers can optionally save gender and date of birth in `/account`. The API sends one birthday
+push greeting per customer per year, using the Moscow calendar date and only to devices with a
+registered, permitted push token. Staff profiles do not expose these fields.
+
 When `YANDEX_CLIENT_ID` is configured, `/login` also supports Yandex ID. The Yandex OAuth callback
 page is `/yandex-token`; add that exact path for both development and production Web origins in the
 Yandex OAuth app. If the Yandex email matches an existing account, its current password is required

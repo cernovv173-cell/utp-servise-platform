@@ -41,10 +41,23 @@ object ApiClient {
     )
 
     fun me(token: String): AppUser = request("GET", "/auth/me", token).getJSONObject("user").toUser()
-    fun updatePhoneNumber(token: String, phoneNumber: String?): AppUser = request(
-        "PATCH", "/auth/profile", token,
-        JSONObject().put("phoneNumber", phoneNumber ?: JSONObject.NULL),
-    ).getJSONObject("user").toUser()
+    fun updateProfile(
+        token: String,
+        phoneNumber: String?,
+        gender: String?,
+        birthDate: String?,
+    ): AppUser {
+        val body = JSONObject()
+            .put("phoneNumber", phoneNumber ?: JSONObject.NULL)
+            .put("gender", gender ?: JSONObject.NULL)
+            .put("birthDate", birthDate ?: JSONObject.NULL)
+        return request("PATCH", "/auth/profile", token, body)
+            .getJSONObject("user")
+            .toUser()
+    }
+
+    fun updatePhoneNumber(token: String, phoneNumber: String?): AppUser =
+        updateProfile(token, phoneNumber, null, null)
     fun updateAvatar(token: String, image: ByteArray): AppUser = MediaApiClient
         .binaryRequest("POST", "/media/avatar", token, image)
         .getJSONObject("user")

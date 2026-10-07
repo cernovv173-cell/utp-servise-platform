@@ -10,6 +10,8 @@ export type AuthenticatedUser = {
   readonly email: string;
   readonly displayName: string;
   readonly phoneNumber: string | null;
+  readonly gender?: "MALE" | "FEMALE" | null;
+  readonly birthDate?: Date | null;
   readonly avatarObjectId: string | null;
   readonly role: UserRole;
   readonly active: boolean;
@@ -42,6 +44,8 @@ export const createRequireAuth =
             email: true,
             displayName: true,
             phoneNumber: true,
+            gender: true,
+            birthDate: true,
             avatarObjectId: true,
             role: true,
             active: true,
@@ -102,6 +106,8 @@ export const publicUser = (user: AuthenticatedUser) => ({
   email: user.email,
   displayName: user.displayName,
   phoneNumber: user.phoneNumber,
+  gender: user.gender ?? null,
+  birthDate: user.birthDate?.toISOString().slice(0, 10) ?? null,
   avatarObjectId: user.avatarObjectId,
   role: user.role,
   mustChangePassword: user.mustChangePassword,

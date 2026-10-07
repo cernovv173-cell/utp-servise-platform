@@ -13,6 +13,11 @@ enum UserRole {
   ADMIN
 }
 
+enum CustomerGender {
+  MALE
+  FEMALE
+}
+
 enum RepairStatus {
   REQUESTED
   ASSIGNED
@@ -67,6 +72,8 @@ model User {
   email                   String                  @unique @db.VarChar(320)
   displayName             String                  @map("display_name") @db.VarChar(120)
   phoneNumber             String?                 @map("phone_number") @db.VarChar(32)
+  gender                  CustomerGender?
+  birthDate               DateTime?               @map("birth_date") @db.Date
   avatarObjectId          String?                 @map("avatar_object_id") @db.VarChar(255)
   passwordHash            String                  @map("password_hash") @db.VarChar(255)
   yandexId                String?                 @unique @map("yandex_id") @db.VarChar(128)
@@ -103,6 +110,7 @@ model User {
   technicianSalaryEntries TechnicianSalaryEntry[] @relation("TechnicianSalaryEntries")
   supportConversations    SupportConversation[]   @relation("SupportConversationCustomer")
   supportMessages         SupportChatMessage[]    @relation("SupportChatMessageSender")
+  birthdayPushDeliveries  BirthdayPushDelivery[]
 
   @@index([role, active])
   @@map("users")
@@ -142,6 +150,23 @@ model PushDeviceToken {
 
   @@index([userId])
   @@map("push_device_tokens")
+}
+
+model BirthdayPushDelivery {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  birthdayYear  Int       @map("birthday_year")
+  attemptCount  Int       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime  @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lockedUntil   DateTime? @map("locked_until") @db.Timestamptz(3)
+  sentAt        DateTime? @map("sent_at") @db.Timestamptz(3)
+  lastError     String?   @map("last_error") @db.VarChar(500)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, birthdayYear])
+  @@index([birthdayYear, sentAt, nextAttemptAt, lockedUntil])
+  @@map("birthday_push_deliveries")
 }
 
 model RepairOrder {

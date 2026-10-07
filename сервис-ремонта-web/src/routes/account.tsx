@@ -13,12 +13,20 @@ const AccountPage = () => {
   const { token, user, logout, setSession } = useAuth();
   const queryClient = useQueryClient();
   const [phone, setPhone] = useState(user?.phoneNumber ?? "");
+  const [gender, setGender] = useState(user?.gender ?? "");
+  const [birthDate, setBirthDate] = useState(user?.birthDate ?? "");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const mutation = useMutation({
-    mutationFn: () => updateProfile(token!, phone),
+    mutationFn: () =>
+      updateProfile(
+        token!,
+        phone,
+        user?.role === "CUSTOMER" ? (gender as "MALE" | "FEMALE" | "") || null : undefined,
+        user?.role === "CUSTOMER" ? birthDate || null : undefined,
+      ),
     onSuccess: async ({ user: updated }) => {
       queryClient.setQueryData(["auth", "me", token], { user: updated });
       await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
@@ -80,6 +88,36 @@ const AccountPage = () => {
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
               />
             </label>
+            {user?.role === "CUSTOMER" && (
+              <>
+                <label className="grid gap-1.5 text-sm font-medium">
+                  Пол <span className="font-normal text-slate-500">(необязательно)</span>
+                  <select
+                    value={gender}
+                    onChange={(event) => setGender(event.target.value)}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
+                  >
+                    <option value="">Не указан</option>
+                    <option value="FEMALE">Женский</option>
+                    <option value="MALE">Мужской</option>
+                  </select>
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium">
+                  Дата рождения <span className="font-normal text-slate-500">(необязательно)</span>
+                  <input
+                    type="date"
+                    value={birthDate}
+                    max={new Date().toISOString().slice(0, 10)}
+                    onChange={(event) => setBirthDate(event.target.value)}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
+                  />
+                </label>
+                <p className="text-xs leading-5 text-slate-500">
+                  Если дата рождения указана и на устройстве разрешены уведомления, сервис отправит
+                  поздравление в этот день.
+                </p>
+              </>
+            )}
             <button
               disabled={mutation.isPending}
               className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-60"

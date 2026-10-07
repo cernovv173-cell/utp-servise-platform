@@ -249,3 +249,48 @@ export const sendNewsPublicationNotification = async (
     return false;
   }
 };
+
+export const sendCustomerBirthdayNotification = async (
+  database: DatabaseClient,
+  userId: string,
+  birthdayYear: number,
+): Promise<boolean> => {
+  try {
+    const user = await database.user.findFirst({
+      where: { id: userId, role: "CUSTOMER", active: true },
+      select: { displayName: true, gender: true },
+    });
+    if (!user) return true;
+    return await sendPushNotification(database, [userId], {
+      title: "С днём рождения!",
+      body: formatBirthdayGreeting(user.displayName, user.gender),
+      data: {
+        type: "birthday_greeting",
+        notificationId: `birthday-${birthdayYear}-${userId}`,
+      },
+      androidTag: `birthday-${birthdayYear}-${userId}`,
+    });
+  } catch {
+    logger.warn(
+      { code: "BIRTHDAY_PUSH_RECIPIENT_UNAVAILABLE" },
+      "birthday_notification_delivery_skipped",
+    );
+    return false;
+  }
+};
+
+export const formatBirthdayGreeting = (
+  name: string,
+  gender: "MALE" | "FEMALE" | null,
+): string => {
+  const salutation =
+    gender === "FEMALE"
+      ? `Уважаемая ${name.trim()}`
+      : gender === "MALE"
+        ? `Уважаемый ${name.trim()}`
+        : `Здравствуйте, ${name.trim()}`;
+  return `${salutation},
+От всей души поздравляю Вас с днём рождения!
+Желаю Вам крепкого здоровья, неиссякаемой энергии и новых свершений! Пусть каждый день приносит радость, благополучие и гармонию, а все намеченные цели и планы успешно реализуются.
+С наилучшими пожеланиями и глубоким уважением, ваш ЕНОТ.`;
+};

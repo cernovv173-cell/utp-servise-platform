@@ -50,6 +50,12 @@ The worker checks once per minute and marks older orders with `archived_at`; it 
 order or changes its status. `GET /orders?archive=active` and `GET /orders?archive=archived`
 return the corresponding role-scoped list. Omitting `archive` retains the unfiltered legacy response.
 
+Customers may save an optional gender and birth date with `PATCH /auth/profile`. The birthday worker
+uses the Moscow calendar date and sends the greeting once per customer per year only to active
+customers with a registered push-device token. A unique `(user_id, birthday_year)` delivery record
+prevents duplicates across API instances; failed delivery is retried during that birthday only.
+Clearing the date stops future greetings. Customers without a registered push token are not queued.
+
 ## Intake, work orders, and customer pickup
 
 Administrators and the assigned technician maintain one intake act per repair order. It records the visible condition and a protected photo for the front, back, left, and right sides, plus the serial number, included accessories, and notes. The order cannot be marked ready for pickup until all four condition notes and photos are saved; the act becomes read-only once the order is ready, completed, or cancelled.
@@ -68,3 +74,11 @@ exchanges the authorization code through the VK ID SDK; provider tokens are neve
 accounts are customers only. An existing account with the same email is linked only after its current
 password is confirmed. The VK ID app must allow `https://task.app.amazi.pro/` as its redirect URL and
 grant email access.
+
+# Birthday greetings
+
+Customer gender and birth date are optional profile fields. The birthday push
+worker runs only in production, because development and production share the
+managed database and push credentials. It sends the configured greeting to
+customers with a registered push device token on their birthday in Moscow time,
+at most once per customer per calendar year.

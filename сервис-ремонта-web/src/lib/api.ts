@@ -12,6 +12,8 @@ export type User = {
   email: string;
   displayName: string;
   phoneNumber?: string | null;
+  gender?: "MALE" | "FEMALE" | null;
+  birthDate?: string | null;
   role: Role;
   mustChangePassword: boolean;
 };
@@ -536,10 +538,19 @@ export const updateCompany = (token: string, company: CompanyInfo) =>
     body: JSON.stringify(company),
   });
 
-export const updateProfile = (token: string, phoneNumber: string) =>
+export const updateProfile = (
+  token: string,
+  phoneNumber: string,
+  gender?: "MALE" | "FEMALE" | null,
+  birthDate?: string | null,
+) =>
   apiRequest<{ user: User }>("/auth/profile", token, {
     method: "PATCH",
-    body: JSON.stringify({ phoneNumber: phoneNumber || null }),
+    body: JSON.stringify({
+      phoneNumber: phoneNumber || null,
+      ...(gender !== undefined ? { gender } : {}),
+      ...(birthDate !== undefined ? { birthDate: birthDate || null } : {}),
+    }),
   });
 
 export const changePassword = (token: string, currentPassword: string, newPassword: string) =>

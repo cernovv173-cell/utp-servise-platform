@@ -1,6 +1,7 @@
 package ru.utp.servise.ui
 
 import android.app.Activity
+import android.app.DatePickerDialog
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -51,6 +52,7 @@ import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.roleLabel
+import java.time.LocalDate
 
 private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
 
@@ -193,6 +195,11 @@ fun ProfileScreen(
     val context = LocalContext.current
     var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
     var savedPhone by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
+    var gender by remember(user.id) { mutableStateOf(user.gender.orEmpty()) }
+    var savedGender by remember(user.id) { mutableStateOf(user.gender.orEmpty()) }
+    var birthDate by remember(user.id) { mutableStateOf(user.birthDate.orEmpty()) }
+    var savedBirthDate by remember(user.id) { mutableStateOf(user.birthDate.orEmpty()) }
+    var genderMenuExpanded by remember { mutableStateOf(false) }
     var themeMode by remember(user.id) { mutableStateOf(readThemeMode(context)) }
     var currentPassword by remember(user.id) { mutableStateOf("") }
     var newPassword by remember(user.id) { mutableStateOf("") }
@@ -244,18 +251,101 @@ fun ProfileScreen(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     shape = RoundedCornerShape(16.dp),
                 )
+                if (user.role == "CUSTOMER") {
+                    Text(
+                        "Дополнительные данные (необязательно)",
+                        fontWeight = FontWeight.SemiBold,
+                        color = UtpInk,
+                        modifier = Modifier.padding(top = 14.dp),
+                    )
+                    Box {
+                        OutlinedButton(
+                            onClick = { genderMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
+                            shape = RoundedCornerShape(16.dp),
+                        ) {
+                            Text(
+                                "Пол: ${when (gender) { "MALE" -> "мужской"; "FEMALE" -> "женский"; else -> "не указан" }}",
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = genderMenuExpanded,
+                            onDismissRequest = { genderMenuExpanded = false },
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Не указывать") },
+                                onClick = { gender = ""; genderMenuExpanded = false },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Женский") },
+                                onClick = { gender = "FEMALE"; genderMenuExpanded = false },
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Мужской") },
+                                onClick = { gender = "MALE"; genderMenuExpanded = false },
+                            )
+                        }
+                    }
+                    val parsedBirthDate = runCatching { LocalDate.parse(birthDate) }.getOrNull()
+                    OutlinedButton(
+                        onClick = {
+                            val initial = parsedBirthDate ?: LocalDate.now()
+                            DatePickerDialog(
+                                context,
+                                { _, year, month, day ->
+                                    birthDate = "%04d-%02d-%02d".format(year, month + 1, day)
+                                },
+                                initial.year,
+                                initial.monthValue - 1,
+                                initial.dayOfMonth,
+                            ).apply { datePicker.maxDate = System.currentTimeMillis() }.show()
+                        },
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            "Дата рождения: ${parsedBirthDate?.let { "%02d.%02d.%04d".format(it.dayOfMonth, it.monthValue, it.year) } ?: "не указана"}",
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (birthDate.isNotBlank()) {
+                        TextButton(onClick = { birthDate = "" }) {
+                            Text("Очистить дату рождения")
+                        }
+                    }
+                    Text(
+                        "При разрешённых push-уведомлениях сервис пришлёт поздравление в день рождения.",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                }
                 Button(
                     onClick = {
                         val normalized = phoneNumber.trim().takeIf { it.isNotEmpty() }
-                        runAction({ ru.utp.servise.data.ApiClient.updatePhoneNumber(token, normalized) }) { result ->
+                        val customerProfile = user.role == "CUSTOMER"
+                        runAction({
+                            ru.utp.servise.data.ApiClient.updateProfile(
+                                token,
+                                normalized,
+                                if (customerProfile) gender.takeIf { it.isNotBlank() } else null,
+                                if (customerProfile) birthDate.takeIf { it.isNotBlank() } else null,
+                            )
+                        }) { result ->
                             val updatedUser = result as? AppUser
                             updatedUser?.let(onUserUpdated)
                             val updatedPhone = updatedUser?.phoneNumber.orEmpty()
                             phoneNumber = updatedPhone
                             savedPhone = updatedPhone
+                            gender = updatedUser?.gender.orEmpty()
+                            savedGender = gender
+                            birthDate = updatedUser?.birthDate.orEmpty()
+                            savedBirthDate = birthDate
                         }
                     },
-                    enabled = phoneNumber.trim() != savedPhone,
+                    enabled = phoneNumber.trim() != savedPhone ||
+                        (user.role == "CUSTOMER" && (gender != savedGender || birthDate != savedBirthDate)),
                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) { Text("Сохранить телефон") }

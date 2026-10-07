@@ -15,14 +15,13 @@ test("profile phone updates only the signed-in account and rejects malformed num
     email: "phone-test@example.test",
     displayName: "Phone test",
     phoneNumber: null as string | null,
+    gender: null as "MALE" | "FEMALE" | null,
+    birthDate: null as Date | null,
     role: "CUSTOMER" as const,
     active: true,
     mustChangePassword: false,
   };
-  const updates: Array<{
-    where: { id: string };
-    data: { phoneNumber: string | null };
-  }> = [];
+  const updates: Array<Record<string, any>> = [];
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) =>
@@ -31,12 +30,12 @@ test("profile phone updates only the signed-in account and rejects malformed num
           : null,
     },
     user: {
-      update: async (input: {
-        where: { id: string };
-        data: { phoneNumber: string | null };
-      }) => {
+      update: async (input: Record<string, any>) => {
         updates.push(input);
         user.phoneNumber = input.data.phoneNumber;
+        if (input.data.gender !== undefined) user.gender = input.data.gender;
+        if (input.data.birthDate !== undefined)
+          user.birthDate = input.data.birthDate;
         return user;
       },
     },
@@ -92,4 +91,31 @@ test("profile phone updates only the signed-in account and rejects malformed num
   assert.equal(clear.status, 200);
   assert.equal((await clear.json()).user.phoneNumber, null);
   assert.equal(updates[1]?.where.id, user.id);
+
+  const birthdayProfile = await fetch(endpoint, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({
+      phoneNumber: null,
+      gender: "FEMALE",
+      birthDate: "1990-04-07",
+    }),
+  });
+  assert.equal(birthdayProfile.status, 200);
+  const birthdayUser = (await birthdayProfile.json()).user;
+  assert.equal(birthdayUser.gender, "FEMALE");
+  assert.equal(birthdayUser.birthDate, "1990-04-07");
+  assert.equal(updates[2]?.data.gender, "FEMALE");
+  assert.equal(
+    updates[2]?.data.birthDate.toISOString(),
+    "1990-04-07T00:00:00.000Z",
+  );
+
+  const futureBirthday = await fetch(endpoint, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ phoneNumber: null, birthDate: "2999-01-01" }),
+  });
+  assert.equal(futureBirthday.status, 400);
+  assert.equal(updates.length, 3);
 });

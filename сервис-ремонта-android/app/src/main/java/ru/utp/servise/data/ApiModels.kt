@@ -5,6 +5,8 @@ data class AppUser(
     val email: String,
     val displayName: String,
     val phoneNumber: String? = null,
+    val gender: String? = null,
+    val birthDate: String? = null,
     val avatarObjectId: String? = null,
     val role: String,
     val mustChangePassword: Boolean,

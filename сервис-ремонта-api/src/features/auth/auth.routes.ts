@@ -73,7 +73,23 @@ const changePasswordSchema = z
 const pushTokenSchema = z
   .object({ token: z.string().trim().min(1).max(4096) })
   .strict();
-const profileSchema = z.object({ phoneNumber: phoneValueSchema }).strict();
+const profileSchema = z
+  .object({
+    phoneNumber: phoneValueSchema,
+    gender: z.enum(["MALE", "FEMALE"]).nullable().optional(),
+    birthDate: z
+      .string()
+      .date()
+      .nullable()
+      .optional()
+      .refine(
+        (value) => !value || value <= new Date().toISOString().slice(0, 10),
+        {
+          message: "Дата рождения не может быть в будущем.",
+        },
+      ),
+  })
+  .strict();
 
 type Body<T> = { readonly body: T };
 
@@ -309,10 +325,30 @@ export const createAuthRouter = (
     validateRequest({ body: profileSchema }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
-      const { phoneNumber } = bodyOf<z.infer<typeof profileSchema>>(response);
+      const { phoneNumber, gender, birthDate } =
+        bodyOf<z.infer<typeof profileSchema>>(response);
+      if (user.role !== "CUSTOMER" && (gender != null || birthDate != null)) {
+        throw new HttpError(
+          403,
+          "CUSTOMER_PROFILE_ONLY",
+          "Пол и дата рождения доступны только в профиле клиента.",
+        );
+      }
       const updated = await database.user.update({
         where: { id: user.id },
-        data: { phoneNumber: phoneNumber?.trim() || null },
+        data: {
+          phoneNumber: phoneNumber?.trim() || null,
+          ...(user.role === "CUSTOMER" && gender !== undefined
+            ? { gender }
+            : {}),
+          ...(user.role === "CUSTOMER" && birthDate !== undefined
+            ? {
+                birthDate: birthDate
+                  ? new Date(`${birthDate}T00:00:00.000Z`)
+                  : null,
+              }
+            : {}),
+        },
       });
       response.json({ user: publicUser(updated) });
     },
