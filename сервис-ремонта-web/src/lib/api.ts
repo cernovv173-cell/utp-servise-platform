@@ -213,9 +213,29 @@ export type CraftOrder = {
   quantity: number;
   note: string;
   isCustomOrder: boolean;
+  serviceNumber: string | null;
+  redeemBonuses: boolean;
+  bonusDiscountRub: number;
   status: "REQUESTED" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   createdAt: string;
+  assignedTechnicianId: string | null;
+  assignedTechnician?: { id: string; displayName: string; salaryRatePercent?: number } | null;
+  receipt?: CraftOrderReceipt | null;
+  salaryEntry?: { serviceTotalRub: number; salaryRub: number; ratePercent: number } | null;
   customer?: { id: string; displayName: string; email: string; phoneNumber: string | null };
+};
+
+export type CraftOrderReceipt = {
+  id: string;
+  receiptNumber: string;
+  serviceNumber: string;
+  totalRub: number;
+  bonusDiscountRub: number;
+  paymentStatus: "PENDING" | "PAID";
+  paymentMethod: "CASH" | "CARD_TERMINAL" | "BANK_TRANSFER" | "OTHER" | null;
+  paidAt: string | null;
+  issuedAt: string;
+  itemsSnapshot: { name: string; quantity: number; unitPriceRub: number; totalRub: number }[];
 };
 
 export type CraftOrderChatMessage = {
@@ -692,11 +712,35 @@ export const getCraftOrders = (token: string, signal?: AbortSignal) =>
 export const updateCraftOrder = (
   token: string,
   id: string,
-  data: { status?: CraftOrder["status"]; quotedPriceRub?: number | null },
+  data: {
+    status?: CraftOrder["status"];
+    quotedPriceRub?: number | null;
+    assignedTechnicianId?: string | null;
+  },
 ) =>
   apiRequest<{ order: CraftOrder }>(`/craft-orders/${id}`, token, {
     method: "PATCH",
     body: JSON.stringify(data),
+  });
+
+export const requestCraftBonusRedemption = (
+  token: string,
+  id: string,
+  redeemBonuses: boolean,
+) =>
+  apiRequest<{ order: CraftOrder }>(`/craft-orders/${id}/bonus-redemption`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ redeemBonuses }),
+  });
+
+export const markCraftReceiptPaid = (
+  token: string,
+  id: string,
+  paymentMethod: NonNullable<CraftOrderReceipt["paymentMethod"]>,
+) =>
+  apiRequest<{ receipt: CraftOrderReceipt }>(`/craft-orders/${id}/receipt/payment`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ paymentMethod }),
   });
 
 export const getCraftOrderChat = (token: string, id: string, signal?: AbortSignal) =>

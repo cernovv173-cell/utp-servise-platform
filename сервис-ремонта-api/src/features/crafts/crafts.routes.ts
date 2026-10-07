@@ -9,8 +9,17 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import {
+  calculateEarnedPoints,
+  calculateMaxBonusDiscount,
+} from "../orders/order-policy.js";
 import { sendPushNotification } from "../notifications/push-notifications.js";
+import { calculateTechnicianSalaryRub } from "../salary/salary-calculation.js";
 import { canAccessCraftOrderChat } from "./craft-chat-policy.js";
+import {
+  calculateCraftOrderEarnedPoints,
+  calculateCraftOrderTotalRub,
+} from "./craft-order-policy.js";
 
 const productParams = z.object({ itemId: z.string().uuid() });
 const orderParams = z.object({ craftOrderId: z.string().uuid() });
@@ -50,9 +59,16 @@ const updateCraftOrderBody = z
       .max(10_000_000)
       .nullable()
       .optional(),
+    assignedTechnicianId: z.string().uuid().nullable().optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0);
+const craftBonusRedemptionBody = z.object({ redeemBonuses: z.boolean() }).strict();
+const craftReceiptPaymentBody = z
+  .object({
+    paymentMethod: z.enum(["CASH", "CARD_TERMINAL", "BANK_TRANSFER", "OTHER"]),
+  })
+  .strict();
 const craftChatMessageBody = z
   .object({ content: z.string().trim().min(1).max(2000) })
   .strict();
@@ -192,6 +208,11 @@ export const createCraftsRouter = (
               phoneNumber: true,
             },
           },
+          assignedTechnician: {
+            select: { id: true, displayName: true, salaryRatePercent: true },
+          },
+          receipt: true,
+          salaryEntry: true,
         },
         orderBy: { createdAt: "desc" },
         take: 200,
@@ -209,11 +230,329 @@ export const createCraftsRouter = (
       const user = getAuthenticatedUser(response);
       const { craftOrderId } = paramsOf<z.infer<typeof orderParams>>(response);
       const input = bodyOf<z.infer<typeof updateCraftOrderBody>>(response);
-      const order = await database.craftOrder.update({
-        where: { id: craftOrderId },
-        data: { ...input, handledById: user.id },
+      const order = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "craft_orders" WHERE "id" = ${craftOrderId}::uuid FOR UPDATE
+        `;
+        const current = await transaction.craftOrder.findUnique({
+          where: { id: craftOrderId },
+          include: { customer: true, receipt: true, salaryEntry: true },
+        });
+        if (!current)
+          throw new HttpError(404, "CRAFT_ORDER_NOT_FOUND", "Заявка не найдена.");
+
+        if (current.status === "COMPLETED") {
+          if (
+            (input.status && input.status !== "COMPLETED") ||
+            input.quotedPriceRub !== undefined ||
+            input.assignedTechnicianId !== undefined
+          ) {
+            throw new HttpError(
+              409,
+              "CRAFT_ORDER_FINALIZED",
+              "Завершённую заявку и её расчёт изменить нельзя.",
+            );
+          }
+          return transaction.craftOrder.findUniqueOrThrow({
+            where: { id: craftOrderId },
+            include: {
+              customer: {
+                select: { id: true, displayName: true, email: true, phoneNumber: true },
+              },
+              assignedTechnician: {
+                select: { id: true, displayName: true, salaryRatePercent: true },
+              },
+              receipt: true,
+              salaryEntry: true,
+            },
+          });
+        }
+
+        const technicianId =
+          input.assignedTechnicianId !== undefined
+            ? input.assignedTechnicianId
+            : current.assignedTechnicianId;
+        const quotedPriceRub =
+          input.quotedPriceRub !== undefined
+            ? input.quotedPriceRub
+            : current.quotedPriceRub;
+        const status = input.status ?? current.status;
+        const updateData = {
+          status,
+          quotedPriceRub,
+          assignedTechnicianId: technicianId,
+          handledById: user.id,
+        };
+
+        if (status !== "COMPLETED") {
+          await transaction.craftOrder.update({
+            where: { id: craftOrderId },
+            data: updateData,
+          });
+          return transaction.craftOrder.findUniqueOrThrow({
+            where: { id: craftOrderId },
+            include: {
+              customer: {
+                select: { id: true, displayName: true, email: true, phoneNumber: true },
+              },
+              assignedTechnician: {
+                select: { id: true, displayName: true, salaryRatePercent: true },
+              },
+              receipt: true,
+              salaryEntry: true,
+            },
+          });
+        }
+
+        if (!technicianId) {
+          throw new HttpError(
+            400,
+            "CRAFT_TECHNICIAN_REQUIRED",
+            "Назначьте мастера перед завершением заявки.",
+          );
+        }
+        const technician = await transaction.user.findFirst({
+          where: { id: technicianId, role: "TECHNICIAN", active: true },
+          select: { id: true, salaryRatePercent: true },
+        });
+        if (!technician) {
+          throw new HttpError(
+            400,
+            "CRAFT_TECHNICIAN_INVALID",
+            "Выберите активного мастера.",
+          );
+        }
+        const unitPriceRub = quotedPriceRub ?? current.unitPriceRubSnapshot;
+        if (current.isCustomOrder && unitPriceRub <= 0) {
+          throw new HttpError(
+            400,
+            "CRAFT_PRICE_REQUIRED",
+            "Укажите цену изделия перед завершением заявки.",
+          );
+        }
+        const totalRub = calculateCraftOrderTotalRub(unitPriceRub, current.quantity);
+        if (totalRub > 2_147_483_647) {
+          throw new HttpError(
+            400,
+            "CRAFT_TOTAL_TOO_LARGE",
+            "Итог заказа превышает допустимое значение.",
+          );
+        }
+        const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
+          SELECT nextval('repair_service_number_seq') AS value
+        `;
+        const sequenceNumber = String(sequence[0]?.value ?? "1").padStart(6, "0");
+        const serviceNumber = `SRV-${new Date().getUTCFullYear()}-${sequenceNumber}`;
+        const completedAt = new Date();
+        await transaction.craftOrder.update({
+          where: { id: craftOrderId },
+          data: {
+            ...updateData,
+            serviceNumber,
+            status: "COMPLETED",
+          },
+        });
+        const receiptNumber = `DOC-${serviceNumber}`;
+        await transaction.craftOrderReceipt.create({
+          data: {
+            craftOrderId,
+            receiptNumber,
+            serviceNumber,
+            customerName: current.customer.displayName,
+            customerPhone: current.customer.phoneNumber,
+            issuedById: user.id,
+            itemsSnapshot: [
+              {
+                name: current.itemTitleSnapshot,
+                quantity: current.quantity,
+                unitPriceRub,
+                totalRub,
+              },
+            ],
+            totalRub,
+          },
+        });
+        const ratePercent = technician.salaryRatePercent ?? 75;
+        await transaction.craftOrderSalaryEntry.create({
+          data: {
+            craftOrderId,
+            technicianId: technician.id,
+            serviceTotalRub: totalRub,
+            salaryRub: calculateTechnicianSalaryRub(totalRub, ratePercent),
+            ratePercent,
+            earnedAt: completedAt,
+          },
+        });
+        return transaction.craftOrder.findUniqueOrThrow({
+          where: { id: craftOrderId },
+          include: {
+            customer: {
+              select: { id: true, displayName: true, email: true, phoneNumber: true },
+            },
+            assignedTechnician: {
+              select: { id: true, displayName: true, salaryRatePercent: true },
+            },
+            receipt: true,
+            salaryEntry: true,
+          },
+        });
       });
       response.json({ order });
+    },
+  );
+
+  router.patch(
+    "/craft-orders/:craftOrderId/bonus-redemption",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    validateRequest({ params: orderParams, body: craftBonusRedemptionBody }),
+    async (_request, response) => {
+      const { craftOrderId } = paramsOf<z.infer<typeof orderParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const { redeemBonuses } = bodyOf<z.infer<typeof craftBonusRedemptionBody>>(response);
+      const order = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "craft_orders" WHERE "id" = ${craftOrderId}::uuid FOR UPDATE
+        `;
+        await transaction.$queryRaw`
+          SELECT "id" FROM "users" WHERE "id" = ${user.id}::uuid FOR UPDATE
+        `;
+        const current = await transaction.craftOrder.findFirst({
+          where: { id: craftOrderId, customerId: user.id },
+          include: { receipt: true },
+        });
+        if (!current)
+          throw new HttpError(404, "CRAFT_ORDER_NOT_FOUND", "Заявка не найдена.");
+        if (
+          current.status !== "COMPLETED" ||
+          current.receipt?.paymentStatus === "PAID"
+        ) {
+          throw new HttpError(
+            409,
+            "CRAFT_BONUS_REDEMPTION_CLOSED",
+            "Бонусы можно изменить только до оплаты завершённой заявки.",
+          );
+        }
+        const balance = await transaction.loyaltyTransaction.aggregate({
+          where: { customerId: user.id },
+          _sum: { points: true },
+        });
+        const bonusDiscountRub = redeemBonuses
+          ? calculateMaxBonusDiscount(
+              current.receipt?.totalRub ?? 0,
+              balance._sum.points ?? 0,
+            )
+          : 0;
+        await transaction.craftOrder.update({
+          where: { id: craftOrderId },
+          data: { redeemBonuses, bonusDiscountRub },
+        });
+        if (current.receipt) {
+          await transaction.craftOrderReceipt.update({
+            where: { id: current.receipt.id },
+            data: { bonusDiscountRub },
+          });
+        }
+        return transaction.craftOrder.findUniqueOrThrow({
+          where: { id: craftOrderId },
+          include: { receipt: true },
+        });
+      });
+      response.json({ order });
+    },
+  );
+
+  router.patch(
+    "/craft-orders/:craftOrderId/receipt/payment",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: orderParams, body: craftReceiptPaymentBody }),
+    async (_request, response) => {
+      const { craftOrderId } = paramsOf<z.infer<typeof orderParams>>(response);
+      const { paymentMethod } = bodyOf<z.infer<typeof craftReceiptPaymentBody>>(response);
+      const admin = getAuthenticatedUser(response);
+      const receipt = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "craft_orders" WHERE "id" = ${craftOrderId}::uuid FOR UPDATE
+        `;
+        const order = await transaction.craftOrder.findUnique({
+          where: { id: craftOrderId },
+          include: { receipt: true },
+        });
+        if (!order)
+          throw new HttpError(404, "CRAFT_ORDER_NOT_FOUND", "Заявка не найдена.");
+        if (order.status !== "COMPLETED" || !order.receipt) {
+          throw new HttpError(
+            409,
+            "CRAFT_RECEIPT_NOT_READY",
+            "Сначала завершите заявку и сформируйте чек.",
+          );
+        }
+        if (order.receipt.paymentStatus === "PAID") return order.receipt;
+        await transaction.$queryRaw`
+          SELECT "id" FROM "users" WHERE "id" = ${order.customerId}::uuid FOR UPDATE
+        `;
+        const balance = await transaction.loyaltyTransaction.aggregate({
+          where: { customerId: order.customerId },
+          _sum: { points: true },
+        });
+        const bonusDiscountRub = order.redeemBonuses
+          ? calculateMaxBonusDiscount(
+              order.receipt.totalRub,
+              balance._sum.points ?? 0,
+            )
+          : 0;
+        const cashPaidRub = Math.max(0, order.receipt.totalRub - bonusDiscountRub);
+        const changed = await transaction.craftOrderReceipt.updateMany({
+          where: { id: order.receipt.id, paymentStatus: "PENDING" },
+          data: {
+            paymentStatus: "PAID",
+            paymentMethod,
+            paidAt: new Date(),
+            bonusDiscountRub,
+          },
+        });
+        if (changed.count !== 1) {
+          throw new HttpError(
+            409,
+            "CRAFT_RECEIPT_PAYMENT_CHANGED",
+            "Статус чека уже изменился. Обновите заявку.",
+          );
+        }
+        await transaction.craftOrder.update({
+          where: { id: craftOrderId },
+          data: { bonusDiscountRub },
+        });
+        if (bonusDiscountRub > 0) {
+          await transaction.loyaltyTransaction.create({
+            data: {
+              customerId: order.customerId,
+              craftOrderId,
+              actorId: admin.id,
+              type: "REDEEM",
+              points: -bonusDiscountRub,
+              reason: `Списание по чеку ${order.receipt.receiptNumber}`,
+            },
+          });
+        }
+        const earnedPoints = calculateCraftOrderEarnedPoints(cashPaidRub);
+        if (earnedPoints > 0) {
+          await transaction.loyaltyTransaction.create({
+            data: {
+              customerId: order.customerId,
+              craftOrderId,
+              actorId: admin.id,
+              type: "EARN",
+              points: earnedPoints,
+              reason: `Начисление 5% за заказ изделия ${order.receipt.serviceNumber}`,
+            },
+          });
+        }
+        return transaction.craftOrderReceipt.findUniqueOrThrow({
+          where: { id: order.receipt.id },
+        });
+      });
+      response.json({ receipt });
     },
   );
 

@@ -9,6 +9,7 @@ import {
   Home,
   LogOut,
   Moon,
+  Megaphone,
   Newspaper,
   Power,
   Sparkles,
@@ -35,6 +36,7 @@ const links = [
   { to: "/crafts", label: "Рукоделия", icon: Sparkles },
   { to: "/about", label: "О компании", icon: UsersRound },
   { to: "/reviews", label: "Отзывы", icon: Bell },
+  { to: "/advertising", label: "Реклама", icon: Megaphone },
   { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
 ];
 
@@ -79,13 +81,13 @@ export const AppShell = ({ active, children }: { active: string; children: React
     );
   }
 
-  const nav = links.filter((link) =>
-    link.to === "/catalog"
-      ? user.role === "TECHNICIAN" || user.role === "ADMIN"
-      : link.to === "/salary"
-        ? user.role === "TECHNICIAN" || user.role === "ADMIN"
-        : link.to !== "/loyalty" || user.role === "CUSTOMER",
-  );
+  const nav = links.filter((link) => {
+    if (link.to === "/advertising") return user.role === "ADMIN";
+    if (link.to === "/catalog" || link.to === "/salary")
+      return user.role === "TECHNICIAN" || user.role === "ADMIN";
+    if (link.to === "/loyalty") return user.role === "CUSTOMER";
+    return true;
+  });
   return (
     <div className="app-shell min-h-dvh bg-slate-50/80 text-slate-900 dark:bg-transparent dark:text-[#edf2ff]">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)]">

@@ -5,11 +5,12 @@ import { Star } from "lucide-react";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { ReviewManagement } from "@/features/admin/review-management";
 
 import { getReviews } from "@/lib/api";
 
 const ReviewsPage = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const query = useQuery({
     queryKey: ["reviews", token],
     queryFn: ({ signal }) => getReviews(token!, signal),
@@ -22,6 +23,7 @@ const ReviewsPage = () => {
         title="Отзывы"
         description="Отзывы клиентов о завершённых ремонтах."
       />
+      {user?.role === "ADMIN" && <ReviewManagement />}
       <div className="grid gap-4 md:grid-cols-2">
         {(query.data?.reviews ?? []).map((review) => (
           <SectionCard key={review.id}>

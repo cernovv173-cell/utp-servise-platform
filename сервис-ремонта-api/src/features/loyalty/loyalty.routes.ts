@@ -22,6 +22,10 @@ export const createLoyaltyRouter = (database: DatabaseClient): Router => {
           where: { customerId: user.id },
           orderBy: { createdAt: "desc" },
           take: 100,
+          include: {
+            order: { select: { serviceNumber: true } },
+            craftOrder: { select: { serviceNumber: true } },
+          },
         }),
         database.loyaltyTransaction.aggregate({
           where: { customerId: user.id },
@@ -41,6 +45,7 @@ export const createLoyaltyRouter = (database: DatabaseClient): Router => {
         include: {
           customer: { select: { id: true, displayName: true, email: true } },
           order: { select: { serviceNumber: true } },
+          craftOrder: { select: { serviceNumber: true } },
         },
         orderBy: { createdAt: "desc" },
         take: 1000,

@@ -3,11 +3,8 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { AndroidApkManagement } from "@/features/admin/android-apk-management";
-import { BannerManagement } from "@/features/admin/banner-management";
 import { CompanyAdmin } from "@/features/admin/company-admin";
 import { LoyaltyManagement } from "@/features/admin/loyalty-management";
-import { NewsAdmin } from "@/features/admin/news-admin";
-import { ReviewManagement } from "@/features/admin/review-management";
 import { StaffManagement } from "@/features/admin/staff-management";
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -27,7 +24,6 @@ const AdminPage = () => {
       ) : (
         <div className="grid gap-6">
           <AndroidApkManagement />
-          <NewsAdmin />
           <SectionCard>
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -46,9 +42,7 @@ const AdminPage = () => {
             </div>
           </SectionCard>
           <StaffManagement />
-          <ReviewManagement />
           <LoyaltyManagement />
-          <BannerManagement />
           <CompanyAdmin />
         </div>
       )}

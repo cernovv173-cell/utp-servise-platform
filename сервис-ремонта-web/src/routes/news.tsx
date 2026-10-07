@@ -5,13 +5,14 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { NewsAdmin } from "@/features/admin/news-admin";
 import { CampaignBanner } from "@/features/campaigns/campaign-banner";
 import { BirthdayGreetingCard } from "@/features/news/birthday-greeting-card";
 
 import { getBanners, getNews } from "@/lib/api";
 
 const NewsPage = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const query = useQuery({
     queryKey: ["news", token],
     queryFn: ({ signal }) => getNews(token!, signal),
@@ -30,6 +31,7 @@ const NewsPage = () => {
         title="Новости сервиса"
         description="Объявления и актуальные предложения UTP Servise."
       />
+      {user?.role === "ADMIN" && <NewsAdmin />}
       {query.isLoading && <p className="text-sm text-slate-500">Загружаем новости…</p>}
       {query.isError && (
         <p role="alert" className="text-sm text-rose-600">

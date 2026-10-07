@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdvertisingRouteImport } from './routes/advertising'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as ChecksRouteImport } from './routes/checks'
 import { Route as CraftsRouteImport } from './routes/crafts'
@@ -45,6 +46,11 @@ const AccountRoute = AccountRouteImport.update({
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdvertisingRoute = AdvertisingRouteImport.update({
+  id: '/advertising',
+  path: '/advertising',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogRoute = CatalogRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/advertising': typeof AdvertisingRoute
   '/catalog': typeof CatalogRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByTo {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/advertising': typeof AdvertisingRoute
   '/catalog': typeof CatalogRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
+  '/advertising': typeof AdvertisingRoute
   '/catalog': typeof CatalogRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
@@ -178,6 +187,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/advertising'
     | '/catalog'
     | '/checks'
     | '/crafts'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/advertising'
     | '/catalog'
     | '/checks'
     | '/crafts'
@@ -216,6 +227,7 @@ export interface FileRouteTypes {
     | '/about'
     | '/account'
     | '/admin'
+    | '/advertising'
     | '/catalog'
     | '/checks'
     | '/crafts'
@@ -236,6 +248,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRouteWithChildren
+  AdvertisingRoute: typeof AdvertisingRoute
   CatalogRoute: typeof CatalogRoute
   ChecksRoute: typeof ChecksRoute
   CraftsRoute: typeof CraftsRoute
@@ -277,6 +290,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/advertising': {
+      id: '/advertising'
+      path: '/advertising'
+      fullPath: '/advertising'
+      preLoaderRoute: typeof AdvertisingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/catalog': {
@@ -390,6 +410,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AccountRoute: AccountRoute,
   AdminRoute: AdminRouteWithChildren,
+  AdvertisingRoute: AdvertisingRoute,
   CatalogRoute: CatalogRoute,
   ChecksRoute: ChecksRoute,
   CraftsRoute: CraftsRoute,

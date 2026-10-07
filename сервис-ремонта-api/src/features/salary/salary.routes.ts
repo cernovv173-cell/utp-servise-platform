@@ -86,13 +86,21 @@ export const createSalaryRouter = (database: DatabaseClient): Router => {
                   user.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT,
               },
             ];
-      const entries = await database.technicianSalaryEntry.findMany({
-        where: {
-          technicianId: { in: technicians.map(({ id }) => id) },
-          earnedAt: { gte: earliestPeriod, lte: now },
-        },
-        select: { technicianId: true, earnedAt: true, salaryRub: true },
-      });
+      const salaryFilter = {
+        technicianId: { in: technicians.map(({ id }) => id) },
+        earnedAt: { gte: earliestPeriod, lte: now },
+      };
+      const [repairEntries, craftEntries] = await Promise.all([
+        database.technicianSalaryEntry.findMany({
+          where: salaryFilter,
+          select: { technicianId: true, earnedAt: true, salaryRub: true },
+        }),
+        database.craftOrderSalaryEntry.findMany({
+          where: salaryFilter,
+          select: { technicianId: true, earnedAt: true, salaryRub: true },
+        }),
+      ]);
+      const entries = [...repairEntries, ...craftEntries];
 
       const byTechnician = technicians.map((technician) => {
         const technicianEntries = entries.filter(
