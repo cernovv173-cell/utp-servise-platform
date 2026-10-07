@@ -117,7 +117,20 @@ fun StaffManagementScreen(
                         Text(member.displayName, fontWeight = FontWeight.SemiBold, color = UtpInk)
                         Text(member.email, fontSize = 12.sp, color = UtpMuted)
                         member.phoneNumber?.takeIf { it.isNotBlank() }?.let { Text(it, fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 2.dp)) }
-                        Text("${member.role.roleLabel()} · ${if (member.active) "Активен" else "Отключён"}", fontSize = 11.sp, color = if (member.active) UtpGreen else UtpMuted, modifier = Modifier.padding(top = 4.dp))
+                        Text(
+                            "${member.role.roleLabel()} · ${if (member.active) "Активен" else "Отключён"}",
+                            fontSize = 11.sp,
+                            color = if (member.active) UtpGreen else UtpMuted,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                        if (member.role == "TECHNICIAN") {
+                            Text(
+                                "Оплата: ${member.salaryRatePercent}% только от услуг",
+                                fontSize = 11.sp,
+                                color = UtpMuted,
+                                modifier = Modifier.padding(top = 3.dp),
+                            )
+                        }
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         if (member.role == "TECHNICIAN") {
@@ -156,7 +169,10 @@ fun StaffManagementScreen(
             staff = member,
             onDismiss = { editedStaff = null },
             onSave = { updated ->
-                runAction({ ApiClient.updateStaff(token, updated) }) { editedStaff = null }
+                runAction({ ApiClient.updateStaff(token, updated) }) {
+                    editedStaff = null
+                    refresh()
+                }
             },
         )
     }
@@ -188,6 +204,8 @@ private fun EditTechnicianDialog(
 ) {
     var displayName by remember(staff.id) { mutableStateOf(staff.displayName) }
     var phoneNumber by remember(staff.id) { mutableStateOf(staff.phoneNumber.orEmpty()) }
+    var salaryRatePercent by remember(staff.id) { mutableStateOf(staff.salaryRatePercent.toString()) }
+    var validationError by remember(staff.id) { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Редактировать мастера") },
@@ -210,12 +228,52 @@ private fun EditTechnicianDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 )
+                OutlinedTextField(
+                    value = salaryRatePercent,
+                    onValueChange = { value ->
+                        if (value.all(Char::isDigit) && value.length <= 3) {
+                            salaryRatePercent = value
+                            validationError = null
+                        }
+                    },
+                    label = { Text("Процент оплаты за услуги") },
+                    suffix = { Text("%") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    isError = validationError != null,
+                )
+                Text(
+                    "Ставка применяется к новым начислениям. Запчасти и товары не учитываются.",
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                    color = UtpMuted,
+                )
+                validationError?.let { error ->
+                    Text(
+                        error,
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp,
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    onSave(staff.copy(displayName = displayName.trim(), phoneNumber = phoneNumber.trim().takeIf { it.isNotEmpty() }))
+                    val rate = salaryRatePercent.toIntOrNull()
+                    if (rate == null || rate !in 0..100) {
+                        validationError = "Укажите целое число от 0 до 100."
+                        return@TextButton
+                    }
+                    onSave(
+                        staff.copy(
+                            displayName = displayName.trim(),
+                            phoneNumber = phoneNumber.trim().takeIf { it.isNotEmpty() },
+                            salaryRatePercent = rate,
+                        ),
+                    )
                 },
                 enabled = displayName.trim().length >= 2,
             ) { Text("Сохранить") }

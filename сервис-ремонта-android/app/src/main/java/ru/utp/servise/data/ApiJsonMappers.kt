@@ -167,6 +167,7 @@ internal fun JSONObject.toStaff() = StaffMember(
     avatarObjectId = nullableString("avatarObjectId"),
     role = getString("role"),
     active = optBoolean("active", true),
+    salaryRatePercent = optInt("salaryRatePercent", 75),
 )
 
 internal fun JSONObject.toCatalogItem() = CatalogItem(

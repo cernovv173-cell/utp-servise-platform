@@ -298,6 +298,7 @@ data class StaffMember(
     val avatarObjectId: String?,
     val role: String,
     val active: Boolean,
+    val salaryRatePercent: Int = 75,
 )
 
 data class CustomerReview(

@@ -478,7 +478,10 @@ object ApiClient {
 
     fun updateStaff(token: String, staff: StaffMember): StaffMember = request(
         "PATCH", "/staff/${staff.id}", token,
-        JSONObject().put("displayName", staff.displayName).put("phoneNumber", staff.phoneNumber ?: JSONObject.NULL),
+        JSONObject()
+            .put("displayName", staff.displayName)
+            .put("phoneNumber", staff.phoneNumber ?: JSONObject.NULL)
+            .put("salaryRatePercent", staff.salaryRatePercent),
     ).getJSONObject("staff").toStaff()
 
     fun reviews(token: String): List<CustomerReview> = request("GET", "/reviews", token)
