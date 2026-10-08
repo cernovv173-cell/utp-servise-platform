@@ -119,6 +119,12 @@ the device type, fault description and customer address; active service-catalog 
 to an open order with a quantity. The card lists existing service and item lines, while the API
 checks the active catalog entry, order status and inventory balance before saving changes.
 
+While an administrator is signed in to the Web app, it checks for new repair and craft-product orders
+every 30 seconds. New orders appear as in-app alerts with a shortcut to the relevant order list. The
+administrator can also enable browser system notifications from the header; these can appear while
+the site tab is in the background, as long as the page remains open. Browser notifications are not
+delivered after the site is closed.
+
 Customer and administrator order cards show a Code 128 barcode generated from the order's existing
 unique service number. The barcode is derived at display time, so it adds no database field and does
 not replace the separate pickup QR code.

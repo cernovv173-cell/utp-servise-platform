@@ -193,7 +193,7 @@ const CraftsPage = () => {
         </SectionCard>
       )}
       {(canOrder || isAdmin) && (
-        <section className="mt-8">
+        <section className="mt-8" id="craft-orders">
           <h2 className="mb-4 text-lg font-semibold">
             {isAdmin ? "Заявки на изделия" : "Мои заявки на изделия"}
           </h2>

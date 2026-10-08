@@ -8,8 +8,8 @@ import {
   FileText,
   Home,
   LogOut,
-  Moon,
   Megaphone,
+  Moon,
   Newspaper,
   Power,
   Sparkles,
@@ -23,6 +23,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { AppInstallButton } from "@/components/app-install-button";
 
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
+import { IncomingOrderNotifications } from "@/features/admin/incoming-order-notifications";
 import { useAuth } from "@/features/auth/auth-context";
 
 const links = [
@@ -150,6 +151,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
             <span className="hidden text-sm text-slate-600 sm:block dark:text-slate-300">
               {user.displayName}
             </span>
+            <IncomingOrderNotifications />
             <button
               aria-label="Переключить тему"
               onClick={() => setDark((value) => !value)}
