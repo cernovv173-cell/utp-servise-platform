@@ -8,7 +8,7 @@ import { createOrdersRouter } from "../src/features/orders/orders.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("customers can edit only their own new orders; administrators can edit an assigned order", async (t) => {
+test("customers can edit only their own new orders; administrators can edit orders in any status", async (t) => {
   const tokens = {
     owner: "O".repeat(48),
     otherCustomer: "C".repeat(48),
@@ -23,7 +23,13 @@ test("customers can edit only their own new orders; administrators can edit an a
     problem: "Не включается ноутбук",
     address: "Москва, улица Тестовая, 1",
     preferredAt: null as Date | null,
-    status: "REQUESTED" as "REQUESTED" | "ASSIGNED" | "IN_PROGRESS",
+    status: "REQUESTED" as
+      | "REQUESTED"
+      | "ASSIGNED"
+      | "IN_PROGRESS"
+      | "READY_FOR_PICKUP"
+      | "COMPLETED"
+      | "CANCELLED",
     updatedAt: new Date(),
   };
   const users = [
@@ -147,6 +153,13 @@ test("customers can edit only their own new orders; administrators can edit an a
   assert.equal(otherUser.status, 404);
 
   order.status = "ASSIGNED";
+  const customerAfterAssignment = await fetch(endpoint, {
+    method: "PATCH",
+    headers: headers(tokens.owner),
+    body: JSON.stringify({ problem: "Изменение после назначения" }),
+  });
+  assert.equal(customerAfterAssignment.status, 409);
+
   const adminEdit = await fetch(endpoint, {
     method: "PATCH",
     headers: headers(tokens.admin),
@@ -156,11 +169,23 @@ test("customers can edit only their own new orders; administrators can edit an a
   assert.equal(changes.length, 2);
 
   order.status = "IN_PROGRESS";
-  const locked = await fetch(endpoint, {
-    method: "PATCH",
-    headers: headers(tokens.admin),
-    body: JSON.stringify({ problem: "Попытка поменять после начала ремонта" }),
-  });
-  assert.equal(locked.status, 409);
-  assert.equal(changes.length, 2);
+  for (const status of [
+    "IN_PROGRESS",
+    "READY_FOR_PICKUP",
+    "COMPLETED",
+    "CANCELLED",
+  ] as const) {
+    order.status = status;
+    const adminEdit = await fetch(endpoint, {
+      method: "PATCH",
+      headers: headers(tokens.admin),
+      body: JSON.stringify({ problem: `Исправление данных статуса ${status}` }),
+    });
+    assert.equal(adminEdit.status, 200);
+    assert.equal(
+      (await adminEdit.json()).order.problem,
+      `Исправление данных статуса ${status}`,
+    );
+  }
+  assert.equal(changes.length, 6);
 });

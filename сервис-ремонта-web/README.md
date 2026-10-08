@@ -151,3 +151,12 @@ for each side; the service will not mark an order ready for pickup until the act
 customer can create a short-lived, one-time pickup QR from their own ready order. Staff scan the
 customer's code and enter the applicable warranty duration and terms to close the repair and issue
 its warranty card. The QR is not a password; only the server-side hashed token is retained.
+
+The `/admin/orders/:orderId` detail route opens one repair request directly and provides its order
+controls, service editor, and customer chat. Customers can open the chat on their own cards in
+`/orders`; administrators connect to the same conversation from the detail page before replying.
+Administrators can correct request details in any status; customers can edit only their own requests
+before technician assignment. Service lines and paid financial documents keep their separate
+lifecycle safeguards. The staff section of `/admin` can create technician accounts with one-time
+temporary passwords that must be changed on first sign-in; customer self-registration remains on
+`/login` and cannot create staff or administrator accounts.

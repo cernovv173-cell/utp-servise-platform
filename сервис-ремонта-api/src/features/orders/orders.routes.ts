@@ -394,6 +394,23 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.get(
+    "/admin/orders/:orderId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: orderIdParams }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const order = await database.repairOrder.findUnique({
+        where: { id: orderId },
+        include: orderDetails("ADMIN"),
+      });
+      if (!order)
+        throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+      response.json({ order });
+    },
+  );
+
   router.post(
     "/orders",
     requireAuth,
@@ -561,13 +578,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         }
         const editableStatus =
-          current.status === "REQUESTED" ||
-          (user.role === "ADMIN" && current.status === "ASSIGNED");
+          user.role === "ADMIN" || current.status === "REQUESTED";
         if (!editableStatus) {
           throw new HttpError(
             409,
             "ORDER_NOT_EDITABLE",
-            "Заявку нельзя изменить после отмены, оплаты чека или начала закрытого этапа ремонта.",
+            "Клиент может изменить данные заявки только до назначения мастера.",
           );
         }
         const addressFieldsChanged = [

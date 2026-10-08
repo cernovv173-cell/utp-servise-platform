@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
@@ -10,11 +11,13 @@ import { useAuth } from "@/features/auth/auth-context";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
   assignOrder,
   createRepairReceipt,
+  getAdminRepairOrder,
   getOrders,
   getRepairCatalog,
   getStaff,
@@ -47,7 +50,7 @@ const localDateTime = (value: string | null) => {
   return date.toISOString().slice(0, 16);
 };
 
-export const OrderManagement = () => {
+export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
   const { token, user } = useAuth();
   const client = useQueryClient();
   const [search, setSearch] = useState("");
@@ -62,19 +65,26 @@ export const OrderManagement = () => {
     queryFn: ({ signal }) => getRepairCatalog(token!, signal),
     enabled: Boolean(token) && isAdmin,
   });
+  const selectedOrder = useQuery({
+    queryKey: ["admin-repair-order", token, orderId],
+    queryFn: ({ signal }) => getAdminRepairOrder(token!, orderId!, signal),
+    enabled: Boolean(token && isAdmin && orderId),
+  });
   const orders = useQuery({
     queryKey: ["orders", token, archiveView],
     queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
+    enabled: Boolean(token && !orderId),
   });
   const found = useQuery({
     queryKey: ["admin-order-search", token, search],
     queryFn: () => searchOrders(token!, search.trim()),
-    enabled: search.trim().length >= 2,
+    enabled: !orderId && search.trim().length >= 2,
   });
   const refresh = async () => {
     await Promise.all([
       client.invalidateQueries({ queryKey: ["orders", token] }),
       client.invalidateQueries({ queryKey: ["admin-order-search", token] }),
+      client.invalidateQueries({ queryKey: ["admin-repair-order", token] }),
     ]);
   };
   const mutate = useMutation({
@@ -92,8 +102,11 @@ export const OrderManagement = () => {
     },
     onSuccess: refresh,
   });
-  const list =
-    search.trim().length >= 2
+  const list = orderId
+    ? selectedOrder.data?.order
+      ? [selectedOrder.data.order]
+      : []
+    : search.trim().length >= 2
       ? (found.data?.orders ?? []).filter(
           (order) => Boolean(order.archivedAt) === (archiveView === "archived"),
         )
@@ -104,26 +117,53 @@ export const OrderManagement = () => {
   return (
     <SectionCard>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-semibold">Заявки на ремонт</h2>
-        <div className="flex flex-wrap gap-2">
-          {token && <PickupQrScanner token={token} />}
-          <AdminOrderCreate onCreated={refresh} />
-        </div>
+        <h2 className="font-semibold">
+          {orderId
+            ? selectedOrder.data?.order
+              ? `Заявка ${selectedOrder.data.order.serviceNumber}`
+              : "Карточка заявки"
+            : "Заявки на ремонт"}
+        </h2>
+        {orderId ? (
+          <Link
+            to="/admin/orders"
+            className="inline-flex min-h-10 items-center rounded-lg border border-slate-200 px-4 text-sm font-medium dark:border-slate-700"
+          >
+            ← К списку заявок
+          </Link>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {token && <PickupQrScanner token={token} />}
+            <AdminOrderCreate onCreated={refresh} />
+          </div>
+        )}
       </div>
-      <div className="mt-4">
-        <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
-      </div>
-      <div className="mt-4">
-        <label className="grid gap-1 text-sm font-medium">
-          Поиск по сервисному номеру
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Например, UTP-2026-000001"
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-          />
-        </label>
-      </div>
+      {!orderId && (
+        <>
+          <div className="mt-4">
+            <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
+          </div>
+          <div className="mt-4">
+            <label className="grid gap-1 text-sm font-medium">
+              Поиск по сервисному номеру
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Например, UTP-2026-000001"
+                className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
+              />
+            </label>
+          </div>
+        </>
+      )}
+      {orderId && selectedOrder.isLoading && (
+        <p className="mt-4 text-sm text-slate-500">Загружаем заявку…</p>
+      )}
+      {orderId && selectedOrder.isError && (
+        <p role="alert" className="mt-4 text-sm text-rose-600">
+          Не удалось загрузить заявку. Проверьте доступ и обновите страницу.
+        </p>
+      )}
       <div className="mt-4 grid gap-3">
         {list.map((order) => (
           <article
@@ -133,6 +173,15 @@ export const OrderManagement = () => {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold text-blue-600">{order.serviceNumber}</p>
+                {!orderId && (
+                  <Link
+                    to="/admin/orders/$orderId"
+                    params={{ orderId: order.id }}
+                    className="mt-1 inline-flex text-xs font-semibold text-blue-600 underline-offset-2 hover:underline"
+                  >
+                    Открыть заявку и чат
+                  </Link>
+                )}
                 {order.archivedAt && (
                   <p className="mt-1 inline-flex rounded-full border border-violet-300/40 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-800 dark:border-[#9b7bff]/40 dark:bg-[#241b45] dark:text-[#d4c4ff]">
                     В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}
@@ -244,6 +293,7 @@ export const OrderManagement = () => {
                 onRefresh={refresh}
               />
             )}
+            {orderId && token && <RepairOrderChat token={token} orderId={order.id} defaultOpen />}
             {order.expectedCompletionAt && (
               <p className="mt-3 text-xs text-slate-500">
                 Ориентировочное завершение:{" "}
@@ -257,11 +307,16 @@ export const OrderManagement = () => {
             )}
           </article>
         ))}
-        {orders.isLoading && <p className="text-sm text-slate-500">Загружаем заявки…</p>}
+        {!orderId && orders.isLoading && (
+          <p className="text-sm text-slate-500">Загружаем заявки…</p>
+        )}
         {search.trim().length >= 2 && found.isLoading && (
           <p className="text-sm text-slate-500">Ищем номер…</p>
         )}
-        {!orders.isLoading && list.length === 0 && (
+        {orderId && !selectedOrder.isLoading && !selectedOrder.isError && list.length === 0 && (
+          <p className="text-sm text-slate-500">Заявка не найдена.</p>
+        )}
+        {!orderId && !orders.isLoading && list.length === 0 && (
           <p className="text-sm text-slate-500">Заявки не найдены.</p>
         )}
         {mutate.isError && (

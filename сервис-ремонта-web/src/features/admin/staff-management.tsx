@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
 
+import { StaffCreateForm } from "@/features/admin/staff-create-form";
 import { useAuth } from "@/features/auth/auth-context";
 
 import { deleteTechnician, getStaff, setStaffActive, updateTechnician } from "@/lib/api";
@@ -69,6 +70,7 @@ export const StaffManagement = () => {
           </p>
         </div>
       </div>
+      <StaffCreateForm onCreated={refresh} />
       {staff.isLoading && (
         <p className="mt-4 text-sm text-slate-500">Загружаем список сотрудников…</p>
       )}

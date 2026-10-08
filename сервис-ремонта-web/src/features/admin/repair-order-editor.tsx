@@ -11,8 +11,6 @@ import {
   updateRepairOrder,
 } from "@/lib/api";
 
-const editableStatuses = new Set(["REQUESTED", "ASSIGNED"]);
-
 export const RepairOrderEditor = ({
   order,
   token,
@@ -32,7 +30,6 @@ export const RepairOrderEditor = ({
   const [deviceType, setDeviceType] = useState(order.deviceType);
   const [catalogItemId, setCatalogItemId] = useState("");
   const [quantity, setQuantity] = useState("1");
-  const canEditRequest = editableStatuses.has(order.status);
   const canAddService =
     order.status !== "COMPLETED" &&
     order.status !== "CANCELLED" &&
@@ -168,20 +165,14 @@ export const RepairOrderEditor = ({
       <div>
         <button
           type="button"
-          disabled={!canEditRequest}
           onClick={() => setIsEditing((value) => !value)}
-          className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium disabled:opacity-50 dark:border-slate-700"
+          className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
         >
           {isEditing ? "Скрыть редактирование" : "Редактировать заявку"}
         </button>
-        {!canEditRequest && (
-          <p className="mt-1 text-xs text-slate-500">
-            Описание заявки можно изменить только до начала ремонта.
-          </p>
-        )}
       </div>
 
-      {isEditing && canEditRequest && (
+      {isEditing && (
         <form
           onSubmit={saveRequest}
           className="grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-3 dark:bg-slate-900"

@@ -50,6 +50,15 @@ The worker checks once per minute and marks older orders with `archived_at`; it 
 order or changes its status. `GET /orders?archive=active` and `GET /orders?archive=archived`
 return the corresponding role-scoped list. Omitting `archive` retains the unfiltered legacy response.
 
+Administrators can load an individual repair record through `GET /admin/orders/:orderId`; this
+endpoint is restricted to the administrator role. `POST /staff` also requires an administrator and
+creates a technician login with a generated temporary password and mandatory password change on
+first sign-in. Customer self-registration remains separate at `POST /auth/register` and always
+creates a customer account; the public registration flow cannot assign staff or administrator roles.
+Administrators can correct request details through `PATCH /orders/:orderId` in any order status;
+customers can edit only their own not-yet-assigned orders. Status transitions, service lines, stock,
+and paid receipts keep their independent authorization and lifecycle checks.
+
 Customers may save an optional gender and birth date with `PATCH /auth/profile`. The birthday worker
 uses the Moscow calendar date and sends the greeting once per customer per year only to active
 customers with a registered push-device token. A unique `(user_id, birthday_year)` delivery record
@@ -64,6 +73,11 @@ reply in that same thread. The chat is embedded in each request card and opens a
 an administrator moves the request to `IN_PROGRESS`. Message and image endpoints verify the signed-in
 user is either an administrator or the owner of that request, and protected image reads repeat this
 ownership check. A message push is sent to the other side when a registered device is available.
+
+Repair-order conversations are available to the order's customer, assigned technician, and
+administrators. An administrator can explicitly join the conversation from the repair-order detail
+page and reply even when no technician escalation was requested; only an authenticated administrator
+can perform the join action. Message access remains scoped to the repair order.
 
 ## Craft-order receipts and technician pay
 

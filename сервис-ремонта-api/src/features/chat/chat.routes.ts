@@ -15,7 +15,6 @@ import {
 } from "../notifications/push-notifications.js";
 import {
   canAccessOrderChat,
-  canJoinEscalatedChat,
   canRequestAdministratorHelp,
   canSendOrderChatMessage,
 } from "./chat-policy.js";
@@ -274,26 +273,31 @@ export const createChatRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
       const admin = getAuthenticatedUser(response);
+      const order = await database.repairOrder.findUnique({
+        where: { id: orderId },
+        select: { id: true },
+      });
+      if (!order)
+        throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
       const chat = await database.$transaction(async (transaction) => {
         const current = await transaction.orderChat.findUnique({
           where: { orderId },
           select: {
-            adminRequestedAt: true,
             adminJoinedAt: true,
           },
         });
-        if (!current || !canJoinEscalatedChat("ADMIN", current))
-          throw new HttpError(
-            409,
-            "ADMIN_HELP_NOT_REQUESTED",
-            "Для этой беседы мастер ещё не запросил помощь администратора.",
-          );
-        if (!current.adminJoinedAt) {
-          await transaction.orderChat.update({
-            where: { orderId },
-            data: { adminJoinedAt: new Date(), adminJoinedById: admin.id },
-          });
-        }
+        const joinedAt = current?.adminJoinedAt ?? new Date();
+        await transaction.orderChat.upsert({
+          where: { orderId },
+          create: {
+            orderId,
+            adminJoinedAt: joinedAt,
+            adminJoinedById: admin.id,
+          },
+          update: current?.adminJoinedAt
+            ? {}
+            : { adminJoinedAt: joinedAt, adminJoinedById: admin.id },
+        });
         return transaction.orderChat.findUniqueOrThrow({
           where: { orderId },
           include: chatDetails,

@@ -11,6 +11,7 @@ import { CustomerPickupQr } from "@/features/orders/customer-pickup-qr";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import { createOrder, getLoyalty, getOrders, searchOrders } from "@/lib/api";
@@ -336,6 +337,9 @@ const OrdersPage = () => {
                   <CustomerPickupQr token={token} orderId={order.id} />
                 )}
               </div>
+            )}
+            {token && user?.role === "CUSTOMER" && (
+              <RepairOrderChat token={token} orderId={order.id} />
             )}
             {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (
               <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">

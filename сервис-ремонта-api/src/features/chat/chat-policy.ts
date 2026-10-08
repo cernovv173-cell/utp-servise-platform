@@ -35,8 +35,3 @@ export const canRequestAdministratorHelp = (
   userId: string,
   order: ChatOrderAccess,
 ): boolean => role === "TECHNICIAN" && order.assignedTechnicianId === userId;
-
-export const canJoinEscalatedChat = (
-  role: UserRole,
-  chat: ChatEscalationState | null,
-): boolean => role === "ADMIN" && chat?.adminRequestedAt != null;

@@ -162,7 +162,7 @@ test("order chat access is scoped and technicians can hand the conversation to a
         let conversation = conversations.get(where.orderId);
         if (!conversation) {
           conversation = {
-            id: "33333333-3333-4333-8333-333333333333",
+            id: `chat-${where.orderId}`,
             orderId: where.orderId,
             adminRequestedAt: null,
             adminRequestedById: null,
@@ -338,4 +338,43 @@ test("order chat access is scoped and technicians can hand the conversation to a
     },
   );
   assert.equal(wrongTechnicianEscalation.status, 404);
+
+  const customerDirectMessage = await fetch(
+    `${baseUrl}/orders/${otherOrderId}/chat/messages`,
+    {
+      method: "POST",
+      headers: headers(otherCustomerToken),
+      body: JSON.stringify({
+        content: "Подскажите, пожалуйста, статус ремонта.",
+      }),
+    },
+  );
+  assert.equal(customerDirectMessage.status, 201);
+
+  const directJoin = await fetch(
+    `${baseUrl}/orders/${otherOrderId}/chat/join-admin`,
+    { method: "POST", headers: headers(adminToken) },
+  );
+  assert.equal(directJoin.status, 200);
+  assert.ok((await directJoin.json()).chat.adminJoinedAt);
+
+  const directAdminReply = await fetch(
+    `${baseUrl}/orders/${otherOrderId}/chat/messages`,
+    {
+      method: "POST",
+      headers: headers(adminToken),
+      body: JSON.stringify({
+        content: "Заявка в работе, скоро сообщим результат.",
+      }),
+    },
+  );
+  assert.equal(directAdminReply.status, 201);
+
+  const directCustomerHistory = await fetch(
+    `${baseUrl}/orders/${otherOrderId}/chat`,
+    { headers: headers(otherCustomerToken) },
+  );
+  const directChat = (await directCustomerHistory.json()).chat;
+  assert.equal(directChat.messages.length, 2);
+  assert.equal(directChat.messages.at(-1).sender.role, "ADMIN");
 });

@@ -72,6 +72,26 @@ export type RepairOrder = {
   customer?: { id: string; displayName: string; email: string; phoneNumber?: string | null };
 };
 
+export type RepairOrderChatMessage = {
+  id: string;
+  chatId: string;
+  senderId: string | null;
+  content: string;
+  imageObjectId: string | null;
+  createdAt: string;
+  sender: { id: string; displayName: string; role: Role } | null;
+};
+
+export type RepairOrderChat = {
+  id: string | null;
+  orderId: string;
+  adminRequestedAt: string | null;
+  adminRequestedBy: { id: string; displayName: string } | null;
+  adminJoinedAt: string | null;
+  joinedBy: { id: string; displayName: string } | null;
+  messages: RepairOrderChatMessage[];
+};
+
 export type RepairOrderIntake = {
   id: string;
   orderId: string;
@@ -386,6 +406,9 @@ export const getOrders = (token: string, signal?: AbortSignal, archive?: OrderAr
     signal,
   });
 
+export const getAdminRepairOrder = (token: string, orderId: string, signal?: AbortSignal) =>
+  apiRequest<{ order: RepairOrder }>(`/admin/orders/${orderId}`, token, { signal });
+
 export const createOrder = (
   token: string,
   input: {
@@ -648,6 +671,18 @@ export const searchOrders = (token: string, serviceNumber: string, signal?: Abor
 export const getStaff = (token: string, signal?: AbortSignal) =>
   apiRequest<{ staff: StaffMember[] }>("/staff", token, { signal });
 
+export const createTechnician = (
+  token: string,
+  input: { email: string; displayName: string; phoneNumber?: string },
+) =>
+  apiRequest<{
+    staff: Pick<StaffMember, "id" | "displayName" | "email" | "role">;
+    temporaryPassword: string;
+  }>("/staff", token, {
+    method: "POST",
+    body: JSON.stringify({ ...input, role: "TECHNICIAN" }),
+  });
+
 export const updateTechnician = (
   token: string,
   userId: string,
@@ -746,6 +781,20 @@ export const markCraftReceiptPaid = (
 
 export const getCraftOrderChat = (token: string, id: string, signal?: AbortSignal) =>
   apiRequest<{ chat: CraftOrderChat }>(`/craft-orders/${id}/chat`, token, { signal });
+
+export const getRepairOrderChat = (token: string, id: string, signal?: AbortSignal) =>
+  apiRequest<{ chat: RepairOrderChat }>(`/orders/${id}/chat`, token, { signal });
+
+export const joinAdminToRepairOrderChat = (token: string, id: string) =>
+  apiRequest<{ chat: RepairOrderChat }>(`/orders/${id}/chat/join-admin`, token, {
+    method: "POST",
+  });
+
+export const sendRepairOrderChatMessage = (token: string, id: string, content: string) =>
+  apiRequest<{ chat: RepairOrderChat }>(`/orders/${id}/chat/messages`, token, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
 
 export const sendCraftOrderChatMessage = (token: string, id: string, content: string) =>
   apiRequest<{ chat: CraftOrderChat }>(`/craft-orders/${id}/chat/messages`, token, {
