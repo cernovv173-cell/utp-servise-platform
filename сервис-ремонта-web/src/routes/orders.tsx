@@ -13,12 +13,7 @@ import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
-import {
-  createOrder,
-  getLoyalty,
-  getOrders,
-  searchOrders,
-} from "@/lib/api";
+import { createOrder, getLoyalty, getOrders, searchOrders } from "@/lib/api";
 import type { OrderArchiveView } from "@/lib/api";
 
 const statusLabels: Record<string, string> = {
@@ -353,8 +348,7 @@ const OrdersPage = () => {
                     Math.floor(
                       order.items
                         .filter((item) => item.type === "SERVICE")
-                        .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0) *
-                        0.3,
+                        .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0) * 0.3,
                     ),
                   ).toLocaleString("ru-RU")}{" "}
                   ₽

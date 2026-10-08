@@ -207,7 +207,10 @@ const ChecksPage = () => {
                     <>
                       <button
                         type="button"
-                        disabled={bonuses.isPending || (!order.redeemBonuses && maximumServiceDiscount === 0)}
+                        disabled={
+                          bonuses.isPending ||
+                          (!order.redeemBonuses && maximumServiceDiscount === 0)
+                        }
                         onClick={() =>
                           bonuses.mutate({ orderId: order.id, redeem: !order.redeemBonuses })
                         }

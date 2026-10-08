@@ -8,7 +8,7 @@ import { createOrdersRouter } from "../src/features/orders/orders.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("receipt edits synchronize item quantities, stock, bonus discount and technician pay", async (t) => {
+test("receipt edits synchronize stock, service-only bonus discount and technician pay", async (t) => {
   const orderId = "11111111-1111-4111-8111-111111111111";
   const serviceItemId = "22222222-2222-4222-8222-222222222222";
   const partItemId = "33333333-3333-4333-8333-333333333333";
@@ -188,9 +188,9 @@ test("receipt edits synchronize item quantities, stock, bonus discount and techn
 
   assert.equal(response.status, 201);
   assert.equal(stockQuantity, 1);
-  assert.equal(bonusDiscountRub, 330);
+  assert.equal(bonusDiscountRub, 150);
   assert.equal(savedReceipt?.totalRub, 1100);
-  assert.equal(savedReceipt?.bonusDiscountRub, 330);
+  assert.equal(savedReceipt?.bonusDiscountRub, 150);
   assert.equal(savedSalary?.serviceTotalRub, 500);
   assert.equal(savedSalary?.salaryRub, 200);
   assert.deepEqual(

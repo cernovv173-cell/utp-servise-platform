@@ -173,9 +173,7 @@ export const CraftOrderCard = ({
             Сервисный номер: {order.receipt.serviceNumber}
           </p>
           <ServiceNumberBarcode serviceNumber={order.receipt.serviceNumber} />
-          <p className="mt-2">
-            Итого: {order.receipt.totalRub.toLocaleString("ru-RU")} ₽
-          </p>
+          <p className="mt-2">Итого: {order.receipt.totalRub.toLocaleString("ru-RU")} ₽</p>
           <p className="mt-1 font-semibold">
             К оплате: {order.receipt.totalRub.toLocaleString("ru-RU")} ₽
           </p>

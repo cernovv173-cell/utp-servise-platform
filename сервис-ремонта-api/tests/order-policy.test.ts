@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  canAddRepairOrderItem,
   calculateEarnedPoints,
   calculateMaxBonusDiscount,
   calculateServiceBonusEligibleRub,
+  canAddRepairOrderItem,
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "../src/features/orders/order-policy.js";
