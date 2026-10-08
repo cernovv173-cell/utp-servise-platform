@@ -162,13 +162,20 @@ export const RepairOrderEditor = ({
         )}
       </section>
 
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+        <div>
+          <h4 className="text-sm font-semibold">Данные заявки</h4>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+            Тип устройства, неисправность и контактная информация клиента.
+          </p>
+        </div>
         <button
           type="button"
           onClick={() => setIsEditing((value) => !value)}
-          className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
+          aria-expanded={isEditing}
+          className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
         >
-          {isEditing ? "Скрыть редактирование" : "Редактировать заявку"}
+          {isEditing ? "Закрыть редактирование" : "Редактировать заявку"}
         </button>
       </div>
 
