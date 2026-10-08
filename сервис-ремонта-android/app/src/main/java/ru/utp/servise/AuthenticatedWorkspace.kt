@@ -222,7 +222,7 @@ internal fun AuthenticatedWorkspace(
                             composable("customer/about") {
                                 CompanyScreen(token, false, busy, runAction, onBack = { navController.popBackStack() }, banners = banners, onCampaignNavigate = onCampaignNavigate)
                             }
-                            composable("customer/crafts") { CraftsScreen(token, false, craftItems, craftOrders, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
+                            composable("customer/crafts") { CraftsScreen(token, false, craftItems, craftOrders, staff, loyalty.balance, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
                             composable("customer/orders") {
                                 RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, loyaltyBalance = loyalty.balance, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
                             }
@@ -285,7 +285,7 @@ internal fun AuthenticatedWorkspace(
                             composable("admin/about") {
                                 CompanyScreen(token, true, busy, runAction, onBack = { navController.popBackStack() }, banners = banners, onCampaignNavigate = onCampaignNavigate)
                             }
-                            composable("admin/crafts") { CraftsScreen(token, true, craftItems, craftOrders, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
+                            composable("admin/crafts") { CraftsScreen(token, true, craftItems, craftOrders, staff, loyalty.balance, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
                             composable("admin/news") {
                                 NewsManagementScreen(token, news, runAction, refresh) { navController.popBackStack() }
                             }

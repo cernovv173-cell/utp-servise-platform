@@ -15,8 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -38,6 +36,7 @@ import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrderChat
 import ru.utp.servise.data.CraftOrder
+import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.SiteBanner
 
 @Composable
@@ -46,6 +45,8 @@ fun CraftsScreen(
     isAdmin: Boolean,
     items: List<CraftItem>,
     orders: List<CraftOrder>,
+    staff: List<StaffMember>,
+    loyaltyBalance: Int,
     runAction: RunAction,
     refresh: () -> Unit,
     onBack: () -> Unit,
@@ -67,7 +68,7 @@ fun CraftsScreen(
         if (isAdmin) {
             CraftItemManagementScreen(token, items, runAction, refresh)
             Text("Заявки на изделия", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-            orders.forEach { order -> AdminCraftOrderCard(order, token, runAction, refresh) }
+            orders.forEach { order -> AdminCraftOrderCard(order, token, staff, runAction, refresh) }
         } else {
             items.filter { it.isPublished }.forEach { item ->
                 CustomerCraftItemCard(item, token, runAction, refresh)
@@ -88,7 +89,7 @@ fun CraftsScreen(
                 }
             }
             Text("Мои заявки", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-            orders.forEach { CustomerCraftOrderCard(it, token, runAction) }
+            orders.forEach { CustomerCraftOrderCard(it, token, loyaltyBalance, runAction, refresh) }
         }
         if (items.isEmpty()) Text("В каталоге пока нет материалов.", color = UtpMuted)
     }
@@ -161,26 +162,25 @@ private fun CraftItemManagementScreen(token: String, items: List<CraftItem>, run
 }
 
 @Composable
-private fun AdminCraftOrderCard(order: CraftOrder, token: String, runAction: RunAction, refresh: () -> Unit) {
-    var expanded by remember(order.id) { mutableStateOf(false) }
+private fun AdminCraftOrderCard(order: CraftOrder, token: String, staff: List<StaffMember>, runAction: RunAction, refresh: () -> Unit) {
     Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(13.dp)) {
             Text(order.itemTitle, fontWeight = FontWeight.SemiBold, color = UtpInk)
             Text("${order.customerName} · ${order.quantity} шт. · ${order.status}", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
             Text(order.note.ifBlank { "Без дополнительных пожеланий" }, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
-            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.padding(top = 5.dp)) { Text("Изменить статус") }
-            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                listOf("REQUESTED", "ACCEPTED", "IN_PROGRESS", "COMPLETED", "CANCELLED").forEach { status ->
-                    DropdownMenuItem(text = { Text(status) }, onClick = { expanded = false; runAction({ ApiClient.updateCraftOrderStatus(token, order.id, status) }) { refresh() } })
-                }
+            if (order.status == "COMPLETED") {
+                Text("Заявка завершена", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 6.dp))
+            } else {
+                CraftOrderAdminControls(order, staff, token, runAction, refresh)
             }
+            CraftOrderFinancePanel(order, "ADMIN", token, 0, runAction, refresh)
             CraftOrderChatPanel(token, order.id, order.status, runAction)
         }
     }
 }
 
 @Composable
-private fun CustomerCraftOrderCard(order: CraftOrder, token: String, runAction: RunAction) {
+private fun CustomerCraftOrderCard(order: CraftOrder, token: String, loyaltyBalance: Int, runAction: RunAction, refresh: () -> Unit) {
     Card(
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(
@@ -210,6 +210,7 @@ private fun CustomerCraftOrderCard(order: CraftOrder, token: String, runAction: 
                     color = UtpBlue,
                 )
             }
+            CraftOrderFinancePanel(order, "CUSTOMER", token, loyaltyBalance, runAction, refresh)
             CraftOrderChatPanel(token, order.id, order.status, runAction)
         }
     }

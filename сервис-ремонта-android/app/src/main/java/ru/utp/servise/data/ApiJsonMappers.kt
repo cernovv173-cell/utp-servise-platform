@@ -191,6 +191,7 @@ internal fun JSONObject.toCraftItem() = CraftItem(
 
 internal fun JSONObject.toCraftOrder(): CraftOrder {
     val customer = optJSONObject("customer")
+    val technician = optJSONObject("assignedTechnician")
     return CraftOrder(
         id = getString("id"),
         itemTitle = getString("itemTitleSnapshot"),
@@ -203,8 +204,40 @@ internal fun JSONObject.toCraftOrder(): CraftOrder {
         createdAt = optString("createdAt"),
         customerName = customer?.optString("displayName").orEmpty(),
         customerPhone = customer?.nullableString("phoneNumber"),
+        serviceNumber = nullableString("serviceNumber"),
+        assignedTechnicianId = nullableString("assignedTechnicianId"),
+        assignedTechnicianName = technician?.optString("displayName"),
+        assignedTechnicianRatePercent = technician?.optInt("salaryRatePercent"),
+        redeemBonuses = optBoolean("redeemBonuses"),
+        bonusDiscountRub = optInt("bonusDiscountRub"),
+        receipt = optJSONObject("receipt")?.toCraftOrderReceipt(),
+        salaryEntry = optJSONObject("salaryEntry")?.let { entry ->
+            CraftOrderSalaryEntry(
+                serviceTotalRub = entry.optInt("serviceTotalRub"),
+                salaryRub = entry.optInt("salaryRub"),
+                ratePercent = entry.optInt("ratePercent", 75),
+            )
+        },
     )
 }
+
+internal fun JSONObject.toCraftOrderReceipt() = CraftOrderReceipt(
+    receiptNumber = optString("receiptNumber"),
+    serviceNumber = optString("serviceNumber"),
+    items = optJSONArray("itemsSnapshot").mapObjects { item ->
+        ReceiptItem(
+            name = item.optString("name"),
+            quantity = item.optInt("quantity"),
+            unitPriceRub = item.optInt("unitPriceRub"),
+            totalRub = item.optInt("totalRub"),
+        )
+    },
+    totalRub = optInt("totalRub"),
+    bonusDiscountRub = optInt("bonusDiscountRub"),
+    paymentStatus = optString("paymentStatus", "PENDING"),
+    paymentMethod = nullableString("paymentMethod"),
+    paidAt = nullableString("paidAt"),
+)
 
 internal fun JSONObject.toCraftOrderChatMessage() = CraftOrderChatMessage(
     id = getString("id"),

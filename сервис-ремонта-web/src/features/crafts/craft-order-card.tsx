@@ -2,13 +2,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
+import { Select } from "@/components/select";
+
 import { CraftOrderChatPanel } from "@/features/crafts/craft-order-chat";
+import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
+
 import {
+  type CraftOrder,
+  type StaffMember,
   markCraftReceiptPaid,
   requestCraftBonusRedemption,
   updateCraftOrder,
-  type CraftOrder,
-  type StaffMember,
 } from "@/lib/api";
 
 const statusLabels: Record<CraftOrder["status"], string> = {
@@ -25,6 +29,7 @@ const paymentLabels = {
   BANK_TRANSFER: "Перевод",
   OTHER: "Другое",
 };
+type CraftPaymentMethod = NonNullable<NonNullable<CraftOrder["receipt"]>["paymentMethod"]>;
 
 export const CraftOrderCard = ({
   order,
@@ -43,13 +48,15 @@ export const CraftOrderCard = ({
   const [unitPrice, setUnitPrice] = useState(
     String(order.quotedPriceRub ?? order.unitPriceRubSnapshot),
   );
-  const [paymentMethod, setPaymentMethod] = useState<NonNullable<
-    NonNullable<CraftOrder["receipt"]>["paymentMethod"]
-  >("CASH");
+  const [paymentMethod, setPaymentMethod] = useState<CraftPaymentMethod>("CASH");
   const priceRub = Number(unitPrice);
   const totalRub = (Number.isInteger(priceRub) ? priceRub : 0) * order.quantity;
 
   const saveTerms = async (status?: CraftOrder["status"]) => {
+    if (!Number.isSafeInteger(priceRub) || priceRub < 0 || priceRub > 10_000_000) {
+      toast.error("Укажите целую цену от 0 до 10 000 000 ₽.");
+      return;
+    }
     try {
       await updateCraftOrder(token, order.id, {
         ...(status ? { status } : {}),
@@ -57,7 +64,9 @@ export const CraftOrderCard = ({
         quotedPriceRub: unitPrice === "" ? null : priceRub,
       });
       await onRefresh();
-      toast.success(status === "COMPLETED" ? "Заявка завершена, чек создан." : "Данные заявки сохранены.");
+      toast.success(
+        status === "COMPLETED" ? "Заявка завершена, чек создан." : "Данные заявки сохранены.",
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Не удалось сохранить заявку.");
     }
@@ -88,13 +97,22 @@ export const CraftOrderCard = ({
         <div>
           <h3 className="font-semibold">{order.itemTitleSnapshot}</h3>
           <p className="mt-1 text-xs text-slate-500">
-            {order.isCustomOrder ? "Индивидуальное изготовление" : "Готовое изделие"} · {order.quantity} шт. ·{" "}
-            {new Date(order.createdAt).toLocaleDateString("ru-RU")}
+            {order.isCustomOrder ? "Индивидуальное изготовление" : "Готовое изделие"} ·{" "}
+            {order.quantity} шт. · {new Date(order.createdAt).toLocaleDateString("ru-RU")}
           </p>
-          {order.note && <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{order.note}</p>}
+          {order.note && (
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{order.note}</p>
+          )}
           {isAdmin && order.customer && (
             <p className="mt-2 text-xs text-slate-500">
-              {order.customer.displayName} · {order.customer.email} · {order.customer.phoneNumber || "телефон не указан"}
+              {order.customer.displayName} · {order.customer.email} ·{" "}
+              {order.customer.phoneNumber || "телефон не указан"}
+            </p>
+          )}
+          {order.assignedTechnician && (
+            <p className="mt-2 text-xs text-slate-500">
+              Мастер: {order.assignedTechnician.displayName} ·{" "}
+              {order.assignedTechnician.salaryRatePercent ?? 75}%
             </p>
           )}
         </div>
@@ -102,19 +120,25 @@ export const CraftOrderCard = ({
       </div>
 
       {isAdmin && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
-        <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700 sm:grid-cols-2">
+        <div className="mt-4 grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-2 dark:border-slate-700">
           <label className="grid gap-1 text-xs font-medium">
             Назначенный мастер
-            <select
+            <Select
+              ariaLabel="Назначенный мастер"
               value={technicianId}
-              onChange={(event) => setTechnicianId(event.target.value)}
-              className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-            >
-              <option value="">Выберите мастера</option>
-              {staff.filter((member) => member.role === "TECHNICIAN" && member.active).map((member) => (
-                <option key={member.id} value={member.id}>{member.displayName} · {member.salaryRatePercent}%</option>
-              ))}
-            </select>
+              placeholder="Выберите мастера"
+              onValueChange={setTechnicianId}
+              options={[
+                { value: "", label: "Без мастера" },
+                ...staff
+                  .filter((member) => member.role === "TECHNICIAN" && member.active)
+                  .map((member) => ({
+                    value: member.id,
+                    label: `${member.displayName} · ${member.salaryRatePercent}%`,
+                  })),
+              ]}
+              className="h-10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            />
           </label>
           <label className="grid gap-1 text-xs font-medium">
             Цена за штуку, ₽
@@ -138,15 +162,13 @@ export const CraftOrderCard = ({
           </button>
           <label className="grid gap-1 text-xs font-medium sm:justify-self-end">
             Статус заявки
-            <select
+            <Select
+              ariaLabel="Статус заявки"
               value={order.status}
-              onChange={(event) => void saveTerms(event.target.value as CraftOrder["status"])}
-              className="h-10 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-            >
-              {Object.entries(statusLabels).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
+              onValueChange={(value) => void saveTerms(value as CraftOrder["status"])}
+              options={Object.entries(statusLabels).map(([value, label]) => ({ value, label }))}
+              className="h-10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            />
           </label>
         </div>
       )}
@@ -157,36 +179,64 @@ export const CraftOrderCard = ({
       {order.receipt && (
         <div className="mt-4 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
           <h4 className="font-semibold">Чек {order.receipt.receiptNumber}</h4>
-          <p className="mt-1 text-xs text-slate-500">Сервисный номер: {order.receipt.serviceNumber}</p>
-          <p className="mt-2">
-            Итого: {order.receipt.totalRub.toLocaleString("ru-RU")} ₽ · Бонусная скидка: {order.receipt.bonusDiscountRub.toLocaleString("ru-RU")} ₽
-          </p>
           <p className="mt-1 text-xs text-slate-500">
-            {order.receipt.paymentStatus === "PAID" ? "Оплачен" : "Ожидает оплаты"} · онлайн-оплата не подключена
+            Сервисный номер: {order.receipt.serviceNumber}
+          </p>
+          <ServiceNumberBarcode serviceNumber={order.receipt.serviceNumber} />
+          <p className="mt-2">
+            Итого: {order.receipt.totalRub.toLocaleString("ru-RU")} ₽ · Бонусная скидка:{" "}
+            {order.receipt.bonusDiscountRub.toLocaleString("ru-RU")} ₽
+          </p>
+          <p className="mt-1 font-semibold">
+            К оплате:{" "}
+            {(order.receipt.totalRub - order.receipt.bonusDiscountRub).toLocaleString("ru-RU")} ₽
+          </p>
+          <div className="mt-2 grid gap-1 text-xs text-slate-500">
+            {order.receipt.itemsSnapshot.map((item, index) => (
+              <p key={`${item.name}-${index}`}>
+                {item.name} × {item.quantity} · {item.totalRub.toLocaleString("ru-RU")} ₽
+              </p>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-slate-500">
+            {order.receipt.paymentStatus === "PAID" ? "Оплачен" : "Ожидает оплаты"} · онлайн-оплата
+            не подключена
           </p>
           {isAdmin && order.salaryEntry && (
             <p className="mt-1 text-xs text-slate-500">
-              Начисление мастеру: {order.salaryEntry.salaryRub.toLocaleString("ru-RU")} ₽ ({order.salaryEntry.ratePercent}% от работы)
+              Начисление мастеру: {order.salaryEntry.salaryRub.toLocaleString("ru-RU")} ₽ (
+              {order.salaryEntry.ratePercent}% от работы)
             </p>
           )}
           {isAdmin && order.receipt.paymentStatus === "PENDING" && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <select
+              <Select
+                ariaLabel="Способ оплаты"
                 value={paymentMethod ?? "CASH"}
-                onChange={(event) => setPaymentMethod(event.target.value as NonNullable<typeof paymentMethod>)}
-                aria-label="Способ оплаты"
-                className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
+                onValueChange={(value) =>
+                  setPaymentMethod(value as NonNullable<typeof paymentMethod>)
+                }
+                options={Object.entries(paymentLabels).map(([value, label]) => ({ value, label }))}
+                className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+              />
+              <button
+                type="button"
+                onClick={() => void confirmPayment()}
+                className="min-h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white"
               >
-                {Object.entries(paymentLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-              <button type="button" onClick={() => void confirmPayment()} className="min-h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white">
                 Подтвердить оплату
               </button>
             </div>
           )}
           {!isAdmin && order.receipt.paymentStatus === "PENDING" && (
-            <button type="button" onClick={() => void changeBonuses()} className="mt-3 min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700">
-              {order.redeemBonuses ? "Отменить списание бонусов" : "Списать доступные бонусы (до 30%)"}
+            <button
+              type="button"
+              onClick={() => void changeBonuses()}
+              className="mt-3 min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
+            >
+              {order.redeemBonuses
+                ? "Отменить списание бонусов"
+                : "Списать доступные бонусы (до 30%)"}
             </button>
           )}
           {!isAdmin && order.receipt.paymentStatus === "PAID" && (
@@ -197,7 +247,12 @@ export const CraftOrderCard = ({
         </div>
       )}
 
-      <CraftOrderChatPanel token={token} craftOrderId={order.id} isAdmin={isAdmin} status={order.status} />
+      <CraftOrderChatPanel
+        token={token}
+        craftOrderId={order.id}
+        isAdmin={isAdmin}
+        status={order.status}
+      />
     </SectionCard>
   );
 };

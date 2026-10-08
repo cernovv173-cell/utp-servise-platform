@@ -65,6 +65,18 @@ an administrator moves the request to `IN_PROGRESS`. Message and image endpoints
 user is either an administrator or the owner of that request, and protected image reads repeat this
 ownership check. A message push is sent to the other side when a registered device is available.
 
+## Craft-order receipts and technician pay
+
+Before completing a craft order, an administrator must assign an active technician and set its
+price. Completion creates a unique `SRV-…` service number, a `DOC-…` receipt with a snapshot of the
+ordered item and price, and a salary entry using the technician's current individual rate. Craft
+salary entries are included in the same day, week, and month totals as repair salary entries. A
+customer may opt to redeem available bonuses against up to 30% of the receipt before payment. The
+administrator records the payment method after receiving payment outside the app; there is no online
+payment integration. In that transaction the server deducts any applied discount and awards 5% of
+the remaining cash payment as loyalty points. Repeating a payment confirmation does not duplicate
+the bonus transactions.
+
 ## Intake, work orders, and customer pickup
 
 Administrators and the assigned technician maintain one intake act per repair order. It records the visible condition and a protected photo for the front, back, left, and right sides, plus the serial number, included accessories, and notes. The order cannot be marked ready for pickup until all four condition notes and photos are saved; the act becomes read-only once the order is ready, completed, or cancelled.

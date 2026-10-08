@@ -96,6 +96,25 @@ test("salary summaries are personal for technicians and administrator-only acros
         );
       },
     },
+    craftOrderSalaryEntry: {
+      findMany: async ({
+        where,
+      }: {
+        where: { technicianId: { in: string[] } };
+      }) =>
+        [
+          {
+            technicianId: users[1]!.id,
+            earnedAt: earnedAtThisPeriod,
+            salaryRub: 375,
+          },
+          {
+            technicianId: "44444444-4444-4444-8444-444444444444",
+            earnedAt: earnedAtThisPeriod,
+            salaryRub: 250,
+          },
+        ].filter((entry) => where.technicianId.in.includes(entry.technicianId)),
+    },
   };
 
   const app = express();
@@ -118,9 +137,9 @@ test("salary summaries are personal for technicians and administrator-only acros
     technicianBody.technicians.map((item: { id: string }) => item.id),
     [users[1]!.id],
   );
-  assert.equal(technicianBody.totals.day, 1_125);
-  assert.equal(technicianBody.totals.week, 1_125);
-  assert.equal(technicianBody.totals.month, 1_125);
+  assert.equal(technicianBody.totals.day, 1_500);
+  assert.equal(technicianBody.totals.week, 1_500);
+  assert.equal(technicianBody.totals.month, 1_500);
   assert.equal(technicianBody.ratePercent, 60);
   assert.equal(technicianBody.technicians[0].salaryRatePercent, 60);
 
@@ -128,7 +147,7 @@ test("salary summaries are personal for technicians and administrator-only acros
   assert.equal(adminResponse.status, 200);
   const adminBody = await adminResponse.json();
   assert.equal(adminBody.technicians.length, 2);
-  assert.equal(adminBody.totals.month, 1_125);
+  assert.equal(adminBody.totals.month, 1_750);
   assert.equal(adminBody.ratePercent, null);
   assert.deepEqual(
     adminBody.technicians.map(

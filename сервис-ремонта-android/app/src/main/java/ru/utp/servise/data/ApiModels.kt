@@ -190,6 +190,23 @@ data class CraftItem(
     val customOrderAvailable: Boolean,
 )
 
+data class CraftOrderReceipt(
+    val receiptNumber: String,
+    val serviceNumber: String,
+    val items: List<ReceiptItem>,
+    val totalRub: Int,
+    val bonusDiscountRub: Int,
+    val paymentStatus: String,
+    val paymentMethod: String?,
+    val paidAt: String?,
+)
+
+data class CraftOrderSalaryEntry(
+    val serviceTotalRub: Int,
+    val salaryRub: Int,
+    val ratePercent: Int,
+)
+
 data class CraftOrder(
     val id: String,
     val itemTitle: String,
@@ -202,6 +219,14 @@ data class CraftOrder(
     val createdAt: String,
     val customerName: String,
     val customerPhone: String?,
+    val serviceNumber: String? = null,
+    val assignedTechnicianId: String? = null,
+    val assignedTechnicianName: String? = null,
+    val assignedTechnicianRatePercent: Int? = null,
+    val redeemBonuses: Boolean = false,
+    val bonusDiscountRub: Int = 0,
+    val receipt: CraftOrderReceipt? = null,
+    val salaryEntry: CraftOrderSalaryEntry? = null,
 )
 
 data class CraftOrderChatMessage(

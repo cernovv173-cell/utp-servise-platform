@@ -81,6 +81,13 @@ save or revise an unpaid receipt. The server synchronizes those changes with the
 discount and service-pay calculation. Paid receipts remain read-only. Each saved receipt has its own
 print action, which prints that order's receipt rather than the whole list.
 
+On `/crafts`, administrators assign an active technician and set the quoted price before completing
+a craft request. Completion creates a service number, a receipt snapshot, and a salary entry at the
+technician's saved rate; craft salary is included in the regular salary summaries. Before payment,
+the customer may apply available bonuses up to 30% of the receipt. An administrator records the
+payment method after receiving payment outside the app, and the customer then receives 5% of the
+remaining cash amount as bonus points. This is not an online-payment flow.
+
 The `/login` screen can request a password-reset email. Its one-time link opens `/reset-password`,
 where the account owner can set a new password. The API enforces the 8-character minimum and
 invalidates active sessions after a successful reset.

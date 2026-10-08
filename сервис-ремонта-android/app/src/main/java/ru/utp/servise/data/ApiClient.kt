@@ -211,6 +211,31 @@ object ApiClient {
         "PATCH", "/craft-orders/$orderId", token, JSONObject().put("status", status),
     ).getJSONObject("order").toCraftOrder()
 
+    fun saveCraftOrderTerms(
+        token: String,
+        orderId: String,
+        quotedPriceRub: Int,
+        assignedTechnicianId: String?,
+        status: String? = null,
+    ): CraftOrder {
+        val body = JSONObject()
+            .put("quotedPriceRub", quotedPriceRub)
+            .put("assignedTechnicianId", assignedTechnicianId ?: JSONObject.NULL)
+        status?.let { body.put("status", it) }
+        return request("PATCH", "/craft-orders/$orderId", token, body)
+            .getJSONObject("order").toCraftOrder()
+    }
+
+    fun requestCraftBonusRedemption(token: String, orderId: String, redeem: Boolean): CraftOrder = request(
+        "PATCH", "/craft-orders/$orderId/bonus-redemption", token,
+        JSONObject().put("redeemBonuses", redeem),
+    ).getJSONObject("order").toCraftOrder()
+
+    fun markCraftReceiptPaid(token: String, orderId: String, paymentMethod: String): CraftOrderReceipt = request(
+        "PATCH", "/craft-orders/$orderId/receipt/payment", token,
+        JSONObject().put("paymentMethod", paymentMethod),
+    ).getJSONObject("receipt").toCraftOrderReceipt()
+
     fun craftOrderChat(token: String, orderId: String): CraftOrderChat = request(
         "GET", "/craft-orders/$orderId/chat", token,
     ).toCraftOrderChat()

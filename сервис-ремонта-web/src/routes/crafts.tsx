@@ -8,25 +8,17 @@ import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
-import { CraftOrderChatPanel } from "@/features/crafts/craft-order-chat";
+import { CraftOrderCard } from "@/features/crafts/craft-order-card";
 
 import {
   createCraftItem,
   createCraftOrder,
   getCraftItems,
   getCraftOrders,
+  getStaff,
   updateCraftItem,
-  updateCraftOrder,
   uploadAdminImage,
 } from "@/lib/api";
-
-const statusLabels = {
-  REQUESTED: "Новая",
-  ACCEPTED: "Принята",
-  IN_PROGRESS: "В работе",
-  COMPLETED: "Завершена",
-  CANCELLED: "Отменена",
-};
 
 const CraftsPage = () => {
   const { token, user } = useAuth();
@@ -44,6 +36,11 @@ const CraftsPage = () => {
     queryKey: ["craft-orders", token],
     queryFn: ({ signal }) => getCraftOrders(token!, signal),
     enabled: Boolean(token),
+  });
+  const staff = useQuery({
+    queryKey: ["staff", token],
+    queryFn: ({ signal }) => getStaff(token!, signal),
+    enabled: user?.role === "ADMIN" && Boolean(token),
   });
   const refresh = async () => {
     await client.invalidateQueries({ queryKey: ["craft-items", token] });
@@ -202,62 +199,14 @@ const CraftsPage = () => {
           </h2>
           <div className="grid gap-3">
             {(orders.data?.orders ?? []).map((order) => (
-              <SectionCard key={order.id}>
-                <div className="flex flex-wrap justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold">{order.itemTitleSnapshot}</h3>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {order.isCustomOrder ? "Индивидуальное изготовление" : "Готовое изделие"} ·{" "}
-                      {new Date(order.createdAt).toLocaleDateString("ru-RU")}
-                    </p>
-                    {order.note && (
-                      <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                        {order.note}
-                      </p>
-                    )}
-                    {isAdmin && order.customer && (
-                      <p className="mt-2 text-xs text-slate-500">
-                        {order.customer.displayName} · {order.customer.email} ·{" "}
-                        {order.customer.phoneNumber || "телефон не указан"}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold">
-                      {(order.quotedPriceRub ?? order.unitPriceRubSnapshot).toLocaleString("ru-RU")}{" "}
-                      ₽
-                    </span>
-                    {isAdmin ? (
-                      <select
-                        value={order.status}
-                        onChange={(event) => {
-                          const status = event.target.value as typeof order.status;
-                          void updateCraftOrder(token!, order.id, { status }).then(refresh);
-                        }}
-                        className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                      >
-                        {Object.entries(statusLabels).map(([key, label]) => (
-                          <option key={key} value={key}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                        {statusLabels[order.status]}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {token && (
-                  <CraftOrderChatPanel
-                    token={token}
-                    craftOrderId={order.id}
-                    isAdmin={isAdmin}
-                    status={order.status}
-                  />
-                )}
-              </SectionCard>
+              <CraftOrderCard
+                key={order.id}
+                order={order}
+                token={token!}
+                isAdmin={isAdmin}
+                staff={staff.data?.staff ?? []}
+                onRefresh={refresh}
+              />
             ))}
             {!orders.isLoading && (orders.data?.orders.length ?? 0) === 0 && (
               <p className="text-sm text-slate-500">Заявок пока нет.</p>
