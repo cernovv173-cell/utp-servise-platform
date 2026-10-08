@@ -114,7 +114,10 @@ is not an App Store installation or an iOS binary.
 
 Administrators can open the dedicated `/admin/orders` page from the navigation or admin dashboard.
 It keeps the full repair-request list together while status, technician, deadline and contact edits
-are scoped to each individual order card.
+are scoped to each individual order card. Until repair work starts, the administrator can also edit
+the device type, fault description and customer address; active service-catalog entries can be added
+to an open order with a quantity. The card lists existing service and item lines, while the API
+checks the active catalog entry, order status and inventory balance before saving changes.
 
 Customer and administrator order cards show a Code 128 barcode generated from the order's existing
 unique service number. The barcode is derived at display time, so it adds no database field and does

@@ -457,6 +457,17 @@ export const updateRepairOrder = (
     body: JSON.stringify(input),
   });
 
+export const addRepairOrderItem = (
+  token: string,
+  orderId: string,
+  catalogItemId: string,
+  quantity: number,
+) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/items`, token, {
+    method: "POST",
+    body: JSON.stringify({ catalogItemId, quantity }),
+  });
+
 export const getNews = (token: string, signal?: AbortSignal) =>
   apiRequest<{
     articles: NewsArticle[];
@@ -723,11 +734,7 @@ export const updateCraftOrder = (
     body: JSON.stringify(data),
   });
 
-export const requestCraftBonusRedemption = (
-  token: string,
-  id: string,
-  redeemBonuses: boolean,
-) =>
+export const requestCraftBonusRedemption = (token: string, id: string, redeemBonuses: boolean) =>
   apiRequest<{ order: CraftOrder }>(`/craft-orders/${id}/bonus-redemption`, token, {
     method: "PATCH",
     body: JSON.stringify({ redeemBonuses }),

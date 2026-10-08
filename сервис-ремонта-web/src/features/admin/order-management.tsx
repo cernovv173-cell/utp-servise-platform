@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
+import { Select } from "@/components/select";
 
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
+import { RepairOrderEditor } from "@/features/admin/repair-order-editor";
 import { useAuth } from "@/features/auth/auth-context";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
@@ -14,11 +16,11 @@ import {
   assignOrder,
   createRepairReceipt,
   getOrders,
+  getRepairCatalog,
   getStaff,
   searchOrders,
   setExpectedCompletion,
   updateOrderStatus,
-  updateRepairOrder,
 } from "@/lib/api";
 import type { OrderArchiveView } from "@/lib/api";
 
@@ -46,14 +48,19 @@ const localDateTime = (value: string | null) => {
 };
 
 export const OrderManagement = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const client = useQueryClient();
   const [search, setSearch] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
+  const isAdmin = user?.role === "ADMIN";
   const staff = useQuery({
     queryKey: ["staff", token],
     queryFn: ({ signal }) => getStaff(token!, signal),
+  });
+  const catalog = useQuery({
+    queryKey: ["repair-catalog", token],
+    queryFn: ({ signal }) => getRepairCatalog(token!, signal),
+    enabled: Boolean(token) && isAdmin,
   });
   const orders = useQuery({
     queryKey: ["orders", token, archiveView],
@@ -64,20 +71,23 @@ export const OrderManagement = () => {
     queryFn: () => searchOrders(token!, search.trim()),
     enabled: search.trim().length >= 2,
   });
-  const refresh = () => client.invalidateQueries({ queryKey: ["orders", token] });
+  const refresh = async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ["orders", token] }),
+      client.invalidateQueries({ queryKey: ["admin-order-search", token] }),
+    ]);
+  };
   const mutate = useMutation({
     mutationFn: async (
       action:
         | { kind: "deadline"; id: string; value: string | null }
         | { kind: "status"; id: string; value: string }
         | { kind: "assign"; id: string; value: string }
-        | { kind: "edit"; id: string; value: Parameters<typeof updateRepairOrder>[2] }
         | { kind: "receipt"; id: string },
     ) => {
       if (action.kind === "deadline") return setExpectedCompletion(token!, action.id, action.value);
       if (action.kind === "status") return updateOrderStatus(token!, action.id, action.value);
       if (action.kind === "assign") return assignOrder(token!, action.id, action.value);
-      if (action.kind === "edit") return updateRepairOrder(token!, action.id, action.value);
       return createRepairReceipt(token!, action.id);
     },
     onSuccess: refresh,
@@ -88,6 +98,9 @@ export const OrderManagement = () => {
           (order) => Boolean(order.archivedAt) === (archiveView === "archived"),
         )
       : (orders.data?.orders ?? []);
+  const activeTechnicians = (staff.data?.staff ?? []).filter(
+    (member) => member.role === "TECHNICIAN" && member.active,
+  );
   return (
     <SectionCard>
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -154,40 +167,49 @@ export const OrderManagement = () => {
               </label>
               <label className="grid gap-1 text-xs font-medium">
                 Статус
-                <select
+                <Select
+                  ariaLabel={`Статус заявки ${order.serviceNumber}`}
                   value={order.status}
-                  onChange={(event) =>
-                    mutate.mutate({ kind: "status", id: order.id, value: event.target.value })
-                  }
-                  className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                >
-                  {(availableStatuses[order.status] ?? [order.status]).map((value) => (
-                    <option key={value} value={value}>
-                      {statusLabels[value] ?? value}
-                    </option>
-                  ))}
-                </select>
+                  onValueChange={(value) => mutate.mutate({ kind: "status", id: order.id, value })}
+                  options={(availableStatuses[order.status] ?? [order.status]).map((value) => ({
+                    value,
+                    label: statusLabels[value] ?? value,
+                  }))}
+                  className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                />
               </label>
               <label className="grid gap-1 text-xs font-medium">
                 Назначить мастера
-                <select
-                  value={order.assignedTechnicianId ?? ""}
-                  onChange={(event) => {
-                    if (event.target.value)
-                      mutate.mutate({ kind: "assign", id: order.id, value: event.target.value });
-                  }}
-                  disabled={["COMPLETED", "CANCELLED", "IN_PROGRESS"].includes(order.status)}
-                  className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                >
-                  <option value="">Не назначен</option>
-                  {(staff.data?.staff ?? [])
-                    .filter((member) => member.role === "TECHNICIAN" && member.active)
-                    .map((member) => (
-                      <option key={member.id} value={member.id}>
-                        {member.displayName}
-                      </option>
-                    ))}
-                </select>
+                <Select
+                  ariaLabel={`Мастер для заявки ${order.serviceNumber}`}
+                  value={order.assignedTechnicianId ?? undefined}
+                  placeholder="Не назначен"
+                  onValueChange={(technicianId) =>
+                    mutate.mutate({ kind: "assign", id: order.id, value: technicianId })
+                  }
+                  disabled={
+                    mutate.isPending ||
+                    ["COMPLETED", "CANCELLED", "IN_PROGRESS"].includes(order.status)
+                  }
+                  options={[
+                    ...activeTechnicians.map((member) => ({
+                      value: member.id,
+                      label: member.displayName,
+                    })),
+                    ...(order.assignedTechnicianId &&
+                    order.assignedTechnician &&
+                    !activeTechnicians.some((member) => member.id === order.assignedTechnicianId)
+                      ? [
+                          {
+                            value: order.assignedTechnicianId,
+                            label: `${order.assignedTechnician.displayName} · неактивен`,
+                            disabled: true,
+                          },
+                        ]
+                      : []),
+                  ]}
+                  className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                />
               </label>
               <div className="grid content-end">
                 <button
@@ -212,146 +234,15 @@ export const OrderManagement = () => {
                 />
               </div>
             )}
-            <button
-              type="button"
-              disabled={order.status !== "REQUESTED" && order.status !== "ASSIGNED"}
-              onClick={() => setEditingId(editingId === order.id ? null : order.id)}
-              className="mt-3 min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium disabled:opacity-50 dark:border-slate-700"
-            >
-              {editingId === order.id
-                ? "Скрыть адрес и контакты"
-                : "Редактировать адрес и контакты"}
-            </button>
-            {editingId === order.id && (
-              <form
-                onSubmit={(event: FormEvent<HTMLFormElement>) => {
-                  event.preventDefault();
-                  const data = new FormData(event.currentTarget);
-                  mutate.mutate({
-                    kind: "edit",
-                    id: order.id,
-                    value: {
-                      contactPhone: String(data.get("contactPhone")),
-                      city: String(data.get("city")),
-                      street: String(data.get("street")),
-                      house: String(data.get("house")),
-                      apartment: String(data.get("apartment") || ""),
-                      entrance: String(data.get("entrance") || ""),
-                      hasBarrier: data.get("hasBarrier") === "on",
-                      floor: String(data.get("floor") || ""),
-                      additionalPhone: String(data.get("additionalPhone") || ""),
-                      additionalInfo: String(data.get("additionalInfo") || ""),
-                    },
-                  });
-                  setEditingId(null);
-                }}
-                className="mt-3 grid gap-3 rounded-xl bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-3 dark:bg-slate-900"
-              >
-                <label className="grid gap-1 text-xs font-medium">
-                  Телефон клиента
-                  <input
-                    name="contactPhone"
-                    required
-                    minLength={7}
-                    maxLength={32}
-                    defaultValue={order.contactPhone ?? order.customer?.phoneNumber ?? ""}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-medium">
-                  Город
-                  <input
-                    name="city"
-                    required
-                    minLength={2}
-                    maxLength={120}
-                    defaultValue={order.city ?? ""}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-medium">
-                  Улица
-                  <input
-                    name="street"
-                    required
-                    minLength={2}
-                    maxLength={180}
-                    defaultValue={order.street ?? ""}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-medium">
-                  Дом
-                  <input
-                    name="house"
-                    required
-                    maxLength={30}
-                    defaultValue={order.house ?? ""}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-medium">
-                  Квартира
-                  <input
-                    name="apartment"
-                    maxLength={30}
-                    defaultValue={order.apartment ?? ""}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-medium">
-                  Подъезд
-                  <input
-                    name="entrance"
-                    maxLength={30}
-                    defaultValue={order.entrance ?? ""}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-medium">
-                  Этаж
-                  <input
-                    name="floor"
-                    maxLength={20}
-                    defaultValue={order.floor ?? ""}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <label className="grid gap-1 text-xs font-medium">
-                  Дополнительный телефон
-                  <input
-                    name="additionalPhone"
-                    maxLength={32}
-                    defaultValue={order.additionalPhone ?? ""}
-                    className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <label className="flex items-center gap-2 text-xs font-medium">
-                  <input
-                    type="checkbox"
-                    name="hasBarrier"
-                    defaultChecked={order.hasBarrier}
-                    className="size-4 accent-blue-600"
-                  />
-                  Есть шлагбаум
-                </label>
-                <label className="grid gap-1 text-xs font-medium sm:col-span-2 lg:col-span-3">
-                  Дополнительная информация
-                  <textarea
-                    name="additionalInfo"
-                    maxLength={500}
-                    defaultValue={order.additionalInfo ?? ""}
-                    rows={2}
-                    className="rounded-lg border border-slate-200 bg-white p-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                  />
-                </label>
-                <button
-                  disabled={mutate.isPending}
-                  className="min-h-9 justify-self-start rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  Сохранить изменения
-                </button>
-              </form>
+            {token && (
+              <RepairOrderEditor
+                order={order}
+                token={token}
+                catalogItems={catalog.data?.catalogItems ?? []}
+                isCatalogLoading={catalog.isLoading}
+                isCatalogError={catalog.isError}
+                onRefresh={refresh}
+              />
             )}
             {order.expectedCompletionAt && (
               <p className="mt-3 text-xs text-slate-500">
