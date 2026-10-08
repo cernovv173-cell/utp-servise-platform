@@ -79,6 +79,13 @@ administrators. An administrator can explicitly join the conversation from the r
 page and reply even when no technician escalation was requested; only an authenticated administrator
 can perform the join action. Message access remains scoped to the repair order.
 
+Each administrator has an independent read receipt in `order_chat_admin_reads`. The administrator-only
+`GET /admin/chat-notifications` endpoint returns chats whose latest message is newer than that
+administrator's read cursor, and `POST /orders/:orderId/chat/read` advances the cursor only through
+a message belonging to that chat. New messages from a customer or assigned technician also send a
+push notification to active administrators with registered devices. The additive migration preserves
+existing conversations and makes unread state consistent across the administrator's sessions.
+
 ## Craft-order receipts and technician pay
 
 Before completing a craft order, an administrator must assign an active technician and set its

@@ -6,15 +6,16 @@ import {
   getRepairOrderNotificationRecipientIds,
 } from "../src/features/notifications/push-notifications.js";
 
-test("chat push targets the other participants and an already-joined admin", () => {
+test("chat push targets chat participants and all administrators for a new customer message", () => {
   assert.deepEqual(
     getChatMessageRecipientIds({
       customerId: "customer",
       assignedTechnicianId: "technician",
       joinedAdministratorId: "administrator",
+      administratorIds: ["administrator", "another-admin"],
       senderId: "technician",
     }),
-    ["customer", "administrator"],
+    ["customer", "administrator", "another-admin"],
   );
 });
 

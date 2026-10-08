@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/features/auth/auth-context";
@@ -7,6 +7,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import {
   getRepairOrderChat,
   joinAdminToRepairOrderChat,
+  markRepairOrderChatRead,
   sendRepairOrderChatMessage,
 } from "@/lib/api";
 
@@ -23,6 +24,7 @@ export const RepairOrderChat = ({
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [content, setContent] = useState("");
+  const lastReadMessageId = useRef<string | null>(null);
   const isAdmin = user?.role === "ADMIN";
   const queryKey = ["repair-order-chat", token, orderId];
   const chat = useQuery({
@@ -46,8 +48,32 @@ export const RepairOrderChat = ({
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Не удалось отправить сообщение."),
   });
+  const read = useMutation({
+    mutationFn: (messageId: string) => markRepairOrderChatRead(token, orderId, messageId),
+    onSuccess: async (_result, messageId) => {
+      lastReadMessageId.current = messageId;
+      await queryClient.invalidateQueries({
+        queryKey: ["admin-repair-chat-notifications", token],
+      });
+    },
+  });
   const isJoined = Boolean(chat.data?.chat.adminJoinedAt);
   const canSend = user?.role === "CUSTOMER" || (isAdmin && isJoined);
+  const latestMessageId = chat.data?.chat.messages.at(-1)?.id;
+  const markRead = read.mutate;
+  const isMarkingRead = read.isPending;
+
+  useEffect(() => {
+    if (
+      !isAdmin ||
+      !latestMessageId ||
+      latestMessageId === lastReadMessageId.current ||
+      isMarkingRead
+    )
+      return;
+    lastReadMessageId.current = latestMessageId;
+    markRead(latestMessageId);
+  }, [isAdmin, isMarkingRead, latestMessageId, markRead]);
 
   return (
     <section className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700">

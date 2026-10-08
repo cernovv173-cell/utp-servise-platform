@@ -23,6 +23,7 @@ const orderIdParams = z.object({ orderId: z.string().uuid() });
 const messageBody = z
   .object({ content: z.string().trim().min(1).max(2000) })
   .strict();
+const readMessageBody = z.object({ messageId: z.string().uuid() }).strict();
 
 const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly body: T }).body;
@@ -103,6 +104,66 @@ export const createChatRouter = (database: DatabaseClient): Router => {
   );
 
   router.get(
+    "/admin/chat-notifications",
+    requireAuth,
+    requireRoles("ADMIN"),
+    async (_request, response) => {
+      const admin = getAuthenticatedUser(response);
+      const chats = await database.orderChat.findMany({
+        where: { messages: { some: { senderId: { not: admin.id } } } },
+        select: {
+          orderId: true,
+          adminReadReceipts: {
+            where: { adminId: admin.id },
+            select: { lastReadAt: true },
+            take: 1,
+          },
+          order: {
+            select: {
+              serviceNumber: true,
+              customer: { select: { displayName: true } },
+            },
+          },
+          messages: {
+            orderBy: { createdAt: "desc" },
+            take: 1,
+            select: {
+              id: true,
+              senderId: true,
+              content: true,
+              createdAt: true,
+              sender: { select: { displayName: true, role: true } },
+            },
+          },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      const unreadChats = chats.flatMap((chat) => {
+        const lastMessage = chat.messages[0];
+        const lastReadAt = chat.adminReadReceipts[0]?.lastReadAt;
+        if (
+          !lastMessage ||
+          lastMessage.senderId === admin.id ||
+          (lastReadAt && lastMessage.createdAt <= lastReadAt)
+        )
+          return [];
+        return [
+          {
+            orderId: chat.orderId,
+            serviceNumber: chat.order.serviceNumber,
+            customerName: chat.order.customer.displayName,
+            lastMessageId: lastMessage.id,
+            lastMessageAt: lastMessage.createdAt,
+            senderName: lastMessage.sender?.displayName ?? "Участник заявки",
+            preview: lastMessage.content.slice(0, 160),
+          },
+        ];
+      });
+      response.json({ totalUnread: unreadChats.length, chats: unreadChats });
+    },
+  );
+
+  router.get(
     "/orders/:orderId/chat",
     requireAuth,
     requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
@@ -117,6 +178,55 @@ export const createChatRouter = (database: DatabaseClient): Router => {
       if (!order || !canAccessOrderChat(user.role, user.id, order))
         throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
       response.json(chatPayload(await loadChat(database, orderId), orderId));
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/chat/read",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: orderIdParams, body: readMessageBody }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const { messageId } = bodyOf<z.infer<typeof readMessageBody>>(response);
+      const admin = getAuthenticatedUser(response);
+      await database.$transaction(async (transaction) => {
+        const chat = await transaction.orderChat.findUnique({
+          where: { orderId },
+          select: { id: true },
+        });
+        if (!chat)
+          throw new HttpError(404, "CHAT_NOT_FOUND", "Чат заявки не найден.");
+        const message = await transaction.orderChatMessage.findFirst({
+          where: { id: messageId, chatId: chat.id },
+          select: { createdAt: true },
+        });
+        if (!message)
+          throw new HttpError(
+            404,
+            "CHAT_MESSAGE_NOT_FOUND",
+            "Сообщение не найдено.",
+          );
+        const readReceipt = await transaction.orderChatAdminRead.findUnique({
+          where: { chatId_adminId: { chatId: chat.id, adminId: admin.id } },
+          select: { lastReadAt: true },
+        });
+        if (!readReceipt) {
+          await transaction.orderChatAdminRead.create({
+            data: {
+              chatId: chat.id,
+              adminId: admin.id,
+              lastReadAt: message.createdAt,
+            },
+          });
+        } else if (message.createdAt > readReceipt.lastReadAt) {
+          await transaction.orderChatAdminRead.update({
+            where: { chatId_adminId: { chatId: chat.id, adminId: admin.id } },
+            data: { lastReadAt: message.createdAt },
+          });
+        }
+      });
+      response.status(204).end();
     },
   );
 
@@ -164,6 +274,13 @@ export const createChatRouter = (database: DatabaseClient): Router => {
             where: { orderId },
             data: { updatedAt: new Date() },
           });
+          const administrators =
+            user.role === "ADMIN"
+              ? []
+              : await transaction.user.findMany({
+                  where: { role: "ADMIN", active: true },
+                  select: { id: true },
+                });
           return {
             chat: await transaction.orderChat.findUniqueOrThrow({
               where: { orderId },
@@ -173,6 +290,7 @@ export const createChatRouter = (database: DatabaseClient): Router => {
               customerId: order.customerId,
               assignedTechnicianId: order.assignedTechnicianId,
               joinedAdministratorId: current?.adminJoinedById ?? null,
+              administratorIds: administrators.map(({ id }) => id),
               senderId: user.id,
             }),
           };

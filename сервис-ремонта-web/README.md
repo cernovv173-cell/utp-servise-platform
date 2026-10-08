@@ -155,6 +155,9 @@ its warranty card. The QR is not a password; only the server-side hashed token i
 The `/admin/orders/:orderId` detail route opens one repair request directly and provides its order
 controls, service editor, and customer chat. Customers can open the chat on their own cards in
 `/orders`; administrators connect to the same conversation from the detail page before replying.
+The administrator header polls for unread repair chats every 15 seconds, shows the unread-chat count,
+and links to the latest conversation. New messages produce an in-app alert or a browser notification
+when system notifications are enabled; notification selection opens the corresponding repair card.
 Administrators can correct request details in any status; customers can edit only their own requests
 before technician assignment. Service lines and paid financial documents keep their separate
 lifecycle safeguards. The staff section of `/admin` can create technician accounts with one-time

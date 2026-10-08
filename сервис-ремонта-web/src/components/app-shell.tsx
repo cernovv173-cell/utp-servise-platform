@@ -24,6 +24,7 @@ import { AppInstallButton } from "@/components/app-install-button";
 
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { IncomingOrderNotifications } from "@/features/admin/incoming-order-notifications";
+import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
 
 const links = [
@@ -152,6 +153,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
               {user.displayName}
             </span>
             <IncomingOrderNotifications />
+            {user.role === "ADMIN" && <RepairChatNotifications />}
             <button
               aria-label="Переключить тему"
               onClick={() => setDark((value) => !value)}

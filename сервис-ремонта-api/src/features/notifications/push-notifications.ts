@@ -24,6 +24,7 @@ export type ChatMessageRecipients = {
   readonly customerId: string;
   readonly assignedTechnicianId: string | null;
   readonly joinedAdministratorId: string | null;
+  readonly administratorIds?: readonly string[];
   readonly senderId: string;
 };
 
@@ -50,10 +51,16 @@ export const getChatMessageRecipientIds = ({
   customerId,
   assignedTechnicianId,
   joinedAdministratorId,
+  administratorIds = [],
   senderId,
 }: ChatMessageRecipients): string[] =>
   [
-    ...new Set([customerId, assignedTechnicianId, joinedAdministratorId]),
+    ...new Set([
+      customerId,
+      assignedTechnicianId,
+      joinedAdministratorId,
+      ...administratorIds,
+    ]),
   ].filter(
     (userId): userId is string => userId !== null && userId !== senderId,
   );

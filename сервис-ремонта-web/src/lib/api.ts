@@ -92,6 +92,19 @@ export type RepairOrderChat = {
   messages: RepairOrderChatMessage[];
 };
 
+export type AdminRepairChatNotifications = {
+  totalUnread: number;
+  chats: {
+    orderId: string;
+    serviceNumber: string;
+    customerName: string;
+    lastMessageId: string;
+    lastMessageAt: string;
+    senderName: string;
+    preview: string;
+  }[];
+};
+
 export type RepairOrderIntake = {
   id: string;
   orderId: string;
@@ -784,6 +797,15 @@ export const getCraftOrderChat = (token: string, id: string, signal?: AbortSigna
 
 export const getRepairOrderChat = (token: string, id: string, signal?: AbortSignal) =>
   apiRequest<{ chat: RepairOrderChat }>(`/orders/${id}/chat`, token, { signal });
+
+export const getAdminRepairChatNotifications = (token: string, signal?: AbortSignal) =>
+  apiRequest<AdminRepairChatNotifications>("/admin/chat-notifications", token, { signal });
+
+export const markRepairOrderChatRead = (token: string, id: string, messageId: string) =>
+  apiRequest<void>(`/orders/${id}/chat/read`, token, {
+    method: "POST",
+    body: JSON.stringify({ messageId }),
+  });
 
 export const joinAdminToRepairOrderChat = (token: string, id: string) =>
   apiRequest<{ chat: RepairOrderChat }>(`/orders/${id}/chat/join-admin`, token, {

@@ -97,6 +97,7 @@ model User {
   craftOrderChatMessages  CraftOrderChatMessage[] @relation("CraftOrderChatMessageSender")
   requestedChats          OrderChat[]             @relation("ChatEscalationRequester")
   joinedChats             OrderChat[]             @relation("ChatAdministratorJoiner")
+  repairChatReadReceipts  OrderChatAdminRead[]    @relation("RepairChatReadAdministrator")
   pushDeviceTokens        PushDeviceToken[]
   orderPhotos             RepairOrderPhoto[]
   createdIntakes          RepairOrderIntake[]     @relation("IntakeCreator")
@@ -416,9 +417,22 @@ model OrderChat {
   requestedBy        User?              @relation("ChatEscalationRequester", fields: [adminRequestedById], references: [id], onDelete: SetNull)
   joinedBy           User?              @relation("ChatAdministratorJoiner", fields: [adminJoinedById], references: [id], onDelete: SetNull)
   messages           OrderChatMessage[]
+  adminReadReceipts  OrderChatAdminRead[]
 
   @@index([adminRequestedAt, adminJoinedAt, updatedAt])
   @@map("order_chats")
+}
+
+model OrderChatAdminRead {
+  chatId     String   @map("chat_id") @db.Uuid
+  adminId    String   @map("admin_id") @db.Uuid
+  lastReadAt DateTime @map("last_read_at") @db.Timestamptz(3)
+  chat       OrderChat @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  admin      User      @relation("RepairChatReadAdministrator", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@id([chatId, adminId])
+  @@index([adminId, lastReadAt])
+  @@map("order_chat_admin_reads")
 }
 
 model OrderChatMessage {
