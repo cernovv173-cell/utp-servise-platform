@@ -5,6 +5,7 @@ import {
   canAddRepairOrderItem,
   calculateEarnedPoints,
   calculateMaxBonusDiscount,
+  calculateServiceBonusEligibleRub,
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "../src/features/orders/order-policy.js";
@@ -14,6 +15,28 @@ test("loyalty limits redemption to the smaller of balance and 30% of the receipt
   assert.equal(calculateMaxBonusDiscount(1_000, 125), 125);
   assert.equal(calculateMaxBonusDiscount(999, 1_000), 299);
   assert.equal(calculateMaxBonusDiscount(1_000, -20), 0);
+});
+
+test("only service lines qualify for bonus redemption", () => {
+  const serviceTotalRub = calculateServiceBonusEligibleRub([
+    { type: "SERVICE", quantity: 2, unitPriceRub: 1_000 },
+    { type: "SPARE_PART", quantity: 1, unitPriceRub: 5_000 },
+    { type: "PRODUCT", quantity: 1, unitPriceRub: 2_000 },
+  ]);
+
+  assert.equal(serviceTotalRub, 2_000);
+  assert.equal(calculateMaxBonusDiscount(serviceTotalRub, 10_000), 600);
+});
+
+test("bonus redemption is calculated from service lines only, excluding parts and products", () => {
+  const eligibleServices = calculateServiceBonusEligibleRub([
+    { type: "SERVICE", quantity: 2, unitPriceRub: 1_000 },
+    { type: "SPARE_PART", quantity: 1, unitPriceRub: 5_000 },
+    { type: "PRODUCT", quantity: 1, unitPriceRub: 2_000 },
+  ]);
+
+  assert.equal(eligibleServices, 2_000);
+  assert.equal(calculateMaxBonusDiscount(eligibleServices, 10_000), 600);
 });
 
 test("loyalty earns 10% of cash actually paid after redemption", () => {

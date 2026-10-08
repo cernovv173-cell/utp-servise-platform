@@ -252,7 +252,7 @@ export const OrderManagement = () => {
             )}
             {order.bonusDiscountRub > 0 && (
               <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
-                Списано бонусами: {order.bonusDiscountRub.toLocaleString("ru-RU")} ₽
+                Оплата бонусами: {order.bonusDiscountRub.toLocaleString("ru-RU")} ₽
               </p>
             )}
           </article>

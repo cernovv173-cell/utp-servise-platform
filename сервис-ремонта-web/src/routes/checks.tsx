@@ -15,6 +15,7 @@ import {
   createRepairReceipt,
   getOrders,
   markReceiptPaid,
+  requestBonusRedemption,
 } from "@/lib/api";
 
 const paymentLabels: Record<NonNullable<RepairReceipt["paymentMethod"]>, string> = {
@@ -63,6 +64,13 @@ const ChecksPage = () => {
     }) => markReceiptPaid(token!, orderId, method),
     onSuccess: () => client.invalidateQueries({ queryKey: ["orders", token] }),
   });
+  const bonuses = useMutation({
+    mutationFn: ({ orderId, redeem }: { orderId: string; redeem: boolean }) =>
+      requestBonusRedemption(token!, orderId, redeem),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["orders", token] }),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Не удалось изменить списание бонусов."),
+  });
   return (
     <AppShell active="/checks">
       <PageTitle
@@ -76,6 +84,10 @@ const ChecksPage = () => {
             (sum, item) => sum + item.quantity * item.unitPriceRub,
             0,
           );
+          const serviceTotal = order.items
+            .filter((item) => item.type === "SERVICE")
+            .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0);
+          const maximumServiceDiscount = Math.floor(serviceTotal * 0.3);
           return (
             <SectionCard
               key={order.id}
@@ -153,7 +165,7 @@ const ChecksPage = () => {
                   </div>
                   {order.receipt.bonusDiscountRub > 0 && (
                     <div className="mt-2 flex justify-between text-sm text-emerald-700 dark:text-emerald-300">
-                      <span>Списано бонусами</span>
+                      <span>Оплата бонусами</span>
                       <span>−{order.receipt.bonusDiscountRub.toLocaleString("ru-RU")} ₽</span>
                     </div>
                   )}
@@ -193,6 +205,18 @@ const ChecksPage = () => {
                 <div className="mt-4 flex flex-wrap items-center gap-2 print:hidden">
                   {order.receipt?.paymentStatus === "PENDING" && (
                     <>
+                      <button
+                        type="button"
+                        disabled={bonuses.isPending || (!order.redeemBonuses && maximumServiceDiscount === 0)}
+                        onClick={() =>
+                          bonuses.mutate({ orderId: order.id, redeem: !order.redeemBonuses })
+                        }
+                        className="min-h-9 rounded-lg border border-emerald-300 px-3 text-xs font-semibold text-emerald-800 disabled:opacity-50 dark:border-emerald-800 dark:text-emerald-200"
+                      >
+                        {order.redeemBonuses
+                          ? "Отменить оплату бонусами"
+                          : `Списать бонусы за услуги · до ${maximumServiceDiscount.toLocaleString("ru-RU")} ₽`}
+                      </button>
                       <select
                         aria-label="Способ оплаты"
                         value={paymentMethods[order.id] ?? "CASH"}

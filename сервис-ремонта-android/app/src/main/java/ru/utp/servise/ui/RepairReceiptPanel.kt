@@ -30,7 +30,6 @@ internal fun RepairReceiptPanel(
     order: RepairOrder,
     role: String,
     token: String,
-    loyaltyBalance: Int,
     runAction: RunAction,
 ) {
     var showPaymentMethods by remember(order.id) { mutableStateOf(false) }
@@ -48,7 +47,7 @@ internal fun RepairReceiptPanel(
         }
         Text("Создан: ${receipt.issuedAt.take(10)}", fontSize = 10.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
         if (receipt.bonusDiscountRub > 0) {
-            Text("Списано бонусами: ${receipt.bonusDiscountRub} ₽", fontSize = 11.sp, color = UtpBlue, modifier = Modifier.padding(top = 5.dp))
+            Text("Оплата бонусами: −${receipt.bonusDiscountRub} ₽", fontSize = 11.sp, color = UtpBlue, modifier = Modifier.padding(top = 5.dp))
         }
         Text("К оплате: ${receipt.totalRub - receipt.bonusDiscountRub} ₽", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = UtpBlue, modifier = Modifier.padding(top = 5.dp))
         Text(
@@ -59,15 +58,28 @@ internal fun RepairReceiptPanel(
         )
     }
 
-    if (role == "CUSTOMER" && order.status == "COMPLETED" && order.receipt?.paymentStatus == "PENDING") {
-        val receipt = order.receipt ?: return
-        val maximumDiscount = minOf(loyaltyBalance, (receipt.totalRub * 3) / 10)
-        Text("Баланс бонусов: $loyaltyBalance ₽ · максимум к списанию: $maximumDiscount ₽", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 6.dp))
+    if (role == "ADMIN" && order.status == "COMPLETED" && order.receipt?.paymentStatus == "PENDING") {
+        val serviceTotalRub = order.items
+            .filter { it.type == "SERVICE" }
+            .sumOf { it.quantity * it.unitPriceRub }
+        val maximumServiceDiscount = serviceTotalRub * 3 / 10
+        Text(
+            "Бонусы списываются только за услуги · лимит до $maximumServiceDiscount ₽",
+            fontSize = 11.sp,
+            color = UtpMuted,
+            modifier = Modifier.padding(top = 6.dp),
+        )
         OutlinedButton(
             onClick = { runAction({ ApiClient.requestBonusRedemption(token, order.id, !order.redeemBonuses) }, {}) },
+            enabled = maximumServiceDiscount > 0 || order.redeemBonuses,
             modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
             shape = RoundedCornerShape(12.dp),
-        ) { Text(if (order.redeemBonuses) "Не использовать бонусы" else "Использовать бонусы при оплате") }
+        ) {
+            Text(
+                if (order.redeemBonuses) "Отменить оплату бонусами"
+                else "Списать бонусы за услуги",
+            )
+        }
     }
 
     if (

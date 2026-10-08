@@ -54,7 +54,6 @@ fun RepairOrdersScreen(
     refresh: () -> Unit,
     onChat: (String) -> Unit = {},
     onReview: (String) -> Unit,
-    loyaltyBalance: Int = 0,
     onCreateOrder: (() -> Unit)? = null,
 ) {
     var searchText by remember { mutableStateOf("") }
@@ -160,7 +159,7 @@ fun RepairOrdersScreen(
             }
         }
         displayedOrders.forEach { order ->
-            RepairOrderCard(order, role, token, technicians, catalogItems, runAction, onChat, onReview, loyaltyBalance)
+            RepairOrderCard(order, role, token, technicians, catalogItems, runAction, onChat, onReview)
         }
     }
 }

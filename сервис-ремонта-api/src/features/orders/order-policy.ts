@@ -51,5 +51,15 @@ export const calculateMaxBonusDiscount = (
     Math.floor((Math.max(0, totalRub) * 3) / 10),
   );
 
+export const calculateServiceBonusEligibleRub = (
+  items: readonly { type: string; quantity: number; unitPriceRub: number }[],
+): number =>
+  items
+    .filter((item) => item.type === "SERVICE")
+    .reduce(
+      (total, item) => total + Math.max(0, item.quantity * item.unitPriceRub),
+      0,
+    );
+
 export const calculateEarnedPoints = (cashPaidRub: number): number =>
   Math.floor(Math.max(0, cashPaidRub) / 10);

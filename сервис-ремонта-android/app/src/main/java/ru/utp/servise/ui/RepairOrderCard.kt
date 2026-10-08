@@ -57,7 +57,6 @@ internal fun RepairOrderCard(
     runAction: RunAction,
     onChat: (String) -> Unit,
     onReview: (String) -> Unit,
-    loyaltyBalance: Int,
 ) {
     val context = LocalContext.current
     var showAssignment by remember { mutableStateOf(false) }
@@ -210,7 +209,7 @@ internal fun RepairOrderCard(
                 }
             }
 
-            RepairReceiptPanel(order, role, token, loyaltyBalance, runAction)
+            RepairReceiptPanel(order, role, token, runAction)
 
             OutlinedButton(
                 onClick = { showPaperwork = true },

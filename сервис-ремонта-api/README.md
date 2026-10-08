@@ -70,12 +70,13 @@ ownership check. A message push is sent to the other side when a registered devi
 Before completing a craft order, an administrator must assign an active technician and set its
 price. Completion creates a unique `SRV-…` service number, a `DOC-…` receipt with a snapshot of the
 ordered item and price, and a salary entry using the technician's current individual rate. Craft
-salary entries are included in the same day, week, and month totals as repair salary entries. A
-customer may opt to redeem available bonuses against up to 30% of the receipt before payment. The
-administrator records the payment method after receiving payment outside the app; there is no online
-payment integration. In that transaction the server deducts any applied discount and awards 5% of
-the remaining cash payment as loyalty points. Repeating a payment confirmation does not duplicate
-the bonus transactions.
+salary entries are included in the same day, week, and month totals as repair salary entries.
+Craft-product orders do not allow bonus redemption. An administrator records their payment method
+after receiving payment outside the app; there is no online payment integration. The server awards
+5% of the paid craft-order amount as loyalty points, and repeated confirmations do not duplicate the
+bonus transaction. For repair receipts, only an administrator can apply bonuses, capped at 30% of
+`SERVICE` line totals; spare parts and products are excluded. The server deducts the redeemed amount
+when the administrator confirms the repair payment and awards 10% of the remaining cash amount.
 
 ## Intake, work orders, and customer pickup
 

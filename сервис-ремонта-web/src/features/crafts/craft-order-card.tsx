@@ -11,7 +11,6 @@ import {
   type CraftOrder,
   type StaffMember,
   markCraftReceiptPaid,
-  requestCraftBonusRedemption,
   updateCraftOrder,
 } from "@/lib/api";
 
@@ -79,15 +78,6 @@ export const CraftOrderCard = ({
       toast.success("Оплата отмечена. Бонусы начислены по фактически оплаченным деньгам.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Не удалось подтвердить оплату.");
-    }
-  };
-
-  const changeBonuses = async () => {
-    try {
-      await requestCraftBonusRedemption(token, order.id, !order.redeemBonuses);
-      await onRefresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Не удалось изменить списание бонусов.");
     }
   };
 
@@ -184,12 +174,10 @@ export const CraftOrderCard = ({
           </p>
           <ServiceNumberBarcode serviceNumber={order.receipt.serviceNumber} />
           <p className="mt-2">
-            Итого: {order.receipt.totalRub.toLocaleString("ru-RU")} ₽ · Бонусная скидка:{" "}
-            {order.receipt.bonusDiscountRub.toLocaleString("ru-RU")} ₽
+            Итого: {order.receipt.totalRub.toLocaleString("ru-RU")} ₽
           </p>
           <p className="mt-1 font-semibold">
-            К оплате:{" "}
-            {(order.receipt.totalRub - order.receipt.bonusDiscountRub).toLocaleString("ru-RU")} ₽
+            К оплате: {order.receipt.totalRub.toLocaleString("ru-RU")} ₽
           </p>
           <div className="mt-2 grid gap-1 text-xs text-slate-500">
             {order.receipt.itemsSnapshot.map((item, index) => (
@@ -227,17 +215,6 @@ export const CraftOrderCard = ({
                 Подтвердить оплату
               </button>
             </div>
-          )}
-          {!isAdmin && order.receipt.paymentStatus === "PENDING" && (
-            <button
-              type="button"
-              onClick={() => void changeBonuses()}
-              className="mt-3 min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
-            >
-              {order.redeemBonuses
-                ? "Отменить списание бонусов"
-                : "Списать доступные бонусы (до 30%)"}
-            </button>
           )}
           {!isAdmin && order.receipt.paymentStatus === "PAID" && (
             <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">

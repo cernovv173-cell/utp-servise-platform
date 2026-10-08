@@ -734,12 +734,6 @@ export const updateCraftOrder = (
     body: JSON.stringify(data),
   });
 
-export const requestCraftBonusRedemption = (token: string, id: string, redeemBonuses: boolean) =>
-  apiRequest<{ order: CraftOrder }>(`/craft-orders/${id}/bonus-redemption`, token, {
-    method: "PATCH",
-    body: JSON.stringify({ redeemBonuses }),
-  });
-
 export const markCraftReceiptPaid = (
   token: string,
   id: string,

@@ -226,11 +226,6 @@ object ApiClient {
             .getJSONObject("order").toCraftOrder()
     }
 
-    fun requestCraftBonusRedemption(token: String, orderId: String, redeem: Boolean): CraftOrder = request(
-        "PATCH", "/craft-orders/$orderId/bonus-redemption", token,
-        JSONObject().put("redeemBonuses", redeem),
-    ).getJSONObject("order").toCraftOrder()
-
     fun markCraftReceiptPaid(token: String, orderId: String, paymentMethod: String): CraftOrderReceipt = request(
         "PATCH", "/craft-orders/$orderId/receipt/payment", token,
         JSONObject().put("paymentMethod", paymentMethod),

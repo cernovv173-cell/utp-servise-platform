@@ -9,11 +9,8 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
-import {
-  calculateEarnedPoints,
-  calculateMaxBonusDiscount,
-} from "../orders/order-policy.js";
 import { sendPushNotification } from "../notifications/push-notifications.js";
+import { calculateEarnedPoints } from "../orders/order-policy.js";
 import { calculateTechnicianSalaryRub } from "../salary/salary-calculation.js";
 import { canAccessCraftOrderChat } from "./craft-chat-policy.js";
 import {
@@ -63,7 +60,6 @@ const updateCraftOrderBody = z
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0);
-const craftBonusRedemptionBody = z.object({ redeemBonuses: z.boolean() }).strict();
 const craftReceiptPaymentBody = z
   .object({
     paymentMethod: z.enum(["CASH", "CARD_TERMINAL", "BANK_TRANSFER", "OTHER"]),
@@ -239,7 +235,11 @@ export const createCraftsRouter = (
           include: { customer: true, receipt: true, salaryEntry: true },
         });
         if (!current)
-          throw new HttpError(404, "CRAFT_ORDER_NOT_FOUND", "Заявка не найдена.");
+          throw new HttpError(
+            404,
+            "CRAFT_ORDER_NOT_FOUND",
+            "Заявка не найдена.",
+          );
 
         if (current.status === "COMPLETED") {
           if (
@@ -257,10 +257,19 @@ export const createCraftsRouter = (
             where: { id: craftOrderId },
             include: {
               customer: {
-                select: { id: true, displayName: true, email: true, phoneNumber: true },
+                select: {
+                  id: true,
+                  displayName: true,
+                  email: true,
+                  phoneNumber: true,
+                },
               },
               assignedTechnician: {
-                select: { id: true, displayName: true, salaryRatePercent: true },
+                select: {
+                  id: true,
+                  displayName: true,
+                  salaryRatePercent: true,
+                },
               },
               receipt: true,
               salaryEntry: true,
@@ -293,10 +302,19 @@ export const createCraftsRouter = (
             where: { id: craftOrderId },
             include: {
               customer: {
-                select: { id: true, displayName: true, email: true, phoneNumber: true },
+                select: {
+                  id: true,
+                  displayName: true,
+                  email: true,
+                  phoneNumber: true,
+                },
               },
               assignedTechnician: {
-                select: { id: true, displayName: true, salaryRatePercent: true },
+                select: {
+                  id: true,
+                  displayName: true,
+                  salaryRatePercent: true,
+                },
               },
               receipt: true,
               salaryEntry: true,
@@ -330,7 +348,10 @@ export const createCraftsRouter = (
             "Укажите цену изделия перед завершением заявки.",
           );
         }
-        const totalRub = calculateCraftOrderTotalRub(unitPriceRub, current.quantity);
+        const totalRub = calculateCraftOrderTotalRub(
+          unitPriceRub,
+          current.quantity,
+        );
         if (totalRub > 2_147_483_647) {
           throw new HttpError(
             400,
@@ -341,7 +362,10 @@ export const createCraftsRouter = (
         const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
           SELECT nextval('repair_service_number_seq') AS value
         `;
-        const sequenceNumber = String(sequence[0]?.value ?? "1").padStart(6, "0");
+        const sequenceNumber = String(sequence[0]?.value ?? "1").padStart(
+          6,
+          "0",
+        );
         const serviceNumber = `SRV-${new Date().getUTCFullYear()}-${sequenceNumber}`;
         const completedAt = new Date();
         await transaction.craftOrder.update({
@@ -370,6 +394,7 @@ export const createCraftsRouter = (
               },
             ],
             totalRub,
+            bonusDiscountRub: 0,
           },
         });
         const ratePercent = technician.salaryRatePercent ?? 75;
@@ -387,7 +412,12 @@ export const createCraftsRouter = (
           where: { id: craftOrderId },
           include: {
             customer: {
-              select: { id: true, displayName: true, email: true, phoneNumber: true },
+              select: {
+                id: true,
+                displayName: true,
+                email: true,
+                phoneNumber: true,
+              },
             },
             assignedTechnician: {
               select: { id: true, displayName: true, salaryRatePercent: true },
@@ -404,61 +434,14 @@ export const createCraftsRouter = (
   router.patch(
     "/craft-orders/:craftOrderId/bonus-redemption",
     requireAuth,
-    requireRoles("CUSTOMER"),
-    validateRequest({ params: orderParams, body: craftBonusRedemptionBody }),
-    async (_request, response) => {
-      const { craftOrderId } = paramsOf<z.infer<typeof orderParams>>(response);
-      const user = getAuthenticatedUser(response);
-      const { redeemBonuses } = bodyOf<z.infer<typeof craftBonusRedemptionBody>>(response);
-      const order = await database.$transaction(async (transaction) => {
-        await transaction.$queryRaw`
-          SELECT "id" FROM "craft_orders" WHERE "id" = ${craftOrderId}::uuid FOR UPDATE
-        `;
-        await transaction.$queryRaw`
-          SELECT "id" FROM "users" WHERE "id" = ${user.id}::uuid FOR UPDATE
-        `;
-        const current = await transaction.craftOrder.findFirst({
-          where: { id: craftOrderId, customerId: user.id },
-          include: { receipt: true },
-        });
-        if (!current)
-          throw new HttpError(404, "CRAFT_ORDER_NOT_FOUND", "Заявка не найдена.");
-        if (
-          current.status !== "COMPLETED" ||
-          current.receipt?.paymentStatus === "PAID"
-        ) {
-          throw new HttpError(
-            409,
-            "CRAFT_BONUS_REDEMPTION_CLOSED",
-            "Бонусы можно изменить только до оплаты завершённой заявки.",
-          );
-        }
-        const balance = await transaction.loyaltyTransaction.aggregate({
-          where: { customerId: user.id },
-          _sum: { points: true },
-        });
-        const bonusDiscountRub = redeemBonuses
-          ? calculateMaxBonusDiscount(
-              current.receipt?.totalRub ?? 0,
-              balance._sum.points ?? 0,
-            )
-          : 0;
-        await transaction.craftOrder.update({
-          where: { id: craftOrderId },
-          data: { redeemBonuses, bonusDiscountRub },
-        });
-        if (current.receipt) {
-          await transaction.craftOrderReceipt.update({
-            where: { id: current.receipt.id },
-            data: { bonusDiscountRub },
-          });
-        }
-        return transaction.craftOrder.findUniqueOrThrow({
-          where: { id: craftOrderId },
-          include: { receipt: true },
-        });
-      });
-      response.json({ order });
+    requireRoles("ADMIN"),
+    validateRequest({ params: orderParams }),
+    async () => {
+      throw new HttpError(
+        409,
+        "BONUS_REDEMPTION_SERVICES_ONLY",
+        "Бонусы можно списывать только за услуги по ремонту, не за заказные изделия.",
+      );
     },
   );
 
@@ -469,7 +452,8 @@ export const createCraftsRouter = (
     validateRequest({ params: orderParams, body: craftReceiptPaymentBody }),
     async (_request, response) => {
       const { craftOrderId } = paramsOf<z.infer<typeof orderParams>>(response);
-      const { paymentMethod } = bodyOf<z.infer<typeof craftReceiptPaymentBody>>(response);
+      const { paymentMethod } =
+        bodyOf<z.infer<typeof craftReceiptPaymentBody>>(response);
       const admin = getAuthenticatedUser(response);
       const receipt = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
@@ -480,7 +464,11 @@ export const createCraftsRouter = (
           include: { receipt: true },
         });
         if (!order)
-          throw new HttpError(404, "CRAFT_ORDER_NOT_FOUND", "Заявка не найдена.");
+          throw new HttpError(
+            404,
+            "CRAFT_ORDER_NOT_FOUND",
+            "Заявка не найдена.",
+          );
         if (order.status !== "COMPLETED" || !order.receipt) {
           throw new HttpError(
             409,
@@ -492,24 +480,14 @@ export const createCraftsRouter = (
         await transaction.$queryRaw`
           SELECT "id" FROM "users" WHERE "id" = ${order.customerId}::uuid FOR UPDATE
         `;
-        const balance = await transaction.loyaltyTransaction.aggregate({
-          where: { customerId: order.customerId },
-          _sum: { points: true },
-        });
-        const bonusDiscountRub = order.redeemBonuses
-          ? calculateMaxBonusDiscount(
-              order.receipt.totalRub,
-              balance._sum.points ?? 0,
-            )
-          : 0;
-        const cashPaidRub = Math.max(0, order.receipt.totalRub - bonusDiscountRub);
+        const cashPaidRub = order.receipt.totalRub;
         const changed = await transaction.craftOrderReceipt.updateMany({
           where: { id: order.receipt.id, paymentStatus: "PENDING" },
           data: {
             paymentStatus: "PAID",
             paymentMethod,
             paidAt: new Date(),
-            bonusDiscountRub,
+            bonusDiscountRub: 0,
           },
         });
         if (changed.count !== 1) {
@@ -521,20 +499,8 @@ export const createCraftsRouter = (
         }
         await transaction.craftOrder.update({
           where: { id: craftOrderId },
-          data: { bonusDiscountRub },
+          data: { redeemBonuses: false, bonusDiscountRub: 0 },
         });
-        if (bonusDiscountRub > 0) {
-          await transaction.loyaltyTransaction.create({
-            data: {
-              customerId: order.customerId,
-              craftOrderId,
-              actorId: admin.id,
-              type: "REDEEM",
-              points: -bonusDiscountRub,
-              reason: `Списание по чеку ${order.receipt.receiptNumber}`,
-            },
-          });
-        }
         const earnedPoints = calculateCraftOrderEarnedPoints(cashPaidRub);
         if (earnedPoints > 0) {
           await transaction.loyaltyTransaction.create({

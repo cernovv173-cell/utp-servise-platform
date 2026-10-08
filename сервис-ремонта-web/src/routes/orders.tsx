@@ -17,7 +17,6 @@ import {
   createOrder,
   getLoyalty,
   getOrders,
-  requestBonusRedemption,
   searchOrders,
 } from "@/lib/api";
 import type { OrderArchiveView } from "@/lib/api";
@@ -71,14 +70,6 @@ const OrdersPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["order-search", token] });
       setFormOpen(false);
       toast.success("Заявка отправлена");
-    },
-  });
-  const bonuses = useMutation({
-    mutationFn: ({ orderId, redeem }: { orderId: string; redeem: boolean }) =>
-      requestBonusRedemption(token!, orderId, redeem),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["orders", token] });
-      await queryClient.invalidateQueries({ queryKey: ["order-search", token] });
     },
   });
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -351,20 +342,6 @@ const OrdersPage = () => {
                 )}
               </div>
             )}
-            {user?.role === "CUSTOMER" &&
-              order.status === "COMPLETED" &&
-              order.receipt?.paymentStatus !== "PAID" && (
-                <button
-                  onClick={() =>
-                    bonuses.mutate({ orderId: order.id, redeem: !order.redeemBonuses })
-                  }
-                  className={`mt-3 rounded-lg border px-3 py-2 text-xs font-medium ${order.redeemBonuses ? "border-emerald-300 bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "border-slate-200 dark:border-slate-700"}`}
-                >
-                  {order.redeemBonuses
-                    ? "✓ Использовать бонусы при оплате"
-                    : "Использовать бонусы при оплате"}
-                </button>
-              )}
             {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (
               <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
                 <p className="font-medium">К оплате по чеку {order.receipt.receiptNumber}</p>
@@ -373,7 +350,12 @@ const OrdersPage = () => {
                   к списанию:{" "}
                   {Math.min(
                     loyalty.data?.balance ?? 0,
-                    Math.floor(order.receipt.totalRub * 0.3),
+                    Math.floor(
+                      order.items
+                        .filter((item) => item.type === "SERVICE")
+                        .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0) *
+                        0.3,
+                    ),
                   ).toLocaleString("ru-RU")}{" "}
                   ₽
                 </p>

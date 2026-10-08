@@ -23,6 +23,7 @@ import {
 import {
   calculateEarnedPoints,
   calculateMaxBonusDiscount,
+  calculateServiceBonusEligibleRub,
   canAddRepairOrderItem,
   canTransitionRepairStatus,
   canViewRepairOrder,
@@ -674,48 +675,46 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/bonus-redemption",
     requireAuth,
-    requireRoles("CUSTOMER"),
+    requireRoles("ADMIN"),
     validateRequest({ params: orderIdParams, body: bonusRedemptionBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
-      const user = getAuthenticatedUser(response);
+      const admin = getAuthenticatedUser(response);
       const { redeemBonuses } =
         bodyOf<z.infer<typeof bonusRedemptionBody>>(response);
       const updated = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
           SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
         `;
-        const order = await transaction.repairOrder.findFirst({
-          where: { id: orderId, customerId: user.id },
+        const order = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
           include: { items: true, receipt: true },
         });
         if (!order)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         if (
-          order.status === "CANCELLED" ||
+          order.status !== "COMPLETED" ||
+          !order.receipt ||
           order.receipt?.paymentStatus === "PAID"
         ) {
           throw new HttpError(
             409,
             "BONUS_REDEMPTION_CLOSED",
-            "Для оплаченной или отменённой заявки нельзя менять использование бонусов.",
+            "Бонусы можно списать только по завершённому ремонту с неоплаченным чеком.",
           );
         }
-        const totalRub = order.items.reduce(
-          (sum, item) => sum + item.quantity * item.unitPriceRub,
-          0,
-        );
+        const serviceTotalRub = calculateServiceBonusEligibleRub(order.items);
         const balance = await transaction.loyaltyTransaction.aggregate({
-          where: { customerId: user.id },
+          where: { customerId: order.customerId },
           _sum: { points: true },
         });
         const bonusDiscountRub = redeemBonuses
-          ? calculateMaxBonusDiscount(totalRub, balance._sum.points ?? 0)
+          ? calculateMaxBonusDiscount(serviceTotalRub, balance._sum.points ?? 0)
           : 0;
         const saved = await transaction.repairOrder.update({
           where: { id: orderId },
           data: { redeemBonuses, bonusDiscountRub },
-          include: orderDetails(user.role),
+          include: orderDetails(admin.role),
         });
         if (order.receipt) {
           await transaction.repairReceipt.update({
@@ -728,8 +727,8 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       await sendRepairOrderNotification(
         database,
         updated,
-        user.id,
-        "Изменено использование бонусов по заявке.",
+        admin.id,
+        "Администратор обновил списание бонусов за услуги по заявке.",
       );
       response.json({ order: updated });
     },
@@ -867,8 +866,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           where: { customerId: order.customerId },
           _sum: { points: true },
         });
+        const serviceTotalRub = calculateServiceBonusEligibleRub(updatedItems);
         const bonusDiscountRub = order.redeemBonuses
-          ? calculateMaxBonusDiscount(totalRub, balance._sum.points ?? 0)
+          ? calculateMaxBonusDiscount(serviceTotalRub, balance._sum.points ?? 0)
           : 0;
         await transaction.repairOrder.update({
           where: { id: orderId },
@@ -941,7 +941,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         `;
         const order = await transaction.repairOrder.findUnique({
           where: { id: orderId },
-          include: { receipt: true },
+          include: { receipt: true, items: true },
         });
         if (!order)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
@@ -974,7 +974,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         const bonusDiscountRub = order.redeemBonuses
           ? calculateMaxBonusDiscount(
-              currentReceipt.totalRub,
+              calculateServiceBonusEligibleRub(order.items),
               balance._sum.points ?? 0,
             )
           : 0;

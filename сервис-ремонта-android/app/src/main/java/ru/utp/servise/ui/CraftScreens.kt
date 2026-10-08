@@ -46,7 +46,6 @@ fun CraftsScreen(
     items: List<CraftItem>,
     orders: List<CraftOrder>,
     staff: List<StaffMember>,
-    loyaltyBalance: Int,
     runAction: RunAction,
     refresh: () -> Unit,
     onBack: () -> Unit,
@@ -89,7 +88,7 @@ fun CraftsScreen(
                 }
             }
             Text("Мои заявки", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-            orders.forEach { CustomerCraftOrderCard(it, token, loyaltyBalance, runAction, refresh) }
+            orders.forEach { CustomerCraftOrderCard(it, token, runAction, refresh) }
         }
         if (items.isEmpty()) Text("В каталоге пока нет материалов.", color = UtpMuted)
     }
@@ -173,14 +172,14 @@ private fun AdminCraftOrderCard(order: CraftOrder, token: String, staff: List<St
             } else {
                 CraftOrderAdminControls(order, staff, token, runAction, refresh)
             }
-            CraftOrderFinancePanel(order, "ADMIN", token, 0, runAction, refresh)
+            CraftOrderFinancePanel(order, "ADMIN", token, runAction, refresh)
             CraftOrderChatPanel(token, order.id, order.status, runAction)
         }
     }
 }
 
 @Composable
-private fun CustomerCraftOrderCard(order: CraftOrder, token: String, loyaltyBalance: Int, runAction: RunAction, refresh: () -> Unit) {
+private fun CustomerCraftOrderCard(order: CraftOrder, token: String, runAction: RunAction, refresh: () -> Unit) {
     Card(
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(
@@ -210,7 +209,7 @@ private fun CustomerCraftOrderCard(order: CraftOrder, token: String, loyaltyBala
                     color = UtpBlue,
                 )
             }
-            CraftOrderFinancePanel(order, "CUSTOMER", token, loyaltyBalance, runAction, refresh)
+            CraftOrderFinancePanel(order, "CUSTOMER", token, runAction, refresh)
             CraftOrderChatPanel(token, order.id, order.status, runAction)
         }
     }

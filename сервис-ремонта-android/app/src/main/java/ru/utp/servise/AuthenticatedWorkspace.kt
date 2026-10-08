@@ -222,12 +222,12 @@ internal fun AuthenticatedWorkspace(
                             composable("customer/about") {
                                 CompanyScreen(token, false, busy, runAction, onBack = { navController.popBackStack() }, banners = banners, onCampaignNavigate = onCampaignNavigate)
                             }
-                            composable("customer/crafts") { CraftsScreen(token, false, craftItems, craftOrders, staff, loyalty.balance, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
+                            composable("customer/crafts") { CraftsScreen(token, false, craftItems, craftOrders, staff, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
                             composable("customer/orders") {
-                                RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, loyaltyBalance = loyalty.balance, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
+                                RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
                             }
                             composable("customer/history") {
-                                RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, loyaltyBalance = loyalty.balance, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
+                                RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
                             }
                             composable("customer/reviews") { ReviewsScreen("Мои отзывы", reviews, refresh, token = token) }
                             composable("customer/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
@@ -285,7 +285,7 @@ internal fun AuthenticatedWorkspace(
                             composable("admin/about") {
                                 CompanyScreen(token, true, busy, runAction, onBack = { navController.popBackStack() }, banners = banners, onCampaignNavigate = onCampaignNavigate)
                             }
-                            composable("admin/crafts") { CraftsScreen(token, true, craftItems, craftOrders, staff, loyalty.balance, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
+                            composable("admin/crafts") { CraftsScreen(token, true, craftItems, craftOrders, staff, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
                             composable("admin/news") {
                                 NewsManagementScreen(token, news, runAction, refresh) { navController.popBackStack() }
                             }

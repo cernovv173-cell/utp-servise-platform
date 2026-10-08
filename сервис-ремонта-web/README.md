@@ -125,6 +125,11 @@ administrator can also enable browser system notifications from the header; thes
 the site tab is in the background, as long as the page remains open. Browser notifications are not
 delivered after the site is closed.
 
+In `/checks`, only administrators can apply customer loyalty bonuses to an unpaid repair receipt.
+The server caps redemption at 30% of service lines only; spare parts and craft-product orders are
+not eligible. The receipt identifies the redeemed amount on its own “Оплата бонусами” line, and
+customers can view it without being able to initiate redemption.
+
 Customer and administrator order cards show a Code 128 barcode generated from the order's existing
 unique service number. The barcode is derived at display time, so it adds no database field and does
 not replace the separate pickup QR code.

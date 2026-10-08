@@ -155,7 +155,6 @@ internal fun CraftOrderFinancePanel(
     order: CraftOrder,
     role: String,
     token: String,
-    loyaltyBalance: Int,
     runAction: RunAction,
     refresh: () -> Unit,
 ) {
@@ -195,11 +194,8 @@ internal fun CraftOrderFinancePanel(
                     }
                 }
                 Text("Итого: ${receipt.totalRub} ₽", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = UtpInk)
-                if (receipt.bonusDiscountRub > 0) {
-                    Text("Списано бонусами: ${receipt.bonusDiscountRub} ₽", fontSize = 11.sp, color = UtpBlue)
-                }
                 Text(
-                    "К оплате: ${receipt.totalRub - receipt.bonusDiscountRub} ₽",
+                    "К оплате: ${receipt.totalRub} ₽",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = UtpBlue,
@@ -215,24 +211,6 @@ internal fun CraftOrderFinancePanel(
                         fontSize = 11.sp,
                         color = UtpMuted,
                     )
-                }
-                if (role == "CUSTOMER" && receipt.paymentStatus == "PENDING") {
-                    val maximumDiscount = minOf(loyaltyBalance.coerceAtLeast(0), receipt.totalRub * 30 / 100)
-                    Text(
-                        "Баланс бонусов: $loyaltyBalance ₽ · максимум к списанию: $maximumDiscount ₽",
-                        fontSize = 11.sp,
-                        color = UtpMuted,
-                    )
-                    OutlinedButton(
-                        onClick = {
-                            runAction({
-                                ApiClient.requestCraftBonusRedemption(token, order.id, !order.redeemBonuses)
-                            }) { refresh() }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(if (order.redeemBonuses) "Не использовать бонусы" else "Использовать бонусы при оплате")
-                    }
                 }
                 if (role == "CUSTOMER" && receipt.paymentStatus == "PAID") {
                     val cashPaid = (receipt.totalRub - receipt.bonusDiscountRub).coerceAtLeast(0)
