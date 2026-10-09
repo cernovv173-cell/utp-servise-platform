@@ -55,7 +55,13 @@ const localDateTime = (value: string | null) => {
   return date.toISOString().slice(0, 16);
 };
 
-export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
+export const OrderManagement = ({
+  orderId,
+  editingWorkspace = false,
+}: {
+  orderId?: string;
+  editingWorkspace?: boolean;
+} = {}) => {
   const { token, user } = useAuth();
   const client = useQueryClient();
   const [search, setSearch] = useState("");
@@ -127,7 +133,9 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
             ? selectedOrder.data?.order
               ? `Заявка ${selectedOrder.data.order.serviceNumber}`
               : "Карточка заявки"
-            : "Заявки на ремонт"}
+            : editingWorkspace
+              ? "Выберите заявку для редактирования"
+              : "Заявки на ремонт"}
         </h2>
         {orderId ? (
           <Link

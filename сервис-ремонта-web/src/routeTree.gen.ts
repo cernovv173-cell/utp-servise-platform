@@ -28,6 +28,7 @@ import { Route as SalaryRouteImport } from './routes/salary'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as YandexTokenRouteImport } from './routes/yandex-token'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminOrderEditingRouteImport } from './routes/admin.order-editing'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
@@ -127,6 +128,11 @@ const AdminCustomersRoute = AdminCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOrderEditingRoute = AdminOrderEditingRouteImport.update({
+  id: '/order-editing',
+  path: '/order-editing',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -238,6 +247,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
+    | '/admin/order-editing'
     | '/admin/orders'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
+    | '/admin/order-editing'
     | '/admin/orders'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
+    | '/admin/order-editing'
     | '/admin/orders'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
@@ -447,6 +459,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCustomersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/order-editing': {
+      id: '/admin/order-editing'
+      path: '/order-editing'
+      fullPath: '/admin/order-editing'
+      preLoaderRoute: typeof AdminOrderEditingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/orders': {
       id: '/admin/orders'
       path: '/orders'
@@ -485,11 +504,13 @@ const AdminOrdersRouteWithChildren = AdminOrdersRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminOrderEditingRoute: typeof AdminOrderEditingRoute
   AdminOrdersRoute: typeof AdminOrdersRouteWithChildren
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminOrderEditingRoute: AdminOrderEditingRoute,
   AdminOrdersRoute: AdminOrdersRouteWithChildren,
 }
 
