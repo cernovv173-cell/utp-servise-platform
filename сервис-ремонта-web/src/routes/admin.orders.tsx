@@ -4,9 +4,11 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { OrderManagement } from "@/features/admin/order-management";
 import { useAuth } from "@/features/auth/auth-context";
+import { type OrderListView, isOrderListView } from "@/features/orders/order-list-view";
 
 const AdminOrdersPage = () => {
   const { user } = useAuth();
+  const { view } = Route.useSearch();
 
   return (
     <AppShell active="/admin/orders">
@@ -28,10 +30,14 @@ const AdminOrdersPage = () => {
           </Link>
         </SectionCard>
       ) : (
-        <OrderManagement />
+        <OrderManagement initialView={view ?? "active"} />
       )}
     </AppShell>
   );
 };
 
-export const Route = createFileRoute("/admin/orders")({ component: AdminOrdersPage });
+export const Route = createFileRoute("/admin/orders")({
+  validateSearch: (search: Record<string, unknown>): { view?: OrderListView } =>
+    isOrderListView(search.view) ? { view: search.view } : {},
+  component: AdminOrdersPage,
+});

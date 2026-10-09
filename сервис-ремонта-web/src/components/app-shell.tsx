@@ -31,21 +31,51 @@ import { RepairChatNotifications } from "@/features/admin/repair-chat-notificati
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
 
+import type { Role } from "@/lib/api";
+
 const links = [
   { to: "/", label: "Главная", icon: Home },
-  { to: "/orders", label: "Заявки", icon: ClipboardList },
+  { to: "/orders", label: "Мои заявки", icon: ClipboardList },
   { to: "/catalog", label: "Каталог ремонта", icon: Boxes },
   { to: "/checks", label: "Чеки и номера", icon: FileText },
-  { to: "/news", label: "Новости", icon: Newspaper },
+  { to: "/news", label: "Новости сервиса", icon: Newspaper },
   { to: "/loyalty", label: "Бонусы", icon: Star },
   { to: "/salary", label: "Зарплата", icon: Wallet },
-  { to: "/crafts", label: "Рукоделия", icon: Sparkles },
+  { to: "/crafts", label: "Ручная работа", icon: Sparkles },
   { to: "/about", label: "О компании", icon: UsersRound },
   { to: "/reviews", label: "Отзывы", icon: Bell },
   { to: "/advertising", label: "Реклама", icon: Megaphone },
   { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
   { to: "/support", label: "Поддержка", icon: LifeBuoy },
 ];
+
+const staffLinks: Record<"ADMIN" | "TECHNICIAN", typeof links> = {
+  ADMIN: [
+    { to: "/", label: "Главная", icon: Home },
+    { to: "/admin/orders", label: "Мои заявки", icon: ClipboardList },
+    { to: "/news", label: "Новости сервиса", icon: Newspaper },
+    { to: "/crafts", label: "Ручная работа", icon: Sparkles },
+    { to: "/catalog", label: "Каталог ремонта", icon: Boxes },
+    { to: "/checks", label: "Чеки и номера", icon: FileText },
+    { to: "/salary", label: "Зарплата", icon: Wallet },
+    { to: "/about", label: "О компании", icon: UsersRound },
+    { to: "/reviews", label: "Отзывы", icon: Bell },
+    { to: "/support", label: "Поддержка", icon: LifeBuoy },
+    { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
+  ],
+  TECHNICIAN: [
+    { to: "/", label: "Главная", icon: Home },
+    { to: "/orders", label: "Мои заявки", icon: ClipboardList },
+    { to: "/catalog", label: "Каталог ремонта", icon: Boxes },
+    { to: "/checks", label: "Чеки и номера", icon: FileText },
+    { to: "/news", label: "Новости сервиса", icon: Newspaper },
+    { to: "/crafts", label: "Ручная работа", icon: Sparkles },
+    { to: "/salary", label: "Зарплата", icon: Wallet },
+    { to: "/about", label: "О компании", icon: UsersRound },
+    { to: "/reviews", label: "Отзывы", icon: Bell },
+    { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
+  ],
+};
 
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
   const { user, ready, logout } = useAuth();
@@ -88,14 +118,16 @@ export const AppShell = ({ active, children }: { active: string; children: React
     );
   }
 
-  const nav = links.filter((link) => {
-    if (link.to === "/support") return user.role === "ADMIN" || user.role === "CUSTOMER";
-    if (link.to === "/advertising") return user.role === "ADMIN";
-    if (link.to === "/catalog" || link.to === "/salary")
-      return user.role === "TECHNICIAN" || user.role === "ADMIN";
-    if (link.to === "/loyalty") return user.role === "CUSTOMER";
-    return true;
-  });
+  const isStaffRole = user.role === "ADMIN" || user.role === "TECHNICIAN";
+  const nav = isStaffRole
+    ? staffLinks[user.role as Extract<Role, "ADMIN" | "TECHNICIAN">]
+    : links.filter((link) => {
+        if (link.to === "/support") return user.role === "CUSTOMER";
+        if (link.to === "/advertising") return false;
+        if (link.to === "/catalog" || link.to === "/salary") return false;
+        if (link.to === "/loyalty") return user.role === "CUSTOMER";
+        return true;
+      });
   const showChatsTab = ["ADMIN", "CUSTOMER", "TECHNICIAN"].includes(user.role);
   const chatsLink = (
     <Link

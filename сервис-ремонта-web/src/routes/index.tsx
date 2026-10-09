@@ -6,10 +6,11 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignBanner } from "@/features/campaigns/campaign-banner";
+import { StaffDashboard } from "@/features/home/staff-dashboard";
 
 import { getBanners, getNews, getOrders } from "@/lib/api";
 
-const HomePage = () => {
+const CustomerHome = () => {
   const { token, user } = useAuth();
   const orders = useQuery({
     queryKey: ["orders", token],
@@ -32,7 +33,7 @@ const HomePage = () => {
   ).length;
 
   return (
-    <AppShell active="/">
+    <>
       <PageTitle
         eyebrow="UTP SERVISE"
         title={`Здравствуйте, ${user?.displayName ?? ""}!`}
@@ -90,7 +91,7 @@ const HomePage = () => {
         <Link to="/crafts">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
             <Sparkles className="text-amber-600" />
-            <h3 className="mt-4 font-semibold">Рукоделия</h3>
+            <h3 className="mt-4 font-semibold">Ручная работа</h3>
             <p className="mt-1 text-sm text-slate-500">Изделия и заказные варианты</p>
           </SectionCard>
         </Link>
@@ -116,6 +117,19 @@ const HomePage = () => {
           </SectionCard>
         )}
       </div>
+    </>
+  );
+};
+
+const HomePage = () => {
+  const { user } = useAuth();
+  return (
+    <AppShell active="/">
+      {user?.role === "ADMIN" || user?.role === "TECHNICIAN" ? (
+        <StaffDashboard user={user} />
+      ) : (
+        <CustomerHome />
+      )}
     </AppShell>
   );
 };

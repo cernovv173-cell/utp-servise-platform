@@ -22,16 +22,18 @@ their files:
 This application does not define a theme. Style product surfaces with inline Tailwind utilities and
 adapt the neutral primitive classes when the requested design requires it.
 
-## Home page examples
+## Home pages
 
-The home route renders `src/examples/component-examples.tsx`. Follow its direct imports
-for working dialog/menu actions, a controlled Select, a Calendar and DatePicker sharing state,
-Motion Reveal containers, Sonner notifications with Lucide icons, and a React Hook Form
-with Zod validation, required labels and accessible field errors. `src/examples/table-example.tsx` demonstrates the compound Table with scoped headers, rows, a caption and a footer. The examples demonstrate inline Tailwind styling and reuse of every
-supplied UI primitive. The single demo file owns its example state; the surrounding page stays composable. Its opening
-comment explains why product code should split components and supporting logic by responsibility.
-Replace this demonstration when building the product and retain useful primitives. During later
-feature work, inspect the current page and component consumers before adding a parallel implementation.
+The customer home route retains its service-request, home-advertising and priority-news cards.
+Administrators and technicians see a staff dashboard with shortcuts to new and archived requests,
+live home-placement advertising, service-news previews, and the repair, manual-work and chat areas.
+The administrator dashboard also links to order editing, advertising management, support and the
+existing administrator panel. The staff navigation is role-specific; administrator-only links are
+not shown to technicians. `/account`, `/admin`, `/catalog`, and `/about` retain their existing pages.
+
+`src/examples` contains reusable implementation examples only: dialogs, menus, controlled
+Select, Calendar/DatePicker, Motion Reveal, Sonner notifications, validated forms and the compound
+Table. It is not mounted as the product home page.
 
 ## Installed UI libraries
 
@@ -152,8 +154,9 @@ customer can create a short-lived, one-time pickup QR from their own ready order
 customer's code and enter the applicable warranty duration and terms to close the repair and issue
 its warranty card. The QR is not a password; only the server-side hashed token is retained.
 
-The `/orders` and `/admin/orders` lists separate active requests, completed/cancelled repair history,
-and the automatically archived requests. The Android-aligned order cards expose structured address
+The `/orders` and `/admin/orders` lists separate new requests, active requests, completed/cancelled
+repair history, and the automatically archived requests. The new and archive views can be opened
+directly from the staff home dashboard. The Android-aligned order cards expose structured address
 and contact details, assigned technician contact, protected request photos, status history, itemized
 services/parts/products and totals, repair paperwork, and pickup QR actions. Customers can edit or
 cancel their own requests only while they are new, and may leave one review with an optional photo
@@ -180,3 +183,9 @@ before technician assignment. Service lines and paid financial documents keep th
 lifecycle safeguards. The staff section of `/admin` can create technician accounts with one-time
 temporary passwords that must be changed on first sign-in; customer self-registration remains on
 `/login` and cannot create staff or administrator accounts.
+
+The administrator manages service news at `/news`: create a scheduled or immediate publication,
+edit its title and body, change its display schedule, feature it on the home page, and publish or
+unpublish it. The `/crafts` page is labeled “Ручная работа” in navigation and on the page; its
+existing catalog and order handling remain unchanged. Home-placement banners remain visible on the
+staff home page, while administrators can manage them from the home-page advertising shortcut.

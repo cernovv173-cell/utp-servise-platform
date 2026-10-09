@@ -11,7 +11,8 @@ const orders = [
 ];
 
 describe("repair order list views", () => {
-  it("separates active orders, repair history and the automatic archive", () => {
+  it("separates new, active, completed and archived orders", () => {
+    expect(filterOrdersForListView(orders, "new").map((order) => order.id)).toEqual(["requested"]);
     expect(filterOrdersForListView(orders, "active").map((order) => order.id)).toEqual([
       "requested",
     ]);
@@ -26,6 +27,7 @@ describe("repair order list views", () => {
   });
 
   it("requests active data for both current history tabs", () => {
+    expect(archiveForOrderListView("new")).toBe("active");
     expect(archiveForOrderListView("active")).toBe("active");
     expect(archiveForOrderListView("history")).toBe("active");
     expect(archiveForOrderListView("archived")).toBe("archived");
