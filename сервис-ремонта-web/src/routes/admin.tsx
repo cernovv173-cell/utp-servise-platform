@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
@@ -24,23 +24,6 @@ const AdminPage = () => {
       ) : (
         <div className="grid gap-6">
           <AndroidApkManagement />
-          <SectionCard>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="font-semibold">Заявки на ремонт</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Откройте общий список и управляйте статусом, сроком, мастером и данными каждой
-                  заявки отдельно.
-                </p>
-              </div>
-              <Link
-                to="/admin/orders"
-                className="inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                Открыть заявки
-              </Link>
-            </div>
-          </SectionCard>
           <StaffManagement />
           <LoyaltyManagement />
           <CompanyAdmin />
