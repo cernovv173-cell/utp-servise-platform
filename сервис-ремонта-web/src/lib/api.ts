@@ -56,6 +56,19 @@ export type RepairOrder = {
   redeemBonuses: boolean;
   bonusDiscountRub: number;
   createdAt: string;
+  statusEvents?: {
+    from: string | null;
+    to: string;
+    note: string | null;
+    createdAt: string;
+    actor: { id: string; displayName: string; role: Role } | null;
+  }[];
+  photos?: {
+    id: string;
+    objectId: string;
+    createdAt: string;
+    createdBy: { displayName: string } | null;
+  }[];
   items: {
     id: string;
     type: RepairCatalogType;
@@ -68,8 +81,19 @@ export type RepairOrder = {
   intake?: RepairOrderIntake | null;
   warranty?: RepairWarranty | null;
   assignedTechnicianId?: string | null;
-  assignedTechnician?: { id: string; displayName: string } | null;
-  customer?: { id: string; displayName: string; email: string; phoneNumber?: string | null };
+  assignedTechnician?: {
+    id: string;
+    displayName: string;
+    phoneNumber?: string | null;
+    avatarObjectId?: string | null;
+  } | null;
+  customer?: {
+    id: string;
+    displayName: string;
+    email: string;
+    phoneNumber?: string | null;
+    avatarObjectId?: string | null;
+  };
 };
 
 export type RepairOrderChatMessage = {
@@ -524,6 +548,33 @@ export const updateRepairOrder = (
   apiRequest<{ order: RepairOrder }>(`/orders/${orderId}`, token, {
     method: "PATCH",
     body: JSON.stringify(input),
+  });
+
+export const uploadRepairOrderPhoto = (token: string, orderId: string, file: File) =>
+  apiRequest<{ photo: NonNullable<RepairOrder["photos"]>[number] }>(
+    `/orders/${orderId}/photos`,
+    token,
+    {
+      method: "POST",
+      headers: { "Content-Type": file.type || "image/jpeg" },
+      body: file,
+    },
+  );
+
+export const createRepairOrderReview = (
+  token: string,
+  input: { orderId: string; rating: number; comment: string },
+) =>
+  apiRequest<{ review: { id: string } }>("/reviews", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const uploadRepairOrderReviewPhoto = (token: string, reviewId: string, file: File) =>
+  apiRequest<{ review: { id: string } }>(`/reviews/${reviewId}/image`, token, {
+    method: "POST",
+    headers: { "Content-Type": file.type || "image/jpeg" },
+    body: file,
   });
 
 export const addRepairOrderItem = (

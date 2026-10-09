@@ -152,14 +152,24 @@ customer can create a short-lived, one-time pickup QR from their own ready order
 customer's code and enter the applicable warranty duration and terms to close the repair and issue
 its warranty card. The QR is not a password; only the server-side hashed token is retained.
 
-The `/admin/orders/:orderId` detail route opens one repair request directly and provides its order
-controls, service editor, and customer chat. Customers can open the chat on their own cards in
-`/orders`; administrators connect to the same conversation from the detail page before replying.
-Assigned technicians can also open and write in their repair-order chats from `/orders`, and can
-request administrator participation when needed. `/support` provides a separate direct support
-conversation for customers and an administrator inbox; administrators open an individual customer
-conversation at `/support/:customerId`. The API restricts customer support conversations to their
-owner and administrator access to staff accounts with the ADMIN role.
+The `/orders` and `/admin/orders` lists separate active requests, completed/cancelled repair history,
+and the automatically archived requests. The Android-aligned order cards expose structured address
+and contact details, assigned technician contact, protected request photos, status history, itemized
+services/parts/products and totals, repair paperwork, and pickup QR actions. Customers can edit or
+cancel their own requests only while they are new, and may leave one review with an optional photo
+after completion. Assigned technicians can advance their assigned repair through the allowed status
+steps, add catalogue items, update the intake act, upload photos, scan pickup QR codes, and use the
+order chat. Administrators can create and edit requests, assign technicians, manage the order
+composition and receipts, search by service number, and manage the same paperwork and repair chat.
+The API remains authoritative for each role and order lifecycle transition.
+
+Customers can open the chat on their own cards in `/orders`; administrators connect to the same
+conversation from the detail page before replying. Assigned technicians can also open and write in
+their repair-order chats from `/orders`, and can request administrator participation when needed.
+`/support` provides a separate direct support conversation for customers and an administrator inbox;
+administrators open an individual customer conversation at `/support/:customerId`. The API restricts
+customer support conversations to their owner and administrator access to staff accounts with the
+ADMIN role.
 The administrator header polls for unread repair chats every 15 seconds, shows the unread-chat count,
 and links to the latest conversation. New messages produce an in-app alert or a browser notification
 when system notifications are enabled; notification selection opens the corresponding repair card.

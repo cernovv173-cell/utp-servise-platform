@@ -16,6 +16,8 @@ export const RepairOrderEditor = ({
   isCatalogError,
   isEditing: controlledIsEditing,
   onEditingChange,
+  allowItemEditing = true,
+  showItemEditHint = true,
   showEditToggle = true,
   onRefresh,
 }: {
@@ -26,6 +28,8 @@ export const RepairOrderEditor = ({
   isCatalogError: boolean;
   isEditing?: boolean;
   onEditingChange?: (isEditing: boolean) => void;
+  allowItemEditing?: boolean;
+  showItemEditHint?: boolean;
   showEditToggle?: boolean;
   onRefresh: () => Promise<unknown>;
 }) => {
@@ -37,6 +41,7 @@ export const RepairOrderEditor = ({
   };
   const [deviceType, setDeviceType] = useState(order.deviceType);
   const canEditItems =
+    allowItemEditing &&
     isEditing &&
     order.status !== "COMPLETED" &&
     order.status !== "CANCELLED" &&
@@ -101,6 +106,7 @@ export const RepairOrderEditor = ({
         token={token}
         catalogItems={catalogItems}
         canEdit={canEditItems}
+        showEditHint={showItemEditHint}
         isCatalogLoading={isCatalogLoading}
         isCatalogError={isCatalogError}
         onRefresh={onRefresh}

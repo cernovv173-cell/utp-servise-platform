@@ -8,10 +8,16 @@ import { Select } from "@/components/select";
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { RepairOrderEditor } from "@/features/admin/repair-order-editor";
 import { useAuth } from "@/features/auth/auth-context";
-import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
+import {
+  archiveForOrderListView,
+  filterOrdersForListView,
+} from "@/features/orders/order-list-view";
+import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
+import { RepairOrderInformation } from "@/features/orders/repair-order-information";
+import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
@@ -25,7 +31,6 @@ import {
   setExpectedCompletion,
   updateOrderStatus,
 } from "@/lib/api";
-import type { OrderArchiveView } from "@/lib/api";
 
 const statusLabels: Record<string, string> = {
   REQUESTED: "Новая",
@@ -54,7 +59,8 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
   const { token, user } = useAuth();
   const client = useQueryClient();
   const [search, setSearch] = useState("");
-  const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
+  const [listView, setListView] = useState<OrderListView>("active");
+  const archiveView = archiveForOrderListView(listView);
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const isAdmin = user?.role === "ADMIN";
   const staff = useQuery({
@@ -108,10 +114,8 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
       ? [selectedOrder.data.order]
       : []
     : search.trim().length >= 2
-      ? (found.data?.orders ?? []).filter(
-          (order) => Boolean(order.archivedAt) === (archiveView === "archived"),
-        )
-      : (orders.data?.orders ?? []);
+      ? filterOrdersForListView(found.data?.orders ?? [], listView)
+      : filterOrdersForListView(orders.data?.orders ?? [], listView);
   const activeTechnicians = (staff.data?.staff ?? []).filter(
     (member) => member.role === "TECHNICIAN" && member.active,
   );
@@ -142,7 +146,7 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
       {!orderId && (
         <>
           <div className="mt-4">
-            <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
+            <RepairOrderListTabs value={listView} onChange={setListView} />
           </div>
           <div className="mt-4">
             <label className="grid gap-1 text-sm font-medium">
@@ -210,6 +214,7 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
               </span>
             </div>
             <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
+            {token && <RepairOrderInformation order={order} token={token} />}
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <label className="grid gap-1 text-xs font-medium">
                 Срок ремонта

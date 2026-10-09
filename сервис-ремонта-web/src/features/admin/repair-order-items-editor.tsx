@@ -127,6 +127,8 @@ export const RepairOrderItemsEditor = ({
   token,
   catalogItems,
   canEdit,
+  canAdd = canEdit,
+  showEditHint = true,
   isCatalogLoading,
   isCatalogError,
   onRefresh,
@@ -135,6 +137,8 @@ export const RepairOrderItemsEditor = ({
   token: string;
   catalogItems: RepairCatalogItem[];
   canEdit: boolean;
+  canAdd?: boolean;
+  showEditHint?: boolean;
   isCatalogLoading: boolean;
   isCatalogError: boolean;
   onRefresh: () => Promise<unknown>;
@@ -188,7 +192,16 @@ export const RepairOrderItemsEditor = ({
       ) : (
         <p className="mt-2 text-xs text-slate-500">В заказе пока нет услуг или товаров.</p>
       )}
-      {canEdit && (
+      {order.items.length > 0 && (
+        <p className="mt-3 text-xs font-semibold text-slate-700 dark:text-slate-300">
+          Итого по позициям:{" "}
+          {order.items
+            .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0)
+            .toLocaleString("ru-RU")}{" "}
+          ₽
+        </p>
+      )}
+      {canAdd && (
         <form onSubmit={addItem} className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_auto]">
           <Select
             ariaLabel="Услуга, запчасть или товар для заказа"
@@ -236,7 +249,7 @@ export const RepairOrderItemsEditor = ({
           )}
         </form>
       )}
-      {!canEdit && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
+      {showEditHint && !canEdit && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
         <p className="mt-3 text-xs text-slate-500">
           Нажмите «Редактировать», чтобы изменить состав заказа.
         </p>

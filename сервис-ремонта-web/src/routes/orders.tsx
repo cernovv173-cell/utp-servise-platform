@@ -5,17 +5,32 @@ import { toast } from "sonner";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
+import { RepairOrderEditor } from "@/features/admin/repair-order-editor";
+import { RepairOrderItemsEditor } from "@/features/admin/repair-order-items-editor";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { CustomerPickupQr } from "@/features/orders/customer-pickup-qr";
-import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
+import {
+  archiveForOrderListView,
+  filterOrdersForListView,
+} from "@/features/orders/order-list-view";
+import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
+import { RepairOrderInformation } from "@/features/orders/repair-order-information";
+import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
+import { RepairOrderReviewForm } from "@/features/orders/repair-order-review-form";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
-import { createOrder, getLoyalty, getOrders, searchOrders } from "@/lib/api";
-import type { OrderArchiveView } from "@/lib/api";
+import {
+  createOrder,
+  getLoyalty,
+  getOrders,
+  getRepairCatalog,
+  searchOrders,
+  updateOrderStatus,
+} from "@/lib/api";
 
 const statusLabels: Record<string, string> = {
   REQUESTED: "Новая",
@@ -36,13 +51,19 @@ const OrdersPage = () => {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [formOpen, setFormOpen] = useState(false);
-  const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
+  const [listView, setListView] = useState<OrderListView>("active");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const archiveView = archiveForOrderListView(listView);
   const query = useQuery({
     queryKey: ["orders", token, archiveView],
     queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
     enabled: Boolean(token),
+  });
+  const catalog = useQuery({
+    queryKey: ["repair-catalog", token],
+    queryFn: ({ signal }) => getRepairCatalog(token!, signal),
+    enabled: Boolean(token && user?.role === "TECHNICIAN"),
   });
   const searchQuery = useQuery({
     queryKey: ["order-search", token, user?.role, search],
@@ -51,9 +72,10 @@ const OrdersPage = () => {
   });
   const isSearching = search.length >= 2;
   const currentOrdersQuery = isSearching ? searchQuery : query;
-  const visibleOrders = (
-    isSearching ? (searchQuery.data?.orders ?? []) : (query.data?.orders ?? [])
-  ).filter((order) => Boolean(order.archivedAt) === (archiveView === "archived"));
+  const visibleOrders = filterOrdersForListView(
+    isSearching ? (searchQuery.data?.orders ?? []) : (query.data?.orders ?? []),
+    listView,
+  );
   const loyalty = useQuery({
     queryKey: ["loyalty", token],
     queryFn: ({ signal }) => getLoyalty(token!, signal),
@@ -67,6 +89,19 @@ const OrdersPage = () => {
       setFormOpen(false);
       toast.success("Заявка отправлена");
     },
+  });
+  const statusMutation = useMutation({
+    mutationFn: ({ orderId, status }: { orderId: string; status: string }) =>
+      updateOrderStatus(token!, orderId, status),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+        queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+      ]);
+      toast.success("Статус заявки обновлён.");
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Не удалось изменить статус заявки."),
   });
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -91,8 +126,12 @@ const OrdersPage = () => {
     <AppShell active="/orders">
       <PageTitle
         eyebrow="ЗАКАЗЫ"
-        title="Мои заявки"
-        description="Создавайте заявки и отслеживайте этапы ремонта."
+        title={user?.role === "TECHNICIAN" ? "Назначенные заказы" : "Мои заявки"}
+        description={
+          user?.role === "TECHNICIAN"
+            ? "Работайте с назначенными ремонтами, фиксируйте этапы и состав заказа."
+            : "Создавайте заявки и отслеживайте этапы ремонта."
+        }
         action={
           user?.role === "CUSTOMER" ? (
             <button
@@ -284,7 +323,7 @@ const OrdersPage = () => {
           Не удалось получить список заявок.
         </p>
       )}
-      <OrderArchiveTabs value={archiveView} onChange={setArchiveView} />
+      <RepairOrderListTabs value={listView} onChange={setListView} />
       {(user?.role === "ADMIN" || user?.role === "TECHNICIAN") && token && (
         <div className="mb-4">
           <PickupQrScanner token={token} />
@@ -323,6 +362,7 @@ const OrdersPage = () => {
                 Детали и чек →
               </Link>
             </div>
+            {token && <RepairOrderInformation order={order} token={token} />}
             {token && (
               <div className="mt-3 flex flex-wrap gap-2">
                 <OrderPaperwork
@@ -340,6 +380,86 @@ const OrdersPage = () => {
             )}
             {token && (user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
               <RepairOrderChat token={token} orderId={order.id} />
+            )}
+            {token && (user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
+              <RepairOrderItemsEditor
+                order={order}
+                token={token}
+                catalogItems={user.role === "TECHNICIAN" ? (catalog.data?.catalogItems ?? []) : []}
+                canEdit={false}
+                canAdd={
+                  user.role === "TECHNICIAN" &&
+                  order.status !== "COMPLETED" &&
+                  order.status !== "CANCELLED"
+                }
+                showEditHint={false}
+                isCatalogLoading={user.role === "TECHNICIAN" && catalog.isLoading}
+                isCatalogError={user.role === "TECHNICIAN" && catalog.isError}
+                onRefresh={() =>
+                  Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                    queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                  ])
+                }
+              />
+            )}
+            {user?.role === "CUSTOMER" && order.status === "REQUESTED" && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <RepairOrderEditor
+                  order={order}
+                  token={token!}
+                  catalogItems={[]}
+                  isCatalogLoading={false}
+                  isCatalogError={false}
+                  allowItemEditing={false}
+                  showItemEditHint={false}
+                  onRefresh={() =>
+                    Promise.all([
+                      queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                      queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                    ])
+                  }
+                />
+                <button
+                  type="button"
+                  disabled={statusMutation.isPending}
+                  onClick={() => {
+                    if (window.confirm(`Отменить заявку ${order.serviceNumber}?`))
+                      statusMutation.mutate({ orderId: order.id, status: "CANCELLED" });
+                  }}
+                  className="min-h-10 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
+                >
+                  Отменить заявку
+                </button>
+              </div>
+            )}
+            {user?.role === "TECHNICIAN" && token && (
+              <div className="mt-3 grid gap-3">
+                {order.status === "ASSIGNED" && (
+                  <button
+                    type="button"
+                    disabled={statusMutation.isPending}
+                    onClick={() =>
+                      statusMutation.mutate({ orderId: order.id, status: "IN_PROGRESS" })
+                    }
+                    className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    Начать ремонт
+                  </button>
+                )}
+                {order.status === "IN_PROGRESS" && (
+                  <button
+                    type="button"
+                    disabled={statusMutation.isPending}
+                    onClick={() =>
+                      statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
+                    }
+                    className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    Готова к выдаче
+                  </button>
+                )}
+              </div>
             )}
             {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (
               <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
@@ -365,6 +485,9 @@ const OrdersPage = () => {
                   ₽
                 </p>
               </div>
+            )}
+            {user?.role === "CUSTOMER" && order.status === "COMPLETED" && !order.review && (
+              <RepairOrderReviewForm orderId={order.id} serviceNumber={order.serviceNumber} />
             )}
           </SectionCard>
         ))}
