@@ -309,7 +309,9 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
                 onRefresh={refresh}
               />
             )}
-            {orderId && token && <RepairOrderChat token={token} orderId={order.id} defaultOpen />}
+            {token && (orderId || isAdmin) && (
+              <RepairOrderChat token={token} orderId={order.id} defaultOpen={Boolean(orderId)} />
+            )}
             {order.expectedCompletionAt && (
               <p className="mt-3 text-xs text-slate-500">
                 Ориентировочное завершение:{" "}
