@@ -17,6 +17,9 @@ export const RepairOrderEditor = ({
   catalogItems,
   isCatalogLoading,
   isCatalogError,
+  isEditing: controlledIsEditing,
+  onEditingChange,
+  showEditToggle = true,
   onRefresh,
 }: {
   order: RepairOrder;
@@ -24,9 +27,17 @@ export const RepairOrderEditor = ({
   catalogItems: RepairCatalogItem[];
   isCatalogLoading: boolean;
   isCatalogError: boolean;
+  isEditing?: boolean;
+  onEditingChange?: (isEditing: boolean) => void;
+  showEditToggle?: boolean;
   onRefresh: () => Promise<unknown>;
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
+  const [localIsEditing, setLocalIsEditing] = useState(false);
+  const isEditing = controlledIsEditing ?? localIsEditing;
+  const setIsEditing = (next: boolean) => {
+    if (controlledIsEditing === undefined) setLocalIsEditing(next);
+    onEditingChange?.(next);
+  };
   const [deviceType, setDeviceType] = useState(order.deviceType);
   const [catalogItemId, setCatalogItemId] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -162,22 +173,26 @@ export const RepairOrderEditor = ({
         )}
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
-        <div>
-          <h4 className="text-sm font-semibold">Данные заявки</h4>
-          <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
-            Тип устройства, неисправность и контактная информация клиента.
-          </p>
+      {(showEditToggle || isEditing) && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/30">
+          <div>
+            <h4 className="text-sm font-semibold">Данные заявки</h4>
+            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+              Тип устройства, неисправность и контактная информация клиента.
+            </p>
+          </div>
+          {showEditToggle && (
+            <button
+              type="button"
+              onClick={() => setIsEditing(!isEditing)}
+              aria-expanded={isEditing}
+              className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              {isEditing ? "Закрыть редактирование" : "Редактировать заявку"}
+            </button>
+          )}
         </div>
-        <button
-          type="button"
-          onClick={() => setIsEditing((value) => !value)}
-          aria-expanded={isEditing}
-          className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
-        >
-          {isEditing ? "Закрыть редактирование" : "Редактировать заявку"}
-        </button>
-      </div>
+      )}
 
       {isEditing && (
         <form

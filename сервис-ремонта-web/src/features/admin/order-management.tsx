@@ -55,6 +55,7 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
   const client = useQueryClient();
   const [search, setSearch] = useState("");
   const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const isAdmin = user?.role === "ADMIN";
   const staff = useQuery({
     queryKey: ["staff", token],
@@ -174,13 +175,25 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
               <div>
                 <p className="text-xs font-semibold text-blue-600">{order.serviceNumber}</p>
                 {!orderId && (
-                  <Link
-                    to="/admin/orders/$orderId"
-                    params={{ orderId: order.id }}
-                    className="mt-1 inline-flex text-xs font-semibold text-blue-600 underline-offset-2 hover:underline"
-                  >
-                    Открыть заявку и чат
-                  </Link>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      aria-expanded={editingOrderId === order.id}
+                      onClick={() =>
+                        setEditingOrderId((current) => (current === order.id ? null : order.id))
+                      }
+                      className="min-h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white hover:bg-blue-700"
+                    >
+                      {editingOrderId === order.id ? "Закрыть редактирование" : "Редактировать"}
+                    </button>
+                    <Link
+                      to="/admin/orders/$orderId"
+                      params={{ orderId: order.id }}
+                      className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-blue-700 hover:bg-slate-50 dark:border-slate-700 dark:text-blue-300 dark:hover:bg-slate-800"
+                    >
+                      Открыть заявку и чат
+                    </Link>
+                  </div>
                 )}
                 {order.archivedAt && (
                   <p className="mt-1 inline-flex rounded-full border border-violet-300/40 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-800 dark:border-[#9b7bff]/40 dark:bg-[#241b45] dark:text-[#d4c4ff]">
@@ -290,6 +303,9 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
                 catalogItems={catalog.data?.catalogItems ?? []}
                 isCatalogLoading={catalog.isLoading}
                 isCatalogError={catalog.isError}
+                isEditing={!orderId && editingOrderId === order.id}
+                onEditingChange={(isEditing) => setEditingOrderId(isEditing ? order.id : null)}
+                showEditToggle={Boolean(orderId)}
                 onRefresh={refresh}
               />
             )}
