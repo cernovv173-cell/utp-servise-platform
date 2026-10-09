@@ -31,7 +31,6 @@ import { useAuth } from "@/features/auth/auth-context";
 const links = [
   { to: "/", label: "Главная", icon: Home },
   { to: "/orders", label: "Заявки", icon: ClipboardList },
-  { to: "/chats", label: "Чаты", icon: MessageCircle },
   { to: "/catalog", label: "Каталог ремонта", icon: Boxes },
   { to: "/checks", label: "Чеки и номера", icon: FileText },
   { to: "/news", label: "Новости", icon: Newspaper },
@@ -86,13 +85,13 @@ export const AppShell = ({ active, children }: { active: string; children: React
   }
 
   const nav = links.filter((link) => {
-    if (link.to === "/chats") return user.role === "ADMIN" || user.role === "CUSTOMER";
     if (link.to === "/advertising") return user.role === "ADMIN";
     if (link.to === "/catalog" || link.to === "/salary")
       return user.role === "TECHNICIAN" || user.role === "ADMIN";
     if (link.to === "/loyalty") return user.role === "CUSTOMER";
     return true;
   });
+  const showChatsTab = user.role === "ADMIN" || user.role === "CUSTOMER";
   return (
     <div className="app-shell min-h-dvh bg-slate-50/80 text-slate-900 dark:bg-transparent dark:text-[#edf2ff]">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)]">
@@ -116,6 +115,15 @@ export const AppShell = ({ active, children }: { active: string; children: React
               {label}
             </Link>
           ))}
+          {showChatsTab && (
+            <Link
+              to="/chats"
+              className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition ${active === "/chats" ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
+            >
+              <MessageCircle size={18} />
+              Чаты
+            </Link>
+          )}
           {user.role === "ADMIN" && (
             <>
               <Link
