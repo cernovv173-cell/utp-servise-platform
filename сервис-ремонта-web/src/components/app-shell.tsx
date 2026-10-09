@@ -39,7 +39,7 @@ const links = [
   { to: "/news", label: "Новости", icon: Newspaper },
   { to: "/loyalty", label: "Бонусы", icon: Star },
   { to: "/salary", label: "Зарплата", icon: Wallet },
-  { to: "/crafts", label: "Рукоделия", icon: Sparkles },
+  { to: "/crafts", label: "Ручная работа", icon: Sparkles },
   { to: "/about", label: "О компании", icon: UsersRound },
   { to: "/reviews", label: "Отзывы", icon: Bell },
   { to: "/advertising", label: "Реклама", icon: Megaphone },
