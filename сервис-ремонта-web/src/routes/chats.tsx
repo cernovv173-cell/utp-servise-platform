@@ -30,7 +30,8 @@ const statusLabels: Record<string, string> = {
 const ChatsPage = () => {
   const { token, user } = useAuth();
   const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
-  const canViewChats = user?.role === "ADMIN" || user?.role === "CUSTOMER";
+  const canViewChats =
+    user?.role === "ADMIN" || user?.role === "CUSTOMER" || user?.role === "TECHNICIAN";
   const orders = useQuery({
     queryKey: ["orders", token, archiveView],
     queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
@@ -45,13 +46,15 @@ const ChatsPage = () => {
         description={
           user?.role === "ADMIN"
             ? "Переписки с клиентами сгруппированы по заявкам. Откройте нужный чат, чтобы ответить."
-            : "Выберите свою заявку, чтобы написать администратору сервиса."
+            : user?.role === "TECHNICIAN"
+              ? "Здесь собраны чаты назначенных вам заказов. При необходимости можно позвать администратора."
+              : "Выберите свою заявку, чтобы написать администратору сервиса."
         }
       />
       {!canViewChats ? (
         <SectionCard>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Вкладка чатов доступна администраторам и клиентам.
+            Вкладка чатов доступна клиентам, мастерам и администраторам.
           </p>
         </SectionCard>
       ) : (
