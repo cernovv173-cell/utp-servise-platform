@@ -241,7 +241,7 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
                 />
               </label>
               <label className="grid gap-1 text-xs font-medium">
-                Назначить мастера
+                {order.assignedTechnicianId ? "Изменить мастера" : "Назначить мастера"}
                 <Select
                   ariaLabel={`Мастер для заявки ${order.serviceNumber}`}
                   value={order.assignedTechnicianId ?? undefined}
@@ -251,7 +251,7 @@ export const OrderManagement = ({ orderId }: { orderId?: string } = {}) => {
                   }
                   disabled={
                     mutate.isPending ||
-                    ["COMPLETED", "CANCELLED", "IN_PROGRESS"].includes(order.status)
+                    ["COMPLETED", "CANCELLED", "READY_FOR_PICKUP"].includes(order.status)
                   }
                   options={[
                     ...activeTechnicians.map((member) => ({

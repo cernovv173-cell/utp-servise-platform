@@ -203,6 +203,9 @@ const orderItemBody = z
     quantity: z.number().int().min(1).max(99),
   })
   .strict();
+const orderItemQuantityBody = z
+  .object({ quantity: z.number().int().min(1).max(99) })
+  .strict();
 const reviewBody = z
   .object({
     orderId: z.string().uuid(),
@@ -1094,11 +1097,15 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (!current)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
-        if (current.status !== "REQUESTED" && current.status !== "ASSIGNED") {
+        if (
+          current.status !== "REQUESTED" &&
+          current.status !== "ASSIGNED" &&
+          current.status !== "IN_PROGRESS"
+        ) {
           throw new HttpError(
             409,
             "ORDER_NOT_ASSIGNABLE",
-            "Назначить мастера можно только для новой заявки или заявки в статусе назначения.",
+            "Мастера можно менять только пока заявка не готова к выдаче.",
           );
         }
         const nextStatus =
@@ -1653,6 +1660,113 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         "Изменён состав услуг, запчастей или товаров по заявке.",
       );
       response.status(201).json({ order });
+    },
+  );
+
+  router.patch(
+    "/orders/:orderId/items/:itemId",
+    requireAuth,
+    requireRoles("ADMIN", "TECHNICIAN"),
+    validateRequest({ params: orderItemParams, body: orderItemQuantityBody }),
+    async (_request, response) => {
+      const { orderId, itemId } =
+        paramsOf<z.infer<typeof orderItemParams>>(response);
+      const { quantity } =
+        bodyOf<z.infer<typeof orderItemQuantityBody>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
+        `;
+        const currentOrder = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          select: {
+            id: true,
+            assignedTechnicianId: true,
+            status: true,
+            receipt: { select: { paymentStatus: true } },
+          },
+        });
+        if (
+          !currentOrder ||
+          !canAddRepairOrderItem(user.role, user.id, currentOrder)
+        ) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
+        if (
+          currentOrder.status === "COMPLETED" ||
+          currentOrder.status === "CANCELLED" ||
+          currentOrder.receipt?.paymentStatus === "PAID"
+        ) {
+          throw new HttpError(
+            409,
+            "ORDER_NOT_EDITABLE",
+            "Нельзя изменить состав закрытой или оплаченной заявки.",
+          );
+        }
+        const item = await transaction.repairOrderItem.findFirst({
+          where: { id: itemId, orderId },
+        });
+        if (!item) {
+          throw new HttpError(
+            404,
+            "ORDER_ITEM_NOT_FOUND",
+            "Позиция не найдена в этой заявке.",
+          );
+        }
+        const quantityDelta = quantity - item.quantity;
+        if (
+          quantityDelta !== 0 &&
+          isInventoryCatalogItem(item.type) &&
+          item.catalogItemId
+        ) {
+          const catalogItem = await transaction.repairCatalogItem.findUnique({
+            where: { id: item.catalogItemId },
+            select: { stockQuantity: true },
+          });
+          if (catalogItem && catalogItem.stockQuantity !== null) {
+            if (quantityDelta > 0) {
+              const stockUpdate =
+                await transaction.repairCatalogItem.updateMany({
+                  where: {
+                    id: item.catalogItemId,
+                    stockQuantity: { gte: quantityDelta },
+                  },
+                  data: { stockQuantity: { decrement: quantityDelta } },
+                });
+              if (stockUpdate.count !== 1) {
+                throw new HttpError(
+                  409,
+                  item.type === "PRODUCT"
+                    ? "INSUFFICIENT_PRODUCT_STOCK"
+                    : "INSUFFICIENT_SPARE_PART_STOCK",
+                  `Недостаточно ${item.type === "PRODUCT" ? "товара" : "запчастей"} на складе для изменения количества.`,
+                );
+              }
+            } else {
+              await transaction.repairCatalogItem.updateMany({
+                where: { id: item.catalogItemId },
+                data: { stockQuantity: { increment: -quantityDelta } },
+              });
+            }
+          }
+        }
+        await transaction.repairOrderItem.update({
+          where: { id: item.id },
+          data: { quantity },
+        });
+        return transaction.repairOrder.findUniqueOrThrow({
+          where: { id: orderId },
+          include: orderDetails(user.role),
+        });
+      });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        user.id,
+        "Изменено количество позиции в составе заявки.",
+      );
+      response.json({ order });
     },
   );
 

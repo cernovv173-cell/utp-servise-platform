@@ -22,7 +22,7 @@ test("tracked spare parts are decremented on add and restored on removal", async
     active: true,
     mustChangePassword: false,
   };
-  let stockQuantity = 3;
+  let stockQuantity: number | null = 3;
   let activeItemType = "SPARE_PART";
   let orderStatus = "IN_PROGRESS";
   const items: Array<Record<string, unknown>> = [];
@@ -52,6 +52,7 @@ test("tracked spare parts are decremented on add and restored on removal", async
       }),
     },
     repairCatalogItem: {
+      findUnique: async () => ({ stockQuantity }),
       findFirst: async () => ({
         id: catalogItemId,
         type: activeItemType,
@@ -68,6 +69,7 @@ test("tracked spare parts are decremented on add and restored on removal", async
         data: { stockQuantity: { decrement?: number; increment?: number } };
       }) => {
         if (where.id !== catalogItemId) return { count: 0 };
+        if (stockQuantity === null) return { count: 0 };
         if (
           where.stockQuantity?.gte !== undefined &&
           stockQuantity < where.stockQuantity.gte
@@ -86,13 +88,32 @@ test("tracked spare parts are decremented on add and restored on removal", async
         items.push(item);
         return item;
       },
-      findFirst: async () => items[0] ?? null,
+      findFirst: async ({
+        where,
+      }: {
+        where: { id: string; orderId: string };
+      }) =>
+        items.find(
+          (item) => item.id === where.id && item.orderId === where.orderId,
+        ) ?? null,
       findMany: async () =>
         items.filter(
           (item) =>
             (item.type === "SPARE_PART" || item.type === "PRODUCT") &&
             item.catalogItemId,
         ),
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: { quantity: number };
+      }) => {
+        const item = items.find((entry) => entry.id === where.id);
+        assert.ok(item);
+        Object.assign(item, data);
+        return item;
+      },
       delete: async () => {
         const [item] = items.splice(0, 1);
         return item;
@@ -130,6 +151,42 @@ test("tracked spare parts are decremented on add and restored on removal", async
   const added = await addItem(2);
   assert.equal(added.status, 201);
   assert.equal(stockQuantity, 1);
+
+  const excessQuantity = await fetch(`${baseUrl}/${orderItemId}`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ quantity: 4 }),
+  });
+  assert.equal(excessQuantity.status, 409);
+  assert.equal(stockQuantity, 1);
+  assert.equal(items[0]?.quantity, 2);
+
+  const increased = await fetch(`${baseUrl}/${orderItemId}`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ quantity: 3 }),
+  });
+  assert.equal(increased.status, 200);
+  assert.equal(stockQuantity, 0);
+  assert.equal(items[0]?.quantity, 3);
+
+  const decreased = await fetch(`${baseUrl}/${orderItemId}`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ quantity: 2 }),
+  });
+  assert.equal(decreased.status, 200);
+  assert.equal(stockQuantity, 1);
+  assert.equal(items[0]?.quantity, 2);
 
   const overdrawn = await addItem(2);
   assert.equal(overdrawn.status, 409);
@@ -184,4 +241,22 @@ test("tracked spare parts are decremented on add and restored on removal", async
   assert.equal(cancelled.status, 200);
   assert.equal(orderStatus, "CANCELLED");
   assert.equal(stockQuantity, 3);
+
+  orderStatus = "IN_PROGRESS";
+  stockQuantity = null;
+  items.splice(0, items.length);
+  const untrackedItem = await addItem(2);
+  assert.equal(untrackedItem.status, 201);
+  assert.equal(stockQuantity, null);
+  const updatedUntrackedQuantity = await fetch(`${baseUrl}/${orderItemId}`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ quantity: 3 }),
+  });
+  assert.equal(updatedUntrackedQuantity.status, 200);
+  assert.equal(stockQuantity, null);
+  assert.equal(items[0]?.quantity, 3);
 });

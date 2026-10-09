@@ -504,6 +504,22 @@ export const addRepairOrderItem = (
     body: JSON.stringify({ catalogItemId, quantity }),
   });
 
+export const updateRepairOrderItemQuantity = (
+  token: string,
+  orderId: string,
+  itemId: string,
+  quantity: number,
+) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/items/${itemId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ quantity }),
+  });
+
+export const removeRepairOrderItem = (token: string, orderId: string, itemId: string) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/items/${itemId}`, token, {
+    method: "DELETE",
+  });
+
 export const getNews = (token: string, signal?: AbortSignal) =>
   apiRequest<{
     articles: NewsArticle[];
