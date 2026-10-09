@@ -25,9 +25,11 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SalaryRouteImport } from './routes/salary'
+import { Route as SupportRouteImport } from './routes/support'
 import { Route as YandexTokenRouteImport } from './routes/yandex-token'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -110,6 +112,11 @@ const SalaryRoute = SalaryRouteImport.update({
   path: '/salary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SupportRoute = SupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const YandexTokenRoute = YandexTokenRouteImport.update({
   id: '/yandex-token',
   path: '/yandex-token',
@@ -124,6 +131,11 @@ const AdminOrdersRoute = AdminOrdersRouteImport.update({
   id: '/orders',
   path: '/orders',
   getParentRoute: () => AdminRoute,
+} as any)
+const SupportCustomerIdRoute = SupportCustomerIdRouteImport.update({
+  id: '/$customerId',
+  path: '/$customerId',
+  getParentRoute: () => SupportRoute,
 } as any)
 const AdminOrdersOrderIdRoute = AdminOrdersOrderIdRouteImport.update({
   id: '/$orderId',
@@ -148,9 +160,11 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
+  '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRoutesByTo {
@@ -170,9 +184,11 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
+  '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRoutesById {
@@ -193,9 +209,11 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
+  '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRouteTypes {
@@ -217,9 +235,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/support'
     | '/yandex-token'
     | '/admin/customers'
     | '/admin/orders'
+    | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -239,9 +259,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/support'
     | '/yandex-token'
     | '/admin/customers'
     | '/admin/orders'
+    | '/support/$customerId'
     | '/admin/orders/$orderId'
   id:
     | '__root__'
@@ -261,9 +283,11 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/support'
     | '/yandex-token'
     | '/admin/customers'
     | '/admin/orders'
+    | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesById: FileRoutesById
 }
@@ -284,6 +308,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ReviewsRoute: typeof ReviewsRoute
   SalaryRoute: typeof SalaryRoute
+  SupportRoute: typeof SupportRouteWithChildren
   YandexTokenRoute: typeof YandexTokenRoute
 }
 
@@ -401,6 +426,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/support': {
+      id: '/support'
+      path: '/support'
+      fullPath: '/support'
+      preLoaderRoute: typeof SupportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/yandex-token': {
       id: '/yandex-token'
       path: '/yandex-token'
@@ -421,6 +453,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/orders'
       preLoaderRoute: typeof AdminOrdersRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/support/$customerId': {
+      id: '/support/$customerId'
+      path: '/$customerId'
+      fullPath: '/support/$customerId'
+      preLoaderRoute: typeof SupportCustomerIdRouteImport
+      parentRoute: typeof SupportRoute
     }
     '/admin/orders/$orderId': {
       id: '/admin/orders/$orderId'
@@ -456,6 +495,17 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface SupportRouteChildren {
+  SupportCustomerIdRoute: typeof SupportCustomerIdRoute
+}
+
+const SupportRouteChildren: SupportRouteChildren = {
+  SupportCustomerIdRoute: SupportCustomerIdRoute,
+}
+
+const SupportRouteWithChildren =
+  SupportRoute._addFileChildren(SupportRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -473,6 +523,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ReviewsRoute: ReviewsRoute,
   SalaryRoute: SalaryRoute,
+  SupportRoute: SupportRouteWithChildren,
   YandexTokenRoute: YandexTokenRoute,
 }
 export const routeTree = rootRouteImport

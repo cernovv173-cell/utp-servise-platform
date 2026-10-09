@@ -8,6 +8,7 @@ import {
   getRepairOrderChat,
   joinAdminToRepairOrderChat,
   markRepairOrderChatRead,
+  requestRepairOrderChatAdministrator,
   sendRepairOrderChatMessage,
 } from "@/lib/api";
 
@@ -26,6 +27,7 @@ export const RepairOrderChat = ({
   const [content, setContent] = useState("");
   const lastReadMessageId = useRef<string | null>(null);
   const isAdmin = user?.role === "ADMIN";
+  const isTechnician = user?.role === "TECHNICIAN";
   const queryKey = ["repair-order-chat", token, orderId];
   const chat = useQuery({
     queryKey,
@@ -38,6 +40,15 @@ export const RepairOrderChat = ({
     mutationFn: () => joinAdminToRepairOrderChat(token, orderId),
     onSuccess: refresh,
     onError: () => toast.error("Не удалось открыть чат этой заявки."),
+  });
+  const requestAdministrator = useMutation({
+    mutationFn: () => requestRepairOrderChatAdministrator(token, orderId),
+    onSuccess: async () => {
+      await refresh();
+      toast.success("Запрос на подключение отправлен администраторам.");
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Не удалось позвать администратора."),
   });
   const send = useMutation({
     mutationFn: (message: string) => sendRepairOrderChatMessage(token, orderId, message),
@@ -58,7 +69,8 @@ export const RepairOrderChat = ({
     },
   });
   const isJoined = Boolean(chat.data?.chat.adminJoinedAt);
-  const canSend = user?.role === "CUSTOMER" || (isAdmin && isJoined);
+  const adminRequested = Boolean(chat.data?.chat.adminRequestedAt);
+  const canSend = user?.role === "CUSTOMER" || isTechnician || (isAdmin && isJoined);
   const latestMessageId = chat.data?.chat.messages.at(-1)?.id;
   const markRead = read.mutate;
   const isMarkingRead = read.isPending;
@@ -87,14 +99,20 @@ export const RepairOrderChat = ({
           ? "Скрыть переписку"
           : isAdmin
             ? "Открыть чат с клиентом"
-            : "Написать администратору"}
+            : isTechnician
+              ? "Открыть чат заявки"
+              : "Написать администратору"}
       </button>
       {isOpen && (
         <>
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="font-semibold">
-                {isAdmin ? "Чат с клиентом" : "Чат с администратором"}
+                {isAdmin
+                  ? "Чат с клиентом"
+                  : isTechnician
+                    ? "Чат по заявке"
+                    : "Чат с администратором"}
               </h3>
               <p className="mt-1 text-sm text-slate-500">
                 Переписка доступна участникам этой заявки.
@@ -108,6 +126,22 @@ export const RepairOrderChat = ({
                 className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {join.isPending ? "Подключаемся…" : "Подключиться к чату"}
+              </button>
+            )}
+            {isTechnician && !isJoined && (
+              <button
+                type="button"
+                onClick={() => requestAdministrator.mutate()}
+                disabled={
+                  adminRequested || requestAdministrator.isPending || chat.isLoading || chat.isError
+                }
+                className="min-h-10 rounded-lg border border-blue-200 px-4 text-sm font-semibold text-blue-700 disabled:opacity-50 dark:border-blue-900 dark:text-blue-300"
+              >
+                {requestAdministrator.isPending
+                  ? "Отправляем запрос…"
+                  : adminRequested
+                    ? "Администратор уведомлён"
+                    : "Позвать администратора"}
               </button>
             )}
           </div>
@@ -155,14 +189,16 @@ export const RepairOrderChat = ({
               }}
             >
               <label className="sr-only" htmlFor={`repair-message-${orderId}`}>
-                Сообщение {isAdmin ? "клиенту" : "администратору"} по заявке
+                Сообщение {isAdmin ? "клиенту" : "по заявке"}
               </label>
               <input
                 id={`repair-message-${orderId}`}
                 value={content}
                 onChange={(event) => setContent(event.currentTarget.value)}
                 maxLength={2000}
-                placeholder={`Напишите ${isAdmin ? "клиенту" : "администратору"} по заявке…`}
+                placeholder={
+                  isAdmin ? "Напишите клиенту по заявке…" : "Напишите сообщение по заявке…"
+                }
                 className="h-10 min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950"
               />
               <button
@@ -175,7 +211,7 @@ export const RepairOrderChat = ({
             </form>
           ) : (
             <p className="mt-3 text-xs text-slate-500">
-              Для ответа клиенту администратор должен подключиться к переписке.
+              Для отправки ответа администратор должен подключиться к переписке.
             </p>
           )}
         </>

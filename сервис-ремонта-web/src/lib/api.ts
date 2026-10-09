@@ -105,6 +105,39 @@ export type AdminRepairChatNotifications = {
   }[];
 };
 
+export type SupportChatMessage = {
+  id: string;
+  senderId: string | null;
+  content: string;
+  createdAt: string;
+  sender: { id: string; displayName: string; role: Role } | null;
+};
+
+export type SupportChat = {
+  id: string | null;
+  customerId: string;
+  customer: {
+    id: string;
+    displayName: string;
+    email: string;
+    phoneNumber: string | null;
+  };
+  messages: SupportChatMessage[];
+};
+
+export type SupportChatInboxItem = {
+  id: string;
+  customer: { id: string; displayName: string; email: string };
+  updatedAt: string;
+  messages: Array<{
+    id: string;
+    senderId: string;
+    content: string;
+    createdAt: string;
+    sender: { displayName: string; role: Role } | null;
+  }>;
+};
+
 export type RepairOrderIntake = {
   id: string;
   orderId: string;
@@ -828,6 +861,11 @@ export const joinAdminToRepairOrderChat = (token: string, id: string) =>
     method: "POST",
   });
 
+export const requestRepairOrderChatAdministrator = (token: string, id: string) =>
+  apiRequest<{ chat: RepairOrderChat }>(`/orders/${id}/chat/request-admin`, token, {
+    method: "POST",
+  });
+
 export const sendRepairOrderChatMessage = (token: string, id: string, content: string) =>
   apiRequest<{ chat: RepairOrderChat }>(`/orders/${id}/chat/messages`, token, {
     method: "POST",
@@ -836,6 +874,27 @@ export const sendRepairOrderChatMessage = (token: string, id: string, content: s
 
 export const sendCraftOrderChatMessage = (token: string, id: string, content: string) =>
   apiRequest<{ chat: CraftOrderChat }>(`/craft-orders/${id}/chat/messages`, token, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+
+export const getSupportChat = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ chat: SupportChat }>("/support/chat", token, { signal });
+
+export const sendSupportChatMessage = (token: string, content: string) =>
+  apiRequest<{ chat: SupportChat }>("/support/chat/messages", token, {
+    method: "POST",
+    body: JSON.stringify({ content }),
+  });
+
+export const getAdminSupportChats = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ chats: SupportChatInboxItem[] }>("/admin/support/chats", token, { signal });
+
+export const getAdminSupportChat = (token: string, customerId: string, signal?: AbortSignal) =>
+  apiRequest<{ chat: SupportChat }>(`/admin/support/chats/${customerId}`, token, { signal });
+
+export const sendAdminSupportMessage = (token: string, customerId: string, content: string) =>
+  apiRequest<{ chat: SupportChat }>(`/admin/support/chats/${customerId}/messages`, token, {
     method: "POST",
     body: JSON.stringify({ content }),
   });

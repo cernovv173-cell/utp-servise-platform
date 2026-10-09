@@ -338,7 +338,7 @@ const OrdersPage = () => {
                 )}
               </div>
             )}
-            {token && user?.role === "CUSTOMER" && (
+            {token && (user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
               <RepairOrderChat token={token} orderId={order.id} />
             )}
             {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (

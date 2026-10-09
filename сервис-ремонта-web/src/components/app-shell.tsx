@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileText,
   Home,
+  LifeBuoy,
   LogOut,
   Megaphone,
   MessageCircle,
@@ -26,6 +27,7 @@ import { AppInstallButton } from "@/components/app-install-button";
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { IncomingOrderNotifications } from "@/features/admin/incoming-order-notifications";
 import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
+import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
 
 const links = [
@@ -41,6 +43,7 @@ const links = [
   { to: "/reviews", label: "Отзывы", icon: Bell },
   { to: "/advertising", label: "Реклама", icon: Megaphone },
   { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
+  { to: "/support", label: "Поддержка", icon: LifeBuoy },
 ];
 
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
@@ -85,6 +88,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
   }
 
   const nav = links.filter((link) => {
+    if (link.to === "/support") return user.role === "ADMIN" || user.role === "CUSTOMER";
     if (link.to === "/advertising") return user.role === "ADMIN";
     if (link.to === "/catalog" || link.to === "/salary")
       return user.role === "TECHNICIAN" || user.role === "ADMIN";
@@ -165,6 +169,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </span>
             <IncomingOrderNotifications />
             {user.role === "ADMIN" && <RepairChatNotifications />}
+            {user.role === "ADMIN" && <SupportChatNotifications />}
             <button
               aria-label="Переключить тему"
               onClick={() => setDark((value) => !value)}
