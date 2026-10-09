@@ -58,16 +58,14 @@ const localDateTime = (value: string | null) => {
 export const OrderManagement = ({
   orderId,
   editingWorkspace = false,
-  initialView = "active",
 }: {
   orderId?: string;
   editingWorkspace?: boolean;
-  initialView?: OrderListView;
 } = {}) => {
   const { token, user } = useAuth();
   const client = useQueryClient();
   const [search, setSearch] = useState("");
-  const [listView, setListView] = useState<OrderListView>(initialView);
+  const [listView, setListView] = useState<OrderListView>("active");
   const archiveView = archiveForOrderListView(listView);
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const isAdmin = user?.role === "ADMIN";

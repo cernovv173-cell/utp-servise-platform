@@ -3,7 +3,6 @@ import { Archive, ClipboardList, History } from "lucide-react";
 import type { OrderListView } from "./order-list-view";
 
 const views: Array<{ id: OrderListView; label: string; icon: typeof ClipboardList }> = [
-  { id: "new", label: "Новые", icon: ClipboardList },
   { id: "active", label: "Активные", icon: ClipboardList },
   { id: "history", label: "История ремонтов", icon: History },
   { id: "archived", label: "Архив", icon: Archive },

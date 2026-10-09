@@ -6,7 +6,6 @@ import { SectionCard } from "@/components/app-shell";
 import { useAuth } from "@/features/auth/auth-context";
 
 import { createNews, getNews, updateNews } from "@/lib/api";
-import type { NewsArticle } from "@/lib/api";
 
 const localDateValue = (value: string | null) => {
   if (!value) return "";
@@ -19,7 +18,6 @@ export const NewsAdmin = () => {
   const { token } = useAuth();
   const client = useQueryClient();
   const [error, setError] = useState("");
-  const [editingArticle, setEditingArticle] = useState<NewsArticle | null>(null);
   const query = useQuery({
     queryKey: ["news", token],
     queryFn: ({ signal }) => getNews(token!, signal),
@@ -30,8 +28,13 @@ export const NewsAdmin = () => {
     onSuccess: () => client.invalidateQueries({ queryKey: ["news", token] }),
   });
   const update = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<NewsArticle> }) =>
-      updateNews(token!, id, data),
+    mutationFn: ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: { isPublished?: boolean; isFeatured?: boolean };
+    }) => updateNews(token!, id, data),
     onSuccess: () => client.invalidateQueries({ queryKey: ["news", token] }),
   });
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -45,55 +48,27 @@ export const NewsAdmin = () => {
       setError("Дата окончания должна быть позже даты начала.");
       return;
     }
-    const data = {
-      title: String(form.get("title")),
-      content: String(form.get("content")),
-      isPublished: form.get("isPublished") === "on",
-      startsAt: startsAt ? new Date(startsAt).toISOString() : null,
-      endsAt: endsAt ? new Date(endsAt).toISOString() : null,
-      isFeatured: form.get("isFeatured") === "on",
-    };
-    const onSaved = () => {
-      formElement.reset();
-      setEditingArticle(null);
-    };
-    if (editingArticle) {
-      update.mutate({ id: editingArticle.id, data }, { onSuccess: onSaved });
-    } else {
-      save.mutate(data, { onSuccess: onSaved });
-    }
+    save.mutate(
+      {
+        title: String(form.get("title")),
+        content: String(form.get("content")),
+        isPublished: form.get("isPublished") === "on",
+        startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+        endsAt: endsAt ? new Date(endsAt).toISOString() : null,
+        isFeatured: form.get("isFeatured") === "on",
+      },
+      { onSuccess: () => formElement.reset() },
+    );
   };
-  const now = query.dataUpdatedAt;
+  const now = Date.now();
   return (
     <div className="grid gap-5">
       <SectionCard>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="font-semibold">
-              {editingArticle ? "Редактирование публикации" : "Новая новость или акция"}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Публикация может начаться и закончиться автоматически по расписанию.
-            </p>
-          </div>
-          {editingArticle && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingArticle(null);
-                setError("");
-              }}
-              className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
-            >
-              Отменить
-            </button>
-          )}
-        </div>
-        <form
-          key={editingArticle?.id ?? "new-article"}
-          onSubmit={submit}
-          className="mt-5 grid gap-4 md:grid-cols-2"
-        >
+        <h2 className="font-semibold">Новая новость или акция</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Публикация может начаться и закончиться автоматически по расписанию.
+        </p>
+        <form onSubmit={submit} className="mt-5 grid gap-4 md:grid-cols-2">
           <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
             Заголовок
             <input
@@ -101,7 +76,6 @@ export const NewsAdmin = () => {
               required
               minLength={3}
               maxLength={160}
-              defaultValue={editingArticle?.title ?? ""}
               className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
@@ -113,7 +87,6 @@ export const NewsAdmin = () => {
               minLength={5}
               maxLength={8000}
               rows={4}
-              defaultValue={editingArticle?.content ?? ""}
               className="rounded-xl border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
@@ -122,7 +95,6 @@ export const NewsAdmin = () => {
             <input
               type="datetime-local"
               name="startsAt"
-              defaultValue={localDateValue(editingArticle?.startsAt ?? null)}
               className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
             />
             <span className="text-xs text-slate-400">
@@ -134,7 +106,6 @@ export const NewsAdmin = () => {
             <input
               type="datetime-local"
               name="endsAt"
-              defaultValue={localDateValue(editingArticle?.endsAt ?? null)}
               className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
             />
             <span className="text-xs text-slate-400">
@@ -145,34 +116,25 @@ export const NewsAdmin = () => {
             <input
               name="isPublished"
               type="checkbox"
-              defaultChecked={editingArticle?.isPublished ?? true}
+              defaultChecked
               className="size-4 accent-blue-600"
             />
             Опубликовать (иначе сохранить черновиком)
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <input
-              name="isFeatured"
-              type="checkbox"
-              defaultChecked={editingArticle?.isFeatured ?? false}
-              className="size-4 accent-blue-600"
-            />
+            <input name="isFeatured" type="checkbox" className="size-4 accent-blue-600" />
             Показывать в приоритетном блоке главной
           </label>
-          {(error || save.isError || update.isError) && (
+          {(error || save.isError) && (
             <p role="alert" className="text-sm text-rose-600 md:col-span-2">
               {error || "Не удалось сохранить новость."}
             </p>
           )}
           <button
-            disabled={save.isPending || update.isPending}
+            disabled={save.isPending}
             className="min-h-11 justify-self-start rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white disabled:opacity-60"
           >
-            {save.isPending || update.isPending
-              ? "Сохраняем…"
-              : editingArticle
-                ? "Сохранить изменения"
-                : "Сохранить новость"}
+            {save.isPending ? "Сохраняем…" : "Сохранить новость"}
           </button>
         </form>
       </SectionCard>
@@ -201,16 +163,6 @@ export const NewsAdmin = () => {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setError("");
-                      setEditingArticle(item);
-                    }}
-                    className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
-                  >
-                    Редактировать
-                  </button>
                   <button
                     onClick={() =>
                       update.mutate({ id: item.id, data: { isFeatured: !item.isFeatured } })

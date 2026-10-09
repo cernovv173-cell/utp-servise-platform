@@ -65,7 +65,7 @@ const CraftsPage = () => {
     <AppShell active="/crafts">
       <PageTitle
         eyebrow="МАСТЕРСКАЯ"
-        title="Ручная работа"
+        title="Рукоделия"
         description="Готовые изделия и изготовление под заказ. Оформите заявку — администратор подтвердит наличие и сроки."
       />
       <CampaignPlacement placement="CRAFTS" className="mb-5" />

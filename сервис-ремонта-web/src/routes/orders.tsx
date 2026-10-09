@@ -11,11 +11,10 @@ import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { CustomerPickupQr } from "@/features/orders/customer-pickup-qr";
 import {
-  type OrderListView,
   archiveForOrderListView,
   filterOrdersForListView,
-  isOrderListView,
 } from "@/features/orders/order-list-view";
+import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
@@ -51,9 +50,8 @@ const deviceLabels: Record<string, string> = {
 const OrdersPage = () => {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
-  const { view } = Route.useSearch();
   const [formOpen, setFormOpen] = useState(false);
-  const [listView, setListView] = useState<OrderListView>(view ?? "active");
+  const [listView, setListView] = useState<OrderListView>("active");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const archiveView = archiveForOrderListView(listView);
@@ -509,8 +507,4 @@ const OrdersPage = () => {
   );
 };
 
-export const Route = createFileRoute("/orders")({
-  validateSearch: (search: Record<string, unknown>): { view?: OrderListView } =>
-    isOrderListView(search.view) ? { view: search.view } : {},
-  component: OrdersPage,
-});
+export const Route = createFileRoute("/orders")({ component: OrdersPage });
