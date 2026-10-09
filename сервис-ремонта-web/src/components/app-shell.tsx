@@ -9,6 +9,7 @@ import {
   Home,
   LogOut,
   Megaphone,
+  MessageCircle,
   Moon,
   Newspaper,
   Power,
@@ -30,6 +31,7 @@ import { useAuth } from "@/features/auth/auth-context";
 const links = [
   { to: "/", label: "Главная", icon: Home },
   { to: "/orders", label: "Заявки", icon: ClipboardList },
+  { to: "/chats", label: "Чаты", icon: MessageCircle },
   { to: "/catalog", label: "Каталог ремонта", icon: Boxes },
   { to: "/checks", label: "Чеки и номера", icon: FileText },
   { to: "/news", label: "Новости", icon: Newspaper },
@@ -84,6 +86,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
   }
 
   const nav = links.filter((link) => {
+    if (link.to === "/chats") return user.role === "ADMIN" || user.role === "CUSTOMER";
     if (link.to === "/advertising") return user.role === "ADMIN";
     if (link.to === "/catalog" || link.to === "/salary")
       return user.role === "TECHNICIAN" || user.role === "ADMIN";

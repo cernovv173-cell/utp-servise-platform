@@ -15,6 +15,7 @@ import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdvertisingRouteImport } from './routes/advertising'
 import { Route as CatalogRouteImport } from './routes/catalog'
+import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as ChecksRouteImport } from './routes/checks'
 import { Route as CraftsRouteImport } from './routes/crafts'
 import { Route as LoginRouteImport } from './routes/login'
@@ -57,6 +58,11 @@ const AdvertisingRoute = AdvertisingRouteImport.update({
 const CatalogRoute = CatalogRouteImport.update({
   id: '/catalog',
   path: '/catalog',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChatsRoute = ChatsRouteImport.update({
+  id: '/chats',
+  path: '/chats',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ChecksRoute = ChecksRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/advertising': typeof AdvertisingRoute
   '/catalog': typeof CatalogRoute
+  '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/login': typeof LoginRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/advertising': typeof AdvertisingRoute
   '/catalog': typeof CatalogRoute
+  '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/login': typeof LoginRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/advertising': typeof AdvertisingRoute
   '/catalog': typeof CatalogRoute
+  '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/login': typeof LoginRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/advertising'
     | '/catalog'
+    | '/chats'
     | '/checks'
     | '/crafts'
     | '/login'
@@ -219,6 +229,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/advertising'
     | '/catalog'
+    | '/chats'
     | '/checks'
     | '/crafts'
     | '/login'
@@ -240,6 +251,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/advertising'
     | '/catalog'
+    | '/chats'
     | '/checks'
     | '/crafts'
     | '/login'
@@ -262,6 +274,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AdvertisingRoute: typeof AdvertisingRoute
   CatalogRoute: typeof CatalogRoute
+  ChatsRoute: typeof ChatsRoute
   ChecksRoute: typeof ChecksRoute
   CraftsRoute: typeof CraftsRoute
   LoginRoute: typeof LoginRoute
@@ -316,6 +329,13 @@ declare module '@tanstack/react-router' {
       path: '/catalog'
       fullPath: '/catalog'
       preLoaderRoute: typeof CatalogRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/chats': {
+      id: '/chats'
+      path: '/chats'
+      fullPath: '/chats'
+      preLoaderRoute: typeof ChatsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checks': {
@@ -443,6 +463,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AdvertisingRoute: AdvertisingRoute,
   CatalogRoute: CatalogRoute,
+  ChatsRoute: ChatsRoute,
   ChecksRoute: ChecksRoute,
   CraftsRoute: CraftsRoute,
   LoginRoute: LoginRoute,
