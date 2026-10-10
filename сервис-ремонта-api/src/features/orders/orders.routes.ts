@@ -20,6 +20,7 @@ import {
   TECHNICIAN_SALARY_RATE_PERCENT,
   calculateTechnicianSalaryRub,
 } from "../salary/salary-calculation.js";
+import { scheduleTelegramRepairNotification } from "../telegram/telegram-notifications.js";
 import {
   calculateEarnedPoints,
   calculateMaxBonusDiscount,
@@ -1138,6 +1139,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
               : `Назначен мастер: ${technician.displayName}`,
           },
         });
+        if (current.status === "REQUESTED" && nextStatus === "ASSIGNED") {
+          await scheduleTelegramRepairNotification(transaction, {
+            orderId,
+            userId: current.customerId,
+            type: "DEVICE_ACCEPTED",
+          });
+        }
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
           include: orderDetails(admin.role),
@@ -1461,6 +1469,90 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.post(
+    "/orders/:orderId/diagnosis-completed",
+    requireAuth,
+    requireRoles("TECHNICIAN", "ADMIN"),
+    validateRequest({ params: orderIdParams }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
+        `;
+        const current = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          select: {
+            id: true,
+            customerId: true,
+            assignedTechnicianId: true,
+            status: true,
+            diagnosisCompletedAt: true,
+          },
+        });
+        if (
+          !current ||
+          (user.role === "TECHNICIAN" &&
+            current.assignedTechnicianId !== user.id)
+        ) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
+        if (current.diagnosisCompletedAt) {
+          return transaction.repairOrder.findUniqueOrThrow({
+            where: { id: orderId },
+            include: orderDetails(user.role),
+          });
+        }
+        if (current.status !== "ASSIGNED" && current.status !== "IN_PROGRESS") {
+          throw new HttpError(
+            409,
+            "DIAGNOSIS_NOT_AVAILABLE",
+            "Завершить диагностику можно только после назначения мастера и до выдачи устройства.",
+          );
+        }
+
+        const now = new Date();
+        const updated = await transaction.repairOrder.updateMany({
+          where: {
+            id: orderId,
+            diagnosisCompletedAt: null,
+            status: current.status,
+          },
+          data: { diagnosisCompletedAt: now },
+        });
+        if (updated.count !== 1) {
+          throw new HttpError(
+            409,
+            "ORDER_CHANGED",
+            "Заявка уже изменилась. Обновите список и повторите действие.",
+          );
+        }
+
+        await transaction.repairStatusEvent.create({
+          data: {
+            orderId,
+            actorId: user.id,
+            from: current.status,
+            to: current.status,
+            note: "Диагностика завершена",
+          },
+        });
+        await scheduleTelegramRepairNotification(transaction, {
+          orderId,
+          userId: current.customerId,
+          type: "DIAGNOSIS_COMPLETED",
+        });
+
+        return transaction.repairOrder.findUniqueOrThrow({
+          where: { id: orderId },
+          include: orderDetails(user.role),
+        });
+      });
+      response.json({ order });
+    },
+  );
+
   router.patch(
     "/orders/:orderId/status",
     requireAuth,
@@ -1553,7 +1645,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             }
           }
         }
-        const statusEvent = await transaction.repairStatusEvent.create({
+        await transaction.repairStatusEvent.create({
           data: {
             orderId,
             actorId: user.id,
@@ -1561,8 +1653,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             to: status,
             note,
           },
-          select: { createdAt: true },
         });
+        if (status === "READY_FOR_PICKUP") {
+          await scheduleTelegramRepairNotification(transaction, {
+            orderId,
+            userId: current.customerId,
+            type: "READY_FOR_PICKUP",
+          });
+        }
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
           include: orderDetails(user.role),

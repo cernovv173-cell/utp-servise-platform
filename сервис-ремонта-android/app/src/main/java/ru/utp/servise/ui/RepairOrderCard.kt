@@ -295,6 +295,19 @@ internal fun RepairOrderCard(
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Добавить услугу или запчасть") }
             }
+            if (
+                role in listOf("ADMIN", "TECHNICIAN") &&
+                order.status in listOf("ASSIGNED", "IN_PROGRESS") &&
+                order.diagnosisCompletedAt == null
+            ) {
+                OutlinedButton(
+                    onClick = {
+                        runAction({ ApiClient.completeRepairDiagnosis(token, order.id) }, {})
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                ) { Text("Диагностика завершена") }
+            }
             if (role == "CUSTOMER" || role == "TECHNICIAN") {
                 OutlinedButton(
                     onClick = { onChat(order.id) },

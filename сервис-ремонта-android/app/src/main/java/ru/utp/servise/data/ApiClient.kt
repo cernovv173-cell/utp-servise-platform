@@ -566,6 +566,22 @@ object ApiClient {
         JSONObject().put("status", status).put("note", note)
     ).getJSONObject("order").toOrder()
 
+    fun completeRepairDiagnosis(token: String, orderId: String): RepairOrder = request(
+        "POST", "/orders/$orderId/diagnosis-completed", token,
+    ).getJSONObject("order").toOrder()
+
+    fun requestTelegramLink(token: String): String = request(
+        "POST", "/auth/telegram/link", token,
+    ).getString("url")
+
+    fun isTelegramConnected(token: String): Boolean = request(
+        "GET", "/auth/telegram/status", token,
+    ).optBoolean("connected")
+
+    fun disconnectTelegram(token: String) {
+        request("DELETE", "/auth/telegram/link", token)
+    }
+
     fun assignTechnician(token: String, orderId: String, technicianId: String): RepairOrder = request(
         "PATCH", "/orders/$orderId/assign", token,
         JSONObject().put("technicianId", technicianId)

@@ -22,6 +22,7 @@ import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-v
 
 import {
   assignOrder,
+  completeRepairDiagnosis,
   createRepairReceipt,
   getAdminRepairOrder,
   getOrders,
@@ -105,12 +106,14 @@ export const OrderManagement = ({
       action:
         | { kind: "deadline"; id: string; value: string | null }
         | { kind: "status"; id: string; value: string }
+        | { kind: "diagnosis"; id: string }
         | { kind: "assign"; id: string; value: string }
         | { kind: "receipt"; id: string },
     ) => {
       if (action.kind === "deadline") return setExpectedCompletion(token!, action.id, action.value);
       if (action.kind === "status") return updateOrderStatus(token!, action.id, action.value);
       if (action.kind === "assign") return assignOrder(token!, action.id, action.value);
+      if (action.kind === "diagnosis") return completeRepairDiagnosis(token!, action.id);
       return createRepairReceipt(token!, action.id);
     },
     onSuccess: refresh,
@@ -294,6 +297,21 @@ export const OrderManagement = ({
                 >
                   {order.receipt ? "Обновить документ" : "Создать документ"}
                 </button>
+                {["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
+                  !order.diagnosisCompletedAt && (
+                    <button
+                      disabled={mutate.isPending}
+                      onClick={() => mutate.mutate({ kind: "diagnosis", id: order.id })}
+                      className="mt-2 h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                    >
+                      Диагностика завершена
+                    </button>
+                  )}
+                {order.diagnosisCompletedAt && (
+                  <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
+                    Диагностика завершена
+                  </p>
+                )}
               </div>
             </div>
             {token && (

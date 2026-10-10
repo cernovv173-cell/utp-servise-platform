@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -7,7 +7,13 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { changePassword, updateProfile } from "@/lib/api";
+import {
+  changePassword,
+  disconnectTelegram,
+  getTelegramStatus,
+  requestTelegramLink,
+  updateProfile,
+} from "@/lib/api";
 
 const AccountPage = () => {
   const { token, user, logout, setSession } = useAuth();
@@ -19,6 +25,26 @@ const AccountPage = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [telegramLink, setTelegramLink] = useState<{ url: string; expiresAt: string } | null>(null);
+  const telegramStatus = useQuery({
+    queryKey: ["telegram-status", token],
+    queryFn: ({ signal }) => getTelegramStatus(token!, signal),
+    enabled: Boolean(token && user?.role === "CUSTOMER"),
+    refetchInterval: (query) => (!query.state.data?.connected && telegramLink ? 2_000 : false),
+  });
+  const telegramLinkMutation = useMutation({
+    mutationFn: () => requestTelegramLink(token!),
+    onSuccess: (link) => setTelegramLink(link),
+  });
+  const telegramDisconnectMutation = useMutation({
+    mutationFn: () => disconnectTelegram(token!),
+    onSuccess: async () => {
+      setTelegramLink(null);
+      await queryClient.invalidateQueries({ queryKey: ["telegram-status", token] });
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me", token] });
+      toast.success("Уведомления Telegram отключены");
+    },
+  });
   const mutation = useMutation({
     mutationFn: () =>
       updateProfile(
@@ -131,6 +157,69 @@ const AccountPage = () => {
             )}
           </form>
         </SectionCard>
+        {user?.role === "CUSTOMER" && (
+          <SectionCard>
+            <h2 className="font-semibold">Уведомления в Telegram</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Получайте сообщения, когда устройство принято, диагностика завершена и заказ готов к
+              выдаче.
+            </p>
+            {(telegramStatus.data?.connected ?? user.telegramLinked) ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  Telegram подключён
+                </span>
+                <button
+                  type="button"
+                  disabled={telegramDisconnectMutation.isPending}
+                  onClick={() => telegramDisconnectMutation.mutate()}
+                  className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+                >
+                  Отключить
+                </button>
+              </div>
+            ) : telegramLink ? (
+              <div className="mt-4 grid justify-items-start gap-2">
+                <a
+                  href={telegramLink.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Открыть Telegram и подтвердить
+                </a>
+                <p className="text-xs text-slate-500">
+                  Ссылка действует до {new Date(telegramLink.expiresAt).toLocaleTimeString("ru-RU")}
+                  . Статус обновится автоматически после подтверждения.
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={telegramLinkMutation.isPending}
+                onClick={() => telegramLinkMutation.mutate()}
+                className="mt-4 min-h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {telegramLinkMutation.isPending ? "Создаём ссылку…" : "Подключить Telegram"}
+              </button>
+            )}
+            {telegramLinkMutation.isError && (
+              <p role="alert" className="mt-3 text-sm text-rose-600">
+                Не удалось создать ссылку. Попробуйте ещё раз позже.
+              </p>
+            )}
+            {telegramDisconnectMutation.isError && (
+              <p role="alert" className="mt-3 text-sm text-rose-600">
+                Не удалось отключить Telegram. Попробуйте ещё раз.
+              </p>
+            )}
+            {telegramStatus.isError && (
+              <p role="alert" className="mt-3 text-sm text-rose-600">
+                Не удалось проверить подключение Telegram.
+              </p>
+            )}
+          </SectionCard>
+        )}
         <SectionCard>
           <h2 className="font-semibold">Доступ</h2>
           <p className="mt-2 text-sm text-slate-500">

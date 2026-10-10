@@ -14,6 +14,7 @@ export type User = {
   phoneNumber?: string | null;
   gender?: "MALE" | "FEMALE" | null;
   birthDate?: string | null;
+  telegramLinked?: boolean;
   role: Role;
   mustChangePassword: boolean;
 };
@@ -53,6 +54,7 @@ export type RepairOrder = {
   archivedAt: string | null;
   preferredAt: string | null;
   expectedCompletionAt: string | null;
+  diagnosisCompletedAt?: string | null;
   redeemBonuses: boolean;
   bonusDiscountRub: number;
   createdAt: string;
@@ -758,6 +760,17 @@ export const updateProfile = (
     }),
   });
 
+export const getTelegramStatus = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ connected: boolean }>("/auth/telegram/status", token, { signal });
+
+export const requestTelegramLink = (token: string) =>
+  apiRequest<{ url: string; expiresAt: string }>("/auth/telegram/link", token, {
+    method: "POST",
+  });
+
+export const disconnectTelegram = (token: string) =>
+  apiRequest<void>("/auth/telegram/link", token, { method: "DELETE" });
+
 export const changePassword = (token: string, currentPassword: string, newPassword: string) =>
   apiRequest<AuthResponse>("/auth/change-password", token, {
     method: "POST",
@@ -825,6 +838,11 @@ export const updateOrderStatus = (token: string, orderId: string, status: string
   apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/status`, token, {
     method: "PATCH",
     body: JSON.stringify({ status }),
+  });
+
+export const completeRepairDiagnosis = (token: string, orderId: string) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/diagnosis-completed`, token, {
+    method: "POST",
   });
 
 export const requestBonusRedemption = (token: string, orderId: string, redeemBonuses: boolean) =>

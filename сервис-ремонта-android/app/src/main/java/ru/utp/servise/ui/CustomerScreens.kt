@@ -2,6 +2,8 @@ package ru.utp.servise.ui
 
 import android.app.Activity
 import android.app.DatePickerDialog
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -205,6 +207,8 @@ fun ProfileScreen(
     var newPassword by remember(user.id) { mutableStateOf("") }
     var confirmPassword by remember(user.id) { mutableStateOf("") }
     var passwordError by remember(user.id) { mutableStateOf<String?>(null) }
+    var telegramLinked by remember(user.id, user.telegramLinked) { mutableStateOf(user.telegramLinked) }
+    var telegramLinkUrl by remember(user.id) { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Профиль", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Spacer(Modifier.height(15.dp))
@@ -352,6 +356,73 @@ fun ProfileScreen(
                     shape = RoundedCornerShape(18.dp),
                 ) { Text("Сохранить телефон") }
                 Text("UTP Servise · защищённый вход по электронной почте", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 11.dp))
+            }
+        }
+        if (user.role == "CUSTOMER") {
+            Spacer(Modifier.height(12.dp))
+            Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                Column(Modifier.fillMaxWidth().padding(18.dp)) {
+                    Text("Уведомления в Telegram", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text(
+                        "Сообщим, когда устройство принято, диагностика завершена и заказ готов к выдаче.",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                    if (telegramLinked) {
+                        Text("Telegram подключён", fontSize = 13.sp, color = UtpBlue, modifier = Modifier.padding(top = 10.dp))
+                        OutlinedButton(
+                            onClick = {
+                                runAction({ ru.utp.servise.data.ApiClient.disconnectTelegram(token) }) {
+                                    telegramLinked = false
+                                    telegramLinkUrl = null
+                                    onUserUpdated(user.copy(telegramLinked = false))
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            shape = RoundedCornerShape(16.dp),
+                        ) { Text("Отключить Telegram") }
+                    } else if (telegramLinkUrl != null) {
+                        OutlinedButton(
+                            onClick = {
+                                runCatching {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(telegramLinkUrl)))
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            shape = RoundedCornerShape(16.dp),
+                        ) { Text("Открыть Telegram и подтвердить") }
+                        OutlinedButton(
+                            onClick = {
+                                runAction({ ru.utp.servise.data.ApiClient.isTelegramConnected(token) }) { result ->
+                                    telegramLinked = result as? Boolean == true
+                                    if (telegramLinked) {
+                                        telegramLinkUrl = null
+                                        onUserUpdated(user.copy(telegramLinked = true))
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                            shape = RoundedCornerShape(16.dp),
+                        ) { Text("Проверить подключение") }
+                    } else {
+                        Button(
+                            onClick = {
+                                runAction({ ru.utp.servise.data.ApiClient.requestTelegramLink(token) }) { result ->
+                                    val url = result as? String
+                                    telegramLinkUrl = url
+                                    if (url != null) {
+                                        runCatching {
+                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                                        }
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                            shape = RoundedCornerShape(16.dp),
+                        ) { Text("Подключить Telegram") }
+                    }
+                }
             }
         }
         Spacer(Modifier.height(12.dp))

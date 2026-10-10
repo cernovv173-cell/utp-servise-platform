@@ -17,6 +17,7 @@ import { createSalaryRouter } from "./features/salary/salary.routes.js";
 import { createStaffRouter } from "./features/staff/staff.routes.js";
 import { createSupportChatRouter } from "./features/support-chat/support-chat.routes.js";
 import { createSystemRouter } from "./features/system/system.routes.js";
+import { createTelegramRouter } from "./features/telegram/telegram.routes.js";
 import type { Database } from "./lib/database/database.js";
 import { HttpError } from "./lib/http/http-error.js";
 
@@ -62,6 +63,7 @@ export const createApiRouter = ({
       }),
     );
     router.use(createAuthRouter(database.client));
+    router.use(createTelegramRouter(database.client));
     router.use(createAndroidAppRouter(database.client));
     router.use(createStaffRouter(database.client));
     router.use(createCustomerAdminRouter(database.client));
@@ -79,6 +81,7 @@ export const createApiRouter = ({
     router.use((request, _response, next) => {
       if (
         request.path.startsWith("/auth") ||
+        request.path.startsWith("/telegram") ||
         request.path.startsWith("/orders") ||
         request.path.startsWith("/salary") ||
         request.path.startsWith("/catalog") ||
