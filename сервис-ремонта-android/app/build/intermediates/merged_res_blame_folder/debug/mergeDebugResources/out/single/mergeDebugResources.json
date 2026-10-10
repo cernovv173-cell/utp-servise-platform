@@ -1,74 +1,74 @@
 [
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-xxxhdpi/ic_launcher_round.png"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-anydpi-v26_ic_launcher.xml.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-anydpi-v26/ic_launcher.xml"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-xhdpi_ic_launcher_round.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-xhdpi/ic_launcher_round.png"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-hdpi/ic_launcher_round.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-anydpi-v26/ic_launcher_round.xml"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-xxhdpi/ic_launcher.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-hdpi_ic_launcher.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-hdpi/ic_launcher.png"
+        "merged": "ru.utp.servise.app-debug-67:/drawable-nodpi_utp_servise_launcher_foreground.png.flat",
+        "source": "ru.utp.servise.app-main-69:/drawable-nodpi/utp_servise_launcher_foreground.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-mdpi_ic_launcher.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-mdpi/ic_launcher.png"
+        "merged": "ru.utp.servise.app-debug-67:/drawable-nodpi_raccoon_welcome.jpg.flat",
+        "source": "ru.utp.servise.app-main-69:/drawable-nodpi/raccoon_welcome.jpg"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-hdpi_ic_launcher_round.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-hdpi/ic_launcher_round.png"
+        "merged": "ru.utp.servise.app-debug-67:/drawable-nodpi_repair_nebula_bg.png.flat",
+        "source": "ru.utp.servise.app-main-69:/drawable-nodpi/repair_nebula_bg.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-xhdpi_ic_launcher.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-xhdpi/ic_launcher.png"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-xxxhdpi/ic_launcher_round.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/drawable-nodpi_utp_servise_launcher_foreground.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/utp_servise_launcher_foreground.png"
+        "merged": "ru.utp.servise.app-debug-67:/drawable-nodpi_utp_servise_logo.jpg.flat",
+        "source": "ru.utp.servise.app-main-69:/drawable-nodpi/utp_servise_logo.jpg"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/drawable-nodpi_raccoon_welcome.jpg.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/raccoon_welcome.jpg"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-xxxhdpi/ic_launcher.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-xxxhdpi_ic_launcher.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-xxxhdpi/ic_launcher.png"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-mdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-xhdpi/ic_launcher.png"
     },
     {
         "merged": "ru.utp.servise.app-debug-67:/xml_update_file_paths.xml.flat",
         "source": "ru.utp.servise.app-main-69:/xml/update_file_paths.xml"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-xxhdpi_ic_launcher.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-xxhdpi/ic_launcher.png"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-mdpi/ic_launcher.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/drawable-nodpi_repair_nebula_bg.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/repair_nebula_bg.png"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-anydpi-v26/ic_launcher_round.xml"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-xxhdpi_ic_launcher_round.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-xxhdpi/ic_launcher_round.png"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-xhdpi/ic_launcher_round.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-anydpi-v26_ic_launcher.xml.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-anydpi-v26/ic_launcher.xml"
+        "merged": "ru.utp.servise.app-debug-67:/drawable-nodpi_utp_servise_launcher_source.jpg.flat",
+        "source": "ru.utp.servise.app-main-69:/drawable-nodpi/utp_servise_launcher_source.jpg"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/drawable-nodpi_utp_servise_launcher_source.jpg.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/utp_servise_launcher_source.jpg"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-hdpi/ic_launcher.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-mdpi_ic_launcher_round.png.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-mdpi/ic_launcher_round.png"
-    },
-    {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/drawable-nodpi_utp_servise_logo.jpg.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/utp_servise_logo.jpg"
+        "merged": "ru.utp.servise.app-debug-67:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "ru.utp.servise.app-main-69:/mipmap-xxhdpi/ic_launcher_round.png"
     }
 ]

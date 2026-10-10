@@ -156,7 +156,7 @@ const receiptDraftBody = z
         z
           .object({
             itemId: z.string().uuid(),
-            quantity: z.number().int().min(1).max(99),
+            quantity: z.number().int().min(0).max(99),
           })
           .strict(),
       )
@@ -838,14 +838,21 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
               data: { stockQuantity: { increment: -quantityDelta } },
             });
           }
-          const updatedItem = await transaction.repairOrderItem.update({
-            where: { id: currentItem.id },
-            data: { quantity: requestedItem.quantity },
-          });
           const index = updatedItems.findIndex(
-            (item) => item.id === updatedItem.id,
+            (item) => item.id === currentItem.id,
           );
-          updatedItems[index] = updatedItem;
+          if (requestedItem.quantity === 0) {
+            await transaction.repairOrderItem.delete({
+              where: { id: currentItem.id },
+            });
+            if (index >= 0) updatedItems.splice(index, 1);
+          } else {
+            const updatedItem = await transaction.repairOrderItem.update({
+              where: { id: currentItem.id },
+              data: { quantity: requestedItem.quantity },
+            });
+            if (index >= 0) updatedItems[index] = updatedItem;
+          }
         }
 
         for (const freeSaleItem of input.freeSaleItems ?? []) {

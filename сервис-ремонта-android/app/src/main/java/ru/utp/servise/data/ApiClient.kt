@@ -576,6 +576,10 @@ object ApiClient {
         JSONObject().put("catalogItemId", catalogItemId).put("quantity", quantity),
     ).getJSONObject("order").toOrder()
 
+    fun removeOrderItem(token: String, orderId: String, itemId: String): RepairOrder = request(
+        "DELETE", "/orders/$orderId/items/$itemId", token,
+    ).getJSONObject("order").toOrder()
+
     fun staff(token: String): List<StaffMember> = request("GET", "/staff", token).getJSONArray("staff").mapObjects { it.toStaff() }
 
     fun createStaff(token: String, email: String, displayName: String, role: String, phoneNumber: String?): NewStaffResult {

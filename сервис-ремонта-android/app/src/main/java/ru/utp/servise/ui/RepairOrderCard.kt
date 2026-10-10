@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.RepairOrder
+import ru.utp.servise.data.RepairOrderItem
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.orderItemTypeLabel
@@ -64,6 +67,7 @@ internal fun RepairOrderCard(
     var showEdit by remember { mutableStateOf(false) }
     var showPaperwork by remember { mutableStateOf(false) }
     var showPickupScanner by remember { mutableStateOf(false) }
+    var itemPendingRemoval by remember(order.id) { mutableStateOf<RepairOrderItem?>(null) }
 
     Card(
         Modifier.fillMaxWidth().padding(bottom = 11.dp),
@@ -193,6 +197,24 @@ internal fun RepairOrderCard(
                             Text("${item.type.orderItemTypeLabel()} · ${item.quantity} × ${item.unitPriceRub} ₽", fontSize = 10.sp, color = UtpMuted)
                         }
                         Text("${item.quantity.toLong() * item.unitPriceRub} ₽", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                        val canRemoveItem =
+                            role == "ADMIN" &&
+                                order.status in listOf(
+                                    "REQUESTED",
+                                    "ASSIGNED",
+                                    "IN_PROGRESS",
+                                    "READY_FOR_PICKUP",
+                                ) &&
+                                order.receipt?.paymentStatus != "PAID"
+                        if (canRemoveItem) {
+                            TextButton(onClick = { itemPendingRemoval = item }) {
+                                Text(
+                                    "Удалить",
+                                    color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                                    fontSize = 11.sp,
+                                )
+                            }
+                        }
                     }
                 }
                 val totalRub = order.items.sumOf { it.quantity.toLong() * it.unitPriceRub }
@@ -241,8 +263,14 @@ internal fun RepairOrderCard(
                 }
             }
 
-            val canEdit = (order.status == "REQUESTED" && role in listOf("CUSTOMER", "ADMIN")) ||
-                (order.status == "ASSIGNED" && role == "ADMIN")
+            val canEdit =
+                (order.status == "REQUESTED" && role in listOf("CUSTOMER", "ADMIN")) ||
+                    (role == "ADMIN" && order.status in listOf(
+                        "ASSIGNED",
+                        "IN_PROGRESS",
+                        "READY_FOR_PICKUP",
+                        "COMPLETED",
+                    ))
             if (canEdit) {
                 OutlinedButton(
                     onClick = { showEdit = true },
@@ -257,7 +285,10 @@ internal fun RepairOrderCard(
                     shape = RoundedCornerShape(12.dp),
                 ) { Text(if (order.technicianName.isBlank()) "Назначить мастера" else "Сменить мастера") }
             }
-            if (role == "ADMIN" || role == "TECHNICIAN") {
+            if (
+                role in listOf("ADMIN", "TECHNICIAN") &&
+                order.status in listOf("REQUESTED", "ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP")
+            ) {
                 OutlinedButton(
                     onClick = { showAddItem = true },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -322,5 +353,28 @@ internal fun RepairOrderCard(
     }
     if (showPickupScanner) {
         PickupQrScannerDialog(order.serviceNumber, token, runAction) { showPickupScanner = false }
+    }
+    itemPendingRemoval?.let { item ->
+        AlertDialog(
+            onDismissRequest = { itemPendingRemoval = null },
+            title = { Text("Удалить позицию из заказа?") },
+            text = {
+                Text(
+                    "${item.name} — ${item.quantity} шт. Складской остаток будет возвращён, " +
+                        "если он учитывается.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        itemPendingRemoval = null
+                        runAction({ ApiClient.removeOrderItem(token, order.id, item.id) }, {})
+                    },
+                ) { Text("Удалить") }
+            },
+            dismissButton = {
+                TextButton(onClick = { itemPendingRemoval = null }) { Text("Отмена") }
+            },
+        )
     }
 }

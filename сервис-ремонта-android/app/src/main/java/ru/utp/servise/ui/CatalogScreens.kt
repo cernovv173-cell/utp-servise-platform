@@ -60,7 +60,7 @@ fun OrderItemPickerDialog(
                 if (availableItems.isEmpty()) {
                     Text("Активных позиций пока нет. Попросите администратора добавить их в каталог.", color = UtpMuted)
                 } else {
-                    Text("Выберите услугу или запчасть:", fontSize = 12.sp, color = UtpMuted)
+                    Text("Выберите услугу, запчасть или товар:", fontSize = 12.sp, color = UtpMuted)
                     Column(
                         Modifier.fillMaxWidth().heightIn(max = 330.dp).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(6.dp),

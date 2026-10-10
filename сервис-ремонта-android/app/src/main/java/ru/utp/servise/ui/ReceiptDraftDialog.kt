@@ -51,7 +51,7 @@ internal fun ReceiptDraftDialog(
     val freeSaleValid = !hasFreeSale ||
         (freeSaleName.trim().length <= 160 && newQuantity != null && newQuantity in 1..99 &&
             newPrice != null && newPrice in 1..Int.MAX_VALUE)
-    val quantitiesValid = order.items.all { quantityNumbers[it.id]?.let { value -> value in 1..99 } == true }
+    val quantitiesValid = order.items.all { quantityNumbers[it.id]?.let { value -> value in 0..99 } == true }
     val canSave = quantitiesValid && freeSaleValid && !saving
     val total = order.items.sumOf { item ->
         (quantityNumbers[item.id] ?: 0) * item.unitPriceRub
@@ -66,7 +66,7 @@ internal fun ReceiptDraftDialog(
                 verticalArrangement = Arrangement.spacedBy(9.dp),
             ) {
                 Text(
-                    "Количество обновит заказ, скидку и расчёт услуг мастера. Оплаченный чек изменить нельзя.",
+                    "Укажите 0, чтобы удалить услугу, запчасть или товар. Склад, скидка и расчёт мастера пересчитаются. Оплаченный чек изменить нельзя.",
                     fontSize = 12.sp,
                     color = UtpMuted,
                 )
@@ -76,7 +76,7 @@ internal fun ReceiptDraftDialog(
                         onValueChange = { value ->
                             quantities = quantities + (item.id to value.filter(Char::isDigit).take(2))
                         },
-                        label = { Text("${item.name} · ${item.unitPriceRub} ₽ — количество") },
+                        label = { Text("${item.name} · ${item.unitPriceRub} ₽ · 0 — удалить") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),

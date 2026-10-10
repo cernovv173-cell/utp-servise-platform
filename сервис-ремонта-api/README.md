@@ -33,14 +33,15 @@ printing configuration values. Run `pnpm test` for configuration and diagnostic 
 
 Repair spare parts and products have an optional `stockQuantity`. Existing catalog rows remain untracked
 (`null`) until an administrator records a factual starting balance; services do not use stock.
-Adding a tracked spare part or product to an open order decrements inventory atomically with the new order
-line. Removing that line returns its quantity, and changing a linked line's quantity in an unpaid
-completed-order receipt applies the corresponding stock delta. Order lines cannot be removed after
-completion, and a paid receipt cannot be changed. Administrators can add a manual sale line to an
-unpaid receipt; free-form lines are not linked to catalog stock. Saving the receipt updates its item
-snapshot, bonus discount, and technician service calculation in the same database transaction. Only
-administrators can set catalog balances; technicians can read active item balances. A tracked zero
-balance blocks use of that spare part or product. Administrators can create a repair order for an
+Adding a tracked spare part or product to an open order decrements inventory atomically with the new
+order line. Removing that line returns its quantity. In an unpaid completed-order receipt, an
+administrator can set an existing line quantity to zero to remove it; linked stock is restored in the
+same transaction. Completed orders can only be changed through their unpaid receipt, and a paid
+receipt cannot be changed. Administrators can add a manual sale line to an unpaid receipt; free-form
+lines are not linked to catalog stock. Saving the receipt updates its item snapshot, bonus discount,
+and technician service calculation in the same database transaction. Only administrators can set
+catalog balances; technicians can read active item balances. A tracked zero balance blocks use of that
+spare part or product. Administrators can create a repair order for an
 active customer through `POST /admin/orders`; its creation is recorded in order history. The
 administrator can create a customer record through `POST /admin/customers`; the one-time temporary
 password is returned only with that creation response and must be changed on first sign-in.

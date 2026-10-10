@@ -100,6 +100,11 @@ test("receipt edits synchronize stock, service-only bonus discount and technicia
         item.quantity = data.quantity;
         return item;
       },
+      delete: async ({ where }: { where: { id: string } }) => {
+        const index = items.findIndex((entry) => entry.id === where.id);
+        assert.notEqual(index, -1);
+        return items.splice(index, 1)[0];
+      },
       create: async ({ data }: { data: Record<string, unknown> }) => {
         const item = { id: "99999999-9999-4999-8999-999999999999", ...data };
         items.push(item);
@@ -111,13 +116,17 @@ test("receipt edits synchronize stock, service-only bonus discount and technicia
         where,
         data,
       }: {
-        where: { id: string; stockQuantity: { gte: number } };
-        data: { stockQuantity: { decrement: number } };
+        where: { id: string; stockQuantity?: { gte: number } };
+        data: {
+          stockQuantity: { decrement: number } | { increment: number };
+        };
       }) => {
-        if (
-          where.id !== sparePartId ||
-          stockQuantity < where.stockQuantity.gte
-        ) {
+        if (where.id !== sparePartId) return { count: 0 };
+        if ("increment" in data.stockQuantity) {
+          stockQuantity += data.stockQuantity.increment;
+          return { count: 1 };
+        }
+        if (where.stockQuantity && stockQuantity < where.stockQuantity.gte) {
           return { count: 0 };
         }
         stockQuantity -= data.stockQuantity.decrement;
@@ -198,5 +207,39 @@ test("receipt edits synchronize stock, service-only bonus discount and technicia
       (item) => item.quantity,
     ),
     [2, 2, 1],
+  );
+
+  const removalResponse = await fetch(
+    `http://127.0.0.1:${address.port}/api/orders/${orderId}/receipt`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        itemQuantities: [
+          { itemId: serviceItemId, quantity: 2 },
+          { itemId: partItemId, quantity: 0 },
+        ],
+      }),
+    },
+  );
+
+  assert.equal(removalResponse.status, 201);
+  assert.equal(stockQuantity, 3);
+  assert.equal(savedReceipt?.totalRub, 500);
+  assert.equal(savedReceipt?.bonusDiscountRub, 150);
+  assert.equal(savedSalary?.serviceTotalRub, 500);
+  assert.equal(savedSalary?.salaryRub, 200);
+  assert.equal(
+    items.some((item) => item.id === partItemId),
+    false,
+  );
+  assert.deepEqual(
+    (savedReceipt?.itemsSnapshot as Array<{ quantity: number }>).map(
+      (item) => item.quantity,
+    ),
+    [2, 1],
   );
 });
