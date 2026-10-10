@@ -8,6 +8,8 @@ data class AppUser(
     val gender: String? = null,
     val birthDate: String? = null,
     val telegramLinked: Boolean = false,
+    val maxLinked: Boolean = false,
+    val maxAvailable: Boolean = false,
     val avatarObjectId: String? = null,
     val role: String,
     val mustChangePassword: Boolean,

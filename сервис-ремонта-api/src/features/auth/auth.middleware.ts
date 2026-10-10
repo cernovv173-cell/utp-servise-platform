@@ -13,6 +13,7 @@ export type AuthenticatedUser = {
   readonly gender?: "MALE" | "FEMALE" | null;
   readonly birthDate?: Date | null;
   readonly telegramChatId?: string | null;
+  readonly maxUserId?: string | null;
   readonly avatarObjectId: string | null;
   readonly role: UserRole;
   readonly salaryRatePercent?: number;
@@ -49,6 +50,7 @@ export const createRequireAuth =
             gender: true,
             birthDate: true,
             telegramChatId: true,
+            maxUserId: true,
             avatarObjectId: true,
             role: true,
             salaryRatePercent: true,
@@ -116,6 +118,10 @@ export const publicUser = (user: AuthenticatedUser) => ({
   role: user.role,
   mustChangePassword: user.mustChangePassword,
   telegramLinked: Boolean(user.telegramChatId),
+  maxLinked: Boolean(user.maxUserId),
+  maxAvailable: Boolean(
+    process.env.MAX_BOT_TOKEN?.trim() && process.env.MAX_WEBHOOK_URL?.trim(),
+  ),
 });
 
 export const getAuthenticatedUser = (response: Response): AuthenticatedUser => {

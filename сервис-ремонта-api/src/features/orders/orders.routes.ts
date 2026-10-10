@@ -12,6 +12,7 @@ import {
   requireRoles,
 } from "../auth/auth.middleware.js";
 import { isInventoryCatalogItem } from "../catalog/catalog-policy.js";
+import { scheduleMaxRepairNotification } from "../max/max-notifications.js";
 import {
   sendRepairOrderNotification,
   sendRepairOrderNotificationForId,
@@ -1145,6 +1146,11 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             userId: current.customerId,
             type: "DEVICE_ACCEPTED",
           });
+          await scheduleMaxRepairNotification(transaction, {
+            orderId,
+            userId: current.customerId,
+            type: "DEVICE_ACCEPTED",
+          });
         }
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
@@ -1543,6 +1549,11 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           userId: current.customerId,
           type: "DIAGNOSIS_COMPLETED",
         });
+        await scheduleMaxRepairNotification(transaction, {
+          orderId,
+          userId: current.customerId,
+          type: "DIAGNOSIS_COMPLETED",
+        });
 
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
@@ -1656,6 +1667,11 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (status === "READY_FOR_PICKUP") {
           await scheduleTelegramRepairNotification(transaction, {
+            orderId,
+            userId: current.customerId,
+            type: "READY_FOR_PICKUP",
+          });
+          await scheduleMaxRepairNotification(transaction, {
             orderId,
             userId: current.customerId,
             type: "READY_FOR_PICKUP",

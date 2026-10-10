@@ -9,8 +9,11 @@ import { useAuth } from "@/features/auth/auth-context";
 
 import {
   changePassword,
+  disconnectMax,
   disconnectTelegram,
+  getMaxStatus,
   getTelegramStatus,
+  requestMaxLink,
   requestTelegramLink,
   updateProfile,
 } from "@/lib/api";
@@ -26,6 +29,7 @@ const AccountPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [telegramLink, setTelegramLink] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [maxLink, setMaxLink] = useState<{ url: string; expiresAt: string } | null>(null);
   const telegramStatus = useQuery({
     queryKey: ["telegram-status", token],
     queryFn: ({ signal }) => getTelegramStatus(token!, signal),
@@ -43,6 +47,25 @@ const AccountPage = () => {
       await queryClient.invalidateQueries({ queryKey: ["telegram-status", token] });
       await queryClient.invalidateQueries({ queryKey: ["auth", "me", token] });
       toast.success("Уведомления Telegram отключены");
+    },
+  });
+  const maxStatus = useQuery({
+    queryKey: ["max-status", token],
+    queryFn: ({ signal }) => getMaxStatus(token!, signal),
+    enabled: Boolean(token && user?.role === "CUSTOMER"),
+    refetchInterval: (query) => (!query.state.data?.connected && maxLink ? 2_000 : false),
+  });
+  const maxLinkMutation = useMutation({
+    mutationFn: () => requestMaxLink(token!),
+    onSuccess: (link) => setMaxLink(link),
+  });
+  const maxDisconnectMutation = useMutation({
+    mutationFn: () => disconnectMax(token!),
+    onSuccess: async () => {
+      setMaxLink(null);
+      await queryClient.invalidateQueries({ queryKey: ["max-status", token] });
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me", token] });
+      toast.success("Уведомления MAX отключены");
     },
   });
   const mutation = useMutation({
@@ -216,6 +239,74 @@ const AccountPage = () => {
             {telegramStatus.isError && (
               <p role="alert" className="mt-3 text-sm text-rose-600">
                 Не удалось проверить подключение Telegram.
+              </p>
+            )}
+          </SectionCard>
+        )}
+        {user?.role === "CUSTOMER" && (
+          <SectionCard>
+            <h2 className="font-semibold">Уведомления в MAX</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Получайте сообщения, когда устройство принято, диагностика завершена и заказ готов к
+              выдаче.
+            </p>
+            {maxStatus.isLoading ? (
+              <p className="mt-3 text-sm text-slate-500">Проверяем подключение MAX…</p>
+            ) : maxStatus.isError ? (
+              <p role="alert" className="mt-3 text-sm text-rose-600">
+                Не удалось проверить подключение MAX.
+              </p>
+            ) : !maxStatus.data?.available ? (
+              <p className="mt-3 text-sm text-slate-500">
+                Подключение MAX не настроено; уведомления в MAX пока недоступны.
+              </p>
+            ) : (maxStatus.data.connected ?? user.maxLinked) ? (
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  MAX подключён
+                </span>
+                <button
+                  type="button"
+                  disabled={maxDisconnectMutation.isPending}
+                  onClick={() => maxDisconnectMutation.mutate()}
+                  className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+                >
+                  Отключить
+                </button>
+              </div>
+            ) : maxLink ? (
+              <div className="mt-4 grid justify-items-start gap-2">
+                <a
+                  href={maxLink.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Открыть MAX и подтвердить
+                </a>
+                <p className="text-xs text-slate-500">
+                  Ссылка действует до {new Date(maxLink.expiresAt).toLocaleTimeString("ru-RU")}.
+                  Статус обновится автоматически после подтверждения.
+                </p>
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={maxLinkMutation.isPending}
+                onClick={() => maxLinkMutation.mutate()}
+                className="mt-4 min-h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {maxLinkMutation.isPending ? "Создаём ссылку…" : "Подключить MAX"}
+              </button>
+            )}
+            {maxLinkMutation.isError && (
+              <p role="alert" className="mt-3 text-sm text-rose-600">
+                Не удалось создать ссылку для MAX. Попробуйте ещё раз позже.
+              </p>
+            )}
+            {maxDisconnectMutation.isError && (
+              <p role="alert" className="mt-3 text-sm text-rose-600">
+                Не удалось отключить MAX. Попробуйте ещё раз.
               </p>
             )}
           </SectionCard>

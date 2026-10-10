@@ -1,5 +1,7 @@
 import { createApp } from "./app.js";
 import { ensureInitialAdmin } from "./features/auth/auth.routes.js";
+import { startMaxNotificationWorker } from "./features/max/max-notifications.js";
+import { setupMaxWebhookIfUnclaimed } from "./features/max/max-webhook-setup.js";
 import { startNewsPushWorker } from "./features/news/news-push-worker.js";
 import { startBirthdayPushWorker } from "./features/notifications/birthday-push-worker.js";
 import { startOrderArchiveWorker } from "./features/orders/order-archive-worker.js";
@@ -53,10 +55,17 @@ const start = async (): Promise<void> => {
     database && config.nodeEnv === "production"
       ? startTelegramNotificationWorker(database.client)
       : () => undefined;
+  const stopMaxNotificationWorker =
+    database && config.nodeEnv === "production"
+      ? startMaxNotificationWorker(database.client)
+      : () => undefined;
   const server = app.listen(config.port, host, () => {
     logger.info({ host, port: config.port }, "Backend server started");
     if (database && config.nodeEnv === "production") {
       void setupTelegramWebhookIfUnclaimed(logger);
+      if (process.env.MAX_BOT_TOKEN?.trim()) {
+        void setupMaxWebhookIfUnclaimed(logger);
+      }
     }
   });
 
@@ -69,6 +78,7 @@ const start = async (): Promise<void> => {
     stopBirthdayPushWorker();
     stopOrderArchiveWorker();
     stopTelegramNotificationWorker();
+    stopMaxNotificationWorker();
     server.close((serverError) => {
       void (database?.close() ?? Promise.resolve())
         .catch(() => {

@@ -582,6 +582,18 @@ object ApiClient {
         request("DELETE", "/auth/telegram/link", token)
     }
 
+    fun requestMaxLink(token: String): String = request(
+        "POST", "/auth/max/link", token,
+    ).getString("url")
+
+    fun isMaxConnected(token: String): Boolean = request(
+        "GET", "/auth/max/status", token,
+    ).optBoolean("connected")
+
+    fun disconnectMax(token: String) {
+        request("DELETE", "/auth/max/link", token)
+    }
+
     fun assignTechnician(token: String, orderId: String, technicianId: String): RepairOrder = request(
         "PATCH", "/orders/$orderId/assign", token,
         JSONObject().put("technicianId", technicianId)

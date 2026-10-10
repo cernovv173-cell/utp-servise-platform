@@ -2,8 +2,6 @@ package ru.utp.servise.ui
 
 import android.app.Activity
 import android.app.DatePickerDialog
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -209,6 +207,8 @@ fun ProfileScreen(
     var passwordError by remember(user.id) { mutableStateOf<String?>(null) }
     var telegramLinked by remember(user.id, user.telegramLinked) { mutableStateOf(user.telegramLinked) }
     var telegramLinkUrl by remember(user.id) { mutableStateOf<String?>(null) }
+    var maxLinked by remember(user.id, user.maxLinked) { mutableStateOf(user.maxLinked) }
+    var maxLinkUrl by remember(user.id) { mutableStateOf<String?>(null) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Профиль", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Spacer(Modifier.height(15.dp))
@@ -360,70 +360,60 @@ fun ProfileScreen(
         }
         if (user.role == "CUSTOMER") {
             Spacer(Modifier.height(12.dp))
-            Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.fillMaxWidth().padding(18.dp)) {
-                    Text("Уведомления в Telegram", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text(
-                        "Сообщим, когда устройство принято, диагностика завершена и заказ готов к выдаче.",
-                        fontSize = 12.sp,
-                        color = UtpMuted,
-                        modifier = Modifier.padding(top = 5.dp),
-                    )
-                    if (telegramLinked) {
-                        Text("Telegram подключён", fontSize = 13.sp, color = UtpBlue, modifier = Modifier.padding(top = 10.dp))
-                        OutlinedButton(
-                            onClick = {
-                                runAction({ ru.utp.servise.data.ApiClient.disconnectTelegram(token) }) {
-                                    telegramLinked = false
-                                    telegramLinkUrl = null
-                                    onUserUpdated(user.copy(telegramLinked = false))
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            shape = RoundedCornerShape(16.dp),
-                        ) { Text("Отключить Telegram") }
-                    } else if (telegramLinkUrl != null) {
-                        OutlinedButton(
-                            onClick = {
-                                runCatching {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(telegramLinkUrl)))
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            shape = RoundedCornerShape(16.dp),
-                        ) { Text("Открыть Telegram и подтвердить") }
-                        OutlinedButton(
-                            onClick = {
-                                runAction({ ru.utp.servise.data.ApiClient.isTelegramConnected(token) }) { result ->
-                                    telegramLinked = result as? Boolean == true
-                                    if (telegramLinked) {
-                                        telegramLinkUrl = null
-                                        onUserUpdated(user.copy(telegramLinked = true))
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                            shape = RoundedCornerShape(16.dp),
-                        ) { Text("Проверить подключение") }
-                    } else {
-                        Button(
-                            onClick = {
-                                runAction({ ru.utp.servise.data.ApiClient.requestTelegramLink(token) }) { result ->
-                                    val url = result as? String
-                                    telegramLinkUrl = url
-                                    if (url != null) {
-                                        runCatching {
-                                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                                        }
-                                    }
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            shape = RoundedCornerShape(16.dp),
-                        ) { Text("Подключить Telegram") }
+            MessengerNotificationCard(
+                serviceName = "Telegram",
+                connected = telegramLinked,
+                linkUrl = telegramLinkUrl,
+                onConnect = {
+                    runAction({ ru.utp.servise.data.ApiClient.requestTelegramLink(token) }) { result ->
+                        telegramLinkUrl = result as? String
                     }
-                }
-            }
+                },
+                onCheckConnection = {
+                    runAction({ ru.utp.servise.data.ApiClient.isTelegramConnected(token) }) { result ->
+                        telegramLinked = result as? Boolean == true
+                        if (telegramLinked) {
+                            telegramLinkUrl = null
+                            onUserUpdated(user.copy(telegramLinked = true))
+                        }
+                    }
+                },
+                onDisconnect = {
+                    runAction({ ru.utp.servise.data.ApiClient.disconnectTelegram(token) }) {
+                        telegramLinked = false
+                        telegramLinkUrl = null
+                        onUserUpdated(user.copy(telegramLinked = false))
+                    }
+                },
+            )
+            Spacer(Modifier.height(10.dp))
+            MessengerNotificationCard(
+                serviceName = "MAX",
+                available = user.maxAvailable,
+                connected = maxLinked,
+                linkUrl = maxLinkUrl,
+                onConnect = {
+                    runAction({ ru.utp.servise.data.ApiClient.requestMaxLink(token) }) { result ->
+                        maxLinkUrl = result as? String
+                    }
+                },
+                onCheckConnection = {
+                    runAction({ ru.utp.servise.data.ApiClient.isMaxConnected(token) }) { result ->
+                        maxLinked = result as? Boolean == true
+                        if (maxLinked) {
+                            maxLinkUrl = null
+                            onUserUpdated(user.copy(maxLinked = true))
+                        }
+                    }
+                },
+                onDisconnect = {
+                    runAction({ ru.utp.servise.data.ApiClient.disconnectMax(token) }) {
+                        maxLinked = false
+                        maxLinkUrl = null
+                        onUserUpdated(user.copy(maxLinked = false))
+                    }
+                },
+            )
         }
         Spacer(Modifier.height(12.dp))
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {

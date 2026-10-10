@@ -15,6 +15,8 @@ export type User = {
   gender?: "MALE" | "FEMALE" | null;
   birthDate?: string | null;
   telegramLinked?: boolean;
+  maxLinked?: boolean;
+  maxAvailable?: boolean;
   role: Role;
   mustChangePassword: boolean;
 };
@@ -770,6 +772,19 @@ export const requestTelegramLink = (token: string) =>
 
 export const disconnectTelegram = (token: string) =>
   apiRequest<void>("/auth/telegram/link", token, { method: "DELETE" });
+
+export const getMaxStatus = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ available: boolean; connected: boolean }>("/auth/max/status", token, {
+    signal,
+  });
+
+export const requestMaxLink = (token: string) =>
+  apiRequest<{ url: string; expiresAt: string }>("/auth/max/link", token, {
+    method: "POST",
+  });
+
+export const disconnectMax = (token: string) =>
+  apiRequest<void>("/auth/max/link", token, { method: "DELETE" });
 
 export const changePassword = (token: string, currentPassword: string, newPassword: string) =>
   apiRequest<AuthResponse>("/auth/change-password", token, {

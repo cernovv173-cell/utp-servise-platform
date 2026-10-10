@@ -43,6 +43,7 @@ test("assigned technicians can record diagnosis once and queue one customer noti
   };
   const events: Array<Record<string, unknown>> = [];
   const deliveries: Array<Record<string, unknown>> = [];
+  const maxDeliveries: Array<Record<string, unknown>> = [];
   const transaction = {
     $queryRaw: async () => [],
     repairOrder: {
@@ -91,6 +92,12 @@ test("assigned technicians can record diagnosis once and queue one customer noti
         return create;
       },
     },
+    maxNotificationDelivery: {
+      upsert: async ({ create }: { create: Record<string, unknown> }) => {
+        maxDeliveries.push(create);
+        return create;
+      },
+    },
   };
   const database = {
     session: {
@@ -133,14 +140,20 @@ test("assigned technicians can record diagnosis once and queue one customer noti
   assert.equal(deliveries[0]?.orderId, orderId);
   assert.equal(deliveries[0]?.userId, customerId);
   assert.equal(deliveries[0]?.type, "DIAGNOSIS_COMPLETED");
+  assert.equal(maxDeliveries.length, 1);
+  assert.equal(maxDeliveries[0]?.orderId, orderId);
+  assert.equal(maxDeliveries[0]?.userId, customerId);
+  assert.equal(maxDeliveries[0]?.type, "DIAGNOSIS_COMPLETED");
 
   const repeated = await completeDiagnosis(token);
   assert.equal(repeated.status, 200);
   assert.equal(events.length, 1);
   assert.equal(deliveries.length, 1);
+  assert.equal(maxDeliveries.length, 1);
 
   const unauthorized = await completeDiagnosis(otherToken);
   assert.equal(unauthorized.status, 404);
   assert.equal(events.length, 1);
   assert.equal(deliveries.length, 1);
+  assert.equal(maxDeliveries.length, 1);
 });

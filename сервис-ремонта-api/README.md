@@ -106,22 +106,31 @@ Administrators and the assigned technician maintain one intake act per repair or
 
 The service moves a repair from `IN_PROGRESS` to `READY_FOR_PICKUP`; staff cannot directly set `COMPLETED`. The customer requests a pickup QR code from their own ready order. The server stores only its SHA-256 token hash; the raw payload expires after two hours, and requesting a replacement invalidates the previous code. An administrator or assigned technician scans or enters the code and supplies the warranty duration and terms. One transaction consumes the code, closes the order, records the status event, issues the warranty card, and calculates technician salary. Expired or replayed codes do not close an order.
 
-## Telegram repair notifications
+## Repair notifications in Telegram and MAX
 
-Customers can opt in from the Web or Android profile. Linking uses a short-lived, one-time Telegram
-deep link; chat IDs are stored only by the API, one Telegram chat can belong to one customer, and the
-profile can disconnect it at any time. The API never exposes the bot token or chat ID to client
-applications.
+Customers can independently opt in to Telegram and MAX from the Web or Android profile. Each
+channel uses its own short-lived, one-time deep link and unique customer identifier; identifiers
+remain server-side and either channel can be disconnected without affecting the other. The API never
+exposes either bot token or messenger identifier to client applications.
 
-The API queues three deduplicated repair messages: “Устройство принято” when a technician is first
-assigned, “Диагностика завершена” when a technician or administrator records that milestone, and
-“Готово к выдаче” when the order enters `READY_FOR_PICKUP`. Completion of diagnosis is an explicit
-staff action and does not by itself change the repair status. Production retries transient Telegram
-delivery failures and does not send to customers who have not linked Telegram.
+Each configured channel queues three separately deduplicated repair messages: “Устройство принято”
+when a technician is first assigned, “Диагностика завершена” when a technician or administrator
+records that milestone, and “Готово к выдаче” when the order enters `READY_FOR_PICKUP`. Completion of
+diagnosis is an explicit staff action and does not by itself change the repair status. Production
+retries transient delivery failures and skips customers who have not linked that channel.
 
 Production startup checks `getWebhookInfo` before registering the configured `TELEGRAM_WEBHOOK_URL`.
 It registers only when Telegram has no webhook, leaves an existing different webhook untouched, and
 never switches the bot to `getUpdates` polling. The Telegram token is bound only to the API.
+
+MAX links use the bot's username from `GET /me` and the official `https://max.ru/<botName>?start=<payload>`
+deep-link format. The MAX webhook handles `bot_started` link confirmations and `bot_stopped` disconnects;
+its secret is derived server-side from `MAX_BOT_TOKEN`. Production startup registers the webhook at
+`MAX_WEBHOOK_URL` only when no different subscription exists. MAX API requests use the official
+`platform-api2.max.ru` host, send the token only in the `Authorization` header, and are paced to stay
+within the per-dialog message limit. Keep `MAX_BOT_TOKEN` and `MAX_WEBHOOK_URL` bound only to the API.
+Until MAX is connected and these server variables are available, MAX linking and live delivery remain
+disabled; Telegram remains operational independently.
 
 Yandex ID login accepts an OAuth access token at `POST /auth/yandex`; the server verifies it with
 Yandex ID and checks the returned OAuth client ID against `YANDEX_CLIENT_ID`. The OAuth app needs

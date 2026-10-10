@@ -10,6 +10,7 @@ import { createCompanyRouter } from "./features/company/company.routes.js";
 import { createCraftsRouter } from "./features/crafts/crafts.routes.js";
 import { createCustomerAdminRouter } from "./features/customers/customer.routes.js";
 import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
+import { createMaxRouter } from "./features/max/max.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
 import { createNewsRouter } from "./features/news/news.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
@@ -63,6 +64,7 @@ export const createApiRouter = ({
       }),
     );
     router.use(createAuthRouter(database.client));
+    router.use(createMaxRouter(database.client));
     router.use(createTelegramRouter(database.client));
     router.use(createAndroidAppRouter(database.client));
     router.use(createStaffRouter(database.client));
@@ -82,6 +84,7 @@ export const createApiRouter = ({
       if (
         request.path.startsWith("/auth") ||
         request.path.startsWith("/telegram") ||
+        request.path.startsWith("/max") ||
         request.path.startsWith("/orders") ||
         request.path.startsWith("/salary") ||
         request.path.startsWith("/catalog") ||
