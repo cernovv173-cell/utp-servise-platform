@@ -71,6 +71,12 @@ this pattern; HTML inputs also carry `required`, while native inputs name their 
 
 ## Repair catalog
 
+The signed-in home page includes one 300×250 MyTarget ad slot (`2087468`). It is served through a
+small standalone AMP document in an iframe, because `<amp-ad>` requires the AMP runtime and should
+not be inserted directly into the React document. The fixed iframe space remains reserved if the ad
+network has no creative to show. Actual ad delivery depends on MyTarget's inventory and publisher
+account configuration.
+
 The `/catalog` page uses the API catalog shared with Android. Administrators can add and edit
 service and spare-part names/prices and deactivate or reactivate entries; technicians can view active
 items. Administrators can enter and correct spare-part stock balances; both administrators and
