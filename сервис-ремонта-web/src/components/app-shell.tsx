@@ -1,13 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
-  BarChart3,
   Bell,
   Boxes,
-  CalendarDays,
   CircleUserRound,
   ClipboardList,
-  ClipboardPenLine,
   FileText,
   Home,
   LifeBuoy,
@@ -17,7 +14,6 @@ import {
   Moon,
   Newspaper,
   Power,
-  ShoppingCart,
   Sparkles,
   Star,
   Sun,
@@ -48,9 +44,6 @@ const links = [
   { to: "/advertising", label: "Реклама", icon: Megaphone },
   { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
   { to: "/support", label: "Поддержка", icon: LifeBuoy },
-  { to: "/admin/overview", label: "Обзор сервиса", icon: BarChart3 },
-  { to: "/admin/schedule", label: "Расписание", icon: CalendarDays },
-  { to: "/admin/procurement", label: "Закупки", icon: ShoppingCart },
 ];
 
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
@@ -95,8 +88,6 @@ export const AppShell = ({ active, children }: { active: string; children: React
   }
 
   const nav = links.filter((link) => {
-    if (["/admin/overview", "/admin/schedule", "/admin/procurement"].includes(link.to))
-      return user.role === "ADMIN";
     if (link.to === "/support") return user.role === "ADMIN" || user.role === "CUSTOMER";
     if (link.to === "/advertising") return user.role === "ADMIN";
     if (link.to === "/catalog" || link.to === "/salary")
@@ -112,15 +103,6 @@ export const AppShell = ({ active, children }: { active: string; children: React
     >
       <MessageCircle size={18} />
       Чаты
-    </Link>
-  );
-  const orderEditingLink = user.role === "ADMIN" && (
-    <Link
-      to="/admin/order-editing"
-      className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition ${active === "/admin/order-editing" ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
-    >
-      <ClipboardPenLine size={18} />
-      Редактирование заявок
     </Link>
   );
   return (
@@ -147,7 +129,6 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </Link>
           ))}
           {showChatsTab && chatsLink}
-          {orderEditingLink}
           {user.role === "ADMIN" && (
             <>
               <Link
@@ -217,15 +198,6 @@ export const AppShell = ({ active, children }: { active: string; children: React
             >
               <MessageCircle size={15} />
               Чаты
-            </Link>
-          )}
-          {user.role === "ADMIN" && (
-            <Link
-              to="/admin/order-editing"
-              className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${active === "/admin/order-editing" ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff]" : "border-transparent text-slate-600 dark:text-[#a8b5d4]"}`}
-            >
-              <ClipboardPenLine size={15} />
-              Редактирование заявок
             </Link>
           )}
           {user.role === "ADMIN" && (

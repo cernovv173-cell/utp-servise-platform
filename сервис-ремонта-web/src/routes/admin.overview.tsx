@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { AlertTriangle, CalendarDays, CheckCheck, Clock3, Wallet } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
@@ -38,22 +38,6 @@ const AdminOverviewPage = () => {
         eyebrow="АДМИНИСТРИРОВАНИЕ"
         title="Обзор сервиса"
         description="Заявки, сроки, завершённые ремонты и поступившая оплата за последние 30 дней."
-        action={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              to="/admin/schedule"
-              className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-3 text-sm font-semibold dark:border-slate-700"
-            >
-              Расписание
-            </Link>
-            <Link
-              to="/admin/procurement"
-              className="inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white"
-            >
-              Закупки
-            </Link>
-          </div>
-        }
       />
       {metrics.isLoading && <p className="text-sm text-slate-500">Загружаем показатели…</p>}
       {metrics.isError && (

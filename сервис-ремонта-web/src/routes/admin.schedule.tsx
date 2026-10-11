@@ -57,14 +57,6 @@ const SchedulePage = () => {
         eyebrow="АДМИНИСТРИРОВАНИЕ"
         title="Расписание мастеров"
         description="Заявки сгруппированы по времени, которое запросил клиент. Назначение мастера и перенос доступны в карточке заявки."
-        action={
-          <Link
-            to="/admin/overview"
-            className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-3 text-sm font-semibold dark:border-slate-700"
-          >
-            К обзору
-          </Link>
-        }
       />
       <SectionCard className="mb-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
