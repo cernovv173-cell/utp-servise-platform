@@ -17,6 +17,7 @@ import {
 
 const itemTypeLabels = { SERVICE: "Услуги", SPARE_PART: "Запчасти", PRODUCT: "Товары" } as const;
 const tracksStock = (type: RepairCatalogItem["type"]) => type !== "SERVICE";
+const defaultMinimumStockQuantity = 3;
 
 const CatalogPage = () => {
   const { token, user } = useAuth();
@@ -32,6 +33,7 @@ const CatalogPage = () => {
     mutationFn: (
       input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
         stockQuantity?: number;
+        minimumStockQuantity?: number;
       },
     ) => createRepairCatalogItem(token!, input),
     onSuccess: async () => {
@@ -47,7 +49,10 @@ const CatalogPage = () => {
     }: {
       id: string;
       input: Partial<
-        Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "stockQuantity" | "active">
+        Pick<
+          RepairCatalogItem,
+          "type" | "name" | "unitPriceRub" | "stockQuantity" | "minimumStockQuantity" | "active"
+        >
       >;
     }) => updateRepairCatalogItem(token!, id, input),
     onSuccess: async () => {
@@ -67,13 +72,34 @@ const CatalogPage = () => {
         type: newType,
         name: String(data.get("name")).trim(),
         unitPriceRub: Number(data.get("unitPriceRub")),
-        ...(tracksStock(newType) ? { stockQuantity: Number(data.get("stockQuantity")) } : {}),
+        ...(tracksStock(newType)
+          ? {
+              stockQuantity: Number(data.get("stockQuantity")),
+              minimumStockQuantity: Number(data.get("minimumStockQuantity")),
+            }
+          : {}),
       },
       { onSuccess: () => form.reset() },
     );
   };
 
   const catalogItems = items.data?.catalogItems ?? [];
+  const trackedInventory = catalogItems.filter(
+    (item) => item.active && tracksStock(item.type) && item.stockQuantity !== null,
+  );
+  const outOfStockItems = trackedInventory.filter((item) => item.stockQuantity === 0);
+  const lowStockItems = trackedInventory.filter(
+    (item) =>
+      item.stockQuantity !== null &&
+      item.stockQuantity > 0 &&
+      item.stockQuantity <= (item.minimumStockQuantity ?? defaultMinimumStockQuantity),
+  );
+  const restockItems = trackedInventory.filter(
+    (item) =>
+      item.stockQuantity !== null &&
+      (item.stockQuantity === 0 ||
+        item.stockQuantity <= (item.minimumStockQuantity ?? defaultMinimumStockQuantity)),
+  );
   return (
     <AppShell active="/catalog">
       <PageTitle
@@ -89,6 +115,22 @@ const CatalogPage = () => {
         </SectionCard>
       ) : (
         <div className="grid gap-6">
+          <SectionCard>
+            <h2 className="flex items-center gap-2 font-semibold">
+              <Boxes size={18} /> Контроль остатков
+            </h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+              {trackedInventory.length === 0
+                ? "У активных запчастей и товаров пока нет включённого учёта остатка."
+                : restockItems.length === 0
+                  ? `На складе ${trackedInventory.length} активных позиций — запас в норме.`
+                  : `К пополнению: ${restockItems.length} · закончилось: ${outOfStockItems.length} · ниже порога: ${lowStockItems.length}`}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Порог пополнения настраивается отдельно в карточке каждой запчасти или товара. Нулевой
+              остаток всегда отмечается, даже если порог установлен в 0.
+            </p>
+          </SectionCard>
           {user?.role === "ADMIN" && (
             <SectionCard>
               <h2 className="flex items-center gap-2 font-semibold">
@@ -134,19 +176,37 @@ const CatalogPage = () => {
                   />
                 </label>
                 {tracksStock(newType) && (
-                  <label className="grid gap-1 text-sm font-medium">
-                    Начальный остаток, шт. <span aria-hidden="true">*</span>
-                    <input
-                      name="stockQuantity"
-                      type="number"
-                      min={0}
-                      max={2147483647}
-                      step={1}
-                      required
-                      defaultValue={0}
-                      className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-                    />
-                  </label>
+                  <>
+                    <label className="grid gap-1 text-sm font-medium">
+                      Начальный остаток, шт. <span aria-hidden="true">*</span>
+                      <input
+                        name="stockQuantity"
+                        type="number"
+                        min={0}
+                        max={2147483647}
+                        step={1}
+                        required
+                        defaultValue={0}
+                        className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium">
+                      Минимальный остаток для сигнала, шт.
+                      <input
+                        name="minimumStockQuantity"
+                        type="number"
+                        min={0}
+                        max={2147483647}
+                        step={1}
+                        required
+                        defaultValue={defaultMinimumStockQuantity}
+                        className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
+                      />
+                      <span className="text-xs font-normal text-slate-500">
+                        0 — сигнал только при нулевом остатке.
+                      </span>
+                    </label>
+                  </>
                 )}
                 <button
                   type="submit"
@@ -231,7 +291,12 @@ const CatalogItemRow = ({
       type,
       name: String(data.get("name")).trim(),
       unitPriceRub: Number(data.get("unitPriceRub")),
-      ...(tracksStock(type) ? { stockQuantity: Number(data.get("stockQuantity")) } : {}),
+      ...(tracksStock(type)
+        ? {
+            stockQuantity: Number(data.get("stockQuantity")),
+            minimumStockQuantity: Number(data.get("minimumStockQuantity")),
+          }
+        : {}),
     });
     setShowEditor(false);
   };
@@ -244,10 +309,26 @@ const CatalogItemRow = ({
           <p className="mt-1 text-sm text-slate-500">
             {item.unitPriceRub.toLocaleString("ru-RU")} ₽
             {tracksStock(item.type)
-              ? ` · Остаток: ${item.stockQuantity === null ? "не задан" : `${item.stockQuantity} шт.`}`
+              ? item.stockQuantity === null
+                ? " · Остаток не задан"
+                : ` · Остаток: ${item.stockQuantity} шт.`
+              : ""}
+            {tracksStock(item.type) && item.stockQuantity !== null
+              ? ` · Порог: ${item.minimumStockQuantity ?? defaultMinimumStockQuantity} шт.`
               : ""}
             {` · ${item.active ? "Активна" : "Скрыта"}`}
           </p>
+          {item.active &&
+            tracksStock(item.type) &&
+            item.stockQuantity !== null &&
+            (item.stockQuantity === 0 ||
+              item.stockQuantity <= (item.minimumStockQuantity ?? defaultMinimumStockQuantity)) && (
+              <p className="mt-1 text-sm font-medium text-amber-700 dark:text-amber-300">
+                {item.stockQuantity === 0
+                  ? "Закончилась — пополните запас"
+                  : `Мало на складе · осталось ${item.stockQuantity} шт.`}
+              </p>
+            )}
         </div>
         {editable && (
           <div className="flex flex-wrap gap-2">
@@ -312,19 +393,48 @@ const CatalogItemRow = ({
             />
           </label>
           {tracksStock(type) && (
-            <label className="grid gap-1 text-sm font-medium">
-              Остаток, шт.
-              <input
-                name="stockQuantity"
-                type="number"
-                defaultValue={tracksStock(item.type) ? (item.stockQuantity ?? 0) : 0}
-                min={0}
-                max={2147483647}
-                step={1}
-                required
-                className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-              />
-            </label>
+            <>
+              <label className="grid gap-1 text-sm font-medium">
+                Остаток, шт.
+                <input
+                  name="stockQuantity"
+                  type="number"
+                  defaultValue={
+                    tracksStock(item.type) && item.stockQuantity !== null ? item.stockQuantity : ""
+                  }
+                  min={0}
+                  max={2147483647}
+                  step={1}
+                  required
+                  className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
+                />
+                {tracksStock(item.type) && item.stockQuantity === null && (
+                  <span className="text-xs font-normal text-slate-500">
+                    Учёт остатка ещё не настроен — укажите фактическое количество.
+                  </span>
+                )}
+              </label>
+              <label className="grid gap-1 text-sm font-medium">
+                Минимальный остаток для сигнала, шт.
+                <input
+                  name="minimumStockQuantity"
+                  type="number"
+                  defaultValue={
+                    tracksStock(item.type)
+                      ? (item.minimumStockQuantity ?? defaultMinimumStockQuantity)
+                      : defaultMinimumStockQuantity
+                  }
+                  min={0}
+                  max={2147483647}
+                  step={1}
+                  required
+                  className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
+                />
+                <span className="text-xs font-normal text-slate-500">
+                  0 — сигнал только при нулевом остатке.
+                </span>
+              </label>
+            </>
           )}
           <button
             type="submit"

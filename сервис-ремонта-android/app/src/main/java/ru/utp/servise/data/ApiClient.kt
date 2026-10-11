@@ -158,9 +158,13 @@ object ApiClient {
         name: String,
         unitPriceRub: Int,
         stockQuantity: Int? = null,
+        minimumStockQuantity: Int? = null,
     ): CatalogItem {
         val body = JSONObject().put("type", type).put("name", name).put("unitPriceRub", unitPriceRub)
-        if (type != "SERVICE") body.put("stockQuantity", stockQuantity ?: 0)
+        if (type != "SERVICE") {
+            body.put("stockQuantity", stockQuantity ?: 0)
+            body.put("minimumStockQuantity", minimumStockQuantity ?: 3)
+        }
         return request("POST", "/catalog", token, body).getJSONObject("catalogItem").toCatalogItem()
     }
 
@@ -174,6 +178,9 @@ object ApiClient {
             .apply {
                 if (item.type != "SERVICE" && item.stockQuantity != null) {
                     put("stockQuantity", item.stockQuantity)
+                }
+                if (item.type != "SERVICE" && item.minimumStockQuantity != null) {
+                    put("minimumStockQuantity", item.minimumStockQuantity)
                 }
             },
     ).getJSONObject("catalogItem").toCatalogItem()

@@ -37,7 +37,17 @@ import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.orderItemTypeLabel
 
-private const val LOW_STOCK_THRESHOLD = 3
+private const val DEFAULT_MINIMUM_STOCK_QUANTITY = 3
+
+private fun isRestockNeeded(stockQuantity: Int?, minimumStockQuantity: Int?): Boolean =
+    stockQuantity != null &&
+        (stockQuantity == 0 ||
+            stockQuantity <= (minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY))
+
+private fun isBelowRestockThreshold(stockQuantity: Int?, minimumStockQuantity: Int?): Boolean =
+    stockQuantity != null &&
+        stockQuantity > 0 &&
+        stockQuantity <= (minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY)
 
 @Composable
 fun OrderItemPickerDialog(
@@ -124,6 +134,9 @@ fun CatalogManagementScreen(
     var name by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
     var stockText by remember { mutableStateOf("0") }
+    var minimumStockText by remember {
+        mutableStateOf(DEFAULT_MINIMUM_STOCK_QUANTITY.toString())
+    }
     var editedItem by remember { mutableStateOf<CatalogItem?>(null) }
     val price = priceText.toIntOrNull()
     val stockTrackedItems = catalogItems.filter {
@@ -131,10 +144,10 @@ fun CatalogManagementScreen(
     }
     val outOfStockItems = stockTrackedItems.filter { (it.stockQuantity ?: 0) <= 0 }
     val lowStockItems = stockTrackedItems.filter {
-        (it.stockQuantity ?: 0) in 1..LOW_STOCK_THRESHOLD
+        isBelowRestockThreshold(it.stockQuantity, it.minimumStockQuantity)
     }
     val restockItems = stockTrackedItems.filter {
-        (it.stockQuantity ?: 0) <= LOW_STOCK_THRESHOLD
+        isRestockNeeded(it.stockQuantity, it.minimumStockQuantity)
     }
     val restockItemIds = restockItems.mapTo(mutableSetOf()) { it.id }
     val visibleCatalogItems = if (showRestockOnly) {
@@ -166,13 +179,13 @@ fun CatalogManagementScreen(
                     when {
                         stockTrackedItems.isEmpty() -> "У активных запчастей и товаров пока не указан остаток. Добавьте его в карточке позиции."
                         restockItems.isEmpty() -> "На складе ${stockTrackedItems.size} активных позиций — запас в норме."
-                        else -> "Нужно пополнить: ${restockItems.size} · закончилось: ${outOfStockItems.size} · осталось 1–3: ${lowStockItems.size}"
+                        else -> "Нужно пополнить: ${restockItems.size} · закончилось: ${outOfStockItems.size} · на пороге или ниже: ${lowStockItems.size}"
                     },
                     fontSize = 12.sp,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.onTertiaryContainer,
                 )
                 Text(
-                    "Сигнал появляется при остатке $LOW_STOCK_THRESHOLD шт. или меньше. Услуги и скрытые позиции не учитываются.",
+                    "Для каждой позиции задаётся свой порог. Нулевой остаток отмечается всегда; услуги и скрытые позиции не учитываются.",
                     fontSize = 11.sp,
                     color = androidx.compose.material3.MaterialTheme.colorScheme.onTertiaryContainer,
                 )
@@ -225,7 +238,18 @@ fun CatalogManagementScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                     )
+                    OutlinedTextField(
+                        value = minimumStockText,
+                        onValueChange = { minimumStockText = it.filter(Char::isDigit).take(10) },
+                        label = { Text("Минимальный остаток для сигнала, шт.") },
+                        supportingText = { Text("0 — сигнал только при нулевом остатке.") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                    )
                 }
+                val minimumStock = minimumStockText.toIntOrNull()
                 Button(
                     onClick = {
                         runAction({
@@ -235,15 +259,18 @@ fun CatalogManagementScreen(
                                 name.trim(),
                                 price!!,
                                 if (type != "SERVICE") stockText.toIntOrNull() ?: 0 else null,
+                                if (type != "SERVICE") minimumStock else null,
                             )
                         }) {
                             name = ""
                             priceText = ""
                             stockText = "0"
+                            minimumStockText = DEFAULT_MINIMUM_STOCK_QUANTITY.toString()
                         }
                     },
                     enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
-                        (type == "SERVICE" || stockText.toIntOrNull() != null),
+                        (type == "SERVICE" ||
+                            (stockText.toIntOrNull() != null && minimumStock != null)),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Добавить в каталог") }
@@ -262,29 +289,36 @@ fun CatalogManagementScreen(
         if (catalogItems.isEmpty()) Text("Каталог пока пуст. Добавьте первую позицию.", color = UtpMuted)
         else if (visibleCatalogItems.isEmpty()) {
             Text(
-                "Активных запчастей и товаров с остатком $LOW_STOCK_THRESHOLD шт. или меньше нет.",
+                "Активных запчастей и товаров ниже заданного порога нет.",
                 color = UtpMuted,
             )
         }
         visibleCatalogItems.forEach { item ->
             val stockQuantity = item.stockQuantity
             val isTrackedActiveItem = item.active && item.type != "SERVICE" && stockQuantity != null
+            val minimumStockQuantity = item.minimumStockQuantity
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     Text("${item.type.orderItemTypeLabel()} · ${item.name}", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text(
                         "${item.unitPriceRub} ₽ · ${if (item.active) "Активна" else "Скрыта из выбора"}" +
-                            if (item.type != "SERVICE") " · ${item.stockQuantity?.let { "$it шт. в наличии" } ?: "остаток не задан"}" else "",
+                            if (item.type != "SERVICE") {
+                                " · ${item.stockQuantity?.let { "$it шт. в наличии" } ?: "остаток не задан"}" +
+                                    if (item.stockQuantity != null) {
+                                        " · порог ${minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY} шт."
+                                    } else ""
+                            } else "",
                         fontSize = 12.sp,
                         color = UtpMuted,
                         modifier = Modifier.padding(top = 3.dp),
                     )
-                    if (isTrackedActiveItem && stockQuantity!! <= LOW_STOCK_THRESHOLD) {
+                    if (isTrackedActiveItem && isRestockNeeded(stockQuantity, minimumStockQuantity)) {
                         Text(
-                            if (stockQuantity <= 0) "Закончилась — пополните запас" else "Мало на складе — осталось $stockQuantity шт.",
+                            if (stockQuantity == 0) "Закончилась — пополните запас"
+                            else "Мало на складе — осталось $stockQuantity шт.",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (stockQuantity <= 0) androidx.compose.material3.MaterialTheme.colorScheme.error else UtpAmber,
+                            color = if (stockQuantity == 0) androidx.compose.material3.MaterialTheme.colorScheme.error else UtpAmber,
                             modifier = Modifier.padding(top = 5.dp),
                         )
                     }
@@ -322,8 +356,12 @@ private fun CatalogItemEditDialog(
     var type by remember(item.id) { mutableStateOf(item.type) }
     var name by remember(item.id) { mutableStateOf(item.name) }
     var priceText by remember(item.id) { mutableStateOf(item.unitPriceRub.toString()) }
-    var stockText by remember(item.id) { mutableStateOf((item.stockQuantity ?: 0).toString()) }
+    var stockText by remember(item.id) { mutableStateOf(item.stockQuantity?.toString().orEmpty()) }
+    var minimumStockText by remember(item.id) {
+        mutableStateOf((item.minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY).toString())
+    }
     val price = priceText.toIntOrNull()
+    val minimumStock = minimumStockText.toIntOrNull()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Изменить позицию") },
@@ -352,6 +390,21 @@ private fun CatalogItemEditDialog(
                         value = stockText,
                         onValueChange = { stockText = it.filter(Char::isDigit).take(10) },
                         label = { Text("Остаток, шт.") },
+                        supportingText = {
+                            if (item.stockQuantity == null && item.type != "SERVICE") {
+                                Text("Учёт остатка ещё не настроен — укажите фактическое количество.")
+                            }
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    OutlinedTextField(
+                        value = minimumStockText,
+                        onValueChange = { minimumStockText = it.filter(Char::isDigit).take(10) },
+                        label = { Text("Минимальный остаток для сигнала, шт.") },
+                        supportingText = { Text("0 — сигнал только при нулевом остатке.") },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -370,11 +423,13 @@ private fun CatalogItemEditDialog(
                             name = name.trim(),
                             unitPriceRub = price!!,
                             stockQuantity = if (type != "SERVICE") stockText.toIntOrNull() else null,
+                            minimumStockQuantity = if (type != "SERVICE") minimumStock else null,
                         ),
                     )
                 },
                 enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
-                    (type == "SERVICE" || stockText.toIntOrNull() != null),
+                    (type == "SERVICE" ||
+                        (stockText.toIntOrNull() != null && minimumStock != null)),
             ) { Text("Сохранить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },

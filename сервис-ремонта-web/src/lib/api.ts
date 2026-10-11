@@ -256,6 +256,7 @@ export type RepairCatalogItem = {
   name: string;
   unitPriceRub: number;
   stockQuantity: number | null;
+  minimumStockQuantity: number | null;
   active: boolean;
 };
 
@@ -701,6 +702,7 @@ export const createRepairCatalogItem = (
   token: string,
   input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
     stockQuantity?: number;
+    minimumStockQuantity?: number;
   },
 ) =>
   apiRequest<{ catalogItem: RepairCatalogItem }>("/catalog", token, {
@@ -712,7 +714,10 @@ export const updateRepairCatalogItem = (
   token: string,
   id: string,
   input: Partial<
-    Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "stockQuantity" | "active">
+    Pick<
+      RepairCatalogItem,
+      "type" | "name" | "unitPriceRub" | "stockQuantity" | "minimumStockQuantity" | "active"
+    >
   >,
 ) =>
   apiRequest<{ catalogItem: RepairCatalogItem }>(`/catalog/${id}`, token, {

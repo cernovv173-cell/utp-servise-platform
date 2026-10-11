@@ -181,6 +181,7 @@ internal fun JSONObject.toCatalogItem() = CatalogItem(
     unitPriceRub = getInt("unitPriceRub"),
     active = optBoolean("active", true),
     stockQuantity = if (isNull("stockQuantity")) null else optInt("stockQuantity"),
+    minimumStockQuantity = if (isNull("minimumStockQuantity")) null else optInt("minimumStockQuantity"),
 )
 
 internal fun JSONObject.toCraftItem() = CraftItem(

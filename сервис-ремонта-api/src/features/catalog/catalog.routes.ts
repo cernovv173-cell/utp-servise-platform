@@ -21,6 +21,7 @@ const catalogCreateBody = z
     name: z.string().trim().min(2).max(160),
     unitPriceRub: z.number().int().min(0).max(10_000_000),
     stockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
+    minimumStockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
   })
   .strict()
   .refine(
@@ -30,6 +31,15 @@ const catalogCreateBody = z
       message: "Услуги не учитываются на складе.",
       path: ["stockQuantity"],
     },
+  )
+  .refine(
+    (body) =>
+      isInventoryCatalogItem(body.type) ||
+      body.minimumStockQuantity === undefined,
+    {
+      message: "Порог остатка задаётся только для товара или запчасти.",
+      path: ["minimumStockQuantity"],
+    },
   );
 const catalogUpdateBody = z
   .object({
@@ -37,6 +47,7 @@ const catalogUpdateBody = z
     name: z.string().trim().min(2).max(160).optional(),
     unitPriceRub: z.number().int().min(0).max(10_000_000).optional(),
     stockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
+    minimumStockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
     active: z.boolean().optional(),
   })
   .strict()
@@ -46,6 +57,14 @@ const catalogUpdateBody = z
     {
       message: "Услуги не учитываются на складе.",
       path: ["stockQuantity"],
+    },
+  )
+  .refine(
+    (body) =>
+      body.type !== "SERVICE" || body.minimumStockQuantity === undefined,
+    {
+      message: "Порог остатка задаётся только для товара или запчасти.",
+      path: ["minimumStockQuantity"],
     },
   );
 
@@ -86,6 +105,9 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
           ...input,
           stockQuantity: isInventoryCatalogItem(input.type)
             ? (input.stockQuantity ?? 0)
+            : null,
+          minimumStockQuantity: isInventoryCatalogItem(input.type)
+            ? (input.minimumStockQuantity ?? 3)
             : null,
           createdById: user.id,
         },
@@ -128,6 +150,16 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
         );
       }
       if (
+        input.minimumStockQuantity !== undefined &&
+        !isInventoryCatalogItem(nextType)
+      ) {
+        throw new HttpError(
+          400,
+          "SERVICE_STOCK_NOT_SUPPORTED",
+          "Порог остатка можно задать только для товара или запчасти.",
+        );
+      }
+      if (
         input.type === "SERVICE" &&
         isInventoryCatalogItem(existing.type) &&
         existing.stockQuantity !== null &&
@@ -144,11 +176,14 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
         data: {
           ...input,
           ...(input.type === "SERVICE"
-            ? { stockQuantity: null }
+            ? { stockQuantity: null, minimumStockQuantity: null }
             : input.type !== undefined &&
                 isInventoryCatalogItem(input.type) &&
                 existing.type === "SERVICE"
-              ? { stockQuantity: input.stockQuantity ?? 0 }
+              ? {
+                  stockQuantity: input.stockQuantity ?? 0,
+                  minimumStockQuantity: input.minimumStockQuantity ?? 3,
+                }
               : {}),
         },
       });

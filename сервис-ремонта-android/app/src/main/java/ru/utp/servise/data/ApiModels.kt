@@ -182,6 +182,7 @@ data class CatalogItem(
     val unitPriceRub: Int,
     val active: Boolean,
     val stockQuantity: Int? = null,
+    val minimumStockQuantity: Int? = null,
 )
 
 data class CraftItem(

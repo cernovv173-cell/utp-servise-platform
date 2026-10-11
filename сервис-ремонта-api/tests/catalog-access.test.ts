@@ -147,6 +147,7 @@ test("only administrators manage the shared catalog and technicians see active p
   const createdSparePart = (await createItem.json()).catalogItem;
   assert.equal(createdSparePart.createdById, "admin-1");
   assert.equal(createdSparePart.stockQuantity, 0);
+  assert.equal(createdSparePart.minimumStockQuantity, 3);
 
   const createProduct = await fetch(baseUrl, {
     method: "POST",
@@ -156,12 +157,14 @@ test("only administrators manage the shared catalog and technicians see active p
       name: "Кабель USB-C",
       unitPriceRub: 900,
       stockQuantity: 8,
+      minimumStockQuantity: 5,
     }),
   });
   assert.equal(createProduct.status, 201);
   const createdProduct = (await createProduct.json()).catalogItem;
   assert.equal(createdProduct.type, "PRODUCT");
   assert.equal(createdProduct.stockQuantity, 8);
+  assert.equal(createdProduct.minimumStockQuantity, 5);
   const productStockUpdate = await fetch(`${baseUrl}/${createdProduct.id}`, {
     method: "PATCH",
     headers: headers(adminToken),
@@ -169,6 +172,16 @@ test("only administrators manage the shared catalog and technicians see active p
   });
   assert.equal(productStockUpdate.status, 200);
   assert.equal((await productStockUpdate.json()).catalogItem.stockQuantity, 12);
+  const thresholdUpdate = await fetch(`${baseUrl}/${createdProduct.id}`, {
+    method: "PATCH",
+    headers: headers(adminToken),
+    body: JSON.stringify({ minimumStockQuantity: 7 }),
+  });
+  assert.equal(thresholdUpdate.status, 200);
+  assert.equal(
+    (await thresholdUpdate.json()).catalogItem.minimumStockQuantity,
+    7,
+  );
 
   const activeCatalogItemId = "33333333-3333-4333-8333-333333333334";
   const stockUpdate = await fetch(
@@ -188,6 +201,15 @@ test("only administrators manage the shared catalog and technicians see active p
     body: JSON.stringify({ stockQuantity: 12 }),
   });
   assert.equal(serviceStockUpdate.status, 400);
+  const serviceThresholdUpdate = await fetch(
+    `${baseUrl}/${activeCatalogItemId}`,
+    {
+      method: "PATCH",
+      headers: headers(adminToken),
+      body: JSON.stringify({ minimumStockQuantity: 5 }),
+    },
+  );
+  assert.equal(serviceThresholdUpdate.status, 400);
 
   const technicianCreate = await fetch(baseUrl, {
     method: "POST",

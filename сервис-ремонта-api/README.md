@@ -33,6 +33,10 @@ printing configuration values. Run `pnpm test` for configuration and diagnostic 
 
 Repair spare parts and products have an optional `stockQuantity`. Existing catalog rows remain untracked
 (`null`) until an administrator records a factual starting balance; services do not use stock.
+Each stock-tracked item can have its own `minimumStockQuantity`; new items default to 3 units, and
+older tracked rows keep that threshold until an administrator changes it. A threshold of 0 alerts only
+when the balance reaches zero; zero-stock items are always highlighted. The additive migration leaves
+untracked legacy balances and service rows untracked.
 Adding a tracked spare part or product to an open order decrements inventory atomically with the new
 order line. Removing that line returns its quantity. In an unpaid completed-order receipt, an
 administrator can set an existing line quantity to zero to remove it; linked stock is restored in the
