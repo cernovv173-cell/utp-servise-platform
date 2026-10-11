@@ -20,13 +20,16 @@ const restoreEnvironment = (name: string, value: string | undefined): void => {
 test("MAX deep-link confirmation is one-time and updates only MAX account state", async (t) => {
   const previousEnvironment = {
     token: process.env.MAX_BOT_TOKEN,
+    webhookSecret: process.env.MAX_WEBHOOK_SECRET,
     webhookUrl: process.env.MAX_WEBHOOK_URL,
     proxyUrl: process.env.AMAZI_PROXY_URL,
     proxyKey: process.env.AMAZI_PROXY_KEY,
   };
   const previousFetch = globalThis.fetch;
   const botToken = "test-token-only-not-a-live-credential";
+  const webhookSecret = "test-webhook-secret-only-not-a-live-secret";
   process.env.MAX_BOT_TOKEN = botToken;
+  process.env.MAX_WEBHOOK_SECRET = webhookSecret;
   process.env.MAX_WEBHOOK_URL = "https://api.example.test/api/max/webhook";
   delete process.env.AMAZI_PROXY_URL;
   delete process.env.AMAZI_PROXY_KEY;
@@ -120,6 +123,10 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
     t.after(() => {
       globalThis.fetch = previousFetch;
       restoreEnvironment("MAX_BOT_TOKEN", previousEnvironment.token);
+      restoreEnvironment(
+        "MAX_WEBHOOK_SECRET",
+        previousEnvironment.webhookSecret,
+      );
       restoreEnvironment("MAX_WEBHOOK_URL", previousEnvironment.webhookUrl);
       restoreEnvironment("AMAZI_PROXY_URL", previousEnvironment.proxyUrl);
       restoreEnvironment("AMAZI_PROXY_KEY", previousEnvironment.proxyKey);
@@ -150,7 +157,7 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
 
     const webhookHeaders = {
       "content-type": "application/json",
-      "x-max-bot-api-secret": maxWebhookSecret(),
+      "x-max-bot-api-secret": webhookSecret,
     };
     assert.equal(
       isMaxWebhookSecretValid(webhookHeaders["x-max-bot-api-secret"]),
@@ -187,6 +194,7 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
   } finally {
     globalThis.fetch = previousFetch;
     restoreEnvironment("MAX_BOT_TOKEN", previousEnvironment.token);
+    restoreEnvironment("MAX_WEBHOOK_SECRET", previousEnvironment.webhookSecret);
     restoreEnvironment("MAX_WEBHOOK_URL", previousEnvironment.webhookUrl);
     restoreEnvironment("AMAZI_PROXY_URL", previousEnvironment.proxyUrl);
     restoreEnvironment("AMAZI_PROXY_KEY", previousEnvironment.proxyKey);

@@ -1,6 +1,10 @@
 import type { Logger } from "pino";
 
-import { getMaxWebhookSubscriptions, registerMaxWebhook } from "./max-bot.js";
+import {
+  getMaxBotProfile,
+  getMaxWebhookSubscriptions,
+  registerMaxWebhook,
+} from "./max-bot.js";
 
 export const setupMaxWebhookIfUnclaimed = async (
   logger: Logger,
@@ -22,6 +26,7 @@ export const setupMaxWebhookIfUnclaimed = async (
   }
 
   try {
+    await getMaxBotProfile();
     const current = await getMaxWebhookSubscriptions();
     const subscriptions = current.subscriptions ?? [];
     if (

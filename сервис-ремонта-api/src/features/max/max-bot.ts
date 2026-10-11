@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual } from "node:crypto";
 
 export type MaxBotProfile = {
   readonly username: string;
@@ -22,16 +22,22 @@ export class MaxApiError extends Error {
 export const hasMaxBotToken = (): boolean =>
   Boolean(process.env.MAX_BOT_TOKEN?.trim());
 
+export const hasMaxWebhookSecret = (): boolean =>
+  /^[A-Za-z0-9_-]{5,256}$/u.test(process.env.MAX_WEBHOOK_SECRET?.trim() ?? "");
+
 const getBotToken = (): string => {
   const token = process.env.MAX_BOT_TOKEN?.trim();
   if (!token) throw new MaxApiError("NOT_CONFIGURED");
   return token;
 };
 
-export const maxWebhookSecret = (): string =>
-  createHmac("sha256", getBotToken())
-    .update("utp-servise-max-webhook-v1")
-    .digest("base64url");
+export const maxWebhookSecret = (): string => {
+  const secret = process.env.MAX_WEBHOOK_SECRET?.trim();
+  if (!secret || !hasMaxWebhookSecret()) {
+    throw new MaxApiError("NOT_CONFIGURED");
+  }
+  return secret;
+};
 
 export const isMaxWebhookSecretValid = (value: string | undefined): boolean => {
   if (!value) return false;

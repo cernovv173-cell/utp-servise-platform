@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { createHmac } from "node:crypto";
 import { test } from "node:test";
 
 import {
@@ -49,19 +48,18 @@ test("formats repair notifications and bounds MAX retry delays", () => {
 });
 
 test("derives a valid webhook secret without exposing the MAX token", () => {
-  const previous = process.env.MAX_BOT_TOKEN;
-  const token = "test-token-only-not-a-live-credential";
-  process.env.MAX_BOT_TOKEN = token;
+  const previous = process.env.MAX_WEBHOOK_SECRET;
+  const secret = "test-webhook-secret-only-not-a-live-secret";
+  process.env.MAX_WEBHOOK_SECRET = secret;
   try {
-    const expected = createHmac("sha256", token)
-      .update("utp-servise-max-webhook-v1")
-      .digest("base64url");
-    assert.equal(maxWebhookSecret(), expected);
-    assert.equal(isMaxWebhookSecretValid(expected), true);
+    assert.equal(maxWebhookSecret(), secret);
+    assert.equal(isMaxWebhookSecretValid(secret), true);
     assert.equal(isMaxWebhookSecretValid("not-the-secret"), false);
     assert.equal(isMaxWebhookSecretValid(undefined), false);
+    process.env.MAX_WEBHOOK_SECRET = "invalid webhook secret";
+    assert.equal(isMaxWebhookSecretValid(secret), false);
   } finally {
-    restoreEnvironment("MAX_BOT_TOKEN", previous);
+    restoreEnvironment("MAX_WEBHOOK_SECRET", previous);
   }
 });
 

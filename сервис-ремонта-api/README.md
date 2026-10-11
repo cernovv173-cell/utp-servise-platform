@@ -125,10 +125,12 @@ never switches the bot to `getUpdates` polling. The Telegram token is bound only
 
 MAX links use the bot's username from `GET /me` and the official `https://max.ru/<botName>?start=<payload>`
 deep-link format. The MAX webhook handles `bot_started` link confirmations and `bot_stopped` disconnects;
-its secret is derived server-side from `MAX_BOT_TOKEN`. Production startup registers the webhook at
+it registers and validates the connected integration's `MAX_WEBHOOK_SECRET` using a constant-time comparison.
+Production startup registers the webhook at
 `MAX_WEBHOOK_URL` only when no different subscription exists. MAX API requests use the official
 `platform-api2.max.ru` host, send the token only in the `Authorization` header, and are paced to stay
-within the per-dialog message limit. Keep `MAX_BOT_TOKEN` and `MAX_WEBHOOK_URL` bound only to the API.
+within the per-dialog message limit. Keep `MAX_BOT_TOKEN`, `MAX_WEBHOOK_SECRET`, and `MAX_WEBHOOK_URL`
+bound only to the API.
 Until MAX is connected and these server variables are available, MAX linking and live delivery remain
 disabled; Telegram remains operational independently.
 

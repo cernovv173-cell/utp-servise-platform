@@ -12,6 +12,7 @@ import {
 import {
   getMaxBotProfile,
   hasMaxBotToken,
+  hasMaxWebhookSecret,
   isMaxWebhookSecretValid,
   sendMaxMessage,
 } from "./max-bot.js";
@@ -64,7 +65,9 @@ export const createMaxRouter = (database: DatabaseClient): Router => {
     (_request, response) => {
       response.json({
         available:
-          hasMaxBotToken() && Boolean(process.env.MAX_WEBHOOK_URL?.trim()),
+          hasMaxBotToken() &&
+          hasMaxWebhookSecret() &&
+          Boolean(process.env.MAX_WEBHOOK_URL?.trim()),
         connected: Boolean(getAuthenticatedUser(response).maxUserId),
       });
     },

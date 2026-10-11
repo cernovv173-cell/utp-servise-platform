@@ -1,5 +1,6 @@
 import { createApp } from "./app.js";
 import { ensureInitialAdmin } from "./features/auth/auth.routes.js";
+import { hasMaxBotToken, hasMaxWebhookSecret } from "./features/max/max-bot.js";
 import { startMaxNotificationWorker } from "./features/max/max-notifications.js";
 import { setupMaxWebhookIfUnclaimed } from "./features/max/max-webhook-setup.js";
 import { startNewsPushWorker } from "./features/news/news-push-worker.js";
@@ -63,7 +64,7 @@ const start = async (): Promise<void> => {
     logger.info({ host, port: config.port }, "Backend server started");
     if (database && config.nodeEnv === "production") {
       void setupTelegramWebhookIfUnclaimed(logger);
-      if (process.env.MAX_BOT_TOKEN?.trim()) {
+      if (hasMaxBotToken() && hasMaxWebhookSecret()) {
         void setupMaxWebhookIfUnclaimed(logger);
       }
     }
