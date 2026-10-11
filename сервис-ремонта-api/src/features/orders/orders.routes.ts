@@ -56,6 +56,9 @@ const contactPhone = z
 const createOrderBody = z
   .object({
     deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]),
+    deviceBrand: z.string().trim().max(120).optional(),
+    deviceModel: z.string().trim().max(160).optional(),
+    deviceSerialNumber: z.string().trim().max(160).optional(),
     problem: z.string().trim().min(5).max(2000),
     contactPhone,
     city: z.string().trim().min(2).max(120),
@@ -80,6 +83,9 @@ const createAdminOrderBody = createOrderBody
 const editOrderBody = z
   .object({
     deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]).optional(),
+    deviceBrand: z.string().trim().max(120).optional(),
+    deviceModel: z.string().trim().max(160).optional(),
+    deviceSerialNumber: z.string().trim().max(160).optional(),
     problem: z.string().trim().min(5).max(2000).optional(),
     address: z.string().trim().max(500).optional(),
     contactPhone: contactPhone.optional(),
@@ -444,6 +450,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
             customerId: user.id,
             deviceType: input.deviceType,
+            deviceBrand: input.deviceBrand || null,
+            deviceModel: input.deviceModel || null,
+            deviceSerialNumber: input.deviceSerialNumber || null,
             problem: input.problem,
             address,
             contactPhone: input.contactPhone,
@@ -521,6 +530,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
             customerId: customer.id,
             deviceType: input.deviceType,
+            deviceBrand: input.deviceBrand || null,
+            deviceModel: input.deviceModel || null,
+            deviceSerialNumber: input.deviceSerialNumber || null,
             problem: input.problem,
             address: addressFromFields(input),
             contactPhone,
@@ -632,6 +644,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           },
           data: {
             deviceType: input.deviceType,
+            deviceBrand: input.deviceBrand,
+            deviceModel: input.deviceModel,
+            deviceSerialNumber: input.deviceSerialNumber,
             problem: input.problem,
             address,
             contactPhone: input.contactPhone,

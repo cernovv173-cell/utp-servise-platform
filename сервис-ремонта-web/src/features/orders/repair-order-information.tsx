@@ -58,6 +58,22 @@ export const RepairOrderInformation = ({ order, token }: { order: RepairOrder; t
       <div>
         <h4 className="text-sm font-semibold">Информация о заявке</h4>
         <dl className="mt-2 grid gap-x-4 gap-y-2 text-xs sm:grid-cols-2">
+          {(order.deviceBrand || order.deviceModel || order.deviceSerialNumber) && (
+            <div>
+              <dt className="text-slate-500">Техника</dt>
+              <dd>
+                {[order.deviceBrand, order.deviceModel].filter(Boolean).join(" ") ||
+                  "Модель не указана"}
+                {order.deviceSerialNumber && ` · серийный № ${order.deviceSerialNumber}`}
+              </dd>
+            </div>
+          )}
+          {order.preferredAt && (
+            <div>
+              <dt className="text-slate-500">Желаемое время</dt>
+              <dd>{new Date(order.preferredAt).toLocaleString("ru-RU")}</dd>
+            </div>
+          )}
           <div>
             <dt className="text-slate-500">Адрес</dt>
             <dd>{address || order.address || "Не указан"}</dd>

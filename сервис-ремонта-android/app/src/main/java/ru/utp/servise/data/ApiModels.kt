@@ -28,6 +28,13 @@ data class OrderAddress(
     val additionalInfo: String = "",
 )
 
+data class RepairRequestDetails(
+    val deviceBrand: String = "",
+    val deviceModel: String = "",
+    val deviceSerialNumber: String = "",
+    val preferredAt: String? = null,
+)
+
 data class ReceiptItem(
     val name: String,
     val quantity: Int,
@@ -97,6 +104,53 @@ data class RepairOrder(
     val warranty: RepairWarranty? = null,
     val estimates: List<RepairEstimate> = emptyList(),
     val deadlineChanges: List<RepairOrderDeadlineChange> = emptyList(),
+    val deviceBrand: String? = null,
+    val deviceModel: String? = null,
+    val deviceSerialNumber: String? = null,
+    val preferredAt: String? = null,
+    val priority: String = "NORMAL",
+)
+
+data class OperationsDashboard(
+    val periodDays: Int,
+    val activeOrders: Int,
+    val overdueOrders: Int,
+    val newOrders: Int,
+    val completedOrders: Int,
+    val averageRepairMinutes: Int?,
+    val collectedRub: Int,
+    val popularWorks: List<PopularWork>,
+)
+
+data class PopularWork(val name: String, val completedQuantity: Int)
+
+data class ProcurementItem(
+    val id: String,
+    val name: String,
+    val stockQuantity: Int,
+    val minimumStockQuantity: Int,
+    val unitPriceRub: Int,
+    val recommendedPurchase: Int,
+    val activeEstimateQuantity: Int,
+)
+
+data class ScheduledRepairOrder(
+    val id: String,
+    val serviceNumber: String,
+    val deviceType: String,
+    val deviceBrand: String?,
+    val deviceModel: String?,
+    val problem: String,
+    val preferredAt: String?,
+    val expectedCompletionAt: String?,
+    val status: String,
+    val priority: String,
+    val city: String?,
+    val street: String?,
+    val house: String?,
+    val customerName: String,
+    val technicianId: String?,
+    val technicianName: String?,
 )
 
 data class RepairOrderDeadlineChange(

@@ -153,6 +153,27 @@ object ApiClient {
     fun catalog(token: String): List<CatalogItem> = request("GET", "/catalog", token)
         .getJSONArray("catalogItems").mapObjects { it.toCatalogItem() }
 
+    fun operationsDashboard(token: String): OperationsDashboard = request(
+        "GET", "/admin/operations/dashboard", token,
+    ).toOperationsDashboard()
+
+    fun procurementList(token: String): List<ProcurementItem> = request(
+        "GET", "/admin/operations/procurement", token,
+    ).getJSONArray("items").mapObjects { it.toProcurementItem() }
+
+    fun repairSchedule(token: String, from: String, to: String): List<ScheduledRepairOrder> {
+        val encodedFrom = URLEncoder.encode(from, Charsets.UTF_8.name())
+        val encodedTo = URLEncoder.encode(to, Charsets.UTF_8.name())
+        return request(
+            "GET", "/admin/operations/calendar?from=$encodedFrom&to=$encodedTo", token,
+        ).getJSONArray("orders").mapObjects { it.toScheduledRepairOrder() }
+    }
+
+    fun updateRepairPriority(token: String, orderId: String, priority: String) {
+        require(priority in setOf("NORMAL", "URGENT"))
+        request("PATCH", "/admin/operations/orders/$orderId/priority", token, JSONObject().put("priority", priority))
+    }
+
     fun createCatalogItem(
         token: String,
         type: String,
@@ -452,10 +473,23 @@ object ApiClient {
         )
     }
 
-    fun createOrder(token: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(
-        "POST", "/orders", token,
-        JSONObject().put("deviceType", deviceType).put("problem", problem).putAddress(address),
-    ).getJSONObject("order").toOrder()
+    fun createOrder(
+        token: String,
+        deviceType: String,
+        problem: String,
+        address: OrderAddress,
+        details: RepairRequestDetails = RepairRequestDetails(),
+    ): RepairOrder {
+        val body = JSONObject()
+            .put("deviceType", deviceType)
+            .put("problem", problem)
+            .putAddress(address)
+        details.deviceBrand.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceBrand", it) }
+        details.deviceModel.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceModel", it) }
+        details.deviceSerialNumber.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceSerialNumber", it) }
+        details.preferredAt?.let { body.put("preferredAt", it) }
+        return request("POST", "/orders", token, body).getJSONObject("order").toOrder()
+    }
 
     fun createAdministratorOrder(
         token: String,
@@ -473,6 +507,12 @@ object ApiClient {
         "PATCH", "/orders/$orderId", token,
         JSONObject().put("deviceType", deviceType).put("problem", problem).putAddress(address),
     ).getJSONObject("order").toOrder()
+
+    fun updatePreferredVisitTime(token: String, orderId: String, preferredAt: String?): RepairOrder {
+        val body = JSONObject().put("preferredAt", preferredAt ?: JSONObject.NULL)
+        return request("PATCH", "/orders/$orderId", token, body)
+            .getJSONObject("order").toOrder()
+    }
 
     fun requestBonusRedemption(token: String, orderId: String, redeem: Boolean): RepairOrder = request(
         "PATCH", "/orders/$orderId/bonus-redemption", token,

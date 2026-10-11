@@ -95,6 +95,56 @@ internal fun JSONObject.toOrder(): RepairOrder {
                 actorName = change.optJSONObject("actor")?.nullableString("displayName"),
             )
         },
+        deviceBrand = nullableString("deviceBrand"),
+        deviceModel = nullableString("deviceModel"),
+        deviceSerialNumber = nullableString("deviceSerialNumber"),
+        preferredAt = nullableString("preferredAt"),
+        priority = optString("priority", "NORMAL"),
+    )
+}
+
+internal fun JSONObject.toOperationsDashboard() = OperationsDashboard(
+    periodDays = optInt("periodDays"),
+    activeOrders = optInt("activeOrders"),
+    overdueOrders = optInt("overdueOrders"),
+    newOrders = optInt("newOrders"),
+    completedOrders = optInt("completedOrders"),
+    averageRepairMinutes = if (isNull("averageRepairMinutes")) null else optInt("averageRepairMinutes"),
+    collectedRub = optInt("collectedRub"),
+    popularWorks = optJSONArray("popularWorks").mapObjects { work ->
+        PopularWork(work.optString("name"), work.optInt("completedQuantity"))
+    },
+)
+
+internal fun JSONObject.toProcurementItem() = ProcurementItem(
+    id = getString("id"),
+    name = getString("name"),
+    stockQuantity = optInt("stockQuantity"),
+    minimumStockQuantity = optInt("minimumStockQuantity"),
+    unitPriceRub = optInt("unitPriceRub"),
+    recommendedPurchase = optInt("recommendedPurchase"),
+    activeEstimateQuantity = optInt("activeEstimateQuantity"),
+)
+
+internal fun JSONObject.toScheduledRepairOrder(): ScheduledRepairOrder {
+    val technician = optJSONObject("assignedTechnician")
+    return ScheduledRepairOrder(
+        id = getString("id"),
+        serviceNumber = getString("serviceNumber"),
+        deviceType = optString("deviceType"),
+        deviceBrand = nullableString("deviceBrand"),
+        deviceModel = nullableString("deviceModel"),
+        problem = optString("problem"),
+        preferredAt = nullableString("preferredAt"),
+        expectedCompletionAt = nullableString("expectedCompletionAt"),
+        status = optString("status"),
+        priority = optString("priority", "NORMAL"),
+        city = nullableString("city"),
+        street = nullableString("street"),
+        house = nullableString("house"),
+        customerName = optJSONObject("customer")?.optString("displayName").orEmpty(),
+        technicianId = technician?.nullableString("id"),
+        technicianName = technician?.nullableString("displayName"),
     )
 }
 

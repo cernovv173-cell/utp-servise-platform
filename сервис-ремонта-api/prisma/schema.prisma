@@ -27,6 +27,11 @@ enum RepairStatus {
   CANCELLED
 }
 
+enum RepairOrderPriority {
+  NORMAL
+  URGENT
+}
+
 enum RepairOrderItemType {
   SERVICE
   SPARE_PART
@@ -227,6 +232,9 @@ model RepairOrder {
   customerId            String                         @map("customer_id") @db.Uuid
   assignedTechnicianId  String?                        @map("assigned_technician_id") @db.Uuid
   deviceType            String                         @map("device_type") @db.VarChar(120)
+  deviceBrand           String?                        @map("device_brand") @db.VarChar(120)
+  deviceModel           String?                        @map("device_model") @db.VarChar(160)
+  deviceSerialNumber    String?                        @map("device_serial_number") @db.VarChar(160)
   problem               String                         @db.VarChar(2000)
   address               String                         @db.VarChar(500)
   contactPhone          String?                        @map("contact_phone") @db.VarChar(32)
@@ -244,6 +252,7 @@ model RepairOrder {
   redeemBonuses         Boolean                        @default(false) @map("redeem_bonuses")
   bonusDiscountRub      Int                            @default(0) @map("bonus_discount_rub")
   status                RepairStatus                   @default(REQUESTED)
+  priority              RepairOrderPriority            @default(NORMAL)
   diagnosisCompletedAt  DateTime?                      @map("diagnosis_completed_at") @db.Timestamptz(3)
   createdAt             DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
@@ -269,6 +278,8 @@ model RepairOrder {
   @@index([customerId, createdAt])
   @@index([assignedTechnicianId, status, updatedAt])
   @@index([status, createdAt])
+  @@index([preferredAt, status])
+  @@index([status, expectedCompletionAt])
   @@index([archivedAt, createdAt])
   @@map("repair_orders")
 }

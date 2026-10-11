@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { RepairOrderEditor } from "@/features/admin/repair-order-editor";
 import { RepairOrderItemsEditor } from "@/features/admin/repair-order-items-editor";
+import { RepairOrderPriority } from "@/features/admin/repair-order-priority";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { CustomerPickupQr } from "@/features/orders/customer-pickup-qr";
@@ -23,6 +24,7 @@ import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { RepairOrderReviewForm } from "@/features/orders/repair-order-review-form";
+import { RepairRequestForm } from "@/features/orders/repair-request-form";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
@@ -32,6 +34,7 @@ import {
   getRepairCatalog,
   searchOrders,
   updateOrderStatus,
+  uploadRepairOrderPhoto,
 } from "@/lib/api";
 
 const statusLabels: Record<string, string> = {
@@ -84,12 +87,25 @@ const OrdersPage = () => {
     enabled: Boolean(token && user?.role === "CUSTOMER"),
   });
   const mutation = useMutation({
-    mutationFn: (input: Parameters<typeof createOrder>[1]) => createOrder(token!, input),
-    onSuccess: async () => {
+    mutationFn: ({ input }: { input: Parameters<typeof createOrder>[1]; photo: File | null }) =>
+      createOrder(token!, input),
+    onSuccess: async ({ order }, variables) => {
+      let photoFailed = false;
+      if (variables.photo) {
+        try {
+          await uploadRepairOrderPhoto(token!, order.id, variables.photo);
+        } catch {
+          photoFailed = true;
+        }
+      }
       await queryClient.invalidateQueries({ queryKey: ["orders", token] });
       await queryClient.invalidateQueries({ queryKey: ["order-search", token] });
       setFormOpen(false);
-      toast.success("Заявка отправлена");
+      if (photoFailed) {
+        toast.error("Заявка создана, но фото не загрузилось. Его можно добавить в карточке.");
+      } else {
+        toast.success("Заявка отправлена");
+      }
     },
   });
   const statusMutation = useMutation({
@@ -105,25 +121,6 @@ const OrdersPage = () => {
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Не удалось изменить статус заявки."),
   });
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    mutation.mutate({
-      deviceType: String(data.get("deviceType")),
-      problem: String(data.get("problem")),
-      contactPhone: String(data.get("contactPhone")),
-      city: String(data.get("city")),
-      street: String(data.get("street")),
-      house: String(data.get("house")),
-      apartment: String(data.get("apartment") || ""),
-      entrance: String(data.get("entrance") || ""),
-      hasBarrier: data.get("hasBarrier") === "on",
-      floor: String(data.get("floor") || ""),
-      additionalPhone: String(data.get("additionalPhone") || ""),
-      additionalInfo: String(data.get("additionalInfo") || ""),
-    });
-  };
-
   return (
     <AppShell active="/orders">
       <PageTitle
@@ -148,132 +145,16 @@ const OrdersPage = () => {
       <CampaignPlacement placement="SERVICE" className="mb-5" />
       {formOpen && (
         <SectionCard className="mb-5">
-          <h2 className="mb-4 font-semibold">Новая заявка</h2>
-          <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-1.5 text-sm font-medium">
-              Тип устройства
-              <select
-                name="deviceType"
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900"
-              >
-                <option value="COMPUTER">Компьютер</option>
-                <option value="LAPTOP">Ноутбук</option>
-                <option value="PHONE">Телефон</option>
-                <option value="TABLET">Планшет</option>
-              </select>
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
-              Опишите неисправность
-              <textarea
-                name="problem"
-                minLength={5}
-                maxLength={2000}
-                required
-                rows={3}
-                className="rounded-xl border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Телефон для связи
-              <input
-                name="contactPhone"
-                type="tel"
-                minLength={7}
-                maxLength={32}
-                required
-                defaultValue={user?.phoneNumber ?? ""}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Город
-              <input
-                name="city"
-                required
-                minLength={2}
-                maxLength={120}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Улица
-              <input
-                name="street"
-                required
-                minLength={2}
-                maxLength={180}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Дом
-              <input
-                name="house"
-                required
-                maxLength={30}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Квартира
-              <input
-                name="apartment"
-                maxLength={30}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Подъезд
-              <input
-                name="entrance"
-                maxLength={30}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Этаж
-              <input
-                name="floor"
-                maxLength={20}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium">
-              Дополнительный телефон
-              <input
-                name="additionalPhone"
-                type="tel"
-                maxLength={32}
-                className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input type="checkbox" name="hasBarrier" className="size-4 accent-blue-600" />
-              Есть шлагбаум
-            </label>
-            <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
-              Дополнительная информация
-              <textarea
-                name="additionalInfo"
-                maxLength={500}
-                rows={2}
-                className="rounded-xl border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-              />
-            </label>
-            <div className="md:col-span-2">
-              <button
-                disabled={mutation.isPending}
-                className="min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white disabled:opacity-60"
-              >
-                {mutation.isPending ? "Отправляем…" : "Отправить заявку"}
-              </button>
-              {mutation.isError && (
-                <p className="mt-2 text-sm text-rose-600">
-                  Не удалось отправить. Проверьте данные и повторите.
-                </p>
-              )}
-            </div>
-          </form>
+          <h2 className="mb-2 font-semibold">Новая заявка</h2>
+          <p className="mb-4 text-sm text-slate-500">
+            Укажите удобное время — сервис подтвердит его после проверки расписания.
+          </p>
+          <RepairRequestForm
+            defaultPhone={user?.phoneNumber ?? ""}
+            isPending={mutation.isPending}
+            isError={mutation.isError}
+            onSubmit={(input, photo) => mutation.mutate({ input, photo })}
+          />
         </SectionCard>
       )}
       {query.isLoading && !isSearching && (
@@ -342,10 +223,31 @@ const OrdersPage = () => {
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">{order.problem}</p>
               </div>
-              <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                {statusLabels[order.status] ?? order.status}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                {token && (
+                  <RepairOrderPriority
+                    orderId={order.id}
+                    priority={order.priority}
+                    token={token}
+                    canEdit={user?.role === "ADMIN"}
+                  />
+                )}
+                <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                  {statusLabels[order.status] ?? order.status}
+                </span>
+              </div>
             </div>
+            {(order.deviceBrand || order.deviceModel || order.deviceSerialNumber) && (
+              <p className="mt-2 text-xs text-slate-500">
+                {[
+                  order.deviceBrand,
+                  order.deviceModel,
+                  order.deviceSerialNumber && `№ ${order.deviceSerialNumber}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
             <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
             {order.archivedAt && (
               <p className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 dark:border-[#7855c7]/50 dark:bg-[#211841] dark:text-[#d4b7ff]">

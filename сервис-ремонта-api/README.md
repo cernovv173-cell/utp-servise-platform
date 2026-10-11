@@ -189,3 +189,25 @@ and hide it at expiry. Birthday push messages use the remaining time in that day
 Android delivery TTL; the existing worker retries only while the birthday is
 still the current Moscow date. Neither the card nor the date is exposed to
 other users.
+
+# Customer visit requests and service operations
+
+Customer repair requests can include optional device brand, model, serial number, one initial
+photo, and a preferred visit time. The preferred time is a request, not a confirmed booking: the
+service checks its weekly calendar and confirms or changes the time with the customer. The Web and
+Android forms label this distinction; administrators can edit the preferred time from the order and
+assign a technician through the existing order workflow. Request photos use the existing protected
+order-photo storage and access rules. Intake paperwork, four-sided condition photos, customer reviews,
+receipts, work orders, and warranties were already supported and remain on their existing workflows.
+
+Each repair order has an administrator-controlled `NORMAL` or `URGENT` priority. The API defaults
+existing and new records to `NORMAL`; only administrators can change it. This marks work for sorting
+and attention but does not define a new service-level deadline.
+
+Administrator operations endpoints provide a date-bounded weekly schedule, a spare-parts purchasing
+recommendation, and a rolling 30-day dashboard. The suggested purchase quantity is the amount needed
+to restore an item's current stock to its configured minimum. Parts from approved estimates are
+already deducted from stock at approval, so active approved-estimate quantities are shown separately
+and are never added again to the suggested purchase. Dashboard averages use the interval from request
+creation to its `COMPLETED` status event; collected revenue uses paid receipts after bonus discounts.
+The Web admin navigation and Android **Управление** area expose all three views.

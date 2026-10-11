@@ -19,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,6 +63,10 @@ import ru.utp.servise.ui.ProfileScreen
 import ru.utp.servise.ui.RepairChatScreen
 import ru.utp.servise.ui.RepairOrdersScreen
 import ru.utp.servise.ui.RepairRequestForm
+import ru.utp.servise.ui.RepairScheduleScreen
+import ru.utp.servise.ui.PartsProcurementScreen
+import ru.utp.servise.ui.ServiceDashboardScreen
+import ru.utp.servise.ui.compressSelectedImage
 import ru.utp.servise.ui.ReviewFormScreen
 import ru.utp.servise.ui.ReviewsScreen
 import ru.utp.servise.ui.RunAction
@@ -104,6 +109,7 @@ internal fun AuthenticatedWorkspace(
     onLogout: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val appContext = LocalContext.current
     val onRefreshChat: (String) -> Unit = { orderId ->
         scope.launch {
             runCatching { withContext(Dispatchers.IO) { ApiClient.orderChat(token, orderId) } }
@@ -238,8 +244,22 @@ internal fun AuthenticatedWorkspace(
                                     banners = banners,
                                     token = token,
                                     onCampaignNavigate = onCampaignNavigate,
-                                    onSubmit = { device, problem, address ->
-                                        runAction({ ApiClient.createOrder(token, device, problem, address) }) { navController.popBackStack() }
+                                    onSubmit = { device, problem, address, details, photoUri ->
+                                        runAction({
+                                            val order = ApiClient.createOrder(token, device, problem, address, details)
+                                            photoUri?.let { uri ->
+                                                runCatching {
+                                                    ApiClient.uploadOrderPhoto(
+                                                        token,
+                                                        order.id,
+                                                        compressSelectedImage(appContext, uri),
+                                                    )
+                                                }.onFailure {
+                                                    onError("Заявка создана, но фото не загрузилось. Его можно добавить в карточке заявки.")
+                                                }
+                                            }
+                                            order
+                                        }) { navController.popBackStack() }
                                     },
                                     busy = busy,
                                 )
@@ -271,6 +291,9 @@ internal fun AuthenticatedWorkspace(
                             composable("admin/salary") { SalaryScreen(salary, isAdmin = true, onRefresh = refresh) }
                             composable("admin/manage") {
                                 AdminManagementScreen(
+                                    onOverview = { navController.navigate("admin/overview") },
+                                    onSchedule = { navController.navigate("admin/schedule") },
+                                    onProcurement = { navController.navigate("admin/procurement") },
                                     onNews = { navController.navigate("admin/news") },
                                     onCatalog = { navController.navigate("admin/catalog") },
                                     onChats = { navController.navigate("admin/chats") },
@@ -282,6 +305,17 @@ internal fun AuthenticatedWorkspace(
                                     onCustomers = { navController.navigate("admin/customers") },
                                 )
                             }
+                            composable("admin/overview") { ServiceDashboardScreen(token, onError) }
+                            composable("admin/schedule") {
+                                RepairScheduleScreen(
+                                    token = token,
+                                    busy = busy,
+                                    runAction = runAction,
+                                    onError = onError,
+                                    onOpenOrders = { navController.navigate("admin/orders") },
+                                )
+                            }
+                            composable("admin/procurement") { PartsProcurementScreen(token, onError) }
                             composable("admin/about") {
                                 CompanyScreen(token, true, busy, runAction, onBack = { navController.popBackStack() }, banners = banners, onCampaignNavigate = onCampaignNavigate)
                             }

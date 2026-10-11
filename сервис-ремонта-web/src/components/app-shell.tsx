@@ -1,8 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
+  BarChart3,
   Bell,
   Boxes,
+  CalendarDays,
   CircleUserRound,
   ClipboardList,
   ClipboardPenLine,
@@ -15,6 +17,7 @@ import {
   Moon,
   Newspaper,
   Power,
+  ShoppingCart,
   Sparkles,
   Star,
   Sun,
@@ -45,6 +48,9 @@ const links = [
   { to: "/advertising", label: "Реклама", icon: Megaphone },
   { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
   { to: "/support", label: "Поддержка", icon: LifeBuoy },
+  { to: "/admin/overview", label: "Обзор сервиса", icon: BarChart3 },
+  { to: "/admin/schedule", label: "Расписание", icon: CalendarDays },
+  { to: "/admin/procurement", label: "Закупки", icon: ShoppingCart },
 ];
 
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
@@ -89,6 +95,8 @@ export const AppShell = ({ active, children }: { active: string; children: React
   }
 
   const nav = links.filter((link) => {
+    if (["/admin/overview", "/admin/schedule", "/admin/procurement"].includes(link.to))
+      return user.role === "ADMIN";
     if (link.to === "/support") return user.role === "ADMIN" || user.role === "CUSTOMER";
     if (link.to === "/advertising") return user.role === "ADMIN";
     if (link.to === "/catalog" || link.to === "/salary")

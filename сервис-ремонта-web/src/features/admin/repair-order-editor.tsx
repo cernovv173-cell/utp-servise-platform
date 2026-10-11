@@ -8,6 +8,12 @@ import { RepairOrderItemsEditor } from "@/features/admin/repair-order-items-edit
 
 import { type RepairCatalogItem, type RepairOrder, updateRepairOrder } from "@/lib/api";
 
+const localDateTimeValue = (value: string | null | undefined) => {
+  if (!value) return "";
+  const date = new Date(value);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+};
+
 export const RepairOrderEditor = ({
   order,
   token,
@@ -63,8 +69,12 @@ export const RepairOrderEditor = ({
   const saveRequest = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const preferredAt = String(form.get("preferredAt") || "");
     editMutation.mutate({
       deviceType,
+      deviceBrand: String(form.get("deviceBrand") || ""),
+      deviceModel: String(form.get("deviceModel") || ""),
+      deviceSerialNumber: String(form.get("deviceSerialNumber") || ""),
       problem: String(form.get("problem")),
       contactPhone: String(form.get("contactPhone")),
       city: String(form.get("city")),
@@ -76,6 +86,7 @@ export const RepairOrderEditor = ({
       floor: String(form.get("floor") || ""),
       additionalPhone: String(form.get("additionalPhone") || ""),
       additionalInfo: String(form.get("additionalInfo") || ""),
+      preferredAt: preferredAt ? new Date(preferredAt).toISOString() : null,
     });
   };
 
@@ -131,6 +142,42 @@ export const RepairOrderEditor = ({
                 { value: "TABLET", label: "Планшет" },
               ]}
               className="dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-medium">
+            Марка
+            <input
+              name="deviceBrand"
+              maxLength={120}
+              defaultValue={order.deviceBrand ?? ""}
+              className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal dark:border-slate-700 dark:bg-slate-950"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-medium">
+            Модель
+            <input
+              name="deviceModel"
+              maxLength={160}
+              defaultValue={order.deviceModel ?? ""}
+              className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal dark:border-slate-700 dark:bg-slate-950"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-medium">
+            Серийный номер
+            <input
+              name="deviceSerialNumber"
+              maxLength={160}
+              defaultValue={order.deviceSerialNumber ?? ""}
+              className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal dark:border-slate-700 dark:bg-slate-950"
+            />
+          </label>
+          <label className="grid gap-1 text-xs font-medium">
+            Удобное время
+            <input
+              name="preferredAt"
+              type="datetime-local"
+              defaultValue={localDateTimeValue(order.preferredAt)}
+              className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs font-normal dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
           <label className="grid gap-1 text-xs font-medium sm:col-span-2 lg:col-span-3">

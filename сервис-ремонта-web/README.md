@@ -182,6 +182,16 @@ locked once estimate history exists, and the server requires approval before wor
 without estimates retain the previous item-entry flow. The API remains authoritative for each role and
 order lifecycle transition.
 
+Customer requests may include device brand, model, serial number, one optional initial photo and a
+preferred visit time. The time is explicitly a request; it is not confirmed until the service checks
+the schedule. Administrators can view a weekly schedule with technician workload, update priority to
+urgent, and open a request to assign or change its technician and time. The `/admin/overview` page
+shows rolling 30-day counts, overdue work, average completion time, paid receipts and popular
+services. `/admin/procurement` recommends bringing tracked spare parts back to their configured
+minimum; active approved-estimate parts are shown separately because their stock was already
+deducted. Completed-job reviews and electronic repair documents remain available through the existing
+order-card workflows.
+
 Administrators set, move, or clear a repair's planned completion time from the order card and can add
 a customer-facing reason. The date change and audit entry are saved together; customers and staff see
 the current estimate and recorded change history, while the API triggers a customer push

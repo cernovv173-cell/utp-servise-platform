@@ -13,6 +13,7 @@ import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
 import { createMaxRouter } from "./features/max/max.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
 import { createNewsRouter } from "./features/news/news.routes.js";
+import { createOperationsRouter } from "./features/operations/operations.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
 import { createRepairEstimatesRouter } from "./features/orders/repair-estimates.routes.js";
 import { createSalaryRouter } from "./features/salary/salary.routes.js";
@@ -72,6 +73,7 @@ export const createApiRouter = ({
     router.use(createCustomerAdminRouter(database.client));
     router.use(createSupportChatRouter(database.client));
     router.use(createCatalogRouter(database.client));
+    router.use(createOperationsRouter(database.client));
     router.use(createChatRouter(database.client));
     router.use(createNewsRouter(database.client));
     router.use(createCraftsRouter(database.client));
@@ -90,6 +92,7 @@ export const createApiRouter = ({
         request.path.startsWith("/orders") ||
         request.path.startsWith("/salary") ||
         request.path.startsWith("/catalog") ||
+        request.path.startsWith("/admin/operations") ||
         request.path.startsWith("/admin/chats") ||
         request.path.startsWith("/news") ||
         request.path.startsWith("/reviews") ||

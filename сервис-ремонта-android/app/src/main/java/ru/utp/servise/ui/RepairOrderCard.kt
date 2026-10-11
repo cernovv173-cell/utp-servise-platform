@@ -100,7 +100,54 @@ internal fun RepairOrderCard(
                 )
                 OrderStatusPill(order.status.statusLabel())
             }
+            val deviceDescription = listOfNotNull(
+                order.deviceBrand?.takeIf { it.isNotBlank() },
+                order.deviceModel?.takeIf { it.isNotBlank() },
+            ).joinToString(" · ")
+            if (deviceDescription.isNotBlank() || !order.deviceSerialNumber.isNullOrBlank()) {
+                Text(
+                    listOfNotNull(
+                        deviceDescription.takeIf { it.isNotBlank() },
+                        order.deviceSerialNumber?.takeIf { it.isNotBlank() }?.let { "Сер. № $it" },
+                    ).joinToString(" · "),
+                    fontSize = 11.sp,
+                    color = UtpMuted,
+                    modifier = Modifier.padding(top = 3.dp),
+                )
+            }
             Text(order.problem, fontSize = 13.sp, color = UtpInk, modifier = Modifier.padding(top = 9.dp))
+            if (order.preferredAt != null) {
+                Text(
+                    "Желаемое время: ${formatArchiveDate(order.preferredAt)} · сервис подтвердит отдельно",
+                    fontSize = 11.sp,
+                    color = UtpMuted,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                Text(
+                    if (order.priority == "URGENT") "Срочный приоритет" else "Обычный приоритет",
+                    fontSize = 11.sp,
+                    color = if (order.priority == "URGENT") androidx.compose.material3.MaterialTheme.colorScheme.error else UtpMuted,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f),
+                )
+                if (role == "ADMIN") {
+                    TextButton(
+                        onClick = {
+                            runAction({
+                                ApiClient.updateRepairPriority(
+                                    token,
+                                    order.id,
+                                    if (order.priority == "URGENT") "NORMAL" else "URGENT",
+                                )
+                            }) {}
+                        },
+                    ) {
+                        Text(if (order.priority == "URGENT") "Снять срочность" else "Сделать срочной")
+                    }
+                }
+            }
             RepairEstimateSection(order, role, token, catalogItems, runAction)
             RepairDeadlineSection(order, role, token, runAction)
             TextButton(

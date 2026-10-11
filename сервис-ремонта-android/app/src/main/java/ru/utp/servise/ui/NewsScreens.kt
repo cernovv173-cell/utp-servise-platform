@@ -37,6 +37,9 @@ import java.time.Instant
 
 @Composable
 fun AdminManagementScreen(
+    onOverview: () -> Unit,
+    onSchedule: () -> Unit,
+    onProcurement: () -> Unit,
     onNews: () -> Unit,
     onCatalog: () -> Unit,
     onChats: () -> Unit,
@@ -53,6 +56,9 @@ fun AdminManagementScreen(
     ) {
         Text("Управление сервисом", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Каталог, публикации и сотрудники", fontSize = 13.sp, color = UtpMuted)
+        ManagementCard("Обзор сервиса", "Просрочки, выручка и популярные работы", "▦", onOverview)
+        ManagementCard("Расписание мастеров", "Заявки по удобному времени и загрузка", "◷", onSchedule)
+        ManagementCard("Закупка запчастей", "Пороговые остатки и детали в ремонте", "▣", onProcurement)
         ManagementCard("Новости", "Создание черновиков и публикаций", "▤", onNews)
         ManagementCard("Каталог услуг и запчастей", "Позиции прайса и цены", "▧", onCatalog)
         ManagementCard("Чаты с запросом помощи", "Подключение администратора к беседе", "✉", onChats)

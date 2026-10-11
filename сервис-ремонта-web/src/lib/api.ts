@@ -69,6 +69,10 @@ export type RepairOrder = {
   id: string;
   serviceNumber: string;
   deviceType: string;
+  deviceBrand?: string | null;
+  deviceModel?: string | null;
+  deviceSerialNumber?: string | null;
+  priority?: "NORMAL" | "URGENT";
   problem: string;
   address: string;
   contactPhone: string | null;
@@ -129,6 +133,47 @@ export type RepairOrder = {
     phoneNumber?: string | null;
     avatarObjectId?: string | null;
   };
+};
+
+export type OperationsDashboard = {
+  periodDays: number;
+  activeOrders: number;
+  overdueOrders: number;
+  newOrders: number;
+  completedOrders: number;
+  averageRepairMinutes: number | null;
+  collectedRub: number;
+  popularWorks: { name: string; completedQuantity: number }[];
+};
+
+export type ProcurementItem = {
+  id: string;
+  name: string;
+  stockQuantity: number;
+  minimumStockQuantity: number;
+  unitPriceRub: number;
+  recommendedPurchase: number;
+  activeEstimateQuantity: number;
+};
+
+export type ScheduledRepairOrder = Pick<
+  RepairOrder,
+  | "id"
+  | "serviceNumber"
+  | "deviceType"
+  | "deviceBrand"
+  | "deviceModel"
+  | "problem"
+  | "preferredAt"
+  | "expectedCompletionAt"
+  | "status"
+  | "priority"
+> & {
+  city: string | null;
+  street: string | null;
+  house: string | null;
+  customer: { displayName: string };
+  assignedTechnician: { id: string; displayName: string } | null;
 };
 
 export type RepairOrderChatMessage = {
@@ -515,10 +560,39 @@ export const getOrders = (token: string, signal?: AbortSignal, archive?: OrderAr
 export const getAdminRepairOrder = (token: string, orderId: string, signal?: AbortSignal) =>
   apiRequest<{ order: RepairOrder }>(`/admin/orders/${orderId}`, token, { signal });
 
+export const getOperationsDashboard = (token: string, signal?: AbortSignal) =>
+  apiRequest<OperationsDashboard>("/admin/operations/dashboard", token, { signal });
+
+export const getProcurementList = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ items: ProcurementItem[] }>("/admin/operations/procurement", token, {
+    signal,
+  });
+
+export const getRepairSchedule = (token: string, from: string, to: string, signal?: AbortSignal) =>
+  apiRequest<{ orders: ScheduledRepairOrder[] }>(
+    `/admin/operations/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    token,
+    { signal },
+  );
+
+export const updateRepairPriority = (
+  token: string,
+  orderId: string,
+  priority: "NORMAL" | "URGENT",
+) =>
+  apiRequest<{ order: { id: string; priority: "NORMAL" | "URGENT" } }>(
+    `/admin/operations/orders/${orderId}/priority`,
+    token,
+    { method: "PATCH", body: JSON.stringify({ priority }) },
+  );
+
 export const createOrder = (
   token: string,
   input: {
     deviceType: string;
+    deviceBrand?: string;
+    deviceModel?: string;
+    deviceSerialNumber?: string;
     problem: string;
     contactPhone: string;
     city: string;
@@ -530,6 +604,7 @@ export const createOrder = (
     floor?: string;
     additionalPhone?: string;
     additionalInfo?: string;
+    preferredAt?: string | null;
   },
 ) =>
   apiRequest<{ order: RepairOrder }>("/orders", token, {
@@ -542,6 +617,9 @@ export const createAdminOrder = (
   input: {
     customerId: string;
     deviceType: string;
+    deviceBrand?: string;
+    deviceModel?: string;
+    deviceSerialNumber?: string;
     problem: string;
     contactPhone?: string;
     city: string;
@@ -553,6 +631,7 @@ export const createAdminOrder = (
     floor?: string;
     additionalPhone?: string;
     additionalInfo?: string;
+    preferredAt?: string | null;
   },
 ) =>
   apiRequest<{ order: RepairOrder }>("/admin/orders", token, {
@@ -567,6 +646,9 @@ export const updateRepairOrder = (
     Pick<
       RepairOrder,
       | "deviceType"
+      | "deviceBrand"
+      | "deviceModel"
+      | "deviceSerialNumber"
       | "problem"
       | "contactPhone"
       | "city"
@@ -578,6 +660,7 @@ export const updateRepairOrder = (
       | "floor"
       | "additionalPhone"
       | "additionalInfo"
+      | "preferredAt"
     >
   >,
 ) =>

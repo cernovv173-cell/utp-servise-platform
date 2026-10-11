@@ -30,6 +30,9 @@ import { Route as YandexTokenRouteImport } from './routes/yandex-token'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
 import { Route as AdminOrderEditingRouteImport } from './routes/admin.order-editing'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
+import { Route as AdminOverviewRouteImport } from './routes/admin.overview'
+import { Route as AdminProcurementRouteImport } from './routes/admin.procurement'
+import { Route as AdminScheduleRouteImport } from './routes/admin.schedule'
 import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
 
@@ -138,6 +141,21 @@ const AdminOrdersRoute = AdminOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminOverviewRoute = AdminOverviewRouteImport.update({
+  id: '/overview',
+  path: '/overview',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProcurementRoute = AdminProcurementRouteImport.update({
+  id: '/procurement',
+  path: '/procurement',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminScheduleRoute = AdminScheduleRouteImport.update({
+  id: '/schedule',
+  path: '/schedule',
+  getParentRoute: () => AdminRoute,
+} as any)
 const SupportCustomerIdRoute = SupportCustomerIdRouteImport.update({
   id: '/$customerId',
   path: '/$customerId',
@@ -171,6 +189,9 @@ export interface FileRoutesByFullPath {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
+  '/admin/overview': typeof AdminOverviewRoute
+  '/admin/procurement': typeof AdminProcurementRoute
+  '/admin/schedule': typeof AdminScheduleRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -196,6 +217,9 @@ export interface FileRoutesByTo {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
+  '/admin/overview': typeof AdminOverviewRoute
+  '/admin/procurement': typeof AdminProcurementRoute
+  '/admin/schedule': typeof AdminScheduleRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -222,6 +246,9 @@ export interface FileRoutesById {
   '/admin/customers': typeof AdminCustomersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
+  '/admin/overview': typeof AdminOverviewRoute
+  '/admin/procurement': typeof AdminProcurementRoute
+  '/admin/schedule': typeof AdminScheduleRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -249,6 +276,9 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/order-editing'
     | '/admin/orders'
+    | '/admin/overview'
+    | '/admin/procurement'
+    | '/admin/schedule'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
@@ -274,6 +304,9 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/order-editing'
     | '/admin/orders'
+    | '/admin/overview'
+    | '/admin/procurement'
+    | '/admin/schedule'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   id:
@@ -299,6 +332,9 @@ export interface FileRouteTypes {
     | '/admin/customers'
     | '/admin/order-editing'
     | '/admin/orders'
+    | '/admin/overview'
+    | '/admin/procurement'
+    | '/admin/schedule'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesById: FileRoutesById
@@ -473,6 +509,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/overview': {
+      id: '/admin/overview'
+      path: '/overview'
+      fullPath: '/admin/overview'
+      preLoaderRoute: typeof AdminOverviewRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/procurement': {
+      id: '/admin/procurement'
+      path: '/procurement'
+      fullPath: '/admin/procurement'
+      preLoaderRoute: typeof AdminProcurementRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/schedule': {
+      id: '/admin/schedule'
+      path: '/schedule'
+      fullPath: '/admin/schedule'
+      preLoaderRoute: typeof AdminScheduleRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/support/$customerId': {
       id: '/support/$customerId'
       path: '/$customerId'
@@ -506,12 +563,18 @@ interface AdminRouteChildren {
   AdminCustomersRoute: typeof AdminCustomersRoute
   AdminOrderEditingRoute: typeof AdminOrderEditingRoute
   AdminOrdersRoute: typeof AdminOrdersRouteWithChildren
+  AdminOverviewRoute: typeof AdminOverviewRoute
+  AdminProcurementRoute: typeof AdminProcurementRoute
+  AdminScheduleRoute: typeof AdminScheduleRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomersRoute: AdminCustomersRoute,
   AdminOrderEditingRoute: AdminOrderEditingRoute,
   AdminOrdersRoute: AdminOrdersRouteWithChildren,
+  AdminOverviewRoute: AdminOverviewRoute,
+  AdminProcurementRoute: AdminProcurementRoute,
+  AdminScheduleRoute: AdminScheduleRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
