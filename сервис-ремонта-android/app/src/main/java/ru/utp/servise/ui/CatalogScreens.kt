@@ -37,6 +37,8 @@ import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.orderItemTypeLabel
 
+private const val LOW_STOCK_THRESHOLD = 3
+
 @Composable
 fun OrderItemPickerDialog(
     catalogItems: List<CatalogItem>,
@@ -117,12 +119,29 @@ fun CatalogManagementScreen(
     refresh: () -> Unit,
     onBack: () -> Unit,
 ) {
+    var showRestockOnly by remember { mutableStateOf(false) }
     var type by remember { mutableStateOf("SERVICE") }
     var name by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
     var stockText by remember { mutableStateOf("0") }
     var editedItem by remember { mutableStateOf<CatalogItem?>(null) }
     val price = priceText.toIntOrNull()
+    val stockTrackedItems = catalogItems.filter {
+        it.active && it.type != "SERVICE" && it.stockQuantity != null
+    }
+    val outOfStockItems = stockTrackedItems.filter { (it.stockQuantity ?: 0) <= 0 }
+    val lowStockItems = stockTrackedItems.filter {
+        (it.stockQuantity ?: 0) in 1..LOW_STOCK_THRESHOLD
+    }
+    val restockItems = stockTrackedItems.filter {
+        (it.stockQuantity ?: 0) <= LOW_STOCK_THRESHOLD
+    }
+    val restockItemIds = restockItems.mapTo(mutableSetOf()) { it.id }
+    val visibleCatalogItems = if (showRestockOnly) {
+        catalogItems.filter { it.id in restockItemIds }
+    } else {
+        catalogItems
+    }
 
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
@@ -131,6 +150,43 @@ fun CatalogManagementScreen(
         TextButton(onClick = onBack) { Text("←  Управление") }
         Text("Каталог сервиса", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Услуги, запчасти и товары. Мастерам доступны только активные позиции.", fontSize = 12.sp, color = UtpMuted)
+        Card(
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = androidx.compose.material3.MaterialTheme.colorScheme.tertiaryContainer,
+            ),
+        ) {
+            Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                Text(
+                    "Контроль остатков",
+                    fontWeight = FontWeight.SemiBold,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Text(
+                    when {
+                        stockTrackedItems.isEmpty() -> "У активных запчастей и товаров пока не указан остаток. Добавьте его в карточке позиции."
+                        restockItems.isEmpty() -> "На складе ${stockTrackedItems.size} активных позиций — запас в норме."
+                        else -> "Нужно пополнить: ${restockItems.size} · закончилось: ${outOfStockItems.size} · осталось 1–3: ${lowStockItems.size}"
+                    },
+                    fontSize = 12.sp,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                Text(
+                    "Сигнал появляется при остатке $LOW_STOCK_THRESHOLD шт. или меньше. Услуги и скрытые позиции не учитываются.",
+                    fontSize = 11.sp,
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                if (restockItems.isNotEmpty() || showRestockOnly) {
+                    if (showRestockOnly) {
+                        OutlinedButton(onClick = { showRestockOnly = false }) { Text("Показать весь каталог") }
+                    } else {
+                        Button(onClick = { showRestockOnly = true }) {
+                            Text("К пополнению (${restockItems.size})")
+                        }
+                    }
+                }
+            }
+        }
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Новая позиция", fontWeight = FontWeight.SemiBold, color = UtpInk)
@@ -194,11 +250,25 @@ fun CatalogManagementScreen(
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("Позиции прайса", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.weight(1f))
+            Text(
+                if (showRestockOnly) "Требуют пополнения (${visibleCatalogItems.size})" else "Позиции прайса (${visibleCatalogItems.size})",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = UtpInk,
+                modifier = Modifier.weight(1f),
+            )
             TextButton(onClick = refresh) { Text("Обновить") }
         }
         if (catalogItems.isEmpty()) Text("Каталог пока пуст. Добавьте первую позицию.", color = UtpMuted)
-        catalogItems.forEach { item ->
+        else if (visibleCatalogItems.isEmpty()) {
+            Text(
+                "Активных запчастей и товаров с остатком $LOW_STOCK_THRESHOLD шт. или меньше нет.",
+                color = UtpMuted,
+            )
+        }
+        visibleCatalogItems.forEach { item ->
+            val stockQuantity = item.stockQuantity
+            val isTrackedActiveItem = item.active && item.type != "SERVICE" && stockQuantity != null
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     Text("${item.type.orderItemTypeLabel()} · ${item.name}", fontWeight = FontWeight.SemiBold, color = UtpInk)
@@ -209,6 +279,15 @@ fun CatalogManagementScreen(
                         color = UtpMuted,
                         modifier = Modifier.padding(top = 3.dp),
                     )
+                    if (isTrackedActiveItem && stockQuantity!! <= LOW_STOCK_THRESHOLD) {
+                        Text(
+                            if (stockQuantity <= 0) "Закончилась — пополните запас" else "Мало на складе — осталось $stockQuantity шт.",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (stockQuantity <= 0) androidx.compose.material3.MaterialTheme.colorScheme.error else UtpAmber,
+                            modifier = Modifier.padding(top = 5.dp),
+                        )
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { editedItem = item }) { Text("Изменить") }
                         TextButton(
