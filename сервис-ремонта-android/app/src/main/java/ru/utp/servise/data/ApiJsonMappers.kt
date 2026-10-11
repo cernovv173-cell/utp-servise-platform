@@ -24,6 +24,7 @@ internal fun JSONObject.toOrder(): RepairOrder {
     val statusEvents = optJSONArray("statusEvents")
     val items = optJSONArray("items")
     val estimates = optJSONArray("estimates")
+    val deadlineChanges = optJSONArray("deadlineChanges")
     val existingReview = optJSONObject("review")
     return RepairOrder(
         id = getString("id"),
@@ -84,6 +85,16 @@ internal fun JSONObject.toOrder(): RepairOrder {
         intake = optJSONObject("intake")?.toRepairOrderIntake(),
         warranty = optJSONObject("warranty")?.toRepairWarranty(),
         estimates = estimates.mapObjects { it.toRepairEstimate() },
+        deadlineChanges = deadlineChanges.mapObjects { change ->
+            RepairOrderDeadlineChange(
+                id = change.getString("id"),
+                previousExpectedAt = change.nullableString("previousExpectedAt"),
+                expectedCompletionAt = change.nullableString("expectedCompletionAt"),
+                note = change.nullableString("note"),
+                createdAt = change.optString("createdAt"),
+                actorName = change.optJSONObject("actor")?.nullableString("displayName"),
+            )
+        },
     )
 }
 

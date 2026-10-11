@@ -2,6 +2,8 @@
 
 На каждом открытии сайта показывается короткое видео-приветствие от енота. Ролик запускается без звука, его можно пропустить или включить звук; если браузер блокирует воспроизведение либо видео недоступно, остаётся текстовая заставка с переходом дальше.
 
+На главной странице размещены рекламные места MyTarget (в отдельной AMP-странице) и Mail.ru (`ad-2087473`, асинхронная загрузка). Фактический показ зависит от доступности рекламной сети, её настроек и блокировщиков; перед публикацией проверьте, что использование сторонней рекламы отражено в уведомлении о конфиденциальности/согласии сайта.
+
 Install dependencies and start the development server:
 
 ```bash
@@ -179,6 +181,12 @@ approval, then creates order lines and deducts tracked stock in one transaction.
 locked once estimate history exists, and the server requires approval before work starts. Orders
 without estimates retain the previous item-entry flow. The API remains authoritative for each role and
 order lifecycle transition.
+
+Administrators set, move, or clear a repair's planned completion time from the order card and can add
+a customer-facing reason. The date change and audit entry are saved together; customers and staff see
+the current estimate and recorded change history, while the API triggers a customer push
+notification when the date changes. Delivery depends on the customer's registered device token and
+notification permission.
 
 Customers can open the chat on their own cards in `/orders`; administrators connect to the same
 conversation from the detail page before replying. Assigned technicians can also open and write in

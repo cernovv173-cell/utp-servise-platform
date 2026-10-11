@@ -3,6 +3,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, ClipboardList, FileText, Newspaper, Sparkles } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
+import { MailRuAd } from "@/components/mailru-ad";
 import { MyTargetAd } from "@/components/mytarget-ad";
 
 import { useAuth } from "@/features/auth/auth-context";
@@ -97,6 +98,7 @@ const HomePage = () => {
         </Link>
       </div>
       <MyTargetAd />
+      <MailRuAd />
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Приоритетные новости</h2>
         <Link to="/news" className="text-sm font-semibold text-blue-600">

@@ -96,6 +96,16 @@ data class RepairOrder(
     val intake: RepairOrderIntake? = null,
     val warranty: RepairWarranty? = null,
     val estimates: List<RepairEstimate> = emptyList(),
+    val deadlineChanges: List<RepairOrderDeadlineChange> = emptyList(),
+)
+
+data class RepairOrderDeadlineChange(
+    val id: String,
+    val previousExpectedAt: String?,
+    val expectedCompletionAt: String?,
+    val note: String?,
+    val createdAt: String,
+    val actorName: String?,
 )
 
 data class RepairEstimate(

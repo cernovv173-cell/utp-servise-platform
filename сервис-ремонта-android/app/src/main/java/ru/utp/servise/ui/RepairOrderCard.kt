@@ -102,6 +102,7 @@ internal fun RepairOrderCard(
             }
             Text(order.problem, fontSize = 13.sp, color = UtpInk, modifier = Modifier.padding(top = 9.dp))
             RepairEstimateSection(order, role, token, catalogItems, runAction)
+            RepairDeadlineSection(order, role, token, runAction)
             TextButton(
                 onClick = { showOrderDetails = !showOrderDetails },
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp),

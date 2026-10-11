@@ -17,6 +17,7 @@ import {
 import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { RepairDeadlineHistory } from "@/features/orders/repair-deadline";
 import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
@@ -353,16 +354,11 @@ const OrdersPage = () => {
             )}
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
               <span>Создана: {new Date(order.createdAt).toLocaleDateString("ru-RU")}</span>
-              {order.expectedCompletionAt && (
-                <span>
-                  Ориентир завершения:{" "}
-                  {new Date(order.expectedCompletionAt).toLocaleDateString("ru-RU")}
-                </span>
-              )}
               <Link to="/checks" className="font-semibold text-blue-600">
                 Детали и чек →
               </Link>
             </div>
+            <RepairDeadlineHistory order={order} />
             {token && (
               <RepairEstimatePanel
                 order={order}

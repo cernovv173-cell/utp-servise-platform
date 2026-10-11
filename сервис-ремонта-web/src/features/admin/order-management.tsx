@@ -15,6 +15,7 @@ import {
 import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { RepairDeadlineEditor } from "@/features/orders/repair-deadline";
 import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
@@ -30,7 +31,6 @@ import {
   getRepairCatalog,
   getStaff,
   searchOrders,
-  setExpectedCompletion,
   updateOrderStatus,
 } from "@/lib/api";
 
@@ -50,13 +50,6 @@ const availableStatuses: Record<string, string[]> = {
   COMPLETED: ["COMPLETED"],
   CANCELLED: ["CANCELLED"],
 };
-const localDateTime = (value: string | null) => {
-  if (!value) return "";
-  const date = new Date(value);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
-};
-
 export const OrderManagement = ({
   orderId,
   editingWorkspace = false,
@@ -105,13 +98,11 @@ export const OrderManagement = ({
   const mutate = useMutation({
     mutationFn: async (
       action:
-        | { kind: "deadline"; id: string; value: string | null }
         | { kind: "status"; id: string; value: string }
         | { kind: "diagnosis"; id: string }
         | { kind: "assign"; id: string; value: string }
         | { kind: "receipt"; id: string },
     ) => {
-      if (action.kind === "deadline") return setExpectedCompletion(token!, action.id, action.value);
       if (action.kind === "status") return updateOrderStatus(token!, action.id, action.value);
       if (action.kind === "assign") return assignOrder(token!, action.id, action.value);
       if (action.kind === "diagnosis") return completeRepairDiagnosis(token!, action.id);
@@ -228,22 +219,11 @@ export const OrderManagement = ({
             <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
             {token && <RepairOrderInformation order={order} token={token} />}
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="grid gap-1 text-xs font-medium">
-                Срок ремонта
-                <input
-                  type="datetime-local"
-                  defaultValue={localDateTime(order.expectedCompletionAt)}
-                  onBlur={(event) => {
-                    const value = event.currentTarget.value;
-                    mutate.mutate({
-                      kind: "deadline",
-                      id: order.id,
-                      value: value ? new Date(value).toISOString() : null,
-                    });
-                  }}
-                  className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs dark:border-slate-700 dark:bg-slate-950"
-                />
-              </label>
+              {token && (
+                <div className="sm:col-span-2 lg:col-span-4">
+                  <RepairDeadlineEditor order={order} token={token} onSaved={refresh} />
+                </div>
+              )}
               <label className="grid gap-1 text-xs font-medium">
                 Статус
                 <Select

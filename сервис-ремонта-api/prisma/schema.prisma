@@ -130,6 +130,7 @@ model User {
   assignedOrders          RepairOrder[]                  @relation("AssignedOrders")
   statusChanges           RepairStatusEvent[]            @relation("StatusActor")
   createdRepairEstimates  RepairEstimate[]               @relation("RepairEstimateCreator")
+  repairDeadlineChanges   RepairOrderDeadlineChange[]    @relation("RepairDeadlineChangeActor")
   reviews                 Review[]
   addedOrderItems         RepairOrderItem[]              @relation("OrderItemAdder")
   catalogItemsCreated     RepairCatalogItem[]            @relation("CatalogItemCreator")
@@ -252,6 +253,7 @@ model RepairOrder {
   statusEvents          RepairStatusEvent[]
   items                 RepairOrderItem[]
   estimates             RepairEstimate[]
+  deadlineChanges       RepairOrderDeadlineChange[]
   photos                RepairOrderPhoto[]
   intake                RepairOrderIntake?
   pickupCode            RepairOrderPickupCode?
@@ -310,6 +312,21 @@ model RepairEstimate {
   @@unique([orderId, version])
   @@index([orderId, status, version])
   @@map("repair_estimates")
+}
+
+model RepairOrderDeadlineChange {
+  id                   String      @id @default(uuid()) @db.Uuid
+  orderId              String      @map("order_id") @db.Uuid
+  actorId              String?     @map("actor_id") @db.Uuid
+  previousExpectedAt   DateTime?   @map("previous_expected_at") @db.Timestamptz(3)
+  expectedCompletionAt DateTime?   @map("expected_completion_at") @db.Timestamptz(3)
+  note                 String?     @db.VarChar(500)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  order                RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actor                User?       @relation("RepairDeadlineChangeActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("repair_order_deadline_changes")
 }
 
 model TechnicianSalaryEntry {

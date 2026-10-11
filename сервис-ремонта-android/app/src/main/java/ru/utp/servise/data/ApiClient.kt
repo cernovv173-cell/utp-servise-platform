@@ -574,6 +574,18 @@ object ApiClient {
         JSONObject().put("status", status).put("note", note)
     ).getJSONObject("order").toOrder()
 
+    fun setExpectedCompletion(
+        token: String,
+        orderId: String,
+        expectedCompletionAt: String?,
+        note: String,
+    ): RepairOrder {
+        val body = JSONObject().put("expectedCompletionAt", expectedCompletionAt ?: JSONObject.NULL)
+        note.trim().takeIf { it.isNotEmpty() }?.let { body.put("note", it.take(500)) }
+        return request("PATCH", "/orders/$orderId/expected-completion", token, body)
+            .getJSONObject("order").toOrder()
+    }
+
     fun completeRepairDiagnosis(token: String, orderId: String): RepairOrder = request(
         "POST", "/orders/$orderId/diagnosis-completed", token,
     ).getJSONObject("order").toOrder()

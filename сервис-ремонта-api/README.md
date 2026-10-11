@@ -77,6 +77,16 @@ the repair, and pending additional work must receive a response before the repai
 Orders that have never used an estimate retain the existing workflow. The new
 `20261011190000_repair_estimate_approval` migration is additive and does not rewrite existing orders.
 
+Administrators set or revise the planned completion date through
+`PATCH /orders/:orderId/expected-completion`; an optional customer-facing `note` explains a delay.
+Each actual change records the previous and new dates, actor, timestamp, and note in
+`repair_order_deadline_changes` within the same transaction as the order update. Repeating the
+current date creates no duplicate history row or notification. The API triggers a push notification
+to the customer when the date changes or is cleared; delivery depends on a registered device token
+and notification permission. Existing dates are preserved and are not presented as historical
+changes because their earlier values were not recorded. The `20261011195000_repair_deadline_history`
+migration adds the history table without rewriting existing orders.
+
 Customers may save an optional gender and birth date with `PATCH /auth/profile`. The birthday worker
 uses the Moscow calendar date and sends the greeting once per customer per year only to active
 customers with a registered push-device token. A unique `(user_id, birthday_year)` delivery record

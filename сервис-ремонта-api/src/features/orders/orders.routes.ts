@@ -143,6 +143,7 @@ const MAX_PICKUP_PIN_ATTEMPTS = 5;
 const expectedCompletionBody = z
   .object({
     expectedCompletionAt: z.string().datetime({ offset: true }).nullable(),
+    note: z.string().trim().max(500).optional(),
   })
   .strict();
 const bonusRedemptionBody = z.object({ redeemBonuses: z.boolean() }).strict();
@@ -255,6 +256,10 @@ const orderDetails = (role: UserRole) => ({
   estimates: {
     orderBy: { version: "asc" as const },
     include: { createdBy: { select: { id: true, displayName: true } } },
+  },
+  deadlineChanges: {
+    orderBy: { createdAt: "desc" as const },
+    include: { actor: { select: { id: true, displayName: true } } },
   },
   photos: {
     orderBy: { createdAt: "asc" as const },
@@ -676,24 +681,77 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     validateRequest({ params: orderIdParams, body: expectedCompletionBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
-      const { expectedCompletionAt } =
+      const { expectedCompletionAt, note } =
         bodyOf<z.infer<typeof expectedCompletionBody>>(response);
-      const order = await database.repairOrder.update({
-        where: { id: orderId },
-        data: {
-          expectedCompletionAt: expectedCompletionAt
-            ? new Date(expectedCompletionAt)
-            : null,
-        },
-        include: orderDetails("ADMIN"),
+      const admin = getAuthenticatedUser(response);
+      const nextExpectedAt = expectedCompletionAt
+        ? new Date(expectedCompletionAt)
+        : null;
+      const result = await database.$transaction(async (transaction) => {
+        const current = await transaction.repairOrder.findUnique({
+          where: { id: orderId },
+          select: { expectedCompletionAt: true },
+        });
+        if (!current) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
+
+        const hasChanged =
+          current.expectedCompletionAt?.getTime() !== nextExpectedAt?.getTime();
+        if (hasChanged) {
+          const update = await transaction.repairOrder.updateMany({
+            where: {
+              id: orderId,
+              expectedCompletionAt: current.expectedCompletionAt,
+            },
+            data: { expectedCompletionAt: nextExpectedAt },
+          });
+          if (update.count !== 1) {
+            throw new HttpError(
+              409,
+              "ORDER_CHANGED",
+              "Срок уже изменился. Обновите заявку и повторите действие.",
+            );
+          }
+          await transaction.repairOrderDeadlineChange.create({
+            data: {
+              orderId,
+              actorId: admin.id,
+              previousExpectedAt: current.expectedCompletionAt,
+              expectedCompletionAt: nextExpectedAt,
+              note: note || null,
+            },
+          });
+        }
+
+        return {
+          hasChanged,
+          order: await transaction.repairOrder.findUniqueOrThrow({
+            where: { id: orderId },
+            include: orderDetails("ADMIN"),
+          }),
+        };
       });
-      await sendRepairOrderNotification(
-        database,
-        order,
-        getAuthenticatedUser(response).id,
-        "Обновлён плановый срок завершения ремонта.",
-      );
-      response.json({ order });
+      if (result.hasChanged) {
+        const scheduledDate = nextExpectedAt
+          ? nextExpectedAt.toLocaleString("ru-RU", {
+              timeZone: "Europe/Moscow",
+            })
+          : "не указан";
+        const message = [
+          `Плановый срок готовности изменён: ${scheduledDate}.`,
+          note ? `Пояснение сервиса: ${note}` : null,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        await sendRepairOrderNotification(
+          database,
+          result.order,
+          admin.id,
+          message,
+        );
+      }
+      response.json({ order: result.order });
     },
   );
 

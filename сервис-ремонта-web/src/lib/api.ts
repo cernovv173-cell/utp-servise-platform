@@ -27,6 +27,15 @@ export type RepairEstimate = {
   createdBy: { id: string; displayName: string } | null;
 };
 
+export type RepairOrderDeadlineChange = {
+  id: string;
+  previousExpectedAt: string | null;
+  expectedCompletionAt: string | null;
+  note: string | null;
+  createdAt: string;
+  actor: { id: string; displayName: string } | null;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -76,6 +85,7 @@ export type RepairOrder = {
   archivedAt: string | null;
   preferredAt: string | null;
   expectedCompletionAt: string | null;
+  deadlineChanges?: RepairOrderDeadlineChange[];
   diagnosisCompletedAt?: string | null;
   redeemBonuses: boolean;
   bonusDiscountRub: number;
@@ -848,10 +858,11 @@ export const setExpectedCompletion = (
   token: string,
   orderId: string,
   expectedCompletionAt: string | null,
+  note?: string,
 ) =>
   apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/expected-completion`, token, {
     method: "PATCH",
-    body: JSON.stringify({ expectedCompletionAt }),
+    body: JSON.stringify({ expectedCompletionAt, note }),
   });
 
 export const searchOrders = (token: string, serviceNumber: string, signal?: AbortSignal) =>
