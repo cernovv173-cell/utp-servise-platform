@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,6 +64,7 @@ import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.UtpBlue
 import ru.utp.servise.ui.UtpPale
 import ru.utp.servise.ui.UtpServiseTheme
+import ru.utp.servise.ui.WelcomeVideoIntro
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -78,6 +80,7 @@ private fun UtpServiseApp() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val tokenStore = remember { SessionStore(context) }
+    var showLaunchVideo by rememberSaveable { mutableStateOf(true) }
     var token by remember { mutableStateOf("") }
     var user by remember { mutableStateOf<AppUser?>(null) }
     var sessionReady by remember { mutableStateOf(false) }
@@ -116,8 +119,9 @@ private fun UtpServiseApp() {
         sessionReady = true
     }
 
-    LaunchedEffect(user?.id) {
+    LaunchedEffect(user?.id, showLaunchVideo) {
         if (
+            !showLaunchVideo &&
             user != null &&
             FirebaseApp.getApps(context).isNotEmpty() &&
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -300,6 +304,12 @@ private fun UtpServiseApp() {
                 activeSupportChat = null
                 errorMessage = null
             },
+            )
+        }
+        if (showLaunchVideo) {
+            WelcomeVideoIntro(
+                onContinue = { showLaunchVideo = false },
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }

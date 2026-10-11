@@ -1167,6 +1167,7 @@ raw firebase_common_keep
 raw rootca_ssl_rsa2022
 raw ru_ok_tracer_keep
 raw vkid_cacerts_pins
+raw welcome_intro
 string abc_action_bar_home_description
 string abc_action_bar_up_description
 string abc_action_menu_overflow_description

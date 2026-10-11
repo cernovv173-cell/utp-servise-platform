@@ -1,15 +1,23 @@
 import { HeadContent, Link, Outlet, createRootRoute } from "@tanstack/react-router";
+import { useState } from "react";
+
+import { LaunchIntro } from "@/components/launch-intro";
 
 import { AuthProvider } from "@/features/auth/auth-context";
 
-const RootComponent = () => (
-  <>
-    <HeadContent />
-    <AuthProvider>
-      <Outlet />
-    </AuthProvider>
-  </>
-);
+const RootComponent = () => {
+  const [introDismissed, setIntroDismissed] = useState(false);
+
+  return (
+    <>
+      <HeadContent />
+      <AuthProvider>
+        <Outlet />
+        {!introDismissed && <LaunchIntro onClose={() => setIntroDismissed(true)} />}
+      </AuthProvider>
+    </>
+  );
+};
 
 const RouteError = () => (
   <main className="grid min-h-dvh place-items-center px-6" id="main-content">
