@@ -42,6 +42,7 @@ export const RepairOrderEditor = ({
   const [deviceType, setDeviceType] = useState(order.deviceType);
   const canEditItems =
     allowItemEditing &&
+    !order.estimates?.length &&
     isEditing &&
     order.status !== "COMPLETED" &&
     order.status !== "CANCELLED" &&

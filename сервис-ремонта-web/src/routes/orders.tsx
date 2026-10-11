@@ -17,6 +17,7 @@ import {
 import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
@@ -63,7 +64,7 @@ const OrdersPage = () => {
   const catalog = useQuery({
     queryKey: ["repair-catalog", token],
     queryFn: ({ signal }) => getRepairCatalog(token!, signal),
-    enabled: Boolean(token && user?.role === "TECHNICIAN"),
+    enabled: Boolean(token && ["ADMIN", "TECHNICIAN"].includes(user?.role ?? "")),
   });
   const searchQuery = useQuery({
     queryKey: ["order-search", token, user?.role, search],
@@ -362,24 +363,51 @@ const OrdersPage = () => {
                 Детали и чек →
               </Link>
             </div>
-            {token && <RepairOrderInformation order={order} token={token} />}
             {token && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <OrderPaperwork
-                  order={order}
-                  token={token}
-                  canEditIntake={
-                    user?.role === "ADMIN" ||
-                    (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id)
-                  }
-                />
-                {user?.role === "CUSTOMER" && order.status === "READY_FOR_PICKUP" && (
-                  <CustomerPickupQr token={token} orderId={order.id} />
-                )}
-              </div>
+              <RepairEstimatePanel
+                order={order}
+                token={token}
+                catalogItems={catalog.data?.catalogItems ?? []}
+                onRefresh={() =>
+                  Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                    queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                  ])
+                }
+              />
             )}
-            {token && (user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
-              <RepairOrderChat token={token} orderId={order.id} />
+            {token && (
+              <details className="mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                <summary className="cursor-pointer text-sm font-semibold">
+                  Контакты, фото и история заявки
+                </summary>
+                <div className="pt-3">
+                  <RepairOrderInformation order={order} token={token} />
+                </div>
+              </details>
+            )}
+            {token && (
+              <details className="mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                <summary className="cursor-pointer text-sm font-semibold">
+                  Документы и переписка
+                </summary>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <OrderPaperwork
+                    order={order}
+                    token={token}
+                    canEditIntake={
+                      user?.role === "ADMIN" ||
+                      (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id)
+                    }
+                  />
+                  {user?.role === "CUSTOMER" && order.status === "READY_FOR_PICKUP" && (
+                    <CustomerPickupQr token={token} orderId={order.id} />
+                  )}
+                  {(user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
+                    <RepairOrderChat token={token} orderId={order.id} />
+                  )}
+                </div>
+              </details>
             )}
             {token && (user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
               <RepairOrderItemsEditor
@@ -438,7 +466,12 @@ const OrdersPage = () => {
                 {order.status === "ASSIGNED" && (
                   <button
                     type="button"
-                    disabled={statusMutation.isPending}
+                    disabled={
+                      statusMutation.isPending ||
+                      Boolean(
+                        order.estimates?.length && order.estimates.at(-1)?.status !== "APPROVED",
+                      )
+                    }
                     onClick={() =>
                       statusMutation.mutate({ orderId: order.id, status: "IN_PROGRESS" })
                     }
@@ -450,7 +483,9 @@ const OrdersPage = () => {
                 {order.status === "IN_PROGRESS" && (
                   <button
                     type="button"
-                    disabled={statusMutation.isPending}
+                    disabled={
+                      statusMutation.isPending || order.estimates?.at(-1)?.status === "PENDING"
+                    }
                     onClick={() =>
                       statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
                     }

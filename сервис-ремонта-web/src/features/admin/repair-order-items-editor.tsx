@@ -143,6 +143,9 @@ export const RepairOrderItemsEditor = ({
   isCatalogError: boolean;
   onRefresh: () => Promise<unknown>;
 }) => {
+  const estimateControlsItems = Boolean(order.estimates?.length);
+  const canEditApprovedComposition = canEdit && !estimateControlsItems;
+  const canAddDirectly = canAdd && !estimateControlsItems;
   const [catalogItemId, setCatalogItemId] = useState("");
   const [quantity, setQuantity] = useState("1");
   const add = useMutation({
@@ -184,7 +187,7 @@ export const RepairOrderItemsEditor = ({
               order={order}
               item={item}
               token={token}
-              canEdit={canEdit}
+              canEdit={canEditApprovedComposition}
               onRefresh={onRefresh}
             />
           ))}
@@ -201,7 +204,7 @@ export const RepairOrderItemsEditor = ({
           ₽
         </p>
       )}
-      {canAdd && (
+      {canAddDirectly && (
         <form onSubmit={addItem} className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_7rem_auto]">
           <Select
             ariaLabel="Услуга, запчасть или товар для заказа"
@@ -248,6 +251,12 @@ export const RepairOrderItemsEditor = ({
             </p>
           )}
         </form>
+      )}
+      {canAdd && estimateControlsItems && (
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          Состав уже подтверждён клиентом. Дополнительные работы отправляйте отдельной сметой на
+          согласование.
+        </p>
       )}
       {showEditHint && !canEdit && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
         <p className="mt-3 text-xs text-slate-500">

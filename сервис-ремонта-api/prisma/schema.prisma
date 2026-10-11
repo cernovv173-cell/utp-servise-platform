@@ -33,6 +33,18 @@ enum RepairOrderItemType {
   PRODUCT
 }
 
+enum RepairEstimateKind {
+  INITIAL
+  ADDITIONAL
+}
+
+enum RepairEstimateStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  SUPERSEDED
+}
+
 enum CraftOrderStatus {
   REQUESTED
   ACCEPTED
@@ -117,6 +129,7 @@ model User {
   customerOrders          RepairOrder[]                  @relation("CustomerOrders")
   assignedOrders          RepairOrder[]                  @relation("AssignedOrders")
   statusChanges           RepairStatusEvent[]            @relation("StatusActor")
+  createdRepairEstimates  RepairEstimate[]               @relation("RepairEstimateCreator")
   reviews                 Review[]
   addedOrderItems         RepairOrderItem[]              @relation("OrderItemAdder")
   catalogItemsCreated     RepairCatalogItem[]            @relation("CatalogItemCreator")
@@ -238,6 +251,7 @@ model RepairOrder {
   assignedTechnician    User?                          @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusEvents          RepairStatusEvent[]
   items                 RepairOrderItem[]
+  estimates             RepairEstimate[]
   photos                RepairOrderPhoto[]
   intake                RepairOrderIntake?
   pickupCode            RepairOrderPickupCode?
@@ -274,6 +288,28 @@ model RepairOrderItem {
   @@index([orderId, createdAt])
   @@index([catalogItemId])
   @@map("repair_order_items")
+}
+
+model RepairEstimate {
+  id                   String               @id @default(uuid()) @db.Uuid
+  orderId              String               @map("order_id") @db.Uuid
+  createdById          String?              @map("created_by_id") @db.Uuid
+  version              Int
+  kind                 RepairEstimateKind
+  status               RepairEstimateStatus @default(PENDING)
+  diagnosis            String               @db.VarChar(2000)
+  itemsSnapshot        Json                 @map("items_snapshot")
+  totalRub             Int                  @map("total_rub")
+  customerResponseNote String?              @map("customer_response_note") @db.VarChar(500)
+  submittedAt          DateTime             @default(now()) @map("submitted_at") @db.Timestamptz(3)
+  respondedAt          DateTime?            @map("responded_at") @db.Timestamptz(3)
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  order                RepairOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy            User?                @relation("RepairEstimateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([orderId, version])
+  @@index([orderId, status, version])
+  @@map("repair_estimates")
 }
 
 model TechnicianSalaryEntry {

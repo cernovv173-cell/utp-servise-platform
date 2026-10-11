@@ -14,6 +14,7 @@ import { createMaxRouter } from "./features/max/max.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
 import { createNewsRouter } from "./features/news/news.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
+import { createRepairEstimatesRouter } from "./features/orders/repair-estimates.routes.js";
 import { createSalaryRouter } from "./features/salary/salary.routes.js";
 import { createStaffRouter } from "./features/staff/staff.routes.js";
 import { createSupportChatRouter } from "./features/support-chat/support-chat.routes.js";
@@ -76,6 +77,7 @@ export const createApiRouter = ({
     router.use(createCraftsRouter(database.client));
     router.use(createBannersRouter(database.client));
     router.use(createLoyaltyRouter(database.client));
+    router.use(createRepairEstimatesRouter(database.client));
     router.use(createOrdersRouter(database.client));
     router.use(createSalaryRouter(database.client));
     router.use(createMediaRouter(database.client));

@@ -1,6 +1,7 @@
 package ru.utp.servise.data
 
 import org.json.JSONObject
+import org.json.JSONArray
 import ru.utp.servise.BuildConfig
 import java.io.File
 import java.io.IOException
@@ -614,6 +615,40 @@ object ApiClient {
     fun removeOrderItem(token: String, orderId: String, itemId: String): RepairOrder = request(
         "DELETE", "/orders/$orderId/items/$itemId", token,
     ).getJSONObject("order").toOrder()
+
+    fun submitRepairEstimate(
+        token: String,
+        orderId: String,
+        diagnosis: String,
+        items: List<RepairEstimateDraftItem>,
+    ): RepairEstimate {
+        val itemsJson = JSONArray().apply {
+            items.forEach { item ->
+                put(JSONObject().put("catalogItemId", item.catalogItemId).put("quantity", item.quantity))
+            }
+        }
+        return request(
+            "POST",
+            "/orders/$orderId/estimates",
+            token,
+            JSONObject().put("diagnosis", diagnosis).put("items", itemsJson),
+        ).getJSONObject("estimate").toRepairEstimate()
+    }
+
+    fun respondToRepairEstimate(
+        token: String,
+        orderId: String,
+        estimateId: String,
+        decision: String,
+        note: String?,
+    ): RepairEstimate = request(
+        "PATCH",
+        "/orders/$orderId/estimates/$estimateId/response",
+        token,
+        JSONObject()
+            .put("decision", decision)
+            .put("note", note ?: JSONObject.NULL),
+    ).getJSONObject("estimate").toRepairEstimate()
 
     fun staff(token: String): List<StaffMember> = request("GET", "/staff", token).getJSONArray("staff").mapObjects { it.toStaff() }
 

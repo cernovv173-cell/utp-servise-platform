@@ -15,6 +15,7 @@ import {
 import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
@@ -252,6 +253,13 @@ export const OrderManagement = ({
                   options={(availableStatuses[order.status] ?? [order.status]).map((value) => ({
                     value,
                     label: statusLabels[value] ?? value,
+                    disabled:
+                      (value === "IN_PROGRESS" &&
+                        Boolean(
+                          order.estimates?.length && order.estimates.at(-1)?.status !== "APPROVED",
+                        )) ||
+                      (value === "READY_FOR_PICKUP" &&
+                        order.estimates?.at(-1)?.status === "PENDING"),
                   }))}
                   className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 />
@@ -337,6 +345,14 @@ export const OrderManagement = ({
                 isEditing={!orderId && editingOrderId === order.id}
                 onEditingChange={(isEditing) => setEditingOrderId(isEditing ? order.id : null)}
                 showEditToggle={Boolean(orderId)}
+                onRefresh={refresh}
+              />
+            )}
+            {token && orderId && (
+              <RepairEstimatePanel
+                order={order}
+                token={token}
+                catalogItems={catalog.data?.catalogItems ?? []}
                 onRefresh={refresh}
               />
             )}

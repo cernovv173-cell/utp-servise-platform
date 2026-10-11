@@ -64,6 +64,19 @@ Administrators can correct request details through `PATCH /orders/:orderId` in a
 customers can edit only their own not-yet-assigned orders. Status transitions, service lines, stock,
 and paid receipts keep their independent authorization and lifecycle checks.
 
+Assigned repair orders can use immutable, versioned estimates. An administrator or assigned
+technician selects active catalog items and quantities; the API snapshots the current catalog names
+and prices rather than accepting prices from the client. `POST /orders/:orderId/estimates` submits a
+version for customer approval. Until approval, no order lines are created and tracked inventory is
+not deducted. The customer responds with `PATCH /orders/:orderId/estimates/:estimateId/response`;
+approval rechecks tracked stock and atomically creates the actual order lines at the snapshotted
+prices, while a decline records the response without changing the order composition. A changed
+offer creates a new version and preserves prior versions. Once estimates exist, direct order-line
+add/edit/delete endpoints are locked; an initial estimate must be approved before a technician starts
+the repair, and pending additional work must receive a response before the repair can be marked ready.
+Orders that have never used an estimate retain the existing workflow. The new
+`20261011190000_repair_estimate_approval` migration is additive and does not rewrite existing orders.
+
 Customers may save an optional gender and birth date with `PATCH /auth/profile`. The birthday worker
 uses the Moscow calendar date and sends the greeting once per customer per year only to active
 customers with a registered push-device token. A unique `(user_id, birthday_year)` delivery record

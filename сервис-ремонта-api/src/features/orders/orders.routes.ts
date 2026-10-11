@@ -252,6 +252,10 @@ const orderDetails = (role: UserRole) => ({
     orderBy: { createdAt: "asc" as const },
     include: { addedBy: { select: { id: true, displayName: true } } },
   },
+  estimates: {
+    orderBy: { version: "asc" as const },
+    include: { createdBy: { select: { id: true, displayName: true } } },
+  },
   photos: {
     orderBy: { createdAt: "asc" as const },
     select: {
@@ -1593,6 +1597,34 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Эта роль не может выполнить такой переход статуса.",
           );
         }
+        if (status === "IN_PROGRESS" || status === "READY_FOR_PICKUP") {
+          const latestEstimate = await transaction.repairEstimate.findFirst({
+            where: { orderId },
+            orderBy: { version: "desc" },
+            select: { status: true },
+          });
+          if (
+            status === "IN_PROGRESS" &&
+            latestEstimate &&
+            latestEstimate.status !== "APPROVED"
+          ) {
+            throw new HttpError(
+              409,
+              "ESTIMATE_APPROVAL_REQUIRED",
+              "Сначала получите согласие клиента на актуальную смету.",
+            );
+          }
+          if (
+            status === "READY_FOR_PICKUP" &&
+            latestEstimate?.status === "PENDING"
+          ) {
+            throw new HttpError(
+              409,
+              "ESTIMATE_RESPONSE_PENDING",
+              "Дождитесь ответа клиента на дополнительную смету.",
+            );
+          }
+        }
         if (status === "READY_FOR_PICKUP") {
           const intake = await transaction.repairOrderIntake.findUnique({
             where: { orderId },
@@ -1721,6 +1753,15 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Нельзя добавлять позиции в закрытую заявку.",
           );
         }
+        if (
+          await transaction.repairEstimate.findFirst({ where: { orderId } })
+        ) {
+          throw new HttpError(
+            409,
+            "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
+            "После отправки сметы состав работ можно менять только новой сметой на согласование.",
+          );
+        }
         const catalogItem = await transaction.repairCatalogItem.findFirst({
           where: { id: input.catalogItemId, active: true },
           select: {
@@ -1823,6 +1864,15 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             409,
             "ORDER_NOT_EDITABLE",
             "Нельзя изменить состав закрытой или оплаченной заявки.",
+          );
+        }
+        if (
+          await transaction.repairEstimate.findFirst({ where: { orderId } })
+        ) {
+          throw new HttpError(
+            409,
+            "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
+            "После отправки сметы состав работ можно менять только новой сметой на согласование.",
           );
         }
         const item = await transaction.repairOrderItem.findFirst({
@@ -1928,6 +1978,15 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             409,
             "ORDER_NOT_EDITABLE",
             "Нельзя удалить позицию из закрытой или оплаченной заявки.",
+          );
+        }
+        if (
+          await transaction.repairEstimate.findFirst({ where: { orderId } })
+        ) {
+          throw new HttpError(
+            409,
+            "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
+            "После отправки сметы состав работ можно менять только новой сметой на согласование.",
           );
         }
         const item = await transaction.repairOrderItem.findFirst({

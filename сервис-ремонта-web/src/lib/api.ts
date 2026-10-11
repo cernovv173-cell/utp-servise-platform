@@ -6,6 +6,26 @@ const apiBase =
 export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN";
 export type OrderArchiveView = "active" | "archived";
 export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
+export type RepairEstimate = {
+  id: string;
+  orderId: string;
+  version: number;
+  kind: "INITIAL" | "ADDITIONAL";
+  status: "PENDING" | "APPROVED" | "DECLINED" | "SUPERSEDED";
+  diagnosis: string;
+  itemsSnapshot: {
+    catalogItemId: string;
+    type: RepairCatalogType;
+    name: string;
+    quantity: number;
+    unitPriceRub: number;
+  }[];
+  totalRub: number;
+  customerResponseNote: string | null;
+  submittedAt: string;
+  respondedAt: string | null;
+  createdBy: { id: string; displayName: string } | null;
+};
 
 export type User = {
   id: string;
@@ -80,6 +100,7 @@ export type RepairOrder = {
     quantity: number;
     unitPriceRub: number;
   }[];
+  estimates?: RepairEstimate[];
   review?: { id: string } | null;
   receipt?: RepairReceipt | null;
   intake?: RepairOrderIntake | null;
@@ -592,6 +613,32 @@ export const addRepairOrderItem = (
     method: "POST",
     body: JSON.stringify({ catalogItemId, quantity }),
   });
+
+export const submitRepairEstimate = (
+  token: string,
+  orderId: string,
+  input: {
+    diagnosis: string;
+    items: { catalogItemId: string; quantity: number }[];
+  },
+) =>
+  apiRequest<{ estimate: RepairEstimate }>(`/orders/${orderId}/estimates`, token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const respondToRepairEstimate = (
+  token: string,
+  orderId: string,
+  estimateId: string,
+  decision: "APPROVED" | "DECLINED",
+  note?: string,
+) =>
+  apiRequest<{ estimate: RepairEstimate }>(
+    `/orders/${orderId}/estimates/${estimateId}/response`,
+    token,
+    { method: "PATCH", body: JSON.stringify({ decision, note }) },
+  );
 
 export const updateRepairOrderItemQuantity = (
   token: string,

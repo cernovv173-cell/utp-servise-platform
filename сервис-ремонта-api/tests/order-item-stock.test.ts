@@ -119,6 +119,7 @@ test("tracked spare parts are decremented on add and restored on removal", async
         return item;
       },
     },
+    repairEstimate: { findFirst: async () => null },
     repairStatusEvent: {
       create: async () => ({ createdAt: new Date() }),
     },

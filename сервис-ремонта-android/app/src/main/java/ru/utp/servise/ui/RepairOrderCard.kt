@@ -50,6 +50,9 @@ private fun formatArchiveDate(value: String): String = runCatching {
     Instant.parse(value).atZone(ZoneId.systemDefault()).format(archiveDateFormatter)
 }.getOrDefault(value.take(10))
 
+private fun latestEstimateRequiresApproval(order: RepairOrder): Boolean =
+    order.estimates.lastOrNull()?.status != "APPROVED"
+
 @Composable
 internal fun RepairOrderCard(
     order: RepairOrder,
@@ -67,6 +70,7 @@ internal fun RepairOrderCard(
     var showEdit by remember { mutableStateOf(false) }
     var showPaperwork by remember { mutableStateOf(false) }
     var showPickupScanner by remember { mutableStateOf(false) }
+    var showOrderDetails by remember(order.id) { mutableStateOf(false) }
     var itemPendingRemoval by remember(order.id) { mutableStateOf<RepairOrderItem?>(null) }
 
     Card(
@@ -97,6 +101,14 @@ internal fun RepairOrderCard(
                 OrderStatusPill(order.status.statusLabel())
             }
             Text(order.problem, fontSize = 13.sp, color = UtpInk, modifier = Modifier.padding(top = 9.dp))
+            RepairEstimateSection(order, role, token, catalogItems, runAction)
+            TextButton(
+                onClick = { showOrderDetails = !showOrderDetails },
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+            ) {
+                Text(if (showOrderDetails) "Скрыть подробности, фото и историю" else "Подробности, фото и история")
+            }
+            if (showOrderDetails) {
             val structuredAddress = listOfNotNull(
                 order.city,
                 order.street,
@@ -183,6 +195,7 @@ internal fun RepairOrderCard(
                     )
                 }) {}
             }
+            }
 
             if (order.items.isNotEmpty()) {
                 Spacer(Modifier.height(11.dp))
@@ -199,6 +212,7 @@ internal fun RepairOrderCard(
                         Text("${item.quantity.toLong() * item.unitPriceRub} ₽", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
                         val canRemoveItem =
                             role == "ADMIN" &&
+                                order.estimates.isEmpty() &&
                                 order.status in listOf(
                                     "REQUESTED",
                                     "ASSIGNED",
@@ -287,6 +301,7 @@ internal fun RepairOrderCard(
             }
             if (
                 role in listOf("ADMIN", "TECHNICIAN") &&
+                order.estimates.isEmpty() &&
                 order.status in listOf("REQUESTED", "ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP")
             ) {
                 OutlinedButton(
@@ -316,11 +331,17 @@ internal fun RepairOrderCard(
                 ) { Text("Открыть чат по заказу") }
             }
             actions.forEach { (label, status) ->
+                val estimateBlocksAction = when (status) {
+                    "IN_PROGRESS" -> order.estimates.isNotEmpty() && latestEstimateRequiresApproval(order)
+                    "READY_FOR_PICKUP" -> order.estimates.lastOrNull()?.status == "PENDING"
+                    else -> false
+                }
                 OutlinedButton(
                     onClick = { runAction({ ApiClient.updateStatus(token, order.id, status) }, {}) },
+                    enabled = !estimateBlocksAction,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     shape = RoundedCornerShape(12.dp),
-                ) { Text(label) }
+                ) { Text(if (estimateBlocksAction) "Ожидает согласия клиента" else label) }
             }
             if (role == "CUSTOMER" && order.status == "COMPLETED" && !order.hasReview) {
                 Button(onClick = { onReview(order.id) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), shape = RoundedCornerShape(12.dp)) { Text("Оставить отзыв") }

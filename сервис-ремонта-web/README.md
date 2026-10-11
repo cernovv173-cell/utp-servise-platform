@@ -163,10 +163,16 @@ and contact details, assigned technician contact, protected request photos, stat
 services/parts/products and totals, repair paperwork, and pickup QR actions. Customers can edit or
 cancel their own requests only while they are new, and may leave one review with an optional photo
 after completion. Assigned technicians can advance their assigned repair through the allowed status
-steps, add catalogue items, update the intake act, upload photos, scan pickup QR codes, and use the
-order chat. Administrators can create and edit requests, assign technicians, manage the order
-composition and receipts, search by service number, and manage the same paperwork and repair chat.
-The API remains authoritative for each role and order lifecycle transition.
+steps, prepare and send a versioned estimate, update the intake act, upload photos, scan pickup QR
+codes, and use the order chat. The estimate is surfaced before the collapsible contact, photo and
+history details; paperwork and chat are grouped separately. Administrators can create and edit
+requests, assign technicians, prepare estimates from the active catalog, manage receipts, search by
+service number, and manage paperwork and repair chat. Customers approve or decline the displayed
+version in their own order card. The API snapshots catalog prices, leaves stock untouched until
+approval, then creates order lines and deducts tracked stock in one transaction. Direct line edits are
+locked once estimate history exists, and the server requires approval before work starts. Orders
+without estimates retain the previous item-entry flow. The API remains authoritative for each role and
+order lifecycle transition.
 
 Customers can open the chat on their own cards in `/orders`; administrators connect to the same
 conversation from the detail page before replying. Assigned technicians can also open and write in

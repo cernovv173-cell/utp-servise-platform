@@ -23,6 +23,7 @@ internal fun JSONObject.toOrder(): RepairOrder {
     val customer = optJSONObject("customer")
     val statusEvents = optJSONArray("statusEvents")
     val items = optJSONArray("items")
+    val estimates = optJSONArray("estimates")
     val existingReview = optJSONObject("review")
     return RepairOrder(
         id = getString("id"),
@@ -82,8 +83,32 @@ internal fun JSONObject.toOrder(): RepairOrder {
         receipt = optJSONObject("receipt")?.toRepairReceipt(),
         intake = optJSONObject("intake")?.toRepairOrderIntake(),
         warranty = optJSONObject("warranty")?.toRepairWarranty(),
+        estimates = estimates.mapObjects { it.toRepairEstimate() },
     )
 }
+
+internal fun JSONObject.toRepairEstimate() = RepairEstimate(
+    id = getString("id"),
+    orderId = getString("orderId"),
+    version = optInt("version"),
+    kind = optString("kind"),
+    status = optString("status"),
+    diagnosis = optString("diagnosis"),
+    itemsSnapshot = optJSONArray("itemsSnapshot").mapObjects { item ->
+        RepairEstimateItem(
+            catalogItemId = item.optString("catalogItemId"),
+            type = item.optString("type"),
+            name = item.optString("name"),
+            quantity = item.optInt("quantity"),
+            unitPriceRub = item.optInt("unitPriceRub"),
+        )
+    },
+    totalRub = optInt("totalRub"),
+    customerResponseNote = nullableString("customerResponseNote"),
+    submittedAt = optString("submittedAt"),
+    respondedAt = nullableString("respondedAt"),
+    createdByName = optJSONObject("createdBy")?.nullableString("displayName"),
+)
 
 internal fun JSONObject.toRepairOrderIntake() = RepairOrderIntake(
     frontCondition = optString("frontCondition"),

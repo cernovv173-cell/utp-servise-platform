@@ -95,7 +95,33 @@ data class RepairOrder(
     val archivedAt: String? = null,
     val intake: RepairOrderIntake? = null,
     val warranty: RepairWarranty? = null,
+    val estimates: List<RepairEstimate> = emptyList(),
 )
+
+data class RepairEstimate(
+    val id: String,
+    val orderId: String,
+    val version: Int,
+    val kind: String,
+    val status: String,
+    val diagnosis: String,
+    val itemsSnapshot: List<RepairEstimateItem>,
+    val totalRub: Int,
+    val customerResponseNote: String?,
+    val submittedAt: String,
+    val respondedAt: String?,
+    val createdByName: String?,
+)
+
+data class RepairEstimateItem(
+    val catalogItemId: String,
+    val type: String,
+    val name: String,
+    val quantity: Int,
+    val unitPriceRub: Int,
+)
+
+data class RepairEstimateDraftItem(val catalogItemId: String, val quantity: Int)
 
 data class RepairOrderIntake(
     val frontCondition: String = "",

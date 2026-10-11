@@ -112,6 +112,7 @@ test("only admins and the assigned technician can append order items", async (t)
         return item;
       },
     },
+    repairEstimate: { findFirst: async () => null },
     repairCatalogItem: {
       findFirst: async ({
         where,
