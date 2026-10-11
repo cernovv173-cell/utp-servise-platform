@@ -1,5 +1,5 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Wrench } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardList, MessageCircle, Wrench } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
@@ -26,6 +26,7 @@ const LoginPage = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
+  const [registeredName, setRegisteredName] = useState<string | null>(null);
   const [pendingYandexToken, setPendingYandexToken] = useState<string | null>(null);
 
   const authenticateWithYandex = async (accessToken: string, linkPassword?: string) => {
@@ -35,6 +36,10 @@ const LoginPage = () => {
       const session = await yandexLoginRequest(accessToken, role, linkPassword);
       setPendingYandexToken(null);
       setSession(session);
+      if (registering) {
+        setRegisteredName(session.user.displayName);
+        return;
+      }
       await navigate({ to: "/" });
     } catch (failure) {
       if (failure instanceof ApiRequestError && failure.code === "YANDEX_PASSWORD_REQUIRED") {
@@ -68,6 +73,10 @@ const LoginPage = () => {
           )
         : await loginRequest(String(values.get("email")), String(values.get("password")), role);
       setSession(session);
+      if (registering) {
+        setRegisteredName(session.user.displayName);
+        return;
+      }
       await navigate({ to: "/" });
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Не удалось выполнить вход.");
@@ -75,6 +84,81 @@ const LoginPage = () => {
       setBusy(false);
     }
   };
+
+  if (registeredName) {
+    return (
+      <main className="grid min-h-dvh bg-slate-50 lg:grid-cols-2 dark:bg-slate-950">
+        <section className="flex items-center justify-center px-5 py-12">
+          <div className="w-full max-w-lg">
+            <Link to="/" className="flex items-center gap-3 text-lg font-bold">
+              <span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white">
+                <Wrench size={20} />
+              </span>
+              UTP Servise
+            </Link>
+            <div className="mt-12 grid size-14 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+              <CheckCircle2 size={30} />
+            </div>
+            <p className="mt-6 text-sm font-semibold tracking-wide text-blue-700 uppercase dark:text-blue-300">
+              Аккаунт создан
+            </p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Добро пожаловать, {registeredName}!
+            </h1>
+            <p className="mt-4 max-w-md text-base leading-7 text-slate-600 dark:text-slate-300">
+              Теперь можно оформить заявку на ремонт, следить за её статусом и общаться с сервисом в
+              одном месте.
+            </p>
+            <div className="mt-8 grid gap-3">
+              <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                <ClipboardList size={20} className="mt-0.5 shrink-0 text-blue-600" />
+                <div>
+                  <p className="font-semibold">Создайте заявку</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Укажите устройство и опишите, что нужно проверить или починить.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                <MessageCircle size={20} className="mt-0.5 shrink-0 text-blue-600" />
+                <div>
+                  <p className="font-semibold">Оставайтесь на связи</p>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Следите за ходом ремонта и задавайте вопросы в чате заявки.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                to="/orders"
+                className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
+              >
+                Создать заявку <ArrowRight size={18} />
+              </Link>
+              <Link
+                to="/"
+                className="inline-flex min-h-12 items-center rounded-xl border border-slate-200 px-5 font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+              >
+                В личный кабинет
+              </Link>
+            </div>
+          </div>
+        </section>
+        <aside className="relative hidden overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-12 text-white lg:flex lg:flex-col lg:justify-end">
+          <div className="absolute -top-24 -right-20 size-96 rounded-full border border-white/15" />
+          <div className="absolute -top-12 -right-8 size-72 rounded-full border border-white/15" />
+          <p className="text-sm font-semibold text-blue-100">UTP SERVISE — РЯДОМ</p>
+          <h2 className="mt-3 max-w-lg text-4xl leading-tight font-semibold">
+            Ремонт техники — с понятными шагами.
+          </h2>
+          <p className="mt-4 max-w-md text-sm leading-6 text-blue-100">
+            Заявка, сообщения и история ремонта будут доступны в вашем аккаунте.
+          </p>
+        </aside>
+      </main>
+    );
+  }
 
   return (
     <main className="grid min-h-dvh bg-slate-50 lg:grid-cols-2 dark:bg-slate-950">
