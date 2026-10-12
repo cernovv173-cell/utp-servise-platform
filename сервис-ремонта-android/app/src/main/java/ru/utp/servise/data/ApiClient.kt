@@ -509,6 +509,14 @@ object ApiClient {
             .getJSONArray("devices")
             .mapObjects { it.toCustomerDevice() }
 
+    fun createWarrantyClaim(token: String, originalOrderId: String, problem: String): RepairOrder =
+        request(
+            "POST",
+            "/orders/$originalOrderId/warranty-claims",
+            token,
+            JSONObject().put("problem", problem.trim()),
+        ).getJSONObject("order").toOrder()
+
     fun createCustomerDevice(
         token: String,
         deviceType: String,

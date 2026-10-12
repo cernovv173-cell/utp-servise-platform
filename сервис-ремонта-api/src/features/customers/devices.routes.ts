@@ -74,6 +74,9 @@ export const createCustomerDevicesRouter = (
               status: true,
               createdAt: true,
               warranty: { select: { warrantyNumber: true, expiresAt: true } },
+              warrantyOriginOrder: {
+                select: { id: true, serviceNumber: true },
+              },
               receipt: { select: { receiptNumber: true, issuedAt: true } },
             },
           },

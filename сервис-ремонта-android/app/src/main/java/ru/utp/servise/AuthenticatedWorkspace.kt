@@ -251,6 +251,12 @@ internal fun AuthenticatedWorkspace(
                                     onCreate = { type, nickname, brand, model, serial, date, note ->
                                         runAction({ ApiClient.createCustomerDevice(token, type, nickname, brand, model, serial, date, note) }) { refresh() }
                                     },
+                                    onWarrantyClaim = { originalOrderId, problem ->
+                                        runAction({ ApiClient.createWarrantyClaim(token, originalOrderId, problem) }) { result ->
+                                            refresh()
+                                            (result as? RepairOrder)?.id?.let { navController.navigate("chat/$it") }
+                                        }
+                                    },
                                     onSaveReminder = { deviceId, date, note ->
                                         runAction({ ApiClient.updateCustomerDeviceReminder(token, deviceId, date, note) }) { refresh() }
                                     },

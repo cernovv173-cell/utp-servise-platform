@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/auth-context";
 
 import {
   createCustomerDevice,
+  createWarrantyClaim,
   deleteCustomerDevice,
   getCustomerDevices,
   updateCustomerDevice,
@@ -40,6 +41,7 @@ const localMoscowDate = () =>
 
 const DevicePage = () => {
   const { token, user } = useAuth();
+  const navigate = useNavigate({ from: "/devices" });
   const queryClient = useQueryClient();
   const [deviceType, setDeviceType] = useState("COMPUTER");
   const [nickname, setNickname] = useState("");
@@ -48,6 +50,8 @@ const DevicePage = () => {
   const [serialNumber, setSerialNumber] = useState("");
   const [nextMaintenanceAt, setNextMaintenanceAt] = useState("");
   const [maintenanceNote, setMaintenanceNote] = useState("");
+  const [claimOrderId, setClaimOrderId] = useState<string | null>(null);
+  const [claimProblem, setClaimProblem] = useState("");
   const devicesQuery = useQuery({
     queryKey: ["customer-devices", token],
     queryFn: ({ signal }) => getCustomerDevices(token!, signal),
@@ -99,6 +103,20 @@ const DevicePage = () => {
       await refreshDevices();
       toast.success("Техника удалена из списка; история заявок сохранена");
     },
+  });
+  const warrantyClaimMutation = useMutation({
+    mutationFn: () => createWarrantyClaim(token!, claimOrderId!, claimProblem.trim()),
+    onSuccess: async ({ order }) => {
+      setClaimOrderId(null);
+      setClaimProblem("");
+      await queryClient.invalidateQueries({ queryKey: ["orders", token] });
+      toast.success("Гарантийное обращение создано");
+      await navigate({ to: "/chats", search: { orderId: order.id } });
+    },
+    onError: (error) =>
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось отправить обращение по гарантии.",
+      ),
   });
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -333,10 +351,85 @@ const DevicePage = () => {
                               </p>
                             )}
                             {order.warranty && (
-                              <p className="mt-1 text-xs text-slate-500">
-                                Гарантия {order.warranty.warrantyNumber} до{" "}
-                                {new Date(order.warranty.expiresAt).toLocaleDateString("ru-RU")}
-                              </p>
+                              <div className="mt-1 grid gap-2 text-xs">
+                                <p className="text-slate-500">
+                                  Гарантия {order.warranty.warrantyNumber} до{" "}
+                                  {new Date(order.warranty.expiresAt).toLocaleDateString("ru-RU")}
+                                </p>
+                                {order.warrantyOriginOrder && (
+                                  <p className="text-amber-700 dark:text-amber-300">
+                                    Гарантийное обращение по ремонту{" "}
+                                    {order.warrantyOriginOrder.serviceNumber}
+                                  </p>
+                                )}
+                                {new Date(order.warranty.expiresAt).getTime() > Date.now() &&
+                                  !order.warrantyOriginOrder && (
+                                    <>
+                                      {claimOrderId === order.id ? (
+                                        <form
+                                          className="grid gap-2 rounded-lg border border-blue-200 p-3 dark:border-blue-900"
+                                          onSubmit={(event) => {
+                                            event.preventDefault();
+                                            warrantyClaimMutation.mutate();
+                                          }}
+                                        >
+                                          <label className="grid gap-1 text-slate-700 dark:text-slate-200">
+                                            Что снова неисправно?
+                                            <textarea
+                                              required
+                                              minLength={5}
+                                              maxLength={1800}
+                                              value={claimProblem}
+                                              onChange={(event) =>
+                                                setClaimProblem(event.target.value)
+                                              }
+                                              className="min-h-20 rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-700 dark:bg-slate-950"
+                                            />
+                                          </label>
+                                          <p className="text-slate-500">
+                                            Сервис проверит связь неисправности с выполненным
+                                            ремонтом. Создание обращения не означает автоматического
+                                            признания случая гарантийным; если работы окажутся вне
+                                            гарантии, точную смету согласуют с вами до начала
+                                            ремонта.
+                                          </p>
+                                          <div className="flex flex-wrap gap-2">
+                                            <button
+                                              type="submit"
+                                              disabled={
+                                                warrantyClaimMutation.isPending ||
+                                                claimProblem.trim().length < 5
+                                              }
+                                              className="min-h-9 rounded-lg bg-blue-600 px-3 font-semibold text-white disabled:opacity-50"
+                                            >
+                                              {warrantyClaimMutation.isPending
+                                                ? "Отправляем…"
+                                                : "Отправить обращение"}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setClaimOrderId(null);
+                                                setClaimProblem("");
+                                              }}
+                                              className="min-h-9 rounded-lg border border-slate-200 px-3 dark:border-slate-700"
+                                            >
+                                              Отмена
+                                            </button>
+                                          </div>
+                                        </form>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => setClaimOrderId(order.id)}
+                                          className="min-h-9 justify-self-start rounded-lg border border-blue-200 px-3 font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-blue-300 dark:hover:bg-slate-800"
+                                        >
+                                          Обратиться по гарантии
+                                        </button>
+                                      )}
+                                    </>
+                                  )}
+                              </div>
                             )}
                           </li>
                         ))}

@@ -45,6 +45,7 @@ data class CustomerDeviceRepair(
     val warrantyNumber: String?,
     val warrantyExpiresAt: String?,
     val receiptNumber: String?,
+    val warrantyOriginOrderServiceNumber: String? = null,
 )
 
 data class CustomerDevice(

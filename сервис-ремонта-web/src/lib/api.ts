@@ -120,6 +120,7 @@ export type RepairOrder = {
   receipt?: RepairReceipt | null;
   intake?: RepairOrderIntake | null;
   warranty?: RepairWarranty | null;
+  warrantyOriginOrder?: { id: string; serviceNumber: string } | null;
   assignedTechnicianId?: string | null;
   assignedTechnician?: {
     id: string;
@@ -153,6 +154,7 @@ export type CustomerDevice = {
     status: string;
     createdAt: string;
     warranty: { warrantyNumber: string; expiresAt: string } | null;
+    warrantyOriginOrder?: { id: string; serviceNumber: string } | null;
     receipt: { receiptNumber: string; issuedAt: string } | null;
   }[];
 };
@@ -610,6 +612,12 @@ export const updateCustomerDevice = (
 
 export const deleteCustomerDevice = (token: string, deviceId: string) =>
   apiRequest<void>(`/customer/devices/${deviceId}`, token, { method: "DELETE" });
+
+export const createWarrantyClaim = (token: string, originalOrderId: string, problem: string) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${originalOrderId}/warranty-claims`, token, {
+    method: "POST",
+    body: JSON.stringify({ problem }),
+  });
 
 export const getAdminRepairOrder = (token: string, orderId: string, signal?: AbortSignal) =>
   apiRequest<{ order: RepairOrder }>(`/admin/orders/${orderId}`, token, { signal });

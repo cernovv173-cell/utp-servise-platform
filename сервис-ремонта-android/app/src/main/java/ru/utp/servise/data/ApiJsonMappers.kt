@@ -136,6 +136,8 @@ internal fun JSONObject.toCustomerDevice() = CustomerDevice(
             warrantyNumber = warranty?.nullableString("warrantyNumber"),
             warrantyExpiresAt = warranty?.nullableString("expiresAt"),
             receiptNumber = order.optJSONObject("receipt")?.nullableString("receiptNumber"),
+            warrantyOriginOrderServiceNumber = order.optJSONObject("warrantyOriginOrder")
+                ?.nullableString("serviceNumber"),
         )
     },
 )

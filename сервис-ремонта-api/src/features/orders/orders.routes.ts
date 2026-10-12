@@ -74,6 +74,12 @@ const createOrderBody = z
     preferredAt: z.string().datetime().nullable().optional(),
   })
   .strict();
+const warrantyClaimBody = z
+  .object({
+    problem: z.string().trim().min(5).max(1800),
+    preferredAt: z.string().datetime({ offset: true }).nullable().optional(),
+  })
+  .strict();
 const createAdminOrderBody = createOrderBody
   .omit({ contactPhone: true, customerDeviceId: true })
   .extend({
@@ -230,6 +236,9 @@ const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
 
 const orderDetails = (role: UserRole) => ({
+  warrantyOriginOrder: {
+    select: { id: true, serviceNumber: true },
+  },
   customer: {
     select: {
       id: true,
@@ -498,6 +507,118 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         order,
         user.id,
         "Создана новая заявка на ремонт.",
+      );
+      response.status(201).json({ order });
+    },
+  );
+
+  router.post(
+    "/orders/:orderId/warranty-claims",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    validateRequest({ params: orderIdParams, body: warrantyClaimBody }),
+    async (_request, response) => {
+      const user = getAuthenticatedUser(response);
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const input = bodyOf<z.infer<typeof warrantyClaimBody>>(response);
+      const order = await database.$transaction(async (transaction) => {
+        const source = await transaction.repairOrder.findFirst({
+          where: { id: orderId, customerId: user.id },
+          include: {
+            warranty: {
+              select: { warrantyNumber: true, expiresAt: true },
+            },
+          },
+        });
+        if (!source)
+          throw new HttpError(
+            404,
+            "ORDER_NOT_FOUND",
+            "Исходный ремонт не найден.",
+          );
+        if (
+          source.status !== "COMPLETED" ||
+          !source.warranty ||
+          source.warranty.expiresAt <= new Date()
+        ) {
+          throw new HttpError(
+            409,
+            "WARRANTY_NOT_ACTIVE",
+            "По этому ремонту нет действующего гарантийного талона.",
+          );
+        }
+
+        const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
+          SELECT nextval('repair_service_number_seq') AS value
+        `;
+        const number = String(sequence[0]?.value ?? "1").padStart(6, "0");
+        const additionalInfo = [
+          `Гарантийное обращение по талону ${source.warranty.warrantyNumber}.`,
+          `Исходный ремонт ${source.serviceNumber}.`,
+          source.additionalInfo,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .slice(0, 500);
+        const created = await transaction.repairOrder.create({
+          data: {
+            serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
+            customerId: user.id,
+            customerDeviceId: source.customerDeviceId,
+            warrantyOriginOrderId: source.id,
+            deviceType: source.deviceType,
+            deviceBrand: source.deviceBrand,
+            deviceModel: source.deviceModel,
+            deviceSerialNumber: source.deviceSerialNumber,
+            problem: input.problem,
+            address: source.address,
+            contactPhone: source.contactPhone,
+            city: source.city,
+            street: source.street,
+            house: source.house,
+            apartment: source.apartment,
+            entrance: source.entrance,
+            hasBarrier: source.hasBarrier,
+            floor: source.floor,
+            additionalPhone: source.additionalPhone,
+            additionalInfo,
+            preferredAt: input.preferredAt ? new Date(input.preferredAt) : null,
+          },
+        });
+        await transaction.repairStatusEvent.create({
+          data: {
+            orderId: created.id,
+            actorId: user.id,
+            from: null,
+            to: "REQUESTED",
+            note: `Гарантийное обращение по талону ${source.warranty.warrantyNumber}; исходный ремонт ${source.serviceNumber}`,
+          },
+        });
+        const chat = await transaction.orderChat.create({
+          data: {
+            orderId: created.id,
+            adminRequestedAt: new Date(),
+            adminRequestedById: user.id,
+          },
+          select: { id: true },
+        });
+        await transaction.orderChatMessage.create({
+          data: {
+            chatId: chat.id,
+            senderId: user.id,
+            content: input.problem,
+          },
+        });
+        return transaction.repairOrder.findUniqueOrThrow({
+          where: { id: created.id },
+          include: orderDetails(user.role),
+        });
+      });
+      await sendRepairOrderNotification(
+        database,
+        order,
+        user.id,
+        `Новое гарантийное обращение по ремонту ${order.serviceNumber}.`,
       );
       response.status(201).json({ order });
     },

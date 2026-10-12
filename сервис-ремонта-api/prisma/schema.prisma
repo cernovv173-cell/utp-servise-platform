@@ -232,6 +232,7 @@ model RepairOrder {
   serviceNumber         String                         @unique @map("service_number") @db.VarChar(32)
   customerId            String                         @map("customer_id") @db.Uuid
   customerDeviceId      String?                        @map("customer_device_id") @db.Uuid
+  warrantyOriginOrderId String?                        @map("warranty_origin_order_id") @db.Uuid
   assignedTechnicianId  String?                        @map("assigned_technician_id") @db.Uuid
   deviceType            String                         @map("device_type") @db.VarChar(120)
   deviceBrand           String?                        @map("device_brand") @db.VarChar(120)
@@ -261,6 +262,8 @@ model RepairOrder {
   archivedAt            DateTime?                      @map("archived_at") @db.Timestamptz(3)
   customer              User                           @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
   customerDevice        CustomerDevice?                @relation(fields: [customerDeviceId], references: [id], onDelete: SetNull)
+  warrantyOriginOrder   RepairOrder?                   @relation("WarrantyClaims", fields: [warrantyOriginOrderId], references: [id], onDelete: SetNull)
+  warrantyClaims        RepairOrder[]                  @relation("WarrantyClaims")
   assignedTechnician    User?                          @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusEvents          RepairStatusEvent[]
   items                 RepairOrderItem[]
@@ -284,6 +287,7 @@ model RepairOrder {
   @@index([preferredAt, status])
   @@index([status, expectedCompletionAt])
   @@index([customerDeviceId])
+  @@index([warrantyOriginOrderId])
   @@index([archivedAt, createdAt])
   @@map("repair_orders")
 }

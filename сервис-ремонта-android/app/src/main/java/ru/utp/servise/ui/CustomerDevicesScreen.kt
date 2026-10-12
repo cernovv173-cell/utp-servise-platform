@@ -33,9 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.CustomerDevice
+import ru.utp.servise.data.CustomerDeviceRepair
 import ru.utp.servise.data.deviceLabel
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.Instant
 
 private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
 
@@ -44,6 +46,7 @@ fun CustomerDevicesScreen(
     devices: List<CustomerDevice>,
     onRepeat: (String) -> Unit,
     onCreate: (String, String, String, String, String, String?, String) -> Unit,
+    onWarrantyClaim: (String, String) -> Unit,
     onSaveReminder: (String, String?, String) -> Unit,
     onDelete: (String) -> Unit,
     busy: Boolean,
@@ -110,6 +113,7 @@ fun CustomerDevicesScreen(
             DeviceCard(
                 device = device,
                 onRepeat = { onRepeat(device.id) },
+                onWarrantyClaim = onWarrantyClaim,
                 onSaveReminder = { date, note -> onSaveReminder(device.id, date, note) },
                 onDelete = { onDelete(device.id) },
                 busy = busy,
@@ -122,6 +126,7 @@ fun CustomerDevicesScreen(
 private fun DeviceCard(
     device: CustomerDevice,
     onRepeat: () -> Unit,
+    onWarrantyClaim: (String, String) -> Unit,
     onSaveReminder: (String?, String) -> Unit,
     onDelete: () -> Unit,
     busy: Boolean,
@@ -129,6 +134,8 @@ private fun DeviceCard(
     var date by remember(device.id, device.nextMaintenanceAt) { mutableStateOf(device.nextMaintenanceAt?.take(10).orEmpty()) }
     var note by remember(device.id, device.maintenanceNote) { mutableStateOf(device.maintenanceNote.orEmpty()) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var warrantyClaimOrder by remember { mutableStateOf<CustomerDeviceRepair?>(null) }
+    var warrantyClaimProblem by remember { mutableStateOf("") }
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
@@ -138,6 +145,45 @@ private fun DeviceCard(
                 TextButton(onClick = { confirmDelete = false; onDelete() }) { Text("Удалить") }
             },
             dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Отмена") } },
+        )
+    }
+    warrantyClaimOrder?.let { order ->
+        AlertDialog(
+            onDismissRequest = { warrantyClaimOrder = null; warrantyClaimProblem = "" },
+            title = { Text("Обращение по гарантии") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Талон ${order.warrantyNumber} · исходный ремонт ${order.serviceNumber}")
+                    OutlinedTextField(
+                        value = warrantyClaimProblem,
+                        onValueChange = { warrantyClaimProblem = it.take(1800) },
+                        label = { Text("Что снова неисправно?") },
+                        minLines = 3,
+                        shape = RoundedCornerShape(14.dp),
+                    )
+                    Text(
+                        "Сервис проверит связь неисправности с ремонтом. Если случай не подпадает под гарантию, смету согласуют до начала платных работ.",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = warrantyClaimProblem.trim().length >= 5 && !busy,
+                    onClick = {
+                        val selected = warrantyClaimOrder ?: return@TextButton
+                        onWarrantyClaim(selected.id, warrantyClaimProblem.trim())
+                        warrantyClaimOrder = null
+                        warrantyClaimProblem = ""
+                    },
+                ) { Text(if (busy) "Отправляем…" else "Отправить") }
+            },
+            dismissButton = {
+                TextButton(onClick = { warrantyClaimOrder = null; warrantyClaimProblem = "" }) {
+                    Text("Отмена")
+                }
+            },
         )
     }
     Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
@@ -181,6 +227,18 @@ private fun DeviceCard(
                         Text(order.problem, fontSize = 12.sp, color = UtpMuted)
                         order.receiptNumber?.let { Text("Чек $it", fontSize = 11.sp, color = UtpMuted) }
                         order.warrantyNumber?.let { Text("Гарантия $it · до ${order.warrantyExpiresAt?.take(10)}", fontSize = 11.sp, color = UtpMuted) }
+                        order.warrantyOriginOrderServiceNumber?.let {
+                            Text("Гарантийное обращение по ремонту $it", fontSize = 11.sp, color = UtpBlue)
+                        }
+                        val warrantyActive = order.warrantyExpiresAt?.let { expiry ->
+                            runCatching { Instant.parse(expiry).isAfter(Instant.now()) }.getOrDefault(false)
+                        } == true
+                        if (warrantyActive && order.warrantyNumber != null && order.warrantyOriginOrderServiceNumber == null) {
+                            TextButton(
+                                enabled = !busy,
+                                onClick = { warrantyClaimOrder = order },
+                            ) { Text("Обратиться по гарантии") }
+                        }
                     }
                 }
             }

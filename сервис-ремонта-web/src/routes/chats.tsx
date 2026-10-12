@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { z } from "zod";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
@@ -29,6 +30,7 @@ const statusLabels: Record<string, string> = {
 
 const ChatsPage = () => {
   const { token, user } = useAuth();
+  const { orderId } = Route.useSearch();
   const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
   const canViewChats =
     user?.role === "ADMIN" || user?.role === "CUSTOMER" || user?.role === "TECHNICIAN";
@@ -37,6 +39,9 @@ const ChatsPage = () => {
     queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
     enabled: Boolean(token && canViewChats),
   });
+  const visibleOrders = (orders.data?.orders ?? []).filter(
+    (order) => !orderId || order.id === orderId,
+  );
 
   return (
     <AppShell active="/chats">
@@ -48,9 +53,20 @@ const ChatsPage = () => {
             ? "Переписки с клиентами сгруппированы по заявкам. Откройте нужный чат, чтобы ответить."
             : user?.role === "TECHNICIAN"
               ? "Здесь собраны чаты назначенных вам заказов. При необходимости можно позвать администратора."
-              : "Выберите свою заявку, чтобы написать администратору сервиса."
+              : orderId
+                ? "Это отдельная переписка по гарантийному обращению. Она связана только с выбранным ремонтом."
+                : "Выберите свою заявку, чтобы написать администратору сервиса."
         }
       />
+      {orderId && (
+        <Link
+          to="/chats"
+          search={{}}
+          className="mb-4 inline-flex text-sm font-semibold text-blue-700 hover:underline dark:text-blue-300"
+        >
+          ← Все чаты
+        </Link>
+      )}
       {!canViewChats ? (
         <SectionCard>
           <p className="text-sm text-slate-600 dark:text-slate-300">
@@ -66,11 +82,15 @@ const ChatsPage = () => {
               Не удалось загрузить список заявок и чатов.
             </p>
           )}
-          {!orders.isLoading && !orders.isError && (orders.data?.orders.length ?? 0) === 0 && (
-            <p className="mt-4 text-sm text-slate-500">В этом разделе пока нет заявок с чатами.</p>
+          {!orders.isLoading && !orders.isError && visibleOrders.length === 0 && (
+            <p className="mt-4 text-sm text-slate-500">
+              {orderId
+                ? "Отдельный чат пока недоступен: проверьте, что заявка ещё активна."
+                : "В этом разделе пока нет заявок с чатами."}
+            </p>
           )}
           <div className="mt-4 grid gap-4">
-            {(orders.data?.orders ?? []).map((order) => (
+            {visibleOrders.map((order) => (
               <article
                 key={order.id}
                 className="rounded-xl border border-slate-100 p-4 dark:border-slate-800"
@@ -83,6 +103,11 @@ const ChatsPage = () => {
                       {deviceLabels[order.deviceType] ?? order.deviceType}
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">{order.problem}</p>
+                    {order.warrantyOriginOrder && (
+                      <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+                        Гарантийное обращение по ремонту {order.warrantyOriginOrder.serviceNumber}
+                      </p>
+                    )}
                   </div>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium dark:bg-slate-800">
                     {statusLabels[order.status] ?? order.status}
@@ -98,4 +123,7 @@ const ChatsPage = () => {
   );
 };
 
-export const Route = createFileRoute("/chats")({ component: ChatsPage });
+export const Route = createFileRoute("/chats")({
+  validateSearch: z.object({ orderId: z.string().optional() }),
+  component: ChatsPage,
+});
