@@ -83,7 +83,7 @@ fun RepairRequestForm(
     var selectedCustomerDeviceId by remember { mutableStateOf(initialDeviceId) }
     var problem by remember { mutableStateOf("") }
     var phone by remember(initialPhone) { mutableStateOf(initialPhone) }
-    var city by remember { mutableStateOf("") }
+    var city by remember { mutableStateOf("Пушкино") }
     var street by remember { mutableStateOf("") }
     var house by remember { mutableStateOf("") }
     var apartment by remember { mutableStateOf("") }
@@ -97,6 +97,7 @@ fun RepairRequestForm(
     var deviceSerialNumber by remember { mutableStateOf("") }
     var selectedPhoto by remember { mutableStateOf<Uri?>(null) }
     var showSymptomGuide by remember { mutableStateOf(false) }
+    var showValidation by remember { mutableStateOf(false) }
     var preferredDateMillis by remember { mutableStateOf<Long?>(null) }
     var preferredTime by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -119,7 +120,7 @@ fun RepairRequestForm(
         val time = preferredTime ?: (10 to 0)
         LocalDateTime.of(date, java.time.LocalTime.of(time.first, time.second))
             .atZone(ZoneId.systemDefault())
-            .toOffsetDateTime()
+            .toInstant()
             .toString()
     }
     if (showDatePicker) {
@@ -298,8 +299,28 @@ fun RepairRequestForm(
         AddressField(additionalInfo, { additionalInfo = it.take(500) }, "Дополнительная информация")
         ServicePriceGuide(prices = servicePrices, deviceType = selectedCustomerDevice?.deviceType ?: device)
         Spacer(Modifier.height(18.dp))
+        val missingFields = buildList {
+            if (problem.trim().length < 5) add("опишите неисправность (не менее 5 символов)")
+            if (phone.count(Char::isDigit) < 7) add("укажите телефон для связи")
+            if (city.trim().length < 2) add("укажите город")
+            if (street.trim().length < 2) add("укажите улицу")
+            if (house.isBlank()) add("укажите дом")
+        }
+        if (showValidation && missingFields.isNotEmpty()) {
+            Text(
+                "Чтобы отправить заявку, ${missingFields.joinToString(", ")}",
+                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+        }
         Button(
             onClick = {
+                if (missingFields.isNotEmpty()) {
+                    showValidation = true
+                    return@Button
+                }
+                showValidation = false
                 onSubmit(
                     device,
                     problem.trim(),
@@ -315,7 +336,7 @@ fun RepairRequestForm(
                 )
             },
             modifier = Modifier.fillMaxWidth().height(52.dp),
-            enabled = !busy && problem.trim().length >= 5 && phone.count(Char::isDigit) >= 7 && city.trim().length >= 2 && street.trim().length >= 2 && house.isNotBlank(),
+            enabled = !busy,
             shape = RoundedCornerShape(15.dp),
         ) { Text(if (busy) "Отправка…" else "Отправить заявку") }
     }
