@@ -66,7 +66,7 @@ import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.UtpBlue
 import ru.utp.servise.ui.UtpPale
 import ru.utp.servise.ui.UtpServiseTheme
-import ru.utp.servise.ui.WelcomeVideoIntro
+import ru.utp.servise.ui.WelcomeGifIntro
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -319,7 +319,7 @@ private fun UtpServiseApp() {
             )
         }
         if (showLaunchVideo) {
-            WelcomeVideoIntro(
+            WelcomeGifIntro(
                 onContinue = { showLaunchVideo = false },
                 modifier = Modifier.fillMaxSize(),
             )
