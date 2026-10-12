@@ -299,6 +299,12 @@ data class CatalogItem(
     val minimumStockQuantity: Int? = null,
 )
 
+data class CustomerServicePrice(
+    val id: String,
+    val name: String,
+    val unitPriceRub: Int,
+)
+
 data class CraftItem(
     val id: String,
     val title: String,

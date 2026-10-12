@@ -187,6 +187,22 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
   assert.ok(address && typeof address !== "string");
   const baseUrl = `http://127.0.0.1:${address.port}/api/orders/${orderId}`;
 
+  const startWithoutEstimate = await fetch(`${baseUrl}/status`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${technicianToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ status: "IN_PROGRESS" }),
+  });
+  assert.equal(startWithoutEstimate.status, 409);
+  assert.equal(
+    ((await startWithoutEstimate.json()) as { error: { code: string } }).error
+      .code,
+    "ESTIMATE_APPROVAL_REQUIRED",
+  );
+  assert.equal(order.status, "ASSIGNED");
+
   const submitted = await fetch(`${baseUrl}/estimates`, {
     method: "POST",
     headers: {
@@ -253,4 +269,15 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
   assert.equal(orderItems.length, 1);
   assert.equal(orderItems[0]?.unitPriceRub, 12500);
   assert.equal(orderItems[0]?.quantity, 2);
+
+  const startAfterApproval = await fetch(`${baseUrl}/status`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${technicianToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ status: "IN_PROGRESS" }),
+  });
+  assert.equal(startAfterApproval.status, 200);
+  assert.equal(order.status, "IN_PROGRESS");
 });

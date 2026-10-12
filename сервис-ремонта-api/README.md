@@ -74,7 +74,12 @@ prices, while a decline records the response without changing the order composit
 offer creates a new version and preserves prior versions. Once estimates exist, direct order-line
 add/edit/delete endpoints are locked; an initial estimate must be approved before a technician starts
 the repair, and pending additional work must receive a response before the repair can be marked ready.
-Orders that have never used an estimate retain the existing workflow. The new
+No repair may transition to `IN_PROGRESS` without a customer-approved estimate, including orders
+that predate estimates. Customers can read only active service names and exact unit prices through
+`GET /customer/service-prices`; this response excludes parts, stock levels, inactive rows, and admin
+data. Web and Android show these as pre-visit catalog references, not a diagnosis or guaranteed
+repair total. Each quoted work item and any parts must be included in the technician's exact estimate,
+which the customer must approve before work begins. The new
 `20261011190000_repair_estimate_approval` migration is additive and does not rewrite existing orders.
 
 Administrators set or revise the planned completion date through

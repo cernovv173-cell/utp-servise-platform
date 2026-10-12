@@ -47,6 +47,7 @@ import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.CustomerDevice
+import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.OrderChat
@@ -92,6 +93,7 @@ private fun UtpServiseApp() {
     var staff by remember { mutableStateOf<List<StaffMember>>(emptyList()) }
     var reviews by remember { mutableStateOf<List<CustomerReview>>(emptyList()) }
     var customerDevices by remember { mutableStateOf<List<CustomerDevice>>(emptyList()) }
+    var customerServicePrices by remember { mutableStateOf<List<CustomerServicePrice>>(emptyList()) }
     var catalogItems by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
     var craftItems by remember { mutableStateOf<List<CraftItem>>(emptyList()) }
     var craftOrders by remember { mutableStateOf<List<CraftOrder>>(emptyList()) }
@@ -170,6 +172,7 @@ private fun UtpServiseApp() {
                             ApiClient.orders(token, archived = true),
                         reviews = ApiClient.reviews(token),
                         customerDevices = if (currentUser.role == "CUSTOMER") ApiClient.customerDevices(token) else emptyList(),
+                        customerServicePrices = if (currentUser.role == "CUSTOMER") ApiClient.customerServicePrices(token) else emptyList(),
                         staff = if (currentUser.role == "ADMIN") ApiClient.staff(token) else emptyList(),
                         catalogItems = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.catalog(token) else emptyList(),
                         craftItems = ApiClient.craftItems(token),
@@ -186,6 +189,7 @@ private fun UtpServiseApp() {
                 orders = data.orders
                 reviews = data.reviews
                 customerDevices = data.customerDevices
+                customerServicePrices = data.customerServicePrices
                 staff = data.staff
                 catalogItems = data.catalogItems
                 craftItems = data.craftItems
@@ -234,6 +238,7 @@ private fun UtpServiseApp() {
             staff = staff,
             reviews = reviews,
             customerDevices = customerDevices,
+            customerServicePrices = customerServicePrices,
             catalogItems = catalogItems,
             craftItems = craftItems,
             craftOrders = craftOrders,
@@ -298,6 +303,7 @@ private fun UtpServiseApp() {
                 staff = emptyList()
                 reviews = emptyList()
                 customerDevices = emptyList()
+                customerServicePrices = emptyList()
                 catalogItems = emptyList()
                 craftItems = emptyList()
                 craftOrders = emptyList()

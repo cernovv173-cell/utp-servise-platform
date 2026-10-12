@@ -94,6 +94,7 @@ export const createApiRouter = ({
         request.path.startsWith("/orders") ||
         request.path.startsWith("/salary") ||
         request.path.startsWith("/catalog") ||
+        request.path.startsWith("/customer/service-prices") ||
         request.path.startsWith("/admin/operations") ||
         request.path.startsWith("/admin/chats") ||
         request.path.startsWith("/news") ||

@@ -31,6 +31,7 @@ import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-v
 import {
   createOrder,
   getCustomerDevices,
+  getCustomerServicePrices,
   getLoyalty,
   getOrders,
   getRepairCatalog,
@@ -76,6 +77,11 @@ const OrdersPage = () => {
   const devices = useQuery({
     queryKey: ["customer-devices", token],
     queryFn: ({ signal }) => getCustomerDevices(token!, signal),
+    enabled: Boolean(token && user?.role === "CUSTOMER"),
+  });
+  const servicePrices = useQuery({
+    queryKey: ["customer-service-prices", token],
+    queryFn: ({ signal }) => getCustomerServicePrices(token!, signal),
     enabled: Boolean(token && user?.role === "CUSTOMER"),
   });
   const searchQuery = useQuery({
@@ -164,6 +170,9 @@ const OrdersPage = () => {
             isError={mutation.isError}
             devices={devices.data?.devices ?? []}
             devicesLoading={devices.isLoading}
+            servicePrices={servicePrices.data?.prices ?? []}
+            pricesLoading={servicePrices.isLoading}
+            pricesError={servicePrices.isError}
             initialDeviceId={searchParams.device}
             onSubmit={(input, photo) => mutation.mutate({ input, photo })}
           />

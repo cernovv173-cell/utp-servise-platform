@@ -37,6 +37,7 @@ import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.CustomerDevice
+import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
@@ -86,6 +87,7 @@ internal fun AuthenticatedWorkspace(
     staff: List<StaffMember>,
     reviews: List<CustomerReview>,
     customerDevices: List<CustomerDevice>,
+    customerServicePrices: List<CustomerServicePrice>,
     catalogItems: List<CatalogItem>,
     craftItems: List<CraftItem>,
     craftOrders: List<CraftOrder>,
@@ -268,6 +270,7 @@ internal fun AuthenticatedWorkspace(
                                     banners = banners,
                                     token = token,
                                     customerDevices = customerDevices,
+                                    servicePrices = customerServicePrices,
                                     initialDeviceId = repeatDeviceId,
                                     onCampaignNavigate = onCampaignNavigate,
                                     onSubmit = { device, problem, address, details, photoUri ->

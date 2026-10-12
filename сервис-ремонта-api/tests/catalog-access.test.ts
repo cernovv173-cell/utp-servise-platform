@@ -61,6 +61,15 @@ test("only administrators manage the shared catalog and technicians see active p
       active: false,
       createdById: "admin-1",
     },
+    {
+      id: "33333333-3333-4333-8333-333333333336",
+      type: "SPARE_PART",
+      name: "Активный аккумулятор",
+      unitPriceRub: 4500,
+      stockQuantity: 2,
+      active: true,
+      createdById: "admin-1",
+    },
   ];
   const client = {
     session: {
@@ -72,8 +81,26 @@ test("only administrators manage the shared catalog and technicians see active p
       },
     },
     repairCatalogItem: {
-      findMany: async ({ where }: { where: { active?: boolean } }) =>
-        items.filter((item) => where.active === undefined || item.active),
+      findMany: async ({
+        where,
+        select,
+      }: {
+        where: { active?: boolean; type?: string };
+        select?: { id?: boolean; name?: boolean; unitPriceRub?: boolean };
+      }) => {
+        const matches = items.filter(
+          (item) =>
+            (where.active === undefined || item.active === where.active) &&
+            (where.type === undefined || item.type === where.type),
+        );
+        return select
+          ? matches.map(({ id, name, unitPriceRub }) => ({
+              id,
+              name,
+              unitPriceRub,
+            }))
+          : matches;
+      },
       create: async ({ data }: { data: Record<string, unknown> }) => {
         const created = {
           id: `33333333-3333-4333-8333-${String(items.length + 1).padStart(12, "0")}`,
@@ -116,7 +143,7 @@ test("only administrators manage the shared catalog and technicians see active p
 
   const adminList = await fetch(baseUrl, { headers: headers(adminToken) });
   assert.equal(adminList.status, 200);
-  assert.equal((await adminList.json()).catalogItems.length, 2);
+  assert.equal((await adminList.json()).catalogItems.length, 3);
 
   const technicianList = await fetch(baseUrl, {
     headers: headers(technicianToken),
@@ -126,13 +153,31 @@ test("only administrators manage the shared catalog and technicians see active p
     (await technicianList.json()).catalogItems.map(
       (entry: { name: string }) => entry.name,
     ),
-    ["Диагностика"],
+    ["Диагностика", "Активный аккумулятор"],
   );
 
   const customerList = await fetch(baseUrl, {
     headers: headers(customerToken),
   });
   assert.equal(customerList.status, 403);
+
+  const customerPrices = await fetch(
+    "http://127.0.0.1:" + address.port + "/api/customer/service-prices",
+    { headers: headers(customerToken) },
+  );
+  assert.equal(customerPrices.status, 200);
+  assert.deepEqual((await customerPrices.json()).prices, [
+    {
+      id: "33333333-3333-4333-8333-333333333334",
+      name: "Диагностика",
+      unitPriceRub: 1800,
+    },
+  ]);
+  const technicianPrices = await fetch(
+    "http://127.0.0.1:" + address.port + "/api/customer/service-prices",
+    { headers: headers(technicianToken) },
+  );
+  assert.equal(technicianPrices.status, 403);
 
   const createItem = await fetch(baseUrl, {
     method: "POST",

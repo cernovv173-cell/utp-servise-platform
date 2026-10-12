@@ -1,8 +1,9 @@
 import { type FormEvent, useState } from "react";
 
+import { PreVisitPriceGuide } from "@/features/orders/pre-visit-price-guide";
 import { RepairSymptomGuide } from "@/features/orders/repair-symptom-guide";
 
-import type { CustomerDevice, createOrder } from "@/lib/api";
+import type { CustomerDevice, CustomerServicePrice, createOrder } from "@/lib/api";
 
 type RepairRequestInput = Parameters<typeof createOrder>[1];
 
@@ -12,6 +13,9 @@ type RepairRequestFormProps = {
   isError: boolean;
   devices: CustomerDevice[];
   devicesLoading: boolean;
+  servicePrices: CustomerServicePrice[];
+  pricesLoading: boolean;
+  pricesError: boolean;
   initialDeviceId?: string;
   onSubmit: (input: RepairRequestInput, photo: File | null) => void;
 };
@@ -27,6 +31,9 @@ export const RepairRequestForm = ({
   isError,
   devices,
   devicesLoading,
+  servicePrices,
+  pricesLoading,
+  pricesError,
   initialDeviceId,
   onSubmit,
 }: RepairRequestFormProps) => {
@@ -281,8 +288,13 @@ export const RepairRequestForm = ({
           {photo ? `Выбрано: ${photo.name}` : "Фото можно добавить и позже в карточке заявки."}
         </span>
       </label>
-      <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-600 md:col-span-2 dark:bg-slate-900 dark:text-slate-300">
-        Стоимость согласуется с вами. Оплата производится после завершения ремонта.
+      <div className="md:col-span-2">
+        <PreVisitPriceGuide
+          prices={servicePrices}
+          deviceType={selectedDevice?.deviceType ?? deviceType}
+          isLoading={pricesLoading}
+          isError={pricesError}
+        />
       </div>
       <div className="md:col-span-2">
         <button

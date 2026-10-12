@@ -1689,13 +1689,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           });
           if (
             status === "IN_PROGRESS" &&
-            latestEstimate &&
-            latestEstimate.status !== "APPROVED"
+            (!latestEstimate || latestEstimate.status !== "APPROVED")
           ) {
             throw new HttpError(
               409,
               "ESTIMATE_APPROVAL_REQUIRED",
-              "Сначала получите согласие клиента на актуальную смету.",
+              "Нельзя начать ремонт без точной сметы. Сначала отправьте смету клиенту и получите его согласие.",
             );
           }
           if (

@@ -78,6 +78,20 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
   const requireAuth = createRequireAuth(database);
 
   router.get(
+    "/customer/service-prices",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    async (_request, response) => {
+      const prices = await database.repairCatalogItem.findMany({
+        where: { type: "SERVICE", active: true },
+        select: { id: true, name: true, unitPriceRub: true },
+        orderBy: { name: "asc" },
+      });
+      response.json({ prices });
+    },
+  );
+
+  router.get(
     "/catalog",
     requireAuth,
     requireRoles("ADMIN", "TECHNICIAN"),

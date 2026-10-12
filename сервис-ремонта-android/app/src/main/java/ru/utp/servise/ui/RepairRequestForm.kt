@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.OrderAddress
 import ru.utp.servise.data.CustomerDevice
+import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.RepairRequestDetails
 import ru.utp.servise.data.deviceLabel
 import java.time.Instant
@@ -75,6 +76,7 @@ fun RepairRequestForm(
     onCampaignNavigate: (String) -> Unit = {},
     customerDevices: List<CustomerDevice> = emptyList(),
     initialDeviceId: String? = null,
+    servicePrices: List<CustomerServicePrice> = emptyList(),
 ) {
     var device by remember { mutableStateOf(deviceTypes.first()) }
     var deviceMenu by remember { mutableStateOf(false) }
@@ -294,9 +296,7 @@ fun RepairRequestForm(
             Text(if (hasBarrier) "Да" else "Нет", modifier = Modifier.padding(start = 8.dp), color = UtpMuted)
         }
         AddressField(additionalInfo, { additionalInfo = it.take(500) }, "Дополнительная информация")
-        Card(shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Text("Стоимость согласуется с вами. Оплата производится после завершения ремонта.", Modifier.padding(14.dp), color = UtpInk, fontSize = 13.sp, lineHeight = 19.sp)
-        }
+        ServicePriceGuide(prices = servicePrices, deviceType = selectedCustomerDevice?.deviceType ?: device)
         Spacer(Modifier.height(18.dp))
         Button(
             onClick = {

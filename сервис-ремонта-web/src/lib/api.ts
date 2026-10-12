@@ -358,6 +358,8 @@ export type RepairCatalogItem = {
   active: boolean;
 };
 
+export type CustomerServicePrice = Pick<RepairCatalogItem, "id" | "name" | "unitPriceRub">;
+
 export type AdminCustomer = {
   id: string;
   email: string;
@@ -811,6 +813,11 @@ export const getNews = (token: string, signal?: AbortSignal) =>
 
 export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
   apiRequest<{ catalogItems: RepairCatalogItem[] }>("/catalog", token, { signal });
+
+export const getCustomerServicePrices = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ prices: CustomerServicePrice[] }>("/customer/service-prices", token, {
+    signal,
+  });
 
 export const getAdminCustomers = (
   token: string,

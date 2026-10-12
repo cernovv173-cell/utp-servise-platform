@@ -153,6 +153,18 @@ object ApiClient {
     fun catalog(token: String): List<CatalogItem> = request("GET", "/catalog", token)
         .getJSONArray("catalogItems").mapObjects { it.toCatalogItem() }
 
+    fun customerServicePrices(token: String): List<CustomerServicePrice> = request(
+        "GET",
+        "/customer/service-prices",
+        token,
+    ).getJSONArray("prices").mapObjects { price ->
+        CustomerServicePrice(
+            id = price.getString("id"),
+            name = price.getString("name"),
+            unitPriceRub = price.getInt("unitPriceRub"),
+        )
+    }
+
     fun operationsDashboard(token: String): OperationsDashboard = request(
         "GET", "/admin/operations/dashboard", token,
     ).toOperationsDashboard()
