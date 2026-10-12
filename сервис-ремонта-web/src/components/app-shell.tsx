@@ -5,6 +5,8 @@ import {
   Boxes,
   CircleUserRound,
   ClipboardList,
+  Cpu,
+  ExternalLink,
   FileText,
   Home,
   Laptop,
@@ -47,6 +49,24 @@ const links = [
   { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
   { to: "/support", label: "Поддержка", icon: LifeBuoy },
 ];
+
+const DnsConfiguratorLink = ({ mobile = false }: { mobile?: boolean }) => (
+  <a
+    href="https://www.dns-shop.ru/configurator/"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="Открыть конфигуратор ПК DNS в новой вкладке"
+    className={
+      mobile
+        ? "flex shrink-0 items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
+        : "flex min-h-11 items-center gap-3 rounded-xl border border-transparent px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"
+    }
+  >
+    <Cpu size={mobile ? 15 : 18} aria-hidden="true" />
+    <span>Конфигуратор ПК</span>
+    <ExternalLink size={mobile ? 13 : 14} aria-hidden="true" />
+  </a>
+);
 
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
   const { user, ready, logout } = useAuth();
@@ -131,6 +151,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
               {label}
             </Link>
           ))}
+          <DnsConfiguratorLink />
           {showChatsTab && chatsLink}
           {user.role === "ADMIN" && (
             <>
@@ -194,6 +215,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
               {label}
             </Link>
           ))}
+          <DnsConfiguratorLink mobile />
           {showChatsTab && (
             <Link
               to="/chats"
