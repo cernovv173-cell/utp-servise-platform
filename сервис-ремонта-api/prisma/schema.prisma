@@ -164,6 +164,7 @@ model User {
   supportConversations    SupportConversation[]          @relation("SupportConversationCustomer")
   supportMessages         SupportChatMessage[]           @relation("SupportChatMessageSender")
   birthdayPushDeliveries  BirthdayPushDelivery[]
+  customerDevices         CustomerDevice[]
   telegramLinkTokens      TelegramLinkToken[]
   telegramNotifications   TelegramNotificationDelivery[]
   maxLinkTokens           MaxLinkToken[]
@@ -230,6 +231,7 @@ model RepairOrder {
   id                    String                         @id @default(uuid()) @db.Uuid
   serviceNumber         String                         @unique @map("service_number") @db.VarChar(32)
   customerId            String                         @map("customer_id") @db.Uuid
+  customerDeviceId      String?                        @map("customer_device_id") @db.Uuid
   assignedTechnicianId  String?                        @map("assigned_technician_id") @db.Uuid
   deviceType            String                         @map("device_type") @db.VarChar(120)
   deviceBrand           String?                        @map("device_brand") @db.VarChar(120)
@@ -258,6 +260,7 @@ model RepairOrder {
   updatedAt             DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
   archivedAt            DateTime?                      @map("archived_at") @db.Timestamptz(3)
   customer              User                           @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
+  customerDevice        CustomerDevice?                @relation(fields: [customerDeviceId], references: [id], onDelete: SetNull)
   assignedTechnician    User?                          @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
   statusEvents          RepairStatusEvent[]
   items                 RepairOrderItem[]
@@ -280,8 +283,46 @@ model RepairOrder {
   @@index([status, createdAt])
   @@index([preferredAt, status])
   @@index([status, expectedCompletionAt])
+  @@index([customerDeviceId])
   @@index([archivedAt, createdAt])
   @@map("repair_orders")
+}
+
+model CustomerDevice {
+  id                 String                              @id @default(uuid()) @db.Uuid
+  customerId         String                              @map("customer_id") @db.Uuid
+  deviceType         String                              @map("device_type") @db.VarChar(120)
+  nickname           String?                             @db.VarChar(120)
+  brand              String?                             @db.VarChar(120)
+  model              String?                             @db.VarChar(160)
+  serialNumber       String?                             @map("serial_number") @db.VarChar(160)
+  nextMaintenanceAt  DateTime?                           @map("next_maintenance_at") @db.Date
+  maintenanceNote    String?                             @map("maintenance_note") @db.VarChar(250)
+  createdAt          DateTime                            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer           User                                @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  repairOrders       RepairOrder[]
+  reminderDeliveries DeviceMaintenanceReminderDelivery[]
+
+  @@index([customerId, createdAt])
+  @@map("customer_devices")
+}
+
+model DeviceMaintenanceReminderDelivery {
+  id            String         @id @default(uuid()) @db.Uuid
+  deviceId      String         @map("device_id") @db.Uuid
+  scheduledFor  DateTime       @map("scheduled_for") @db.Date
+  attemptCount  Int            @default(0) @map("attempt_count")
+  nextAttemptAt DateTime       @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lockedUntil   DateTime?      @map("locked_until") @db.Timestamptz(3)
+  sentAt        DateTime?      @map("sent_at") @db.Timestamptz(3)
+  lastError     String?        @map("last_error") @db.VarChar(500)
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  device        CustomerDevice @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, scheduledFor])
+  @@index([sentAt, nextAttemptAt, lockedUntil])
+  @@map("device_maintenance_reminder_deliveries")
 }
 
 model RepairOrderItem {

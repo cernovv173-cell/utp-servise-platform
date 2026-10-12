@@ -33,6 +33,7 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
         val fallbackTitle = when (message.data["type"]) {
             "help_request" -> "Новый запрос помощи"
             "support_chat_message" -> "Новое сообщение в чате поддержки"
+            "maintenance_reminder" -> "Пора обслужить технику"
             else -> "Новое сообщение по ремонту"
         }
         val title = message.notification?.title ?: fallbackTitle
@@ -73,7 +74,7 @@ object NotificationChannels {
             "Сообщения и запросы помощи",
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
-            description = "Новые сообщения по ремонту и запросы администраторам."
+            description = "Сообщения по ремонту, запросы помощи и напоминания об обслуживании."
         }
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         manager.createNotificationChannel(channel)

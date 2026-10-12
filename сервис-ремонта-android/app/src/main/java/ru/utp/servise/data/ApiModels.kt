@@ -33,6 +33,30 @@ data class RepairRequestDetails(
     val deviceModel: String = "",
     val deviceSerialNumber: String = "",
     val preferredAt: String? = null,
+    val customerDeviceId: String? = null,
+)
+
+data class CustomerDeviceRepair(
+    val id: String,
+    val serviceNumber: String,
+    val problem: String,
+    val status: String,
+    val createdAt: String,
+    val warrantyNumber: String?,
+    val warrantyExpiresAt: String?,
+    val receiptNumber: String?,
+)
+
+data class CustomerDevice(
+    val id: String,
+    val deviceType: String,
+    val nickname: String?,
+    val brand: String?,
+    val model: String?,
+    val serialNumber: String?,
+    val nextMaintenanceAt: String?,
+    val maintenanceNote: String?,
+    val repairOrders: List<CustomerDeviceRepair> = emptyList(),
 )
 
 data class ReceiptItem(

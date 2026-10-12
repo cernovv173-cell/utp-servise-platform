@@ -488,7 +488,54 @@ object ApiClient {
         details.deviceModel.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceModel", it) }
         details.deviceSerialNumber.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceSerialNumber", it) }
         details.preferredAt?.let { body.put("preferredAt", it) }
+        details.customerDeviceId?.let { body.put("customerDeviceId", it) }
         return request("POST", "/orders", token, body).getJSONObject("order").toOrder()
+    }
+
+    fun customerDevices(token: String): List<CustomerDevice> =
+        request("GET", "/customer/devices", token)
+            .getJSONArray("devices")
+            .mapObjects { it.toCustomerDevice() }
+
+    fun createCustomerDevice(
+        token: String,
+        deviceType: String,
+        nickname: String,
+        brand: String,
+        model: String,
+        serialNumber: String,
+        nextMaintenanceAt: String?,
+        maintenanceNote: String,
+    ): CustomerDevice {
+        val body = JSONObject()
+            .put("deviceType", deviceType)
+            .put("nickname", nickname.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("brand", brand.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("model", model.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("serialNumber", serialNumber.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .put("nextMaintenanceAt", nextMaintenanceAt ?: JSONObject.NULL)
+            .put("maintenanceNote", maintenanceNote.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+        return request("POST", "/customer/devices", token, body)
+            .getJSONObject("device")
+            .toCustomerDevice()
+    }
+
+    fun updateCustomerDeviceReminder(
+        token: String,
+        deviceId: String,
+        nextMaintenanceAt: String?,
+        maintenanceNote: String,
+    ): CustomerDevice = request(
+        "PATCH",
+        "/customer/devices/$deviceId",
+        token,
+        JSONObject()
+            .put("nextMaintenanceAt", nextMaintenanceAt ?: JSONObject.NULL)
+            .put("maintenanceNote", maintenanceNote.takeIf { it.isNotBlank() } ?: JSONObject.NULL),
+    ).getJSONObject("device").toCustomerDevice()
+
+    fun deleteCustomerDevice(token: String, deviceId: String) {
+        request("DELETE", "/customer/devices/$deviceId", token)
     }
 
     fun createAdministratorOrder(

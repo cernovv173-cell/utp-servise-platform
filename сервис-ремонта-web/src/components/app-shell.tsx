@@ -7,6 +7,7 @@ import {
   ClipboardList,
   FileText,
   Home,
+  Laptop,
   LifeBuoy,
   LogOut,
   Megaphone,
@@ -33,6 +34,7 @@ import { useAuth } from "@/features/auth/auth-context";
 const links = [
   { to: "/", label: "Главная", icon: Home },
   { to: "/orders", label: "Заявки", icon: ClipboardList },
+  { to: "/devices", label: "Моя техника", icon: Laptop },
   { to: "/catalog", label: "Каталог ремонта", icon: Boxes },
   { to: "/checks", label: "Чеки и номера", icon: FileText },
   { to: "/news", label: "Новости", icon: Newspaper },
@@ -93,6 +95,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
     if (link.to === "/catalog" || link.to === "/salary")
       return user.role === "TECHNICIAN" || user.role === "ADMIN";
     if (link.to === "/loyalty") return user.role === "CUSTOMER";
+    if (link.to === "/devices") return user.role === "CUSTOMER";
     return true;
   });
   const showChatsTab = ["ADMIN", "CUSTOMER", "TECHNICIAN"].includes(user.role);

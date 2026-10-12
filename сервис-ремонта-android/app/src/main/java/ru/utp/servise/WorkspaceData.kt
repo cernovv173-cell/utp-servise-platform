@@ -5,6 +5,7 @@ import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
+import ru.utp.servise.data.CustomerDevice
 import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.RepairOrder
@@ -16,6 +17,7 @@ import ru.utp.servise.data.SupportChatInboxItem
 internal data class WorkspaceData(
     val orders: List<RepairOrder>,
     val reviews: List<CustomerReview>,
+    val customerDevices: List<CustomerDevice>,
     val staff: List<StaffMember>,
     val catalogItems: List<CatalogItem>,
     val craftItems: List<CraftItem>,

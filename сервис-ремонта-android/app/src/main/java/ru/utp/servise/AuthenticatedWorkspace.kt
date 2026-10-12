@@ -36,6 +36,7 @@ import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.CatalogItem
+import ru.utp.servise.data.CustomerDevice
 import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
@@ -55,6 +56,7 @@ import ru.utp.servise.ui.CatalogManagementScreen
 import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
+import ru.utp.servise.ui.CustomerDevicesScreen
 import ru.utp.servise.ui.CustomerManagementScreen
 import ru.utp.servise.ui.LoyaltyScreen
 import ru.utp.servise.ui.NewsFeedScreen
@@ -83,6 +85,7 @@ internal fun AuthenticatedWorkspace(
     orders: List<RepairOrder>,
     staff: List<StaffMember>,
     reviews: List<CustomerReview>,
+    customerDevices: List<CustomerDevice>,
     catalogItems: List<CatalogItem>,
     craftItems: List<CraftItem>,
     craftOrders: List<CraftOrder>,
@@ -137,6 +140,7 @@ internal fun AuthenticatedWorkspace(
             Destination("customer/home", "Главная", "⌂"),
             Destination("customer/orders", "Заявки", "▤"),
             Destination("customer/history", "История", "◷"),
+            Destination("customer/devices", "Техника", "▣"),
             Destination("customer/news", "Новости", "▧"),
             Destination("customer/loyalty", "Бонусы", "★"),
             Destination("customer/profile", "Профиль", "♙"),
@@ -235,14 +239,36 @@ internal fun AuthenticatedWorkspace(
                             composable("customer/history") {
                                 RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
                             }
+                            composable("customer/devices") {
+                                CustomerDevicesScreen(
+                                    devices = customerDevices,
+                                    onRepeat = { deviceId ->
+                                        navController.currentBackStackEntry?.savedStateHandle?.set("repeatDeviceId", deviceId)
+                                        navController.navigate("customer/new-order") { launchSingleTop = true }
+                                    },
+                                    onCreate = { type, nickname, brand, model, serial, date, note ->
+                                        runAction({ ApiClient.createCustomerDevice(token, type, nickname, brand, model, serial, date, note) }) { refresh() }
+                                    },
+                                    onSaveReminder = { deviceId, date, note ->
+                                        runAction({ ApiClient.updateCustomerDeviceReminder(token, deviceId, date, note) }) { refresh() }
+                                    },
+                                    onDelete = { deviceId ->
+                                        runAction({ ApiClient.deleteCustomerDevice(token, deviceId) }) { refresh() }
+                                    },
+                                    busy = busy,
+                                )
+                            }
                             composable("customer/reviews") { ReviewsScreen("Мои отзывы", reviews, refresh, token = token) }
                             composable("customer/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
                             composable("customer/new-order") {
+                                val repeatDeviceId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("repeatDeviceId")
                                 RepairRequestForm(
                                     initialPhone = user.phoneNumber.orEmpty(),
                                     onBack = { navController.popBackStack() },
                                     banners = banners,
                                     token = token,
+                                    customerDevices = customerDevices,
+                                    initialDeviceId = repeatDeviceId,
                                     onCampaignNavigate = onCampaignNavigate,
                                     onSubmit = { device, problem, address, details, photoUri ->
                                         runAction({

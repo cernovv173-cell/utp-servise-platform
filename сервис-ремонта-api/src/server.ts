@@ -5,6 +5,7 @@ import { startMaxNotificationWorker } from "./features/max/max-notifications.js"
 import { setupMaxWebhookIfUnclaimed } from "./features/max/max-webhook-setup.js";
 import { startNewsPushWorker } from "./features/news/news-push-worker.js";
 import { startBirthdayPushWorker } from "./features/notifications/birthday-push-worker.js";
+import { startMaintenanceReminderWorker } from "./features/notifications/maintenance-reminder-worker.js";
 import { startOrderArchiveWorker } from "./features/orders/order-archive-worker.js";
 import { startTelegramNotificationWorker } from "./features/telegram/telegram-notifications.js";
 import { setupTelegramWebhookIfUnclaimed } from "./features/telegram/telegram-webhook-setup.js";
@@ -49,6 +50,10 @@ const start = async (): Promise<void> => {
     database && config.nodeEnv === "production"
       ? startBirthdayPushWorker(database.client)
       : () => undefined;
+  const stopMaintenanceReminderWorker =
+    database && config.nodeEnv === "production"
+      ? startMaintenanceReminderWorker(database.client)
+      : () => undefined;
   const stopOrderArchiveWorker = database
     ? startOrderArchiveWorker(database.client)
     : () => undefined;
@@ -77,6 +82,7 @@ const start = async (): Promise<void> => {
     logger.info({ signal }, "Backend server stopping");
     stopNewsPushWorker();
     stopBirthdayPushWorker();
+    stopMaintenanceReminderWorker();
     stopOrderArchiveWorker();
     stopTelegramNotificationWorker();
     stopMaxNotificationWorker();

@@ -56,6 +56,7 @@ const contactPhone = z
 const createOrderBody = z
   .object({
     deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]),
+    customerDeviceId: z.string().uuid().optional(),
     deviceBrand: z.string().trim().max(120).optional(),
     deviceModel: z.string().trim().max(160).optional(),
     deviceSerialNumber: z.string().trim().max(160).optional(),
@@ -74,7 +75,7 @@ const createOrderBody = z
   })
   .strict();
 const createAdminOrderBody = createOrderBody
-  .omit({ contactPhone: true })
+  .omit({ contactPhone: true, customerDeviceId: true })
   .extend({
     customerId: z.string().uuid(),
     contactPhone: contactPhone.optional(),
@@ -440,6 +441,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createOrderBody>>(response);
       const order = await database.$transaction(async (transaction) => {
+        const savedDevice = input.customerDeviceId
+          ? await transaction.customerDevice.findFirst({
+              where: { id: input.customerDeviceId, customerId: user.id },
+            })
+          : null;
+        if (input.customerDeviceId && !savedDevice) {
+          throw new HttpError(404, "DEVICE_NOT_FOUND", "Техника не найдена.");
+        }
         const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
           SELECT nextval('repair_service_number_seq') AS value
         `;
@@ -449,10 +458,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           data: {
             serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
             customerId: user.id,
-            deviceType: input.deviceType,
-            deviceBrand: input.deviceBrand || null,
-            deviceModel: input.deviceModel || null,
-            deviceSerialNumber: input.deviceSerialNumber || null,
+            customerDeviceId: savedDevice?.id ?? null,
+            deviceType: savedDevice?.deviceType ?? input.deviceType,
+            deviceBrand: savedDevice?.brand ?? (input.deviceBrand || null),
+            deviceModel: savedDevice?.model ?? (input.deviceModel || null),
+            deviceSerialNumber:
+              savedDevice?.serialNumber ?? (input.deviceSerialNumber || null),
             problem: input.problem,
             address,
             contactPhone: input.contactPhone,

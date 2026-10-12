@@ -9,6 +9,7 @@ import { createChatRouter } from "./features/chat/chat.routes.js";
 import { createCompanyRouter } from "./features/company/company.routes.js";
 import { createCraftsRouter } from "./features/crafts/crafts.routes.js";
 import { createCustomerAdminRouter } from "./features/customers/customer.routes.js";
+import { createCustomerDevicesRouter } from "./features/customers/devices.routes.js";
 import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
 import { createMaxRouter } from "./features/max/max.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
@@ -71,6 +72,7 @@ export const createApiRouter = ({
     router.use(createAndroidAppRouter(database.client));
     router.use(createStaffRouter(database.client));
     router.use(createCustomerAdminRouter(database.client));
+    router.use(createCustomerDevicesRouter(database.client));
     router.use(createSupportChatRouter(database.client));
     router.use(createCatalogRouter(database.client));
     router.use(createOperationsRouter(database.client));
@@ -100,6 +102,7 @@ export const createApiRouter = ({
         request.path.startsWith("/support") ||
         request.path.startsWith("/admin/support") ||
         request.path.startsWith("/admin/customers") ||
+        request.path.startsWith("/customer/devices") ||
         request.path.startsWith("/media") ||
         request.path.startsWith("/craft-items") ||
         request.path.startsWith("/craft-orders") ||

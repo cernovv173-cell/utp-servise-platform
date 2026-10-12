@@ -306,3 +306,21 @@ export const sendCustomerBirthdayNotification = async (
     return false;
   }
 };
+
+export const sendCustomerMaintenanceReminder = async (
+  database: DatabaseClient,
+  userId: string,
+  deviceId: string,
+  deviceLabel: string,
+  scheduledFor: string,
+): Promise<boolean> =>
+  sendPushNotification(database, [userId], {
+    title: "Пора обслужить технику",
+    body: `${deviceLabel}: запланированное обслуживание — ${scheduledFor}.`,
+    data: {
+      type: "maintenance_reminder",
+      deviceId,
+      notificationId: `maintenance-${deviceId}-${scheduledFor}`,
+    },
+    androidTag: `maintenance-${deviceId}`,
+  });

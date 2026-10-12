@@ -200,6 +200,15 @@ assign a technician through the existing order workflow. Request photos use the 
 order-photo storage and access rules. Intake paperwork, four-sided condition photos, customer reviews,
 receipts, work orders, and warranties were already supported and remain on their existing workflows.
 
+Customers can keep a private equipment list through `/customer/devices`. Each saved device belongs
+to its customer and can be linked to a repair request; the request stores a snapshot of the device
+details so later edits or removal do not rewrite repair records. Customers can set one next-service
+date and note per device. Production queues a deduplicated push reminder for the due date and retries
+temporary delivery failures; without an active registered push device, the due reminder remains
+visible in the equipment list. Removing a device clears only the equipment link and its reminders;
+repair requests, receipts, and warranties are retained. The self-help symptom selector only helps
+describe a fault and does not advise opening equipment or testing live electrical components.
+
 Each repair order has an administrator-controlled `NORMAL` or `URGENT` priority. The API defaults
 existing and new records to `NORMAL`; only administrators can change it. This marks work for sorting
 and attention but does not define a new service-level deadline.

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, ClipboardList, FileText, Newspaper, Sparkles } from "lucide-react";
+import { ArrowRight, ClipboardList, FileText, Laptop, Newspaper, Sparkles } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { MailRuAd } from "@/components/mailru-ad";
@@ -66,6 +66,17 @@ const HomePage = () => {
           <CampaignBanner key={banner.id} banner={banner} className="mb-5" />
         ))}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {user?.role === "CUSTOMER" && (
+          <Link to="/devices">
+            <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
+              <Laptop className="text-blue-600" />
+              <h3 className="mt-4 font-semibold">Моя техника</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                История ремонтов и напоминания об обслуживании
+              </p>
+            </SectionCard>
+          </Link>
+        )}
         <Link to="/orders">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
             <ClipboardList className="text-blue-600" />

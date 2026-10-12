@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
+import { z } from "zod";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
@@ -29,6 +30,7 @@ import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-v
 
 import {
   createOrder,
+  getCustomerDevices,
   getLoyalty,
   getOrders,
   getRepairCatalog,
@@ -53,9 +55,10 @@ const deviceLabels: Record<string, string> = {
 };
 
 const OrdersPage = () => {
+  const searchParams = Route.useSearch();
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(Boolean(searchParams.device));
   const [listView, setListView] = useState<OrderListView>("active");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -69,6 +72,11 @@ const OrdersPage = () => {
     queryKey: ["repair-catalog", token],
     queryFn: ({ signal }) => getRepairCatalog(token!, signal),
     enabled: Boolean(token && ["ADMIN", "TECHNICIAN"].includes(user?.role ?? "")),
+  });
+  const devices = useQuery({
+    queryKey: ["customer-devices", token],
+    queryFn: ({ signal }) => getCustomerDevices(token!, signal),
+    enabled: Boolean(token && user?.role === "CUSTOMER"),
   });
   const searchQuery = useQuery({
     queryKey: ["order-search", token, user?.role, search],
@@ -99,6 +107,7 @@ const OrdersPage = () => {
         }
       }
       await queryClient.invalidateQueries({ queryKey: ["orders", token] });
+      await queryClient.invalidateQueries({ queryKey: ["customer-devices", token] });
       await queryClient.invalidateQueries({ queryKey: ["order-search", token] });
       setFormOpen(false);
       if (photoFailed) {
@@ -153,6 +162,9 @@ const OrdersPage = () => {
             defaultPhone={user?.phoneNumber ?? ""}
             isPending={mutation.isPending}
             isError={mutation.isError}
+            devices={devices.data?.devices ?? []}
+            devicesLoading={devices.isLoading}
+            initialDeviceId={searchParams.device}
             onSubmit={(input, photo) => mutation.mutate({ input, photo })}
           />
         </SectionCard>
@@ -440,4 +452,7 @@ const OrdersPage = () => {
   );
 };
 
-export const Route = createFileRoute("/orders")({ component: OrdersPage });
+export const Route = createFileRoute("/orders")({
+  validateSearch: z.object({ device: z.string().optional() }),
+  component: OrdersPage,
+});

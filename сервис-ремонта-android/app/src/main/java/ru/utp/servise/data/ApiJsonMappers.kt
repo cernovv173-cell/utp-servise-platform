@@ -116,6 +116,30 @@ internal fun JSONObject.toOperationsDashboard() = OperationsDashboard(
     },
 )
 
+internal fun JSONObject.toCustomerDevice() = CustomerDevice(
+    id = getString("id"),
+    deviceType = getString("deviceType"),
+    nickname = nullableString("nickname"),
+    brand = nullableString("brand"),
+    model = nullableString("model"),
+    serialNumber = nullableString("serialNumber"),
+    nextMaintenanceAt = nullableString("nextMaintenanceAt"),
+    maintenanceNote = nullableString("maintenanceNote"),
+    repairOrders = optJSONArray("repairOrders").mapObjects { order ->
+        val warranty = order.optJSONObject("warranty")
+        CustomerDeviceRepair(
+            id = order.getString("id"),
+            serviceNumber = order.optString("serviceNumber"),
+            problem = order.optString("problem"),
+            status = order.optString("status"),
+            createdAt = order.optString("createdAt"),
+            warrantyNumber = warranty?.nullableString("warrantyNumber"),
+            warrantyExpiresAt = warranty?.nullableString("expiresAt"),
+            receiptNumber = order.optJSONObject("receipt")?.nullableString("receiptNumber"),
+        )
+    },
+)
+
 internal fun JSONObject.toProcurementItem() = ProcurementItem(
     id = getString("id"),
     name = getString("name"),

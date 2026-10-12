@@ -72,6 +72,7 @@ export type RepairOrder = {
   deviceBrand?: string | null;
   deviceModel?: string | null;
   deviceSerialNumber?: string | null;
+  customerDeviceId?: string | null;
   priority?: "NORMAL" | "URGENT";
   problem: string;
   address: string;
@@ -133,6 +134,27 @@ export type RepairOrder = {
     phoneNumber?: string | null;
     avatarObjectId?: string | null;
   };
+};
+
+export type CustomerDevice = {
+  id: string;
+  deviceType: string;
+  nickname: string | null;
+  brand: string | null;
+  model: string | null;
+  serialNumber: string | null;
+  nextMaintenanceAt: string | null;
+  maintenanceNote: string | null;
+  repairOrders?: {
+    id: string;
+    serviceNumber: string;
+    deviceType: string;
+    problem: string;
+    status: string;
+    createdAt: string;
+    warranty: { warrantyNumber: string; expiresAt: string } | null;
+    receipt: { receiptNumber: string; issuedAt: string } | null;
+  }[];
 };
 
 export type OperationsDashboard = {
@@ -557,6 +579,36 @@ export const getOrders = (token: string, signal?: AbortSignal, archive?: OrderAr
     signal,
   });
 
+export const getCustomerDevices = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ devices: CustomerDevice[] }>("/customer/devices", token, { signal });
+
+export type CustomerDeviceInput = Pick<CustomerDevice, "deviceType"> &
+  Partial<
+    Pick<
+      CustomerDevice,
+      "nickname" | "brand" | "model" | "serialNumber" | "nextMaintenanceAt" | "maintenanceNote"
+    >
+  >;
+
+export const createCustomerDevice = (token: string, input: CustomerDeviceInput) =>
+  apiRequest<{ device: CustomerDevice }>("/customer/devices", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const updateCustomerDevice = (
+  token: string,
+  deviceId: string,
+  input: Partial<CustomerDeviceInput>,
+) =>
+  apiRequest<{ device: CustomerDevice }>(`/customer/devices/${deviceId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+export const deleteCustomerDevice = (token: string, deviceId: string) =>
+  apiRequest<void>(`/customer/devices/${deviceId}`, token, { method: "DELETE" });
+
 export const getAdminRepairOrder = (token: string, orderId: string, signal?: AbortSignal) =>
   apiRequest<{ order: RepairOrder }>(`/admin/orders/${orderId}`, token, { signal });
 
@@ -590,6 +642,7 @@ export const createOrder = (
   token: string,
   input: {
     deviceType: string;
+    customerDeviceId?: string;
     deviceBrand?: string;
     deviceModel?: string;
     deviceSerialNumber?: string;

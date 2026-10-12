@@ -18,6 +18,7 @@ import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as ChecksRouteImport } from './routes/checks'
 import { Route as CraftsRouteImport } from './routes/crafts'
+import { Route as DevicesRouteImport } from './routes/devices'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
 import { Route as NewsRouteImport } from './routes/news'
@@ -79,6 +80,11 @@ const ChecksRoute = ChecksRouteImport.update({
 const CraftsRoute = CraftsRouteImport.update({
   id: '/crafts',
   path: '/crafts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevicesRoute = DevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
+  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -205,6 +212,7 @@ export interface FileRoutesByTo {
   '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
+  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -234,6 +242,7 @@ export interface FileRoutesById {
   '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
+  '/devices': typeof DevicesRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -264,6 +273,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/checks'
     | '/crafts'
+    | '/devices'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/checks'
     | '/crafts'
+    | '/devices'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | '/chats'
     | '/checks'
     | '/crafts'
+    | '/devices'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -349,6 +361,7 @@ export interface RootRouteChildren {
   ChatsRoute: typeof ChatsRoute
   ChecksRoute: typeof ChecksRoute
   CraftsRoute: typeof CraftsRoute
+  DevicesRoute: typeof DevicesRoute
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   NewsRoute: typeof NewsRoute
@@ -423,6 +436,13 @@ declare module '@tanstack/react-router' {
       path: '/crafts'
       fullPath: '/crafts'
       preLoaderRoute: typeof CraftsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/devices': {
+      id: '/devices'
+      path: '/devices'
+      fullPath: '/devices'
+      preLoaderRoute: typeof DevicesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -600,6 +620,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChatsRoute: ChatsRoute,
   ChecksRoute: ChecksRoute,
   CraftsRoute: CraftsRoute,
+  DevicesRoute: DevicesRoute,
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   NewsRoute: NewsRoute,
