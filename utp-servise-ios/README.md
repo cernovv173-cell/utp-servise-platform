@@ -60,6 +60,7 @@ These local signing files are not packaged as application resources.
 ## Included behavior
 
 - Shared HTTPS URL configuration, JavaScript and persistent website sessions.
+- Warranty claims use the shared customer website: the device history offers a claim only for an unexpired warranty on the customer's completed repair. The server rechecks the warranty and owner, creates a new order linked to the original repair, and opens that order's separate chat in the same WebView. No native JavaScript bridge or duplicate warranty policy is used.
 - Loading indicator, network error with retry, and back navigation; iOS also has forward/reload controls.
 - HTTPS links remain in the view; tel/mailto/sms links open the appropriate system application.
 - New-window links on iOS are loaded in the same view. No native JavaScript bridge is exposed.
