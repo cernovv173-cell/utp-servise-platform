@@ -22,7 +22,7 @@ const NewsPage = () => {
     queryKey: ["banners", token],
     queryFn: ({ signal }) => getBanners(token!, signal),
     enabled: Boolean(token),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   });
   const publishedReviews = (query.data?.reviews ?? []).filter((review) => review.isPublished);
   return (

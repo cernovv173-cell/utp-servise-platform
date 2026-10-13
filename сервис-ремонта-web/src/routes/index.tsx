@@ -27,7 +27,7 @@ const HomePage = () => {
     queryKey: ["banners", token],
     queryFn: ({ signal }) => getBanners(token!, signal),
     enabled: Boolean(token),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   });
   const featured = (news.data?.articles ?? []).filter((article) => article.isFeatured).slice(0, 3);
   const openOrders = (orders.data?.orders ?? []).filter(
