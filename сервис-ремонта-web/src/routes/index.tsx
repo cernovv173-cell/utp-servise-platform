@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Gamepad2, Sparkles } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { MailRuAd } from "@/components/mailru-ad";
@@ -96,6 +96,19 @@ const HomePage = () => {
             </p>
           </SectionCard>
         </Link>
+        {user?.role === "CUSTOMER" && (
+          <Link to="/game">
+            <SectionCard className="h-full border-blue-200 bg-gradient-to-br from-blue-50 to-white transition hover:-translate-y-0.5 hover:shadow-md dark:border-blue-900 dark:from-blue-950/50 dark:to-slate-900">
+              <span className="grid size-11 place-items-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-200">
+                <Gamepad2 size={22} />
+              </span>
+              <h3 className="mt-4 font-semibold">Заявка с секретом</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Помогите еноту-мастеру и заработайте бонусные баллы
+              </p>
+            </SectionCard>
+          </Link>
+        )}
         <Link to="/checks">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
             <RaccoonIcon

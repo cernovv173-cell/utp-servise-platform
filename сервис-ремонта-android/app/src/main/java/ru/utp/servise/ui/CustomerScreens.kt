@@ -68,6 +68,7 @@ fun CustomerHomeScreen(
     onAbout: () -> Unit,
     onNews: () -> Unit,
     onLoyalty: () -> Unit,
+    onGame: () -> Unit,
     onCampaignNavigate: (String) -> Unit,
     onContactAdministrator: () -> Unit,
 ) {
@@ -98,6 +99,17 @@ fun CustomerHomeScreen(
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text("Бонусы и история", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text("10% после оплаты, списание до 30% чека", fontSize = 12.sp, color = UtpMuted)
+                }
+                Text("›", fontSize = 24.sp, color = UtpMuted)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Card(onClick = onGame, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🦝", fontSize = 24.sp)
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text("Заявка с секретом", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text("Помогите еноту и получите бонусные баллы", fontSize = 12.sp, color = UtpMuted)
                 }
                 Text("›", fontSize = 24.sp, color = UtpMuted)
             }

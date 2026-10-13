@@ -58,6 +58,7 @@ import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
 import ru.utp.servise.ui.CustomerDevicesScreen
+import ru.utp.servise.ui.CustomerGameScreen
 import ru.utp.servise.ui.CustomerManagementScreen
 import ru.utp.servise.ui.LoyaltyScreen
 import ru.utp.servise.ui.NewsFeedScreen
@@ -225,8 +226,16 @@ internal fun AuthenticatedWorkspace(
                                     { navController.navigate("customer/about") },
                                     { navController.navigate("customer/news") },
                                     { navController.navigate("customer/loyalty") },
+                                    { navController.navigate("customer/game") },
                                     onCampaignNavigate,
                                     { navController.navigate("customer/support-chat") },
+                                )
+                            }
+                            composable("customer/game") {
+                                CustomerGameScreen(
+                                    token = token,
+                                    onRefresh = refresh,
+                                    onCreateRequest = { navController.navigate("customer/new-order") },
                                 )
                             }
                             composable("customer/news") { NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate) }

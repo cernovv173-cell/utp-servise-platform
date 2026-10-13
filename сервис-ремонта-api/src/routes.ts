@@ -10,6 +10,7 @@ import { createCompanyRouter } from "./features/company/company.routes.js";
 import { createCraftsRouter } from "./features/crafts/crafts.routes.js";
 import { createCustomerAdminRouter } from "./features/customers/customer.routes.js";
 import { createCustomerDevicesRouter } from "./features/customers/devices.routes.js";
+import { createGamesRouter } from "./features/games/games.routes.js";
 import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
 import { createMaxRouter } from "./features/max/max.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
@@ -81,6 +82,7 @@ export const createApiRouter = ({
     router.use(createCraftsRouter(database.client));
     router.use(createBannersRouter(database.client));
     router.use(createLoyaltyRouter(database.client));
+    router.use(createGamesRouter(database.client));
     router.use(createRepairEstimatesRouter(database.client));
     router.use(createOrdersRouter(database.client));
     router.use(createSalaryRouter(database.client));
@@ -108,6 +110,8 @@ export const createApiRouter = ({
         request.path.startsWith("/craft-items") ||
         request.path.startsWith("/craft-orders") ||
         request.path.startsWith("/loyalty") ||
+        request.path.startsWith("/games") ||
+        request.path.startsWith("/admin/games") ||
         request.path.startsWith("/banners") ||
         request.path.startsWith("/admin/loyalty") ||
         request.path.startsWith("/admin/android-app") ||
