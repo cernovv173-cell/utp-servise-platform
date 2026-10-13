@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, ClipboardList, FileText, Laptop, Newspaper, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { MailRuAd } from "@/components/mailru-ad";
 import { MyTargetAd } from "@/components/mytarget-ad";
+import { RaccoonIcon } from "@/components/raccoon-icon";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
@@ -71,7 +72,10 @@ const HomePage = () => {
         {user?.role === "CUSTOMER" && (
           <Link to="/devices">
             <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-              <Laptop className="text-blue-600" />
+              <RaccoonIcon
+                motion="peek"
+                className="grid size-11 place-items-center rounded-2xl bg-blue-50 text-2xl dark:bg-blue-950/60"
+              />
               <h3 className="mt-4 font-semibold">Моя техника</h3>
               <p className="mt-1 text-sm text-slate-500">
                 История ремонтов и напоминания об обслуживании
@@ -81,7 +85,10 @@ const HomePage = () => {
         )}
         <Link to="/orders">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-            <ClipboardList className="text-blue-600" />
+            <RaccoonIcon
+              motion="bounce"
+              className="grid size-11 place-items-center rounded-2xl bg-sky-50 text-2xl dark:bg-sky-950/60"
+            />
             <h3 className="mt-4 font-semibold">Мои заявки</h3>
             <p className="mt-1 text-sm text-slate-500">
               {orders.isLoading ? "Загружаем…" : `${openOrders} активных заявок`}
@@ -90,14 +97,20 @@ const HomePage = () => {
         </Link>
         <Link to="/checks">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-            <FileText className="text-emerald-600" />
+            <RaccoonIcon
+              motion="wiggle"
+              className="grid size-11 place-items-center rounded-2xl bg-emerald-50 text-2xl dark:bg-emerald-950/40"
+            />
             <h3 className="mt-4 font-semibold">Чеки и сервисные номера</h3>
             <p className="mt-1 text-sm text-slate-500">Заказы и состав работ</p>
           </SectionCard>
         </Link>
         <Link to="/crafts">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-            <Sparkles className="text-amber-600" />
+            <RaccoonIcon
+              motion="peek"
+              className="grid size-11 place-items-center rounded-2xl bg-amber-50 text-2xl dark:bg-amber-950/40"
+            />
             <h3 className="mt-4 font-semibold">Ручная работа</h3>
             <p className="mt-1 text-sm text-slate-500">Изделия и заказные варианты</p>
           </SectionCard>
@@ -108,7 +121,10 @@ const HomePage = () => {
       <Link to="/news" className="mt-5 block">
         <SectionCard className="transition hover:-translate-y-0.5 hover:shadow-md">
           <div className="flex items-center gap-3">
-            <Newspaper className="shrink-0 text-violet-600" />
+            <RaccoonIcon
+              motion="bounce"
+              className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-50 text-2xl dark:bg-violet-950/50"
+            />
             <div>
               <h3 className="font-semibold">Новости сервиса</h3>
               <p className="mt-1 text-sm text-slate-500">Акции, объявления и обновления</p>

@@ -30,6 +30,79 @@ html[data-theme="dark"] body {
   min-height: 100dvh;
 }
 
+@keyframes raccoon-bounce {
+  0%,
+  72%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  80% {
+    transform: translateY(-0.18em) rotate(-7deg);
+  }
+
+  88% {
+    transform: translateY(0) rotate(6deg);
+  }
+}
+
+@keyframes raccoon-peek {
+  0%,
+  70%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+
+  78% {
+    transform: translateX(0.12em) rotate(9deg);
+  }
+
+  86% {
+    transform: translateX(-0.08em) rotate(-5deg);
+  }
+}
+
+@keyframes raccoon-wiggle {
+  0%,
+  74%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  79% {
+    transform: rotate(-9deg);
+  }
+
+  84% {
+    transform: rotate(8deg);
+  }
+
+  89% {
+    transform: rotate(-4deg);
+  }
+}
+
+.raccoon-icon {
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+  transform-origin: center bottom;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .raccoon-icon--bounce {
+    animation: raccoon-bounce 3.2s ease-in-out infinite;
+  }
+
+  .raccoon-icon--peek {
+    animation: raccoon-peek 4s ease-in-out infinite;
+  }
+
+  .raccoon-icon--wiggle {
+    animation: raccoon-wiggle 3.6s ease-in-out infinite;
+  }
+}
+
 .app-card {
   border-radius: 1.25rem;
   transition:
