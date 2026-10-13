@@ -1,30 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import {
-  Bell,
-  Boxes,
-  CircleUserRound,
-  ClipboardList,
-  FileText,
-  Home,
-  Laptop,
-  LifeBuoy,
-  LogOut,
-  Megaphone,
-  MessageCircle,
-  Moon,
-  Newspaper,
-  Power,
-  Sparkles,
-  Star,
-  Sun,
-  UsersRound,
-  Wallet,
-} from "lucide-react";
+import { LogOut, MessageCircle, Moon, Power, Sun } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
 import { RaccoonIcon } from "@/components/raccoon-icon";
+import type { RaccoonMotion } from "@/components/raccoon-icon";
 
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { IncomingOrderNotifications } from "@/features/admin/incoming-order-notifications";
@@ -33,21 +14,21 @@ import { SupportChatNotifications } from "@/features/admin/support-chat-notifica
 import { useAuth } from "@/features/auth/auth-context";
 
 const links = [
-  { to: "/", label: "Главная", icon: Home },
-  { to: "/orders", label: "Заявки", icon: ClipboardList },
-  { to: "/devices", label: "Моя техника", icon: Laptop },
-  { to: "/catalog", label: "Каталог ремонта", icon: Boxes },
-  { to: "/checks", label: "Чеки и номера", icon: FileText },
-  { to: "/news", label: "Новости", icon: Newspaper },
-  { to: "/loyalty", label: "Бонусы", icon: Star },
-  { to: "/salary", label: "Зарплата", icon: Wallet },
-  { to: "/crafts", label: "Ручная работа", icon: Sparkles },
-  { to: "/about", label: "О компании", icon: UsersRound },
-  { to: "/reviews", label: "Отзывы", icon: Bell },
-  { to: "/advertising", label: "Реклама", icon: Megaphone },
-  { to: "/account", label: "Личный кабинет", icon: CircleUserRound },
-  { to: "/support", label: "Поддержка", icon: LifeBuoy },
-];
+  { to: "/", label: "Главная", motion: "peek" },
+  { to: "/orders", label: "Заявки", motion: "bounce" },
+  { to: "/devices", label: "Моя техника", motion: "peek" },
+  { to: "/catalog", label: "Каталог ремонта", motion: "wiggle" },
+  { to: "/checks", label: "Чеки и номера", motion: "bounce" },
+  { to: "/news", label: "Новости", motion: "peek" },
+  { to: "/loyalty", label: "Бонусы", motion: "wiggle" },
+  { to: "/salary", label: "Зарплата", motion: "bounce" },
+  { to: "/crafts", label: "Ручная работа", motion: "peek" },
+  { to: "/about", label: "О компании", motion: "wiggle" },
+  { to: "/reviews", label: "Отзывы", motion: "bounce" },
+  { to: "/advertising", label: "Реклама", motion: "peek" },
+  { to: "/account", label: "Личный кабинет", motion: "wiggle" },
+  { to: "/support", label: "Поддержка", motion: "bounce" },
+] satisfies Array<{ to: string; label: string; motion: RaccoonMotion }>;
 
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
   const { user, ready, logout } = useAuth();
@@ -122,13 +103,13 @@ export const AppShell = ({ active, children }: { active: string; children: React
           Меню
         </p>
         <nav className="mt-3 grid gap-1">
-          {nav.map(({ to, label, icon: Icon }) => (
+          {nav.map(({ to, label, motion }) => (
             <Link
               key={to}
               to={to}
               className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition ${active === to ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
             >
-              <Icon size={18} />
+              <RaccoonIcon motion={motion} className="size-[18px] text-base" />
               {label}
             </Link>
           ))}
@@ -139,7 +120,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
                 to="/admin"
                 className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium ${active === "/admin" ? "border-[#405cc0]/50 bg-[#17264b] text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
               >
-                <UsersRound size={18} />
+                <RaccoonIcon motion="wiggle" className="size-[18px] text-base" />
                 Администрирование
               </Link>
             </>
@@ -185,13 +166,13 @@ export const AppShell = ({ active, children }: { active: string; children: React
           </div>
         </header>
         <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 lg:hidden dark:border-[#26365f] dark:bg-[#080e20]">
-          {nav.map(({ to, label, icon: Icon }) => (
+          {nav.map(({ to, label, motion }) => (
             <Link
               key={to}
               to={to}
               className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${active === to ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff]" : "border-transparent text-slate-600 dark:text-[#a8b5d4]"}`}
             >
-              <Icon size={15} />
+              <RaccoonIcon motion={motion} className="size-[15px] text-sm" />
               {label}
             </Link>
           ))}
@@ -200,7 +181,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
               to="/chats"
               className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${active === "/chats" ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff]" : "border-transparent text-slate-600 dark:text-[#a8b5d4]"}`}
             >
-              <MessageCircle size={15} />
+              <RaccoonIcon motion="bounce" className="size-[15px] text-sm" />
               Чаты
             </Link>
           )}
@@ -210,7 +191,10 @@ export const AppShell = ({ active, children }: { active: string; children: React
                 to="/admin"
                 className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300"
               >
-                Админ
+                <span className="inline-flex items-center gap-2">
+                  <RaccoonIcon motion="wiggle" className="size-[15px] text-sm" />
+                  Админ
+                </span>
               </Link>
             </>
           )}

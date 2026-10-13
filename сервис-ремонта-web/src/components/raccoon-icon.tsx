@@ -1,4 +1,4 @@
-type RaccoonMotion = "bounce" | "peek" | "wiggle";
+export type RaccoonMotion = "bounce" | "peek" | "wiggle";
 
 export const RaccoonIcon = ({
   motion = "bounce",
