@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Pause, Play, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { MailRuAd } from "@/components/mailru-ad";
@@ -34,6 +35,19 @@ const HomePage = () => {
   const openOrders = (orders.data?.orders ?? []).filter(
     (order) => !["COMPLETED", "CANCELLED"].includes(order.status),
   ).length;
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+  const [isNewsPaused, setIsNewsPaused] = useState(false);
+  const [isNewsHovered, setIsNewsHovered] = useState(false);
+  const [isNewsFocused, setIsNewsFocused] = useState(false);
+  const isNewsAutoPaused = isNewsPaused || isNewsHovered || isNewsFocused;
+
+  useEffect(() => {
+    if (isNewsAutoPaused || featured.length < 2) return;
+    const timer = window.setInterval(() => {
+      setFeaturedIndex((index) => (index + 1) % featured.length);
+    }, 10_000);
+    return () => window.clearInterval(timer);
+  }, [featured.length, isNewsAutoPaused]);
 
   return (
     <AppShell active="/">
@@ -132,27 +146,96 @@ const HomePage = () => {
           </div>
         </SectionCard>
       </Link>
-      <div className="mt-8 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Приоритетные новости</h2>
-        <Link to="/news" className="text-sm font-semibold text-blue-600">
-          Все новости <span aria-hidden="true">→</span>
-        </Link>
-      </div>
-      {news.isError && <p className="mt-4 text-sm text-rose-600">Не удалось загрузить новости.</p>}
-      <div className="mt-4 grid gap-4 md:grid-cols-3">
-        {featured.map((article) => (
-          <SectionCard key={article.id}>
-            <p className="text-xs font-semibold text-blue-600">Главная новость</p>
-            <h3 className="mt-2 font-semibold">{article.title}</h3>
-            <p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-500">{article.content}</p>
-          </SectionCard>
-        ))}
+      <section
+        className="mt-8"
+        aria-label="Приоритетные новости"
+        aria-roledescription="карусель"
+        onMouseEnter={() => setIsNewsHovered(true)}
+        onMouseLeave={() => setIsNewsHovered(false)}
+        onFocusCapture={() => setIsNewsFocused(true)}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null))
+            setIsNewsFocused(false);
+        }}
+      >
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">Приоритетные новости</h2>
+          <div className="flex items-center gap-2">
+            <Link to="/news" className="text-sm font-semibold text-blue-600">
+              Все новости <span aria-hidden="true">→</span>
+            </Link>
+            {featured.length > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  aria-label="Предыдущая новость"
+                  className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:hover:bg-slate-800"
+                  onClick={() =>
+                    setFeaturedIndex((index) => (index - 1 + featured.length) % featured.length)
+                  }
+                >
+                  <ChevronLeft size={17} />
+                </button>
+                <button
+                  type="button"
+                  aria-label={
+                    isNewsPaused ? "Продолжить смену новостей" : "Приостановить смену новостей"
+                  }
+                  aria-pressed={isNewsPaused}
+                  className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:hover:bg-slate-800"
+                  onClick={() => setIsNewsPaused((paused) => !paused)}
+                >
+                  {isNewsPaused ? <Play size={15} /> : <Pause size={15} />}
+                </button>
+                <button
+                  type="button"
+                  aria-label="Следующая новость"
+                  className="grid size-9 place-items-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600 dark:border-slate-700 dark:hover:bg-slate-800"
+                  onClick={() => setFeaturedIndex((index) => (index + 1) % featured.length)}
+                >
+                  <ChevronRight size={17} />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        {news.isError && (
+          <p role="alert" className="text-sm text-rose-600">
+            Не удалось загрузить новости.
+          </p>
+        )}
+        {news.isLoading && <p className="text-sm text-slate-500">Загружаем новости…</p>}
         {!news.isLoading && featured.length === 0 && (
-          <SectionCard className="md:col-span-3">
+          <SectionCard>
             <p className="text-sm text-slate-500">Пока нет приоритетных новостей.</p>
           </SectionCard>
         )}
-      </div>
+        {featured.length > 0 && (
+          <div
+            role="group"
+            aria-roledescription="слайд"
+            aria-label={`Новость ${(featuredIndex % featured.length) + 1} из ${featured.length}`}
+            aria-live={isNewsAutoPaused ? "polite" : "off"}
+          >
+            <SectionCard>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <p className="text-xs font-semibold text-blue-600">Главная новость</p>
+                {featured.length > 1 && (
+                  <span aria-hidden="true" className="text-xs text-slate-500 tabular-nums">
+                    {(featuredIndex % featured.length) + 1} / {featured.length}
+                  </span>
+                )}
+              </div>
+              <h3 className="mt-2 text-lg font-semibold">
+                {featured[featuredIndex % featured.length]!.title}
+              </h3>
+              <p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-500">
+                {featured[featuredIndex % featured.length]!.content}
+              </p>
+            </SectionCard>
+          </div>
+        )}
+      </section>
     </AppShell>
   );
 };
