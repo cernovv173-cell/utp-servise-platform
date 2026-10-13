@@ -79,6 +79,12 @@ not be inserted directly into the React document. The fixed iframe space remains
 network has no creative to show. Actual ad delivery depends on MyTarget's inventory and publisher
 account configuration.
 
+Published service banners are displayed as compact carousels on their selected placements. Each
+active, in-date banner stays visible for five seconds; the sequence follows publication order and
+loops back to the first banner. Visitors can pause or navigate the carousel, and banner lists refresh
+periodically so newly published offers appear without replacing the separate MyTarget and Mail.ru ad
+slots.
+
 The `/catalog` page uses the API catalog shared with Android. Administrators can add and edit
 service and spare-part names/prices and deactivate or reactivate entries; technicians can view active
 items. Administrators can enter and correct spare-part stock balances; both administrators and

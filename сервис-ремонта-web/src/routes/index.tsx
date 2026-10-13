@@ -7,7 +7,7 @@ import { MailRuAd } from "@/components/mailru-ad";
 import { MyTargetAd } from "@/components/mytarget-ad";
 
 import { useAuth } from "@/features/auth/auth-context";
-import { CampaignBanner } from "@/features/campaigns/campaign-banner";
+import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
 
 import { getBanners, getNews, getOrders } from "@/lib/api";
 
@@ -27,6 +27,7 @@ const HomePage = () => {
     queryKey: ["banners", token],
     queryFn: ({ signal }) => getBanners(token!, signal),
     enabled: Boolean(token),
+    refetchInterval: 30_000,
   });
   const featured = (news.data?.articles ?? []).filter((article) => article.isFeatured).slice(0, 3);
   const openOrders = (orders.data?.orders ?? []).filter(
@@ -60,11 +61,12 @@ const HomePage = () => {
           </Link>
         </div>
       </SectionCard>
-      {(banners.data?.banners ?? [])
-        .filter((banner) => banner.placements.includes("HOME"))
-        .map((banner) => (
-          <CampaignBanner key={banner.id} banner={banner} className="mb-5" />
-        ))}
+      <CampaignCarousel
+        banners={banners.data?.banners ?? []}
+        placement="HOME"
+        asOf={banners.dataUpdatedAt}
+        className="mb-5"
+      />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {user?.role === "CUSTOMER" && (
           <Link to="/devices">
