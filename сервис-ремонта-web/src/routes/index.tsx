@@ -95,13 +95,6 @@ const HomePage = () => {
             <p className="mt-1 text-sm text-slate-500">Заказы и состав работ</p>
           </SectionCard>
         </Link>
-        <Link to="/news">
-          <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-            <Newspaper className="text-violet-600" />
-            <h3 className="mt-4 font-semibold">Новости сервиса</h3>
-            <p className="mt-1 text-sm text-slate-500">Акции, объявления и обновления</p>
-          </SectionCard>
-        </Link>
         <Link to="/crafts">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
             <Sparkles className="text-amber-600" />
@@ -112,6 +105,17 @@ const HomePage = () => {
       </div>
       <MyTargetAd />
       <MailRuAd />
+      <Link to="/news" className="mt-5 block">
+        <SectionCard className="transition hover:-translate-y-0.5 hover:shadow-md">
+          <div className="flex items-center gap-3">
+            <Newspaper className="shrink-0 text-violet-600" />
+            <div>
+              <h3 className="font-semibold">Новости сервиса</h3>
+              <p className="mt-1 text-sm text-slate-500">Акции, объявления и обновления</p>
+            </div>
+          </div>
+        </SectionCard>
+      </Link>
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-lg font-semibold">Приоритетные новости</h2>
         <Link to="/news" className="text-sm font-semibold text-blue-600">
