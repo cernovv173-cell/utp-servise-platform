@@ -38,7 +38,8 @@ const CustomerEditor = ({
     }}
   >
     <label className="grid gap-1 text-sm font-medium">
-      Имя клиента <span aria-hidden="true">*</span>
+      Имя клиента{"\u00a0"}
+      <span aria-hidden="true">*</span>
       <input
         name="displayName"
         defaultValue={customer.displayName}
@@ -49,7 +50,8 @@ const CustomerEditor = ({
       />
     </label>
     <label className="grid gap-1 text-sm font-medium">
-      Электронная почта <span aria-hidden="true">*</span>
+      Электронная почта{"\u00a0"}
+      <span aria-hidden="true">*</span>
       <input
         name="email"
         type="email"
@@ -158,7 +160,8 @@ export const CustomerManagement = () => {
           }}
         >
           <label className="grid gap-1 text-sm font-medium">
-            Имя <span aria-hidden="true">*</span>
+            Имя{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <input
               name="displayName"
               required
@@ -168,7 +171,8 @@ export const CustomerManagement = () => {
             />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Электронная почта <span aria-hidden="true">*</span>
+            Электронная почта{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <input
               name="email"
               type="email"

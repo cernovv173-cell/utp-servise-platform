@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import type { ReceiptDraft, RepairOrder } from "@/lib/api";
 
@@ -21,15 +21,17 @@ export const ReceiptDraftEditor = ({
   const [quantities, setQuantities] = useState<Record<string, string>>(() =>
     Object.fromEntries(items.map((item) => [item.id, String(item.quantity)])),
   );
+  const [previousItems, setPreviousItems] = useState(items);
   const [freeSaleType, setFreeSaleType] =
     useState<ReceiptDraft["freeSaleItems"][number]["type"]>("SPARE_PART");
   const [freeSaleName, setFreeSaleName] = useState("");
   const [freeSaleQuantity, setFreeSaleQuantity] = useState("1");
   const [freeSalePrice, setFreeSalePrice] = useState("");
 
-  useEffect(() => {
+  if (previousItems !== items) {
+    setPreviousItems(items);
     setQuantities(Object.fromEntries(items.map((item) => [item.id, String(item.quantity)])));
-  }, [items]);
+  }
 
   const freeSaleCount = Number(freeSaleQuantity);
   const freeSaleUnitPrice = Number(freeSalePrice);

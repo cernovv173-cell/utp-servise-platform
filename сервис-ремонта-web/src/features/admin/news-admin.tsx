@@ -6,16 +6,11 @@ import { SectionCard } from "@/components/app-shell";
 import { useAuth } from "@/features/auth/auth-context";
 
 import { createNews, getNews, updateNews } from "@/lib/api";
-
-const localDateValue = (value: string | null) => {
-  if (!value) return "";
-  const date = new Date(value);
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
-};
+import { useCurrentTime } from "@/lib/current-time";
 
 export const NewsAdmin = () => {
   const { token } = useAuth();
+  const now = useCurrentTime();
   const client = useQueryClient();
   const [error, setError] = useState("");
   const query = useQuery({
@@ -60,7 +55,6 @@ export const NewsAdmin = () => {
       { onSuccess: () => formElement.reset() },
     );
   };
-  const now = Date.now();
   return (
     <div className="grid gap-5">
       <SectionCard>

@@ -1,21 +1,18 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useSyncExternalStore } from "react";
 
-import { type AuthResponse, type User, apiRequest } from "@/lib/api";
+import { type User, apiRequest } from "@/lib/api";
 
-type AuthContextValue = {
-  token: string | null;
-  user: User | null;
-  ready: boolean;
-  setSession: (session: AuthResponse) => void;
-  logout: () => void;
-};
-
-const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue } from "./auth-context";
+import {
+  getSessionToken,
+  subscribeToSessionToken,
+  updateSessionToken,
+} from "./session-token-store";
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const queryClient = useQueryClient();
-  const [token, setToken] = useState<string | null>(() => sessionStorage.getItem("utp-web-token"));
+  const token = useSyncExternalStore(subscribeToSessionToken, getSessionToken);
   const me = useQuery({
     queryKey: ["auth", "me", token],
     queryFn: ({ signal }) => apiRequest<{ user: User }>("/auth/me", token, { signal }),
@@ -25,8 +22,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (me.isError && token) {
-      sessionStorage.removeItem("utp-web-token");
-      setToken(null);
+      updateSessionToken(null);
       queryClient.clear();
     }
   }, [me.isError, queryClient, token]);
@@ -37,8 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user: token ? (me.data?.user ?? null) : null,
       ready: !token || !me.isLoading,
       setSession: (session) => {
-        sessionStorage.setItem("utp-web-token", session.accessToken);
-        setToken(session.accessToken);
+        updateSessionToken(session.accessToken);
         queryClient.setQueryData(["auth", "me", session.accessToken], { user: session.user });
       },
       logout: () => {
@@ -47,8 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           void apiRequest<void>("/auth/logout", activeToken, { method: "POST" }).catch(
             () => undefined,
           );
-        sessionStorage.removeItem("utp-web-token");
-        setToken(null);
+        updateSessionToken(null);
         queryClient.clear();
       },
     }),
@@ -56,10 +50,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const value = useContext(AuthContext);
-  if (!value) throw new Error("useAuth must be used within AuthProvider");
-  return value;
 };

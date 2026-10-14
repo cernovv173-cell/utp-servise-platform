@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { ProtectedImage } from "@/components/protected-image";
@@ -19,10 +19,12 @@ export const CraftOrderChatPanel = ({
 }) => {
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(status === "IN_PROGRESS");
+  const [previousStatus, setPreviousStatus] = useState(status);
   const [content, setContent] = useState("");
-  useEffect(() => {
+  if (previousStatus !== status) {
+    setPreviousStatus(status);
     if (status === "IN_PROGRESS") setIsOpen(true);
-  }, [status]);
+  }
   const chat = useQuery({
     queryKey: ["craft-order-chat", token, craftOrderId],
     queryFn: ({ signal }) => getCraftOrderChat(token, craftOrderId, signal),

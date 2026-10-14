@@ -6,6 +6,7 @@ import { ProtectedImage } from "@/components/protected-image";
 import { useAuth } from "@/features/auth/auth-context";
 
 import { type SiteBanner, getBanners } from "@/lib/api";
+import { useCurrentTime } from "@/lib/current-time";
 
 const appRoutes: Record<string, string> = {
   home: "/",
@@ -24,7 +25,7 @@ export const CampaignBanner = ({
   banner: SiteBanner;
   className?: string;
 }) => {
-  const now = Date.now();
+  const now = useCurrentTime();
   if (
     !banner.isActive ||
     (banner.startsAt && new Date(banner.startsAt).getTime() > now) ||

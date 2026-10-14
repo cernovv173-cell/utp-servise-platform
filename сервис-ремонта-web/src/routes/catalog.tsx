@@ -154,7 +154,8 @@ const CatalogPage = () => {
                   </div>
                 </fieldset>
                 <label className="grid gap-1 text-sm font-medium">
-                  Название <span aria-hidden="true">*</span>
+                  Название{"\u00a0"}
+                  <span aria-hidden="true">*</span>
                   <input
                     name="name"
                     required
@@ -164,7 +165,8 @@ const CatalogPage = () => {
                   />
                 </label>
                 <label className="grid gap-1 text-sm font-medium">
-                  Цена, ₽ <span aria-hidden="true">*</span>
+                  Цена, ₽{"\u00a0"}
+                  <span aria-hidden="true">*</span>
                   <input
                     name="unitPriceRub"
                     type="number"
@@ -178,7 +180,8 @@ const CatalogPage = () => {
                 {tracksStock(newType) && (
                   <>
                     <label className="grid gap-1 text-sm font-medium">
-                      Начальный остаток, шт. <span aria-hidden="true">*</span>
+                      Начальный остаток, шт.{"\u00a0"}
+                      <span aria-hidden="true">*</span>
                       <input
                         name="stockQuantity"
                         type="number"

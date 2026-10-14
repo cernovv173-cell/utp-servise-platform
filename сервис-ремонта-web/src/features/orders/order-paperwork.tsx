@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, ImagePlus, Printer, ShieldCheck } from "lucide-react";
-import { type ChangeEvent, useEffect, useState } from "react";
+import { type ChangeEvent, useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/modal";
@@ -72,16 +72,19 @@ const ProtectedOrderPhoto = ({
     queryFn: () => fetchProtectedMedia(token, objectId!),
     enabled: Boolean(objectId),
   });
-  const [url, setUrl] = useState("");
-  useEffect(() => {
-    if (!image.data) return;
-    const nextUrl = URL.createObjectURL(image.data);
-    setUrl(nextUrl);
-    return () => URL.revokeObjectURL(nextUrl);
-  }, [image.data]);
-  return url ? (
+  const imageData = image.data;
+  const imageRef = useCallback(
+    (element: HTMLImageElement | null) => {
+      if (!element || !imageData) return;
+      const objectUrl = URL.createObjectURL(imageData);
+      element.src = objectUrl;
+      return () => URL.revokeObjectURL(objectUrl);
+    },
+    [imageData],
+  );
+  return imageData ? (
     <img
-      src={url}
+      ref={imageRef}
       alt={label}
       className="mt-2 aspect-video w-full rounded-lg border border-slate-200 object-contain dark:border-slate-700"
     />
@@ -104,8 +107,12 @@ export const OrderPaperwork = ({
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [document, setDocument] = useState<OrderDocumentKind>("intake");
+  const [previousIntake, setPreviousIntake] = useState(order.intake);
   const [draft, setDraft] = useState(() => defaults(order.intake));
-  useEffect(() => setDraft(defaults(order.intake)), [order.intake]);
+  if (previousIntake !== order.intake) {
+    setPreviousIntake(order.intake);
+    setDraft(defaults(order.intake));
+  }
   const invalidateOrders = () => queryClient.invalidateQueries({ queryKey: ["orders", token] });
   const upload = useMutation({
     mutationFn: ({ side, file }: { side: Side; file: File }) =>
@@ -202,7 +209,8 @@ export const OrderPaperwork = ({
                   className="rounded-xl border border-slate-200 p-3 dark:border-slate-700"
                 >
                   <label className="grid gap-1 text-sm font-semibold">
-                    {label} · видимые повреждения <span aria-hidden="true">*</span>
+                    {label} · видимые повреждения{"\u00a0"}
+                    <span aria-hidden="true">*</span>
                     <textarea
                       required
                       minLength={2}

@@ -159,7 +159,8 @@ export const AdminOrderCreate = ({
                 первом входе клиент должен будет сменить пароль.
               </p>
               <label className="grid gap-1 text-sm font-medium">
-                Имя клиента <span aria-hidden="true">*</span>
+                Имя клиента{"\u00a0"}
+                <span aria-hidden="true">*</span>
                 <input
                   name="customerName"
                   required
@@ -169,7 +170,8 @@ export const AdminOrderCreate = ({
                 />
               </label>
               <label className="grid gap-1 text-sm font-medium">
-                Электронная почта — логин <span aria-hidden="true">*</span>
+                Электронная почта — логин{"\u00a0"}
+                <span aria-hidden="true">*</span>
                 <input
                   name="customerEmail"
                   type="email"
@@ -182,7 +184,8 @@ export const AdminOrderCreate = ({
           ) : !customer ? (
             <div className="grid gap-2 sm:col-span-2">
               <label className="grid gap-1 text-sm font-medium">
-                Найти активного клиента <span aria-hidden="true">*</span>
+                Найти активного клиента{"\u00a0"}
+                <span aria-hidden="true">*</span>
                 <input
                   value={customerSearch}
                   onChange={(event) => setCustomerSearch(event.target.value)}
@@ -236,7 +239,8 @@ export const AdminOrderCreate = ({
             </div>
           )}
           <label className="grid gap-1 text-sm font-medium">
-            Тип устройства <span aria-hidden="true">*</span>
+            Тип устройства{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <select name="deviceType" required className={fieldClassName}>
               <option value="COMPUTER">Компьютер</option>
               <option value="LAPTOP">Ноутбук</option>
@@ -264,7 +268,8 @@ export const AdminOrderCreate = ({
             />
           </label>
           <label className="grid gap-1 text-sm font-medium sm:col-span-2">
-            Неисправность <span aria-hidden="true">*</span>
+            Неисправность{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <textarea
               name="problem"
               required
@@ -275,11 +280,13 @@ export const AdminOrderCreate = ({
             />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Город <span aria-hidden="true">*</span>
+            Город{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <input name="city" required minLength={2} maxLength={120} className={fieldClassName} />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Улица <span aria-hidden="true">*</span>
+            Улица{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <input
               name="street"
               required
@@ -289,7 +296,8 @@ export const AdminOrderCreate = ({
             />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Дом <span aria-hidden="true">*</span>
+            Дом{"\u00a0"}
+            <span aria-hidden="true">*</span>
             <input name="house" required minLength={1} maxLength={30} className={fieldClassName} />
           </label>
           <label className="grid gap-1 text-sm font-medium">

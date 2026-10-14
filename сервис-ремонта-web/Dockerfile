@@ -32,6 +32,7 @@ RUN --mount=type=secret,id=application_environment,required=false \
     cp /run/secrets/application_environment .env.production.local; \
   fi; \
   rm -rf dist; \
+  pnpm run lint; \
   pnpm run build; \
   rm -f .env.production.local
 

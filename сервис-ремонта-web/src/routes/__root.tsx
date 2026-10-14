@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import { LaunchIntro } from "@/components/launch-intro";
 
-import { AuthProvider } from "@/features/auth/auth-context";
+import { AuthProvider } from "@/features/auth/auth-provider";
 
 const RootComponent = () => {
   const [introDismissed, setIntroDismissed] = useState(false);
