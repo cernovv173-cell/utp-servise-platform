@@ -225,29 +225,3 @@ already deducted from stock at approval, so active approved-estimate quantities 
 and are never added again to the suggested purchase. Dashboard averages use the interval from request
 creation to its `COMPLETED` status event; collected revenue uses paid receipts after bonus discounts.
 The Web admin navigation and Android **Управление** area expose all three views.
-
-## Customer game and question management
-
-Customers can play published episodes in **«КиберМастерская»** from the Web `/game` page and the
-Android customer home. The starter episode, **«Заявка с секретом: шумный компьютер»**, teaches players to describe symptoms and
-choose safe next steps without opening a power supply or sharing passwords or payment details. The
-Web and Android clients use the same API-backed questions and answer checks. The raccoon reacts to
-each answer; correct answers trigger a smile-and-clap animation and incorrect answers show feedback
-and allow another attempt.
-
-Only administrators can list, create, edit, and activate or deactivate episodes through
-`GET /admin/games/episodes`, `POST /admin/games/episodes`, and `PATCH /admin/games/episodes/:episodeId`.
-An episode contains 1–20 questions, and each question needs 2–5 answer options with exactly one
-correct choice. Active episodes are listed for customers through `GET /games/episodes`; the public
-response intentionally omits which option is correct. Customer answer checks and full-episode
-completion use `POST /games/episodes/:episodeId/answer` and
-`POST /games/episodes/:episodeId/complete`; the server revalidates every answer before awarding points.
-
-A customer's first full correct completion of an episode can award 10 points into the existing
-loyalty ledger (`GAME_REWARD`). The unique customer/episode completion record prevents repeat awards.
-Game rewards are capped at 50 points per Monday–Sunday week in Moscow time; a completion that would
-exceed the cap is recorded without a reward. The balance and remaining weekly allowance come from the
-server, not a client-side counter. The additive `20261013210000_customer_game` migration creates the
-game tables, records the reward type, and seeds the starter episode without replacing existing
-customer, order, or loyalty data. New admin-authored content is shared immediately by Web and Android
-because both clients read it from the same API.

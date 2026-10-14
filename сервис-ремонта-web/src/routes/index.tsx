@@ -1,15 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, ClipboardList, FileText, Laptop, Newspaper, Sparkles } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { MailRuAd } from "@/components/mailru-ad";
 import { MyTargetAd } from "@/components/mytarget-ad";
-import { RaccoonIcon } from "@/components/raccoon-icon";
 
 import { useAuth } from "@/features/auth/auth-context";
-import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
-import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
+import { CampaignBanner } from "@/features/campaigns/campaign-banner";
 
 import { getBanners, getNews, getOrders } from "@/lib/api";
 
@@ -29,12 +27,12 @@ const HomePage = () => {
     queryKey: ["banners", token],
     queryFn: ({ signal }) => getBanners(token!, signal),
     enabled: Boolean(token),
-    refetchInterval: 10_000,
   });
   const featured = (news.data?.articles ?? []).filter((article) => article.isFeatured).slice(0, 3);
   const openOrders = (orders.data?.orders ?? []).filter(
     (order) => !["COMPLETED", "CANCELLED"].includes(order.status),
   ).length;
+
   return (
     <AppShell active="/">
       <PageTitle
@@ -62,45 +60,16 @@ const HomePage = () => {
           </Link>
         </div>
       </SectionCard>
-      {user?.role === "CUSTOMER" && (
-        <Link to="/game" className="mb-6 block">
-          <SectionCard className="border-blue-200 bg-gradient-to-r from-indigo-50 via-sky-50 to-white transition hover:-translate-y-0.5 hover:shadow-md dark:border-blue-900 dark:from-indigo-950/50 dark:via-blue-950/40 dark:to-slate-900">
-            <div className="flex flex-wrap items-center gap-4">
-              <RaccoonIcon
-                motion="peek"
-                className="grid size-14 shrink-0 place-items-center rounded-2xl bg-blue-100 text-3xl text-blue-700 dark:bg-blue-900/60 dark:text-blue-200"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold tracking-wide text-blue-600 uppercase dark:text-blue-300">
-                  ИГРА ДЛЯ КЛИЕНТОВ
-                </p>
-                <h2 className="mt-1 text-lg font-semibold">КиберМастерская</h2>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  Помогите еноту решить технозадачу и получите бонусные баллы
-                </p>
-              </div>
-              <span className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white">
-                Играть <ArrowRight size={16} />
-              </span>
-            </div>
-          </SectionCard>
-        </Link>
-      )}
-      <FeaturedNewsCarousel articles={featured} isLoading={news.isLoading} isError={news.isError} />
-      <CampaignCarousel
-        banners={banners.data?.banners ?? []}
-        placement="HOME"
-        asOf={banners.dataUpdatedAt}
-        className="mb-5"
-      />
+      {(banners.data?.banners ?? [])
+        .filter((banner) => banner.placements.includes("HOME"))
+        .map((banner) => (
+          <CampaignBanner key={banner.id} banner={banner} className="mb-5" />
+        ))}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {user?.role === "CUSTOMER" && (
           <Link to="/devices">
             <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-              <RaccoonIcon
-                motion="peek"
-                className="grid size-11 place-items-center rounded-2xl bg-blue-50 text-2xl dark:bg-blue-950/60"
-              />
+              <Laptop className="text-blue-600" />
               <h3 className="mt-4 font-semibold">Моя техника</h3>
               <p className="mt-1 text-sm text-slate-500">
                 История ремонтов и напоминания об обслуживании
@@ -110,10 +79,7 @@ const HomePage = () => {
         )}
         <Link to="/orders">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-            <RaccoonIcon
-              motion="bounce"
-              className="grid size-11 place-items-center rounded-2xl bg-sky-50 text-2xl dark:bg-sky-950/60"
-            />
+            <ClipboardList className="text-blue-600" />
             <h3 className="mt-4 font-semibold">Мои заявки</h3>
             <p className="mt-1 text-sm text-slate-500">
               {orders.isLoading ? "Загружаем…" : `${openOrders} активных заявок`}
@@ -122,20 +88,21 @@ const HomePage = () => {
         </Link>
         <Link to="/checks">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-            <RaccoonIcon
-              motion="wiggle"
-              className="grid size-11 place-items-center rounded-2xl bg-emerald-50 text-2xl dark:bg-emerald-950/40"
-            />
+            <FileText className="text-emerald-600" />
             <h3 className="mt-4 font-semibold">Чеки и сервисные номера</h3>
             <p className="mt-1 text-sm text-slate-500">Заказы и состав работ</p>
           </SectionCard>
         </Link>
+        <Link to="/news">
+          <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
+            <Newspaper className="text-violet-600" />
+            <h3 className="mt-4 font-semibold">Новости сервиса</h3>
+            <p className="mt-1 text-sm text-slate-500">Акции, объявления и обновления</p>
+          </SectionCard>
+        </Link>
         <Link to="/crafts">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-            <RaccoonIcon
-              motion="peek"
-              className="grid size-11 place-items-center rounded-2xl bg-amber-50 text-2xl dark:bg-amber-950/40"
-            />
+            <Sparkles className="text-amber-600" />
             <h3 className="mt-4 font-semibold">Ручная работа</h3>
             <p className="mt-1 text-sm text-slate-500">Изделия и заказные варианты</p>
           </SectionCard>
@@ -143,20 +110,27 @@ const HomePage = () => {
       </div>
       <MyTargetAd />
       <MailRuAd />
-      <Link to="/news" className="mt-5 block">
-        <SectionCard className="transition hover:-translate-y-0.5 hover:shadow-md">
-          <div className="flex items-center gap-3">
-            <RaccoonIcon
-              motion="bounce"
-              className="grid size-10 shrink-0 place-items-center rounded-xl bg-violet-50 text-2xl dark:bg-violet-950/50"
-            />
-            <div>
-              <h3 className="font-semibold">Новости сервиса</h3>
-              <p className="mt-1 text-sm text-slate-500">Акции, объявления и обновления</p>
-            </div>
-          </div>
-        </SectionCard>
-      </Link>
+      <div className="mt-8 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Приоритетные новости</h2>
+        <Link to="/news" className="text-sm font-semibold text-blue-600">
+          Все новости <span aria-hidden="true">→</span>
+        </Link>
+      </div>
+      {news.isError && <p className="mt-4 text-sm text-rose-600">Не удалось загрузить новости.</p>}
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        {featured.map((article) => (
+          <SectionCard key={article.id}>
+            <p className="text-xs font-semibold text-blue-600">Главная новость</p>
+            <h3 className="mt-2 font-semibold">{article.title}</h3>
+            <p className="mt-2 line-clamp-4 text-sm leading-6 text-slate-500">{article.content}</p>
+          </SectionCard>
+        ))}
+        {!news.isLoading && featured.length === 0 && (
+          <SectionCard className="md:col-span-3">
+            <p className="text-sm text-slate-500">Пока нет приоритетных новостей.</p>
+          </SectionCard>
+        )}
+      </div>
     </AppShell>
   );
 };

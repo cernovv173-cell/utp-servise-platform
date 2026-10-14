@@ -88,7 +88,6 @@ enum BonusTransactionType {
   EARN
   REDEEM
   MANUAL_ADJUSTMENT
-  GAME_REWARD
 }
 
 enum ReceiptPaymentStatus {
@@ -158,8 +157,6 @@ model User {
   craftSalaryEntries      CraftOrderSalaryEntry[]        @relation("CraftTechnicianSalaryEntries")
   bonusTransactions       LoyaltyTransaction[]           @relation("BonusCustomer")
   bonusActions            LoyaltyTransaction[]           @relation("BonusActor")
-  gameEpisodesCreated     GameEpisode[]                  @relation("GameEpisodeCreator")
-  gameCompletions         GameEpisodeCompletion[]        @relation("GameEpisodeCompletionCustomer")
   createdBanners          SiteBanner[]                   @relation("BannerCreator")
   issuedReceipts          RepairReceipt[]                @relation("ReceiptIssuer")
   issuedCraftReceipts     CraftOrderReceipt[]            @relation("CraftReceiptIssuer")
@@ -845,64 +842,6 @@ model LoyaltyTransaction {
   @@index([orderId])
   @@index([craftOrderId])
   @@map("loyalty_transactions")
-}
-
-model GameEpisode {
-  id           String                  @id @default(uuid()) @db.Uuid
-  title        String                  @db.VarChar(120)
-  introduction String                  @db.VarChar(1000)
-  isActive     Boolean                 @default(true) @map("is_active")
-  createdById  String?                 @map("created_by_id") @db.Uuid
-  createdAt    DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy    User?                   @relation("GameEpisodeCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  questions    GameQuestion[]
-  completions  GameEpisodeCompletion[]
-
-  @@index([isActive, createdAt])
-  @@map("game_episodes")
-}
-
-model GameQuestion {
-  id                String             @id @default(uuid()) @db.Uuid
-  episodeId         String             @map("episode_id") @db.Uuid
-  position          Int                @db.SmallInt
-  prompt            String             @db.VarChar(500)
-  correctFeedback   String             @map("correct_feedback") @db.VarChar(500)
-  incorrectFeedback String             @map("incorrect_feedback") @db.VarChar(500)
-  episode           GameEpisode        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  options           GameAnswerOption[]
-
-  @@unique([episodeId, position])
-  @@index([episodeId])
-  @@map("game_questions")
-}
-
-model GameAnswerOption {
-  id         String       @id @default(uuid()) @db.Uuid
-  questionId String       @map("question_id") @db.Uuid
-  text       String       @db.VarChar(300)
-  isCorrect  Boolean      @default(false) @map("is_correct")
-  position   Int          @db.SmallInt
-  question   GameQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([questionId, position])
-  @@index([questionId])
-  @@map("game_answer_options")
-}
-
-model GameEpisodeCompletion {
-  id            String      @id @default(uuid()) @db.Uuid
-  customerId    String      @map("customer_id") @db.Uuid
-  episodeId     String      @map("episode_id") @db.Uuid
-  pointsAwarded Int         @default(0) @map("points_awarded") @db.SmallInt
-  completedAt   DateTime    @default(now()) @map("completed_at") @db.Timestamptz(3)
-  customer      User        @relation("GameEpisodeCompletionCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  episode       GameEpisode @relation(fields: [episodeId], references: [id], onDelete: Restrict)
-
-  @@unique([customerId, episodeId])
-  @@index([customerId, completedAt])
-  @@map("game_episode_completions")
 }
 
 model SiteBanner {

@@ -68,7 +68,6 @@ fun CustomerHomeScreen(
     onAbout: () -> Unit,
     onNews: () -> Unit,
     onLoyalty: () -> Unit,
-    onGame: () -> Unit,
     onCampaignNavigate: (String) -> Unit,
     onContactAdministrator: () -> Unit,
 ) {
@@ -82,7 +81,7 @@ fun CustomerHomeScreen(
             Text("Привет, ${user.displayName.substringBefore(' ')}", color = UtpBlue, fontSize = 12.sp)
         }
         Spacer(Modifier.height(18.dp))
-        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
+            Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
                 Text("Ремонт компьютеров и гаджетов", fontSize = 23.sp, lineHeight = 29.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("Опишите неисправность — мастер свяжется с вами и согласует стоимость.", fontSize = 13.sp, lineHeight = 19.sp, color = UtpMuted, modifier = Modifier.padding(top = 8.dp))
@@ -90,25 +89,6 @@ fun CustomerHomeScreen(
             }
         }
         Spacer(Modifier.height(23.dp))
-        Card(
-            onClick = onGame,
-            shape = RoundedCornerShape(22.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        ) {
-            Row(
-                Modifier.fillMaxWidth().padding(18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("🦝", fontSize = 30.sp)
-                Column(Modifier.weight(1f).padding(start = 14.dp)) {
-                    Text("ИГРА ДЛЯ КЛИЕНТОВ", fontSize = 10.sp, color = UtpBlue, fontWeight = FontWeight.Bold)
-                    Text("КиберМастерская", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                    Text("Помогите еноту и получите бонусные баллы", fontSize = 12.sp, color = UtpMuted)
-                }
-                Text("Играть  ›", fontSize = 13.sp, color = UtpBlue, fontWeight = FontWeight.SemiBold)
-            }
-        }
-        Spacer(Modifier.height(18.dp))
         banners.filter { it.placements.contains("HOME") }.forEach { banner ->
             CampaignBannerCard(banner, token, onCampaignNavigate)
         }

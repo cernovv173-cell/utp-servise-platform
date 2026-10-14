@@ -1,9 +1,5 @@
 [
     {
-        "merged": "ru.utp.servise.app-debug-67:/drawable-nodpi_game_raccoon_happy.png.flat",
-        "source": "ru.utp.servise.app-main-69:/drawable-nodpi/game_raccoon_happy.png"
-    },
-    {
         "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
         "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-xxxhdpi/ic_launcher_round.png"
     },
@@ -28,10 +24,6 @@
         "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-mdpi/ic_launcher.png"
     },
     {
-        "merged": "ru.utp.servise.app-debug-67:/drawable-nodpi_game_raccoon_sad.png.flat",
-        "source": "ru.utp.servise.app-main-69:/drawable-nodpi/game_raccoon_sad.png"
-    },
-    {
         "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/raw_welcome_intro.mp4.flat",
         "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/raw/welcome_intro.mp4"
     },
@@ -48,12 +40,12 @@
         "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/utp_servise_launcher_foreground.png"
     },
     {
-        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/raw_welcome_intro.gif.flat",
-        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/raw/welcome_intro.gif"
-    },
-    {
         "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/drawable-nodpi_raccoon_welcome.jpg.flat",
         "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/raccoon_welcome.jpg"
+    },
+    {
+        "merged": "ru.utp.servise.app-debug-67:/raw_welcome_intro.gif.flat",
+        "source": "ru.utp.servise.app-main-69:/raw/welcome_intro.gif"
     },
     {
         "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-xxxhdpi_ic_launcher.png.flat",

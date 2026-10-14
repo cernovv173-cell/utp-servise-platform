@@ -19,7 +19,6 @@ import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as ChecksRouteImport } from './routes/checks'
 import { Route as CraftsRouteImport } from './routes/crafts'
 import { Route as DevicesRouteImport } from './routes/devices'
-import { Route as GameRouteImport } from './routes/game'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
 import { Route as NewsRouteImport } from './routes/news'
@@ -30,7 +29,6 @@ import { Route as SalaryRouteImport } from './routes/salary'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as YandexTokenRouteImport } from './routes/yandex-token'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
-import { Route as AdminGameRouteImport } from './routes/admin.game'
 import { Route as AdminOrderEditingRouteImport } from './routes/admin.order-editing'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminOverviewRouteImport } from './routes/admin.overview'
@@ -89,11 +87,6 @@ const DevicesRoute = DevicesRouteImport.update({
   path: '/devices',
   getParentRoute: () => rootRouteImport,
 } as any)
-const GameRoute = GameRouteImport.update({
-  id: '/game',
-  path: '/game',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -144,11 +137,6 @@ const AdminCustomersRoute = AdminCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminGameRoute = AdminGameRouteImport.update({
-  id: '/game',
-  path: '/game',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminOrderEditingRoute = AdminOrderEditingRouteImport.update({
   id: '/order-editing',
   path: '/order-editing',
@@ -196,7 +184,6 @@ export interface FileRoutesByFullPath {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
-  '/game': typeof GameRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -207,7 +194,6 @@ export interface FileRoutesByFullPath {
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
-  '/admin/game': typeof AdminGameRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
@@ -227,7 +213,6 @@ export interface FileRoutesByTo {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
-  '/game': typeof GameRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -238,7 +223,6 @@ export interface FileRoutesByTo {
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
-  '/admin/game': typeof AdminGameRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
@@ -259,7 +243,6 @@ export interface FileRoutesById {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
-  '/game': typeof GameRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -270,7 +253,6 @@ export interface FileRoutesById {
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
-  '/admin/game': typeof AdminGameRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
@@ -292,7 +274,6 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
-    | '/game'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -303,7 +284,6 @@ export interface FileRouteTypes {
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
-    | '/admin/game'
     | '/admin/order-editing'
     | '/admin/orders'
     | '/admin/overview'
@@ -323,7 +303,6 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
-    | '/game'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -334,7 +313,6 @@ export interface FileRouteTypes {
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
-    | '/admin/game'
     | '/admin/order-editing'
     | '/admin/orders'
     | '/admin/overview'
@@ -354,7 +332,6 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
-    | '/game'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -365,7 +342,6 @@ export interface FileRouteTypes {
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
-    | '/admin/game'
     | '/admin/order-editing'
     | '/admin/orders'
     | '/admin/overview'
@@ -386,7 +362,6 @@ export interface RootRouteChildren {
   ChecksRoute: typeof ChecksRoute
   CraftsRoute: typeof CraftsRoute
   DevicesRoute: typeof DevicesRoute
-  GameRoute: typeof GameRoute
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   NewsRoute: typeof NewsRoute
@@ -470,13 +445,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DevicesRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/game': {
-      id: '/game'
-      path: '/game'
-      fullPath: '/game'
-      preLoaderRoute: typeof GameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -547,13 +515,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCustomersRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/game': {
-      id: '/admin/game'
-      path: '/game'
-      fullPath: '/admin/game'
-      preLoaderRoute: typeof AdminGameRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/order-editing': {
       id: '/admin/order-editing'
       path: '/order-editing'
@@ -620,7 +581,6 @@ const AdminOrdersRouteWithChildren = AdminOrdersRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminCustomersRoute: typeof AdminCustomersRoute
-  AdminGameRoute: typeof AdminGameRoute
   AdminOrderEditingRoute: typeof AdminOrderEditingRoute
   AdminOrdersRoute: typeof AdminOrdersRouteWithChildren
   AdminOverviewRoute: typeof AdminOverviewRoute
@@ -630,7 +590,6 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCustomersRoute: AdminCustomersRoute,
-  AdminGameRoute: AdminGameRoute,
   AdminOrderEditingRoute: AdminOrderEditingRoute,
   AdminOrdersRoute: AdminOrdersRouteWithChildren,
   AdminOverviewRoute: AdminOverviewRoute,
@@ -662,7 +621,6 @@ const rootRouteChildren: RootRouteChildren = {
   ChecksRoute: ChecksRoute,
   CraftsRoute: CraftsRoute,
   DevicesRoute: DevicesRoute,
-  GameRoute: GameRoute,
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   NewsRoute: NewsRoute,
