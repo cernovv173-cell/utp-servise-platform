@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="ru.utp.servise"
-    android:versionCode="17"
-    android:versionName="1.3.3" >
+    android:versionCode="20"
+    android:versionName="1.3.6" >
 
     <uses-sdk
         android:minSdkVersion="26"
@@ -114,7 +114,7 @@
                 android:value="54808157" />
             <meta-data
                 android:name="VKIDClientSecret"
-                android:value="AtDs9TW3tSkJhYDQ3TwU" />
+                android:value="6125b2246125b2246125b2246a6261fc7a661256125b2240be092f6df2b88c041ce00fa" />
             <meta-data
                 android:name="VKIDRedirectHost"
                 android:value="vk.ru" />
@@ -160,7 +160,7 @@
 
                 <data android:scheme="http" />
                 <data android:scheme="https" />
-                <data android:host="yx4c8ba41e88d24a649658e7a0d6740188.oauth.yandex.ru" />
+                <data android:host="yx56804bcf740246719e298a10063f457f.oauth.yandex.ru" />
                 <data android:path="/auth/finish" />
             </intent-filter>
             <intent-filter>
@@ -171,13 +171,13 @@
 
                 <data
                     android:path="/auth/finish"
-                    android:scheme="yx4c8ba41e88d24a649658e7a0d6740188" />
+                    android:scheme="yx56804bcf740246719e298a10063f457f" />
             </intent-filter>
         </activity>
 
         <meta-data
             android:name="com.yandex.auth.CLIENT_ID"
-            android:value="4c8ba41e88d24a649658e7a0d6740188" />
+            android:value="56804bcf740246719e298a10063f457f" />
         <meta-data
             android:name="com.yandex.auth.OAUTH_HOST"
             android:value="oauth.yandex.ru" />
