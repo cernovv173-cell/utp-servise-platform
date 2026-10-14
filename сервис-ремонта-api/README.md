@@ -228,8 +228,8 @@ The Web admin navigation and Android **Управление** area expose all th
 
 ## Customer game and question management
 
-Customers can play published episodes from the Web `/game` page and the Android customer home. The
-starter episode, **«Заявка с секретом: шумный компьютер»**, teaches players to describe symptoms and
+Customers can play published episodes in **«КиберМастерская»** from the Web `/game` page and the
+Android customer home. The starter episode, **«Заявка с секретом: шумный компьютер»**, teaches players to describe symptoms and
 choose safe next steps without opening a power supply or sharing passwords or payment details. The
 Web and Android clients use the same API-backed questions and answer checks. The raccoon reacts to
 each answer; correct answers trigger a smile-and-clap animation and incorrect answers show feedback

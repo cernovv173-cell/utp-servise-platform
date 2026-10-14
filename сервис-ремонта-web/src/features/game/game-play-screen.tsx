@@ -110,7 +110,7 @@ export const GamePlayScreen = () => {
     <AppShell active="/game">
       <PageTitle
         eyebrow="ИГРА ДЛЯ КЛИЕНТОВ"
-        title="Заявка с секретом"
+        title="КиберМастерская"
         description="Помогите еноту-мастеру разобраться в компьютерной технике: задайте правильные вопросы и выберите безопасные действия."
       />
 
@@ -268,7 +268,7 @@ export const GamePlayScreen = () => {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold tracking-wide text-blue-600 uppercase dark:text-blue-300">
-                    Заявка с секретом
+                    КиберМастерская
                   </p>
                   <h2 className="mt-1 text-lg font-semibold">{episode.title}</h2>
                 </div>

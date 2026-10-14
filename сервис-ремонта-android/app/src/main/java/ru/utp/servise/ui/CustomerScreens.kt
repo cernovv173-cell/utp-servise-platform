@@ -108,7 +108,7 @@ fun CustomerHomeScreen(
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("🦝", fontSize = 24.sp)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text("Заявка с секретом", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text("КиберМастерская", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text("Помогите еноту и получите бонусные баллы", fontSize = 12.sp, color = UtpMuted)
                 }
                 Text("›", fontSize = 24.sp, color = UtpMuted)

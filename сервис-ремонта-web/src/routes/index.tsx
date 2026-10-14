@@ -102,7 +102,7 @@ const HomePage = () => {
               <span className="grid size-11 place-items-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-200">
                 <Gamepad2 size={22} />
               </span>
-              <h3 className="mt-4 font-semibold">Заявка с секретом</h3>
+              <h3 className="mt-4 font-semibold">КиберМастерская</h3>
               <p className="mt-1 text-sm text-slate-500">
                 Помогите еноту-мастеру и заработайте бонусные баллы
               </p>

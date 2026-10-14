@@ -184,7 +184,7 @@ fun CustomerGameScreen(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("Заявка с секретом", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Text("КиберМастерская", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Помогите еноту-мастеру разобраться в компьютерной технике и получите бонусные баллы.", fontSize = 14.sp, lineHeight = 21.sp, color = UtpMuted)
 
         when {
