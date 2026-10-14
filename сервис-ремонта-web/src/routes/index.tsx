@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Gamepad2, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { MailRuAd } from "@/components/mailru-ad";
@@ -62,6 +62,30 @@ const HomePage = () => {
           </Link>
         </div>
       </SectionCard>
+      {user?.role === "CUSTOMER" && (
+        <Link to="/game" className="mb-6 block">
+          <SectionCard className="border-blue-200 bg-gradient-to-r from-indigo-50 via-sky-50 to-white transition hover:-translate-y-0.5 hover:shadow-md dark:border-blue-900 dark:from-indigo-950/50 dark:via-blue-950/40 dark:to-slate-900">
+            <div className="flex flex-wrap items-center gap-4">
+              <RaccoonIcon
+                motion="peek"
+                className="grid size-14 shrink-0 place-items-center rounded-2xl bg-blue-100 text-3xl text-blue-700 dark:bg-blue-900/60 dark:text-blue-200"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold tracking-wide text-blue-600 uppercase dark:text-blue-300">
+                  ИГРА ДЛЯ КЛИЕНТОВ
+                </p>
+                <h2 className="mt-1 text-lg font-semibold">КиберМастерская</h2>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  Помогите еноту решить технозадачу и получите бонусные баллы
+                </p>
+              </div>
+              <span className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white">
+                Играть <ArrowRight size={16} />
+              </span>
+            </div>
+          </SectionCard>
+        </Link>
+      )}
       <FeaturedNewsCarousel articles={featured} isLoading={news.isLoading} isError={news.isError} />
       <CampaignCarousel
         banners={banners.data?.banners ?? []}
@@ -96,19 +120,6 @@ const HomePage = () => {
             </p>
           </SectionCard>
         </Link>
-        {user?.role === "CUSTOMER" && (
-          <Link to="/game">
-            <SectionCard className="h-full border-blue-200 bg-gradient-to-br from-blue-50 to-white transition hover:-translate-y-0.5 hover:shadow-md dark:border-blue-900 dark:from-blue-950/50 dark:to-slate-900">
-              <span className="grid size-11 place-items-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-200">
-                <Gamepad2 size={22} />
-              </span>
-              <h3 className="mt-4 font-semibold">КиберМастерская</h3>
-              <p className="mt-1 text-sm text-slate-500">
-                Помогите еноту-мастеру и заработайте бонусные баллы
-              </p>
-            </SectionCard>
-          </Link>
-        )}
         <Link to="/checks">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
             <RaccoonIcon
