@@ -8,35 +8,32 @@ export const recordMatch3LevelReward = async (
   targetCollected: number,
   completedAt: Date,
 ): Promise<void> => {
-  const previousCompletion = await transaction.match3LevelCompletion.findUnique(
-    {
-      where: { customerId_levelId: { customerId, levelId } },
-      select: { id: true },
-    },
+  const completionCreated = await transaction.$queryRaw<Array<{ id: string }>>(
+    Prisma.sql`
+      INSERT INTO "match3_level_completions" (
+        "id", "customer_id", "level_id", "target_collected", "points_awarded", "completed_at"
+      ) VALUES (
+        gen_random_uuid(), ${customerId}::uuid, ${levelId}::uuid,
+        ${targetCollected}, ${MATCH3_POINTS_PER_LEVEL}, ${completedAt}
+      )
+      ON CONFLICT ("customer_id", "level_id") DO NOTHING
+      RETURNING "id"
+    `,
   );
 
-  if (previousCompletion) {
-    await transaction.match3LevelReward.create({
-      data: {
+  if (completionCreated.length > 0) return;
+
+  await transaction.match3LevelReward.createMany({
+    data: [
+      {
         customerId,
         levelId,
         pointsAwarded: MATCH3_POINTS_PER_LEVEL,
         rewardClaimedAt: null,
         completedAt,
       },
-    });
-    return;
-  }
-
-  await transaction.match3LevelCompletion.create({
-    data: {
-      customerId,
-      levelId,
-      targetCollected,
-      pointsAwarded: MATCH3_POINTS_PER_LEVEL,
-      rewardClaimedAt: null,
-      completedAt,
-    },
+    ],
+    skipDuplicates: true,
   });
 };
 

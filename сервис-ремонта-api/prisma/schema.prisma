@@ -973,8 +973,8 @@ model Match3LevelReward {
   customer        User        @relation("Match3RewardCustomer", fields: [customerId], references: [id], onDelete: Restrict)
   level           Match3Level @relation(fields: [levelId], references: [id], onDelete: Restrict)
 
+  @@unique([customerId, levelId, completedAt], map: "match3_level_rewards_customer_id_level_id_completed_at_key")
   @@index([customerId, rewardClaimedAt, completedAt])
-  @@index([customerId, levelId, completedAt])
   @@map("match3_level_rewards")
 }
 

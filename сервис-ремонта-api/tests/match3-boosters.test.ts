@@ -103,21 +103,31 @@ test("question-mark hint returns a valid move that prioritizes the level target"
 });
 
 test("replaying a completed level adds a separate pending reward record", async () => {
-  let firstCompletionExists = false;
+  let completionAlreadyExists = false;
   const completions: Array<Record<string, unknown>> = [];
   const replayRewards: Array<Record<string, unknown>> = [];
   const transaction = {
-    match3LevelCompletion: {
-      findUnique: async () =>
-        firstCompletionExists ? { id: "first-completion" } : null,
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        firstCompletionExists = true;
-        completions.push(data);
-      },
+    $queryRaw: async (_query: unknown) => {
+      const values = (_query as { values?: unknown[] }).values ?? [];
+      const completedAt = values.at(-1);
+      if (!completionAlreadyExists) {
+        completionAlreadyExists = true;
+        completions.push({ completedAt });
+        return [{ id: "first-completion" }];
+      }
+      return [];
     },
     match3LevelReward: {
-      create: async ({ data }: { data: Record<string, unknown> }) => {
-        replayRewards.push(data);
+      createMany: async ({
+        data,
+        skipDuplicates,
+      }: {
+        data: Array<Record<string, unknown>>;
+        skipDuplicates: boolean;
+      }) => {
+        assert.equal(skipDuplicates, true);
+        replayRewards.push(...data);
+        return { count: data.length };
       },
     },
   } as unknown as Prisma.TransactionClient;
@@ -171,6 +181,53 @@ test("claiming first and replay rewards is idempotent and creates one loyalty en
     claimedPoints: 0,
   });
   assert.deepEqual(ledger, [{ points: 30 }]);
+});
+
+test("concurrent replays of one level create at most one reward per completion", async () => {
+  const rewards: Array<Record<string, unknown>> = [];
+  const transaction = {
+    $queryRaw: async () => [],
+    match3LevelReward: {
+      createMany: async ({
+        data,
+        skipDuplicates,
+      }: {
+        data: Array<Record<string, unknown>>;
+        skipDuplicates: boolean;
+      }) => {
+        assert.equal(skipDuplicates, true);
+        const reward = data[0]!;
+        const duplicate = rewards.some(
+          (existing) =>
+            existing.customerId === reward.customerId &&
+            existing.levelId === reward.levelId &&
+            existing.completedAt === reward.completedAt,
+        );
+        if (!duplicate) rewards.push(reward);
+        return { count: duplicate ? 0 : 1 };
+      },
+    },
+  } as unknown as Prisma.TransactionClient;
+
+  const completedAt = new Date("2026-10-15T12:05:00Z");
+  await Promise.all([
+    recordMatch3LevelReward(
+      transaction,
+      "customer-id",
+      "level-id",
+      5,
+      completedAt,
+    ),
+    recordMatch3LevelReward(
+      transaction,
+      "customer-id",
+      "level-id",
+      5,
+      completedAt,
+    ),
+  ]);
+
+  assert.equal(rewards.length, 1);
 });
 
 test("crafting atomically spends the recipe parts and adds the booster", async () => {

@@ -11,7 +11,7 @@ CREATE TABLE "match3_level_rewards" (
 CREATE INDEX "match3_level_rewards_customer_id_reward_claimed_at_completed_at_idx"
     ON "match3_level_rewards"("customer_id", "reward_claimed_at", "completed_at");
 
-CREATE INDEX "match3_level_rewards_customer_id_level_id_completed_at_idx"
+CREATE UNIQUE INDEX "match3_level_rewards_customer_id_level_id_completed_at_key"
     ON "match3_level_rewards"("customer_id", "level_id", "completed_at");
 
 ALTER TABLE "match3_level_rewards"
