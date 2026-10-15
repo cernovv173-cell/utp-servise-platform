@@ -194,10 +194,10 @@ const GamePage = () => {
   });
   const claim = useMutation({
     mutationFn: () => claimMatch3Rewards(token!),
-    onSuccess: ({ claimedLevels, claimedPoints }) => {
+    onSuccess: ({ claimedPoints }) => {
       setNotice(
         claimedPoints > 0
-          ? `Зачислено ${claimedPoints} баллов за ${claimedLevels} пройденных уровней.`
+          ? `Зачислено ${claimedPoints} баллов за прохождения уровней.`
           : "Нет новых баллов для получения.",
       );
       void client.invalidateQueries({ queryKey: key });
@@ -399,23 +399,50 @@ const GamePage = () => {
                     onSelectBooster={setSelectedBooster}
                   />
                 )}
-                {!upcomingStory &&
-                  !epilogue &&
-                  active?.status !== "ACTIVE" &&
-                  progress.data?.currentLevel !== null && (
-                    <button
-                      type="button"
-                      disabled={start.isPending || move.isPending || restart.isPending}
-                      onClick={() => start.mutate()}
-                      className="mt-5 min-h-11 rounded-xl bg-cyan-300 px-5 font-semibold text-[#071022] transition hover:bg-cyan-200 disabled:opacity-50"
-                    >
-                      {start.isPending
-                        ? "Открываем…"
-                        : active?.status === "FAILED"
-                          ? "Начать заново"
-                          : "Играть"}
-                    </button>
-                  )}
+                {!upcomingStory && !epilogue && (
+                  <>
+                    {active?.status === "COMPLETE" && (
+                      <p className="mt-4 text-sm text-cyan-100">
+                        Можно пройти этот уровень ещё раз: снова получить 10 баллов и бустер.
+                      </p>
+                    )}
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      {active?.status === "COMPLETE" && (
+                        <button
+                          type="button"
+                          disabled={
+                            restart.isPending ||
+                            start.isPending ||
+                            move.isPending ||
+                            useBooster.isPending
+                          }
+                          onClick={() => restart.mutate()}
+                          className="min-h-11 rounded-xl border border-rose-200/30 bg-rose-200/10 px-5 font-semibold text-rose-100 transition hover:bg-rose-200/20 disabled:opacity-50"
+                        >
+                          {restart.isPending ? "Перезапускаем…" : "Начать заново"}
+                        </button>
+                      )}
+                      {active?.status !== "ACTIVE" &&
+                        progress.data &&
+                        progress.data.currentLevel !== null && (
+                          <button
+                            type="button"
+                            disabled={start.isPending || move.isPending || restart.isPending}
+                            onClick={() => start.mutate()}
+                            className="min-h-11 rounded-xl bg-cyan-300 px-5 font-semibold text-[#071022] transition hover:bg-cyan-200 disabled:opacity-50"
+                          >
+                            {start.isPending
+                              ? "Открываем…"
+                              : active?.status === "FAILED"
+                                ? "Начать заново"
+                                : active?.status === "COMPLETE"
+                                  ? "Следующий уровень"
+                                  : "Играть"}
+                          </button>
+                        )}
+                    </div>
+                  </>
+                )}
                 {progress.data && <ChapterProgress progress={progress.data} />}
               </>
             )}

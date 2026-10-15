@@ -17,10 +17,11 @@ import {
   applyMatch3Move,
   findMatch3Hint,
 } from "../src/features/game/match3/match3-engine.js";
+import { craftMatch3Booster } from "../src/features/game/match3/match3-inventory.js";
 import {
   claimMatch3Rewards,
-  craftMatch3Booster,
-} from "../src/features/game/match3/match3-inventory.js";
+  recordMatch3LevelReward,
+} from "../src/features/game/match3/match3-rewards.js";
 import { Prisma } from "../src/generated/prisma/client.js";
 
 const tile = (kind: Match3PartKey): Match3Tile => ({
@@ -101,11 +102,59 @@ test("question-mark hint returns a valid move that prioritizes the level target"
   assert.ok(suggestedMove.targetMatched > 0);
 });
 
-test("claiming pending level points is idempotent and creates one loyalty entry", async () => {
-  const pending = [{ points_awarded: 10 }, { points_awarded: 10 }];
+test("replaying a completed level adds a separate pending reward record", async () => {
+  let firstCompletionExists = false;
+  const completions: Array<Record<string, unknown>> = [];
+  const replayRewards: Array<Record<string, unknown>> = [];
+  const transaction = {
+    match3LevelCompletion: {
+      findUnique: async () =>
+        firstCompletionExists ? { id: "first-completion" } : null,
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        firstCompletionExists = true;
+        completions.push(data);
+      },
+    },
+    match3LevelReward: {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        replayRewards.push(data);
+      },
+    },
+  } as unknown as Prisma.TransactionClient;
+
+  await recordMatch3LevelReward(
+    transaction,
+    "customer-id",
+    "level-id",
+    4,
+    new Date("2026-10-15T12:00:00Z"),
+  );
+  await recordMatch3LevelReward(
+    transaction,
+    "customer-id",
+    "level-id",
+    5,
+    new Date("2026-10-15T12:05:00Z"),
+  );
+
+  assert.equal(completions.length, 1);
+  assert.equal(replayRewards.length, 1);
+  assert.equal(replayRewards[0]?.pointsAwarded, 10);
+  assert.equal(replayRewards[0]?.rewardClaimedAt, null);
+});
+
+test("claiming first and replay rewards is idempotent and creates one loyalty entry", async () => {
+  const firstPending = [{ points_awarded: 10 }, { points_awarded: 10 }];
+  const replayPending = [{ points_awarded: 10 }];
+  let queryCount = 0;
   const ledger: Array<{ points: number }> = [];
   const transaction = {
-    $queryRaw: async () => pending.splice(0),
+    $queryRaw: async () => {
+      queryCount += 1;
+      return queryCount % 2 === 1
+        ? firstPending.splice(0)
+        : replayPending.splice(0);
+    },
     loyaltyTransaction: {
       create: async ({ data }: { data: { points: number } }) => {
         ledger.push({ points: data.points });
@@ -114,14 +163,14 @@ test("claiming pending level points is idempotent and creates one loyalty entry"
   } as unknown as Prisma.TransactionClient;
 
   assert.deepEqual(await claimMatch3Rewards(transaction, "customer-id"), {
-    claimedLevels: 2,
-    claimedPoints: 20,
+    claimedLevels: 3,
+    claimedPoints: 30,
   });
   assert.deepEqual(await claimMatch3Rewards(transaction, "customer-id"), {
     claimedLevels: 0,
     claimedPoints: 0,
   });
-  assert.deepEqual(ledger, [{ points: 20 }]);
+  assert.deepEqual(ledger, [{ points: 30 }]);
 });
 
 test("crafting atomically spends the recipe parts and adds the booster", async () => {

@@ -239,14 +239,17 @@ completions, loyalty points, and rewards; the additive migration leaves existing
 
 Accepted matches add the cleared computer parts to the signed-in customer's `match3_inventory`.
 The player can spend recipe parts to craft a row rocket or a 3×3 pulse bomb; applying a booster
-consumes one item and one move. Each newly completed campaign level grants one booster gift
-(alternating rocket and pulse bomb by level number). The authenticated `POST /game/match3/hint`
+consumes one item and one move. Each completed level grants one booster gift (alternating rocket
+and pulse bomb by level number); replaying the current completed level grants another gift without
+resetting campaign progress. The authenticated `POST /game/match3/hint`
 returns a legal adjacent swap that prioritizes the level target without changing the board or using
 a move.
 
-Ten loyalty points per completed level are recorded as pending until the customer presses the
-claim button. `POST /game/match3/rewards/claim` atomically marks all that customer's pending level
+Ten loyalty points per level completion are recorded as pending until the customer presses the
+claim button. `POST /game/match3/rewards/claim` atomically marks pending first-completion and replay
 rewards and creates one loyalty-ledger entry in the same transaction. The customer can claim after
 any number of completed levels; unfinished levels are not claimable and the entire campaign need
-not be completed. Already-claimed rewards and completion rows remain unchanged. The additive
-`20261015160000_match3_boosters_and_claims` migration creates only the per-customer inventory table.
+not be completed. The original completion row remains the progression record, while replay rewards
+have their own claimable events; already-credited points are never issued again by a replay. The
+additive `20261015190000_match3_repeat_rewards` migration adds an event table without rewriting
+existing completions or loyalty transactions.

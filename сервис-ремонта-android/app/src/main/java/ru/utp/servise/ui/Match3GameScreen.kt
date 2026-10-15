@@ -174,7 +174,7 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
                 val result = withContext(Dispatchers.IO) { Match3Api.claimRewards(token) }
                 gameProgress = withContext(Dispatchers.IO) { Match3Api.progress(token) }
                 notice = if (result.claimedPoints > 0) {
-                    "Зачислено ${result.claimedPoints} баллов за ${result.claimedLevels} пройденных уровней."
+                    "Зачислено ${result.claimedPoints} баллов за прохождения уровней."
                 } else "Нет новых баллов для получения."
             } catch (failure: Exception) {
                 error = failure.message ?: "Не удалось получить баллы."
@@ -360,7 +360,7 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("🦝 Кампания", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                    Text("Пройдено $completed из 100 · ${snapshot.totalGamePoints} / ${snapshot.maximumGamePoints} баллов · к получению ${snapshot.pendingGamePoints}", fontSize = 13.sp, color = UtpMuted)
+                    Text("Пройдено $completed из 100 · заработано ${snapshot.totalGamePoints} баллов · к получению ${snapshot.pendingGamePoints}", fontSize = 13.sp, color = UtpMuted)
                     LinearProgressIndicator(
                         progress = { completed / 100f },
                         modifier = Modifier.fillMaxWidth(),
@@ -501,8 +501,9 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
                 Card(colors = CardDefaults.cardColors(containerColor = UtpMint)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Уровень ${active.level.number} пройден!", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                        Text("Баллы за уровень доступны для получения кнопкой «Забрать баллы».", fontSize = 13.sp, color = UtpMuted)
+                        Text("Награду за это прохождение можно забрать кнопкой «Забрать баллы». При повторном прохождении награды выдаются снова.", fontSize = 13.sp, color = UtpMuted)
                         if (completed < 100) Button(onClick = ::startLevel, enabled = !busy) { Text("Следующий уровень · ${completed + 1}") }
+                        Button(onClick = ::restartLevel, enabled = !busy) { Text("Начать заново") }
                     }
                 }
             } else if (active?.status == "FAILED") {

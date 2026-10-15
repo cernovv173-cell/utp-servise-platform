@@ -221,8 +221,10 @@ temporary passwords that must be changed on first sign-in; customer self-registr
 Customers can play the match-three computer-building game at `/game`. The menu entry is limited to
 customer accounts. The page resumes the current server-backed session, accepts adjacent tile swaps,
 shows the target and remaining moves, and offers another attempt or the next level after a finished
-session. The API owns level progression, rewards, and the board; this page does not award points
-locally. At a chapter boundary, a short scene with the existing raccoon mascot appears after the
+session. A completed level can be replayed with **Начать заново**; it does not reset other levels,
+and each replay earns another 10 pending loyalty points and one booster gift. The API owns level
+progression, rewards, and the board; this page does not award points locally. At a chapter boundary,
+a short scene with the existing raccoon mascot appears after the
 prior chapter is complete and before the next level is started. Confirming the scene only dismisses
 that card for the current page visit; the game API and the customer's saved level, session, and rewards
 remain unchanged. The four chapter-transition scenes can speak the raccoon's dialogue in Russian
@@ -239,8 +241,8 @@ saved in the signed-in customer's account and syncs across devices. A previously
 visor is transferred to that account the first time the garage loads. The server checks chapter
 unlock progress, and the choice does not affect play, points, rewards, or campaign progress.
 Accepted combinations add collected computer parts to the account inventory. Players can combine
-recipe parts into a row rocket or 3×3 pulse bomb, and receive one booster gift for each newly
-completed level. The `?` hint button asks the API for a valid target-focused move and highlights the
+recipe parts into a row rocket or 3×3 pulse bomb, and receive one booster gift each time a level is
+completed, including a replay of the current level. The `?` hint button asks the API for a valid target-focused move and highlights the
 two cells without spending a move. Ten points per completed level remain pending until the player
 presses **Забрать баллы**; that credits the general loyalty balance at any point in the campaign.
 Only completed levels count, and the player does not need to finish all 100 levels. Inventory,

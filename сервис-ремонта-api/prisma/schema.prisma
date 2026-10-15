@@ -163,6 +163,7 @@ model User {
   gameCompletions         GameEpisodeCompletion[]        @relation("GameEpisodeCompletionCustomer")
   match3GameSessions      Match3GameSession[]            @relation("Match3SessionCustomer")
   match3LevelCompletions  Match3LevelCompletion[]        @relation("Match3CompletionCustomer")
+  match3LevelRewards      Match3LevelReward[]            @relation("Match3RewardCustomer")
   match3Inventory         Match3Inventory[]
   createdBanners          SiteBanner[]                   @relation("BannerCreator")
   issuedReceipts          RepairReceipt[]                @relation("ReceiptIssuer")
@@ -921,6 +922,7 @@ model Match3Level {
   updatedAt   DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
   sessions    Match3GameSession[]
   completions Match3LevelCompletion[]
+  rewards     Match3LevelReward[]
 
   @@index([isActive, number])
   @@map("match3_levels")
@@ -959,6 +961,21 @@ model Match3LevelCompletion {
   @@unique([customerId, levelId])
   @@index([customerId, rewardClaimedAt, completedAt])
   @@map("match3_level_completions")
+}
+
+model Match3LevelReward {
+  id              String      @id @default(uuid()) @db.Uuid
+  customerId      String      @map("customer_id") @db.Uuid
+  levelId         String      @map("level_id") @db.Uuid
+  pointsAwarded   Int         @default(10) @map("points_awarded") @db.SmallInt
+  rewardClaimedAt DateTime?   @map("reward_claimed_at") @db.Timestamptz(3)
+  completedAt     DateTime    @default(now()) @map("completed_at") @db.Timestamptz(3)
+  customer        User        @relation("Match3RewardCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  level           Match3Level @relation(fields: [levelId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, rewardClaimedAt, completedAt])
+  @@index([customerId, levelId, completedAt])
+  @@map("match3_level_rewards")
 }
 
 model Match3Inventory {

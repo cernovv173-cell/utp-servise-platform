@@ -133,36 +133,3 @@ export const craftMatch3Booster = async (
     1,
   );
 };
-
-export const claimMatch3Rewards = async (
-  transaction: Prisma.TransactionClient,
-  customerId: string,
-): Promise<{ claimedLevels: number; claimedPoints: number }> => {
-  const claimed = await transaction.$queryRaw<
-    Array<{ points_awarded: number }>
-  >(
-    Prisma.sql`
-      UPDATE "match3_level_completions"
-      SET "reward_claimed_at" = CURRENT_TIMESTAMP
-      WHERE "customer_id" = ${customerId}::uuid
-        AND "reward_claimed_at" IS NULL
-      RETURNING "points_awarded"
-    `,
-  );
-  const claimedPoints = claimed.reduce(
-    (sum, row) => sum + row.points_awarded,
-    0,
-  );
-  if (claimedPoints > 0) {
-    await transaction.loyaltyTransaction.create({
-      data: {
-        customerId,
-        actorId: customerId,
-        type: "GAME_REWARD",
-        points: claimedPoints,
-        reason: `Игра «Помоги еноту собрать компьютер»: награда за ${claimed.length} пройденных уровней`,
-      },
-    });
-  }
-  return { claimedLevels: claimed.length, claimedPoints };
-};

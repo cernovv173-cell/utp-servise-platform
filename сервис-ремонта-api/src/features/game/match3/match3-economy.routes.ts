@@ -9,11 +9,8 @@ import {
   requireRoles,
 } from "../../auth/auth.middleware.js";
 import { MATCH3_BOOSTER_KEYS, isMatch3BoosterKey } from "./match3-boosters.js";
-import {
-  claimMatch3Rewards,
-  craftMatch3Booster,
-  getMatch3Inventory,
-} from "./match3-inventory.js";
+import { craftMatch3Booster, getMatch3Inventory } from "./match3-inventory.js";
+import { claimMatch3Rewards } from "./match3-rewards.js";
 
 const boosterSchema = z.object({
   boosterId: z.string().refine(isMatch3BoosterKey),

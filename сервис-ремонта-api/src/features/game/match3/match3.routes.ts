@@ -50,8 +50,8 @@ export const createMatch3Router = (database: DatabaseClient): Router => {
     ...customerOnly,
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
-      const [levels, completions, activeSession, inventory] = await Promise.all(
-        [
+      const [levels, completions, replayRewards, activeSession, inventory] =
+        await Promise.all([
           database.match3Level.findMany({
             where: { isActive: true },
             orderBy: { number: "asc" },
@@ -60,37 +60,47 @@ export const createMatch3Router = (database: DatabaseClient): Router => {
             where: { customerId: user.id },
             include: { level: { select: { number: true } } },
           }),
+          database.match3LevelReward.findMany({
+            where: { customerId: user.id },
+            include: { level: { select: { number: true } } },
+          }),
           database.match3GameSession.findFirst({
-            where: { customerId: user.id, status: "ACTIVE" },
+            where: {
+              customerId: user.id,
+              status: { in: ["ACTIVE", "FAILED", "COMPLETE"] },
+            },
             include: { level: true },
             orderBy: { createdAt: "desc" },
           }),
           getMatch3Inventory(database, user.id),
-        ],
-      );
+        ]);
       const completedNumbers = new Set(
         completions.map((completion) => completion.level.number),
       );
+      const pointsByLevel = new Map<number, number>();
+      for (const reward of [...completions, ...replayRewards]) {
+        pointsByLevel.set(
+          reward.level.number,
+          (pointsByLevel.get(reward.level.number) ?? 0) + reward.pointsAwarded,
+        );
+      }
       const next = nextLevelNumber(completedNumbers);
       response.json({
         levels: levels.map((level) => ({
           ...serializeMatch3Level(level),
           isCompleted: completedNumbers.has(level.number),
           isUnlocked: next !== null && level.number <= next,
-          pointsAwarded:
-            completions.find(
-              (completion) => completion.level.number === level.number,
-            )?.pointsAwarded ?? 0,
+          pointsAwarded: pointsByLevel.get(level.number) ?? 0,
         })),
         completedCount: completedNumbers.size,
         currentLevel: next,
-        totalGamePoints: completions.reduce(
-          (total, completion) => total + completion.pointsAwarded,
+        totalGamePoints: [...completions, ...replayRewards].reduce(
+          (total, reward) => total + reward.pointsAwarded,
           0,
         ),
-        pendingGamePoints: completions
-          .filter((completion) => completion.rewardClaimedAt === null)
-          .reduce((total, completion) => total + completion.pointsAwarded, 0),
+        pendingGamePoints: [...completions, ...replayRewards]
+          .filter((reward) => reward.rewardClaimedAt === null)
+          .reduce((total, reward) => total + reward.pointsAwarded, 0),
         maximumGamePoints: MATCH3_TOTAL_POINTS,
         inventory,
         boosterCatalog: MATCH3_BOOSTER_KEYS.map((id) => ({

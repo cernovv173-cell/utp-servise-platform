@@ -61,17 +61,12 @@ fun Match3DailyPuzzleScreen(userId: String, onBack: () -> Unit) {
         }
     }
 
-    fun selectTile(row: Int, column: Int) {
-        val first = selected
-        if (first == null || first == (row to column)) {
-            selected = if (first == null) row to column else null
-            return
-        }
+    fun completeMove(first: Pair<Int, Int>, second: Pair<Int, Int>) {
+        val (row, column) = second
         if (kotlin.math.abs(first.first - row) + kotlin.math.abs(first.second - column) != 1) {
-            selected = row to column
+            selected = second
             return
         }
-
         val solved = Match3DailyChallenge.isSuccessfulMove(
             board,
             Match3Position(first.first, first.second),
@@ -85,6 +80,16 @@ fun Match3DailyPuzzleScreen(userId: String, onBack: () -> Unit) {
         } else {
             message = "Эта пара не собирает три в ряд. Попробуй другой соседний обмен."
         }
+    }
+
+    fun selectTile(row: Int, column: Int) {
+        val position = row to column
+        val first = selected
+        if (first == null || first == position) {
+            selected = if (first == null) position else null
+            return
+        }
+        completeMove(first, position)
     }
 
     Column(
@@ -115,6 +120,10 @@ fun Match3DailyPuzzleScreen(userId: String, onBack: () -> Unit) {
                     selected = selected,
                     enabled = !completed,
                     onTileSelected = ::selectTile,
+                    onTileSwiped = { fromRow, fromColumn, toRow, toColumn ->
+                        selected = null
+                        completeMove(fromRow to fromColumn, toRow to toColumn)
+                    },
                 )
                 if (message.isNotBlank()) {
                     Text(

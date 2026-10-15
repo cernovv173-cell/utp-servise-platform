@@ -34,6 +34,7 @@ import {
   incrementMatch3Item,
   recordMatchedParts,
 } from "./match3-inventory.js";
+import { recordMatch3LevelReward } from "./match3-rewards.js";
 import { serializeMatch3Session } from "./match3-serialization.js";
 
 const moveSchema = z.object({
@@ -72,16 +73,13 @@ const completeMatch3Level = async (
   targetCollected: number,
   completedAt: Date,
 ): Promise<Match3BoosterKey> => {
-  await transaction.match3LevelCompletion.create({
-    data: {
-      customerId,
-      levelId,
-      targetCollected,
-      pointsAwarded: MATCH3_POINTS_PER_LEVEL,
-      rewardClaimedAt: null,
-      completedAt,
-    },
-  });
+  await recordMatch3LevelReward(
+    transaction,
+    customerId,
+    levelId,
+    targetCollected,
+    completedAt,
+  );
   const boosterAwarded = giftForCompletedLevel(levelNumber);
   await incrementMatch3Item(
     transaction,
@@ -107,7 +105,7 @@ export const createMatch3PlayRouter = (database: DatabaseClient): Router => {
         where: {
           id: sessionId,
           customerId: user.id,
-          status: { in: ["ACTIVE", "FAILED"] },
+          status: { in: ["ACTIVE", "FAILED", "COMPLETE"] },
         },
         include: { level: true },
       });
@@ -119,23 +117,6 @@ export const createMatch3PlayRouter = (database: DatabaseClient): Router => {
         );
       }
 
-      const completion = await database.match3LevelCompletion.findUnique({
-        where: {
-          customerId_levelId: {
-            customerId: user.id,
-            levelId: previous.levelId,
-          },
-        },
-        select: { id: true },
-      });
-      if (completion) {
-        throw new HttpError(
-          409,
-          "GAME_LEVEL_ALREADY_COMPLETED",
-          "Пройденный уровень и его награды нельзя сбросить.",
-        );
-      }
-
       try {
         const restarted = await database.$transaction(async (transaction) => {
           const closed = await transaction.match3GameSession.updateMany({
@@ -144,7 +125,9 @@ export const createMatch3PlayRouter = (database: DatabaseClient): Router => {
               customerId: user.id,
               status: previous.status,
             },
-            data: { status: "ABANDONED" },
+            data: {
+              status: previous.status === "COMPLETE" ? "REPLAYED" : "ABANDONED",
+            },
           });
           if (closed.count !== 1) {
             throw new HttpError(
