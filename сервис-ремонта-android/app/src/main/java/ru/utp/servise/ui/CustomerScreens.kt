@@ -70,6 +70,7 @@ fun CustomerHomeScreen(
     onLoyalty: () -> Unit,
     onCampaignNavigate: (String) -> Unit,
     onContactAdministrator: () -> Unit,
+    onMatch3Game: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -89,6 +90,17 @@ fun CustomerHomeScreen(
             }
         }
         Spacer(Modifier.height(23.dp))
+        Card(onClick = onMatch3Game, shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🦝", fontSize = 34.sp)
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text("Помоги еноту собрать компьютер", fontWeight = FontWeight.Bold, color = UtpInk)
+                    Text("100 уровней · продолжай с любого устройства", fontSize = 12.sp, color = UtpMuted)
+                }
+                Text("›", fontSize = 24.sp, color = UtpMuted)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
         banners.filter { it.placements.contains("HOME") }.forEach { banner ->
             CampaignBannerCard(banner, token, onCampaignNavigate)
         }
