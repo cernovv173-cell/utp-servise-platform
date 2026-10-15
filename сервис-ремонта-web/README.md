@@ -215,3 +215,10 @@ before technician assignment. Service lines and paid financial documents keep th
 lifecycle safeguards. The staff section of `/admin` can create technician accounts with one-time
 temporary passwords that must be changed on first sign-in; customer self-registration remains on
 `/login` and cannot create staff or administrator accounts.
+
+Customers can play the match-three computer-building game at `/game`. The menu entry is limited to
+customer accounts. The page resumes the current server-backed session, accepts adjacent tile swaps,
+shows the target and remaining moves, and offers another attempt or the next level after a finished
+session. The API owns level progression, rewards, and the board; this page does not award points
+locally. The current base uses the existing raccoon mascot and forest artwork. Additional narrative
+and art refinements are not part of this base.

@@ -8,6 +8,7 @@ import {
   Cpu,
   ExternalLink,
   FileText,
+  Gamepad2,
   Home,
   Laptop,
   LifeBuoy,
@@ -41,6 +42,7 @@ const links = [
   { to: "/checks", label: "Чеки и номера", icon: FileText },
   { to: "/news", label: "Новости", icon: Newspaper },
   { to: "/loyalty", label: "Бонусы", icon: Star },
+  { to: "/game", label: "Игра", icon: Gamepad2 },
   { to: "/salary", label: "Зарплата", icon: Wallet },
   { to: "/crafts", label: "Ручная работа", icon: Sparkles },
   { to: "/about", label: "О компании", icon: UsersRound },
@@ -114,7 +116,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
     if (link.to === "/advertising") return user.role === "ADMIN";
     if (link.to === "/catalog" || link.to === "/salary")
       return user.role === "TECHNICIAN" || user.role === "ADMIN";
-    if (link.to === "/loyalty") return user.role === "CUSTOMER";
+    if (link.to === "/loyalty" || link.to === "/game") return user.role === "CUSTOMER";
     if (link.to === "/devices") return user.role === "CUSTOMER";
     return true;
   });
