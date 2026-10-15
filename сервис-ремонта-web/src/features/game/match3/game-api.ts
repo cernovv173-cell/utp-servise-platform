@@ -14,6 +14,21 @@ export type Match3Tile = {
 
 export type Match3Position = { row: number; column: number };
 export type Match3Board = Match3Tile[][];
+export type Match3Hint = { from: Match3Position; to: Match3Position };
+export type Match3BoosterKey = "row_rocket" | "pulse_bomb";
+
+export type Match3Inventory = {
+  parts: Record<Match3PartKey, number>;
+  boosters: Record<Match3BoosterKey, number>;
+};
+
+export type Match3BoosterDefinition = {
+  id: Match3BoosterKey;
+  name: string;
+  icon: string;
+  description: string;
+  recipe: { part: Match3PartKey; name: string; icon: string; quantity: number }[];
+};
 
 export type Match3Chapter = {
   number: number;
@@ -54,7 +69,10 @@ export type Match3Progress = {
   completedCount: number;
   currentLevel: number | null;
   totalGamePoints: number;
+  pendingGamePoints: number;
   maximumGamePoints: number;
+  inventory: Match3Inventory;
+  boosterCatalog: Match3BoosterDefinition[];
   activeSession: Match3Session | null;
 };
 
@@ -64,6 +82,7 @@ export type Match3MoveResponse = {
   obstaclesCleared?: number;
   obstaclesUnlocked?: number;
   pointsAwarded?: number;
+  boosterAwarded?: Match3BoosterKey | null;
   gameComplete?: boolean;
   session: Match3Session;
 };
@@ -98,11 +117,51 @@ export const updateMatch3CosmeticPreference = (token: string, cosmeticId: Raccoo
 export const startMatch3Level = (token: string) =>
   apiRequest<{ session: Match3Session }>("/game/match3/start", token, { method: "POST" });
 
+export const restartMatch3Level = (token: string, sessionId: string) =>
+  apiRequest<{ session: Match3Session }>("/game/match3/restart", token, {
+    method: "POST",
+    body: JSON.stringify({ sessionId }),
+  });
+
+export const getMatch3Hint = (token: string, sessionId: string) =>
+  apiRequest<{ hint: Match3Hint | null }>("/game/match3/hint", token, {
+    method: "POST",
+    body: JSON.stringify({ sessionId }),
+  });
+
 export const makeMatch3Move = (
   token: string,
   input: { sessionId: string; from: Match3Position; to: Match3Position },
 ) =>
   apiRequest<Match3MoveResponse>("/game/match3/move", token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const claimMatch3Rewards = (token: string) =>
+  apiRequest<{ claimedLevels: number; claimedPoints: number }>(
+    "/game/match3/rewards/claim",
+    token,
+    { method: "POST" },
+  );
+
+export const craftMatch3Booster = (token: string, boosterId: Match3BoosterKey) =>
+  apiRequest<{ boosterId: Match3BoosterKey; inventory: Match3Inventory }>(
+    "/game/match3/booster/craft",
+    token,
+    { method: "POST", body: JSON.stringify({ boosterId }) },
+  );
+
+export const applyMatch3Booster = (
+  token: string,
+  input: {
+    sessionId: string;
+    boosterId: Match3BoosterKey;
+    row: number;
+    column: number;
+  },
+) =>
+  apiRequest<Match3MoveResponse>("/game/match3/booster/use", token, {
     method: "POST",
     body: JSON.stringify(input),
   });

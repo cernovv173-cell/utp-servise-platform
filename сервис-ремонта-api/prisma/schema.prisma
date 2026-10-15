@@ -163,6 +163,7 @@ model User {
   gameCompletions         GameEpisodeCompletion[]        @relation("GameEpisodeCompletionCustomer")
   match3GameSessions      Match3GameSession[]            @relation("Match3SessionCustomer")
   match3LevelCompletions  Match3LevelCompletion[]        @relation("Match3CompletionCustomer")
+  match3Inventory         Match3Inventory[]
   createdBanners          SiteBanner[]                   @relation("BannerCreator")
   issuedReceipts          RepairReceipt[]                @relation("ReceiptIssuer")
   issuedCraftReceipts     CraftOrderReceipt[]            @relation("CraftReceiptIssuer")
@@ -958,6 +959,19 @@ model Match3LevelCompletion {
   @@unique([customerId, levelId])
   @@index([customerId, rewardClaimedAt, completedAt])
   @@map("match3_level_completions")
+}
+
+model Match3Inventory {
+  id         String   @id @default(uuid()) @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  itemKey    String   @map("item_key") @db.VarChar(32)
+  quantity   Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer   User     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@unique([customerId, itemKey])
+  @@map("match3_inventory")
 }
 
 model SiteBanner {

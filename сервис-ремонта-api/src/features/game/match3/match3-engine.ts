@@ -1,7 +1,8 @@
+import type { Match3BoosterKey } from "./match3-boosters.js";
 import {
   MATCH3_PARTS,
-  getMatch3ObstaclePlan,
   type Match3PartKey,
+  getMatch3ObstaclePlan,
 } from "./match3-content.js";
 
 export const MATCH3_BOARD_SIZE = 8;
@@ -16,11 +17,13 @@ export type Match3Tile = {
 export type Match3Board = Match3Tile[][];
 
 export type Match3Position = { row: number; column: number };
+export type Match3Hint = { from: Match3Position; to: Match3Position };
 
 export type Match3MoveResult = {
   accepted: boolean;
   board: Match3Board;
   targetMatched: number;
+  partsMatched: Record<Match3PartKey, number>;
   obstaclesCleared: number;
   obstaclesUnlocked: number;
 };
@@ -37,11 +40,28 @@ const emptyTile = (): Match3Tile => ({
 const randomPart = (): Match3PartKey =>
   MATCH3_PARTS[Math.floor(Math.random() * MATCH3_PARTS.length)]!.key;
 
-const canMatch = (tile: Match3Tile | undefined): tile is Match3Tile & {
+const emptyPartCounts = (): Record<Match3PartKey, number> =>
+  Object.fromEntries(MATCH3_PARTS.map(({ key }) => [key, 0])) as Record<
+    Match3PartKey,
+    number
+  >;
+
+const rejectedMove = (board: Match3Board): Match3MoveResult => ({
+  accepted: false,
+  board,
+  targetMatched: 0,
+  partsMatched: emptyPartCounts(),
+  obstaclesCleared: 0,
+  obstaclesUnlocked: 0,
+});
+
+const canMatch = (
+  tile: Match3Tile | undefined,
+): tile is Match3Tile & {
   kind: Match3PartKey;
 } => Boolean(tile?.kind && !tile.junk && !tile.frozen);
 
-const shuffle = <T,>(items: T[]): T[] => {
+const shuffle = <T>(items: T[]): T[] => {
   const result = [...items];
   for (let index = result.length - 1; index > 0; index -= 1) {
     const other = Math.floor(Math.random() * (index + 1));
@@ -56,10 +76,7 @@ export const createMatch3Board = (levelNumber: number): Match3Board => {
     const line: Match3Tile[] = [];
     for (let column = 0; column < MATCH3_BOARD_SIZE; column += 1) {
       const forbidden = new Set<Match3PartKey>();
-      if (
-        column >= 2 &&
-        line[column - 1]?.kind === line[column - 2]?.kind
-      ) {
+      if (column >= 2 && line[column - 1]?.kind === line[column - 2]?.kind) {
         forbidden.add(line[column - 1]!.kind!);
       }
       if (
@@ -100,7 +117,11 @@ export const createMatch3Board = (levelNumber: number): Match3Board => {
     }
   };
 
-  place(plan.frozen, (tile) => !tile.frozen, (tile) => ({ ...tile, frozen: true }));
+  place(
+    plan.frozen,
+    (tile) => !tile.frozen,
+    (tile) => ({ ...tile, frozen: true }),
+  );
   place(
     plan.junk,
     (tile) => !tile.frozen && !tile.junk,
@@ -144,7 +165,10 @@ const findMatches = (board: Match3Board): Set<string> => {
 
   for (let row = 0; row < MATCH3_BOARD_SIZE; row += 1) {
     scan(
-      Array.from({ length: MATCH3_BOARD_SIZE }, (_, column) => ({ row, column })),
+      Array.from({ length: MATCH3_BOARD_SIZE }, (_, column) => ({
+        row,
+        column,
+      })),
     );
   }
   for (let column = 0; column < MATCH3_BOARD_SIZE; column += 1) {
@@ -200,6 +224,7 @@ const resolveMatches = (
   targetPart: Match3PartKey,
 ): Omit<Match3MoveResult, "accepted"> => {
   let targetMatched = 0;
+  const partsMatched = emptyPartCounts();
   let obstaclesCleared = 0;
   let obstaclesUnlocked = 0;
   let matches = findMatches(board);
@@ -211,6 +236,7 @@ const resolveMatches = (
     for (const key of matches) {
       const [row, column] = key.split(":").map(Number) as [number, number];
       const tile = board[row]![column]!;
+      if (tile.kind) partsMatched[tile.kind] += 1;
       if (tile.kind === targetPart) targetMatched += 1;
       neighborsOf(row, column).forEach(({ row: nextRow, column: nextColumn }) =>
         affected.add(`${nextRow}:${nextColumn}`),
@@ -251,7 +277,13 @@ const resolveMatches = (
     matches = findMatches(board);
     cascades += 1;
   }
-  return { board, targetMatched, obstaclesCleared, obstaclesUnlocked };
+  return {
+    board,
+    targetMatched,
+    partsMatched,
+    obstaclesCleared,
+    obstaclesUnlocked,
+  };
 };
 
 export const applyMatch3Move = (
@@ -271,19 +303,131 @@ export const applyMatch3Move = (
   const adjacent =
     Math.abs(from.row - to.row) + Math.abs(from.column - to.column) === 1;
   if (!validPosition(from) || !validPosition(to) || !adjacent) {
-    return { accepted: false, board, targetMatched: 0, obstaclesCleared: 0, obstaclesUnlocked: 0 };
+    return rejectedMove(board);
   }
   const first = board[from.row]?.[from.column];
   const second = board[to.row]?.[to.column];
   if (!canMatch(first) || !canMatch(second)) {
-    return { accepted: false, board, targetMatched: 0, obstaclesCleared: 0, obstaclesUnlocked: 0 };
+    return rejectedMove(board);
   }
   board[from.row]![from.column] = second;
   board[to.row]![to.column] = first;
   if (findMatches(board).size === 0) {
-    return { accepted: false, board: sourceBoard, targetMatched: 0, obstaclesCleared: 0, obstaclesUnlocked: 0 };
+    return rejectedMove(sourceBoard);
   }
   return { accepted: true, ...resolveMatches(board, targetPart) };
+};
+
+export const findMatch3Hint = (
+  board: Match3Board,
+  targetPart: Match3PartKey,
+): Match3Hint | null => {
+  let fallback: Match3Hint | null = null;
+  let bestTargetMatch = 0;
+  for (let row = 0; row < MATCH3_BOARD_SIZE; row += 1) {
+    for (let column = 0; column < MATCH3_BOARD_SIZE; column += 1) {
+      const from = { row, column };
+      for (const to of [
+        ...(column < MATCH3_BOARD_SIZE - 1
+          ? [{ row, column: column + 1 }]
+          : []),
+        ...(row < MATCH3_BOARD_SIZE - 1 ? [{ row: row + 1, column }] : []),
+      ]) {
+        if (
+          !canMatch(board[from.row]?.[from.column]) ||
+          !canMatch(board[to.row]?.[to.column])
+        ) {
+          continue;
+        }
+        const next = board.map((line) => line.map((tile) => ({ ...tile })));
+        [next[from.row]![from.column], next[to.row]![to.column]] = [
+          next[to.row]![to.column]!,
+          next[from.row]![from.column]!,
+        ];
+        const matches = findMatches(next);
+        if (matches.size === 0) continue;
+        const hint = { from, to };
+        fallback ??= hint;
+        const targetMatches = [...matches].filter((key) => {
+          const [matchedRow, matchedColumn] = key.split(":").map(Number) as [
+            number,
+            number,
+          ];
+          return next[matchedRow]![matchedColumn]!.kind === targetPart;
+        }).length;
+        if (targetMatches > bestTargetMatch) {
+          bestTargetMatch = targetMatches;
+          fallback = hint;
+        }
+      }
+    }
+  }
+  return fallback;
+};
+
+export const applyMatch3Booster = (
+  sourceBoard: Match3Board,
+  targetPart: Match3PartKey,
+  boosterId: Match3BoosterKey,
+  target: Match3Position,
+): Match3MoveResult => {
+  if (
+    !Number.isInteger(target.row) ||
+    !Number.isInteger(target.column) ||
+    target.row < 0 ||
+    target.row >= MATCH3_BOARD_SIZE ||
+    target.column < 0 ||
+    target.column >= MATCH3_BOARD_SIZE
+  ) {
+    return rejectedMove(sourceBoard);
+  }
+
+  const board = sourceBoard.map((line) => line.map((tile) => ({ ...tile })));
+  const cells =
+    boosterId === "row_rocket"
+      ? Array.from({ length: MATCH3_BOARD_SIZE }, (_, column) => ({
+          row: target.row,
+          column,
+        }))
+      : Array.from({ length: MATCH3_BOARD_SIZE }, (_, row) =>
+          Array.from({ length: MATCH3_BOARD_SIZE }, (_, column) => ({
+            row,
+            column,
+          })).filter(
+            ({ row: targetRow, column: targetColumn }) =>
+              Math.abs(targetRow - target.row) <= 1 &&
+              Math.abs(targetColumn - target.column) <= 1,
+          ),
+        ).flat();
+
+  const partsMatched = emptyPartCounts();
+  let targetMatched = 0;
+  let obstaclesCleared = 0;
+  let obstaclesUnlocked = 0;
+  for (const { row, column } of cells) {
+    const tile = board[row]![column]!;
+    if (tile.kind && !tile.junk) {
+      partsMatched[tile.kind] += 1;
+      if (tile.kind === targetPart) targetMatched += 1;
+    }
+    if (tile.junk) obstaclesCleared += 1;
+    if (tile.frozen) obstaclesUnlocked += 1;
+    board[row]![column] = emptyTile();
+  }
+
+  collapseBoard(board);
+  const cascade = resolveMatches(board, targetPart);
+  for (const part of MATCH3_PARTS) {
+    partsMatched[part.key] += cascade.partsMatched[part.key];
+  }
+  return {
+    accepted: true,
+    board: cascade.board,
+    targetMatched: targetMatched + cascade.targetMatched,
+    partsMatched,
+    obstaclesCleared: obstaclesCleared + cascade.obstaclesCleared,
+    obstaclesUnlocked: obstaclesUnlocked + cascade.obstaclesUnlocked,
+  };
 };
 
 export const isMatch3Board = (value: unknown): value is Match3Board =>
@@ -298,10 +442,12 @@ export const isMatch3Board = (value: unknown): value is Match3Board =>
           typeof tile === "object" &&
           tile !== null &&
           "kind" in tile &&
-          (tile.kind === null || (typeof tile.kind === "string" && partKeys.has(tile.kind))) &&
+          (tile.kind === null ||
+            (typeof tile.kind === "string" && partKeys.has(tile.kind))) &&
           typeof tile.frozen === "boolean" &&
           typeof tile.junk === "boolean" &&
           (tile.anomalyTurns === null ||
-            (typeof tile.anomalyTurns === "number" && Number.isInteger(tile.anomalyTurns))),
+            (typeof tile.anomalyTurns === "number" &&
+              Number.isInteger(tile.anomalyTurns))),
       ),
   );

@@ -34,6 +34,8 @@ data class Match3Tile(
     val anomalyTurns: Int?,
 )
 
+data class Match3Hint(val from: Match3Position, val to: Match3Position)
+
 data class Match3Session(
     val id: String,
     val board: List<List<Match3Tile>>,
@@ -50,6 +52,24 @@ data class Match3Progress(
     val totalGamePoints: Int,
     val maximumGamePoints: Int,
     val activeSession: Match3Session?,
+    val pendingGamePoints: Int = 0,
+    val inventory: Match3Inventory = Match3Inventory(),
+    val boosterCatalog: List<Match3BoosterDefinition> = emptyList(),
+)
+
+data class Match3Inventory(
+    val parts: Map<String, Int> = emptyMap(),
+    val boosters: Map<String, Int> = emptyMap(),
+)
+
+data class Match3RecipePart(val part: String, val name: String, val icon: String, val quantity: Int)
+
+data class Match3BoosterDefinition(
+    val id: String,
+    val name: String,
+    val icon: String,
+    val description: String,
+    val recipe: List<Match3RecipePart>,
 )
 
 data class Match3MoveResult(
@@ -58,7 +78,10 @@ data class Match3MoveResult(
     val pointsAwarded: Int,
     val gameComplete: Boolean,
     val session: Match3Session,
+    val boosterAwarded: String? = null,
 )
+
+data class Match3ClaimResult(val claimedLevels: Int, val claimedPoints: Int)
 
 object Match3Api {
     fun progress(token: String): Match3Progress =
@@ -67,6 +90,25 @@ object Match3Api {
     fun start(token: String): Match3Session =
         ApiClient.request("POST", "/game/match3/start", token, JSONObject())
             .getJSONObject("session").toMatch3Session()
+
+    fun restart(token: String, sessionId: String): Match3Session =
+        ApiClient.request(
+            "POST", "/game/match3/restart", token,
+            JSONObject().put("sessionId", sessionId),
+        ).getJSONObject("session").toMatch3Session()
+
+    fun hint(token: String, sessionId: String): Match3Hint? {
+        val json = ApiClient.request(
+            "POST", "/game/match3/hint", token, JSONObject().put("sessionId", sessionId),
+        )
+        val hint = json.optJSONObject("hint") ?: return null
+        val from = hint.getJSONObject("from")
+        val to = hint.getJSONObject("to")
+        return Match3Hint(
+            from = Match3Position(from.optInt("row"), from.optInt("column")),
+            to = Match3Position(to.optInt("row"), to.optInt("column")),
+        )
+    }
 
     fun move(token: String, sessionId: String, fromRow: Int, fromColumn: Int, toRow: Int, toColumn: Int): Match3MoveResult {
         val body = JSONObject()
@@ -80,6 +122,38 @@ object Match3Api {
             pointsAwarded = json.optInt("pointsAwarded"),
             gameComplete = json.optBoolean("gameComplete"),
             session = json.getJSONObject("session").toMatch3Session(),
+            boosterAwarded = json.optString("boosterAwarded").takeUnless { it.isBlank() || it == "null" },
+        )
+    }
+
+    fun claimRewards(token: String): Match3ClaimResult {
+        val json = ApiClient.request("POST", "/game/match3/rewards/claim", token, JSONObject())
+        return Match3ClaimResult(json.optInt("claimedLevels"), json.optInt("claimedPoints"))
+    }
+
+    fun craftBooster(token: String, boosterId: String) {
+        ApiClient.request(
+            "POST", "/game/match3/booster/craft", token,
+            JSONObject().put("boosterId", boosterId),
+        )
+    }
+
+    fun useBooster(token: String, sessionId: String, boosterId: String, row: Int, column: Int): Match3MoveResult {
+        val json = ApiClient.request(
+            "POST", "/game/match3/booster/use", token,
+            JSONObject()
+                .put("sessionId", sessionId)
+                .put("boosterId", boosterId)
+                .put("row", row)
+                .put("column", column),
+        )
+        return Match3MoveResult(
+            accepted = json.optBoolean("accepted"),
+            targetMatched = json.optInt("targetMatched"),
+            pointsAwarded = json.optInt("pointsAwarded"),
+            gameComplete = json.optBoolean("gameComplete"),
+            session = json.getJSONObject("session").toMatch3Session(),
+            boosterAwarded = json.optString("boosterAwarded").takeUnless { it.isBlank() || it == "null" },
         )
     }
 
@@ -107,6 +181,39 @@ private fun JSONObject.toMatch3Progress() = Match3Progress(
     totalGamePoints = optInt("totalGamePoints"),
     maximumGamePoints = optInt("maximumGamePoints"),
     activeSession = if (isNull("activeSession")) null else getJSONObject("activeSession").toMatch3Session(),
+    pendingGamePoints = optInt("pendingGamePoints"),
+    inventory = optJSONObject("inventory")?.toMatch3Inventory() ?: Match3Inventory(),
+    boosterCatalog = optJSONArray("boosterCatalog")?.objects()?.map { it.toMatch3Booster() }.orEmpty(),
+)
+
+private fun JSONObject.toMatch3Inventory(): Match3Inventory = Match3Inventory(
+    parts = optJSONObject("parts")?.toIntMap().orEmpty(),
+    boosters = optJSONObject("boosters")?.toIntMap().orEmpty(),
+)
+
+private fun JSONObject.toIntMap(): Map<String, Int> {
+    val result = mutableMapOf<String, Int>()
+    val keys = keys()
+    while (keys.hasNext()) {
+        val key = keys.next()
+        result[key] = optInt(key)
+    }
+    return result
+}
+
+private fun JSONObject.toMatch3Booster() = Match3BoosterDefinition(
+    id = optString("id"),
+    name = optString("name"),
+    icon = optString("icon"),
+    description = optString("description"),
+    recipe = optJSONArray("recipe")?.objects()?.map { item ->
+        Match3RecipePart(
+            part = item.optString("part"),
+            name = item.optString("name"),
+            icon = item.optString("icon"),
+            quantity = item.optInt("quantity"),
+        )
+    }.orEmpty(),
 )
 
 private fun JSONObject.toMatch3Session(): Match3Session {

@@ -8,13 +8,21 @@ import { useAuth } from "@/features/auth/auth-context";
 import { getMatch3Epilogue, getUpcomingChapterStory } from "@/features/game/match3/chapter-stories";
 import { ChapterStoryScene } from "@/features/game/match3/chapter-story-scene";
 import {
+  type Match3BoosterKey,
+  type Match3Hint,
   type Match3Position,
   type Match3Session,
+  applyMatch3Booster,
+  claimMatch3Rewards,
+  craftMatch3Booster,
+  getMatch3Hint,
   getMatch3Progress,
   makeMatch3Move,
+  restartMatch3Level,
   startMatch3Level,
 } from "@/features/game/match3/game-api";
 import { GameBoard } from "@/features/game/match3/game-board";
+import { GameEconomyPanel } from "@/features/game/match3/game-economy-panel";
 import { GameEpilogueScene } from "@/features/game/match3/game-epilogue-scene";
 import {
   ChapterProgress,
@@ -38,6 +46,8 @@ const GamePage = () => {
   const { token, user } = useAuth();
   const client = useQueryClient();
   const [session, setSession] = useState<Match3Session | null>(null);
+  const [selectedBooster, setSelectedBooster] = useState<Match3BoosterKey | null>(null);
+  const [hint, setHint] = useState<Match3Hint | null>(null);
   const [notice, setNotice] = useState("");
   const [seenStories, setSeenStories] = useState<{
     userId: string | null;
@@ -107,14 +117,47 @@ const GamePage = () => {
     setNotice(error.message);
     void client.invalidateQueries({ queryKey: key });
   };
+  const hintRequest = useMutation({
+    mutationFn: () => {
+      if (!active) throw new Error("Сначала начните уровень.");
+      return getMatch3Hint(token!, active.id);
+    },
+    onSuccess: ({ hint: nextHint }) => {
+      setHint(nextHint);
+      setNotice(
+        nextHint
+          ? "Поменяйте местами две подсвеченные фишки. Подсказка не расходует ход."
+          : "Подходящий ход не найден. Попробуйте перезапустить уровень.",
+      );
+    },
+    onError,
+  });
   const start = useMutation({
     mutationFn: () => startMatch3Level(token!),
     onSuccess: ({ session: next }) => {
       setSession(next);
+      setHint(null);
       client.setQueryData<Awaited<ReturnType<typeof getMatch3Progress>>>(key, (previous) =>
         previous ? { ...previous, activeSession: next } : previous,
       );
       setNotice("");
+      void client.invalidateQueries({ queryKey: key });
+    },
+    onError,
+  });
+  const restart = useMutation({
+    mutationFn: () => {
+      if (!active) throw new Error("Нет уровня для перезапуска.");
+      return restartMatch3Level(token!, active.id);
+    },
+    onSuccess: ({ session: next }) => {
+      setSession(next);
+      setHint(null);
+      setSelectedBooster(null);
+      client.setQueryData<Awaited<ReturnType<typeof getMatch3Progress>>>(key, (previous) =>
+        previous ? { ...previous, activeSession: next } : previous,
+      );
+      setNotice("Уровень начат заново. Пройденные этапы, баллы и бустеры сохранены.");
       void client.invalidateQueries({ queryKey: key });
     },
     onError,
@@ -124,6 +167,7 @@ const GamePage = () => {
       makeMatch3Move(token!, { sessionId: active!.id, from, to }),
     onSuccess: (result) => {
       setSession(result.session);
+      if (result.accepted) setHint(null);
       client.setQueryData<Awaited<ReturnType<typeof getMatch3Progress>>>(key, (previous) =>
         previous ? { ...previous, activeSession: result.session } : previous,
       );
@@ -137,14 +181,58 @@ const GamePage = () => {
           : !result.accepted
             ? "Этот обмен не создаёт комбинацию. Попробуйте другую пару."
             : result.session.status === "COMPLETE"
-              ? "Уровень пройден! Награда начислена."
+              ? `Уровень пройден! Баллы готовы к получению кнопкой ниже.${result.boosterAwarded ? ` Подарок: ${result.boosterAwarded === "row_rocket" ? "🚀 Ракета" : "💥 Импульсная бомба"}.` : ""}`
               : result.session.status === "FAILED"
                 ? "Ходы закончились. Попробуйте ещё раз."
                 : result.targetMatched
                   ? `Собрано деталей: +${result.targetMatched}`
                   : "Комбинация собрана!",
       );
-      if (result.session.status !== "ACTIVE") void client.invalidateQueries({ queryKey: key });
+      if (result.accepted) void client.invalidateQueries({ queryKey: key });
+    },
+    onError,
+  });
+  const claim = useMutation({
+    mutationFn: () => claimMatch3Rewards(token!),
+    onSuccess: ({ claimedLevels, claimedPoints }) => {
+      setNotice(
+        claimedPoints > 0
+          ? `Зачислено ${claimedPoints} баллов за ${claimedLevels} пройденных уровней.`
+          : "Нет новых баллов для получения.",
+      );
+      void client.invalidateQueries({ queryKey: key });
+      void client.invalidateQueries({ queryKey: ["loyalty", token] });
+    },
+    onError,
+  });
+  const craft = useMutation({
+    mutationFn: (boosterId: Match3BoosterKey) => craftMatch3Booster(token!, boosterId),
+    onSuccess: ({ boosterId }) => {
+      setNotice(
+        `Бустер собран: ${boosterId === "row_rocket" ? "🚀 Ракета" : "💥 Импульсная бомба"}.`,
+      );
+      void client.invalidateQueries({ queryKey: key });
+    },
+    onError,
+  });
+  const useBooster = useMutation({
+    mutationFn: ({ boosterId, target }: { boosterId: Match3BoosterKey; target: Match3Position }) =>
+      applyMatch3Booster(token!, {
+        sessionId: active!.id,
+        boosterId,
+        row: target.row,
+        column: target.column,
+      }),
+    onSuccess: (result) => {
+      setSession(result.session);
+      setSelectedBooster(null);
+      setHint(null);
+      setNotice(
+        result.session.status === "COMPLETE"
+          ? `Уровень пройден бустером! Баллы доступны для получения.${result.boosterAwarded ? ` Подарок: ${result.boosterAwarded === "row_rocket" ? "🚀 Ракета" : "💥 Импульсная бомба"}.` : ""}`
+          : "Бустер применён: он очистил клетки поля и потратил один ход.",
+      );
+      void client.invalidateQueries({ queryKey: key });
     },
     onError,
   });
@@ -236,11 +324,55 @@ const GamePage = () => {
                 )}
                 {!upcomingStory && !epilogue && active?.status === "ACTIVE" && (
                   <div className="mt-5">
+                    <div className="mb-3 flex flex-wrap justify-end gap-2">
+                      <button
+                        type="button"
+                        aria-label="Показать подсказку следующего хода"
+                        disabled={
+                          hintRequest.isPending ||
+                          move.isPending ||
+                          useBooster.isPending ||
+                          restart.isPending ||
+                          tutorialVisible
+                        }
+                        onClick={() => hintRequest.mutate()}
+                        className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-amber-200/35 bg-amber-200/10 px-3 text-sm font-semibold text-amber-100 transition hover:bg-amber-200/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <span className="grid size-7 place-items-center rounded-full border border-amber-200/50 font-bold">
+                          ?
+                        </span>
+                        {hintRequest.isPending ? "Ищем ход…" : "Подсказка"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={
+                          restart.isPending ||
+                          move.isPending ||
+                          useBooster.isPending ||
+                          tutorialVisible
+                        }
+                        onClick={() => restart.mutate()}
+                        className="min-h-10 rounded-xl border border-rose-200/30 bg-rose-200/10 px-3 text-sm font-semibold text-rose-100 transition hover:bg-rose-200/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {restart.isPending ? "Перезапускаем…" : "Начать заново"}
+                      </button>
+                    </div>
                     <GameBoard
                       key={active.id}
                       session={active}
-                      disabled={move.isPending || (tutorialVisible && tutorialStep === 1)}
+                      disabled={
+                        move.isPending ||
+                        useBooster.isPending ||
+                        restart.isPending ||
+                        (tutorialVisible && tutorialStep === 1)
+                      }
                       onMove={(from, to) => move.mutate({ from, to })}
+                      boosterSelected={selectedBooster !== null}
+                      onBoosterTarget={(target) => {
+                        if (selectedBooster)
+                          useBooster.mutate({ boosterId: selectedBooster, target });
+                      }}
+                      hint={hint}
                     />
                   </div>
                 )}
@@ -249,20 +381,38 @@ const GamePage = () => {
                     {notice}
                   </p>
                 )}
+                {progress.data && (
+                  <GameEconomyPanel
+                    progress={progress.data}
+                    selectedBooster={selectedBooster}
+                    canUseBoosters={Boolean(
+                      active?.status === "ACTIVE" &&
+                      !upcomingStory &&
+                      !epilogue &&
+                      !tutorialVisible &&
+                      !restart.isPending,
+                    )}
+                    isClaiming={claim.isPending}
+                    craftingBooster={craft.isPending ? craft.variables : null}
+                    onClaim={() => claim.mutate()}
+                    onCraft={(boosterId) => craft.mutate(boosterId)}
+                    onSelectBooster={setSelectedBooster}
+                  />
+                )}
                 {!upcomingStory &&
                   !epilogue &&
                   active?.status !== "ACTIVE" &&
                   progress.data?.currentLevel !== null && (
                     <button
                       type="button"
-                      disabled={start.isPending || move.isPending}
+                      disabled={start.isPending || move.isPending || restart.isPending}
                       onClick={() => start.mutate()}
                       className="mt-5 min-h-11 rounded-xl bg-cyan-300 px-5 font-semibold text-[#071022] transition hover:bg-cyan-200 disabled:opacity-50"
                     >
                       {start.isPending
                         ? "Открываем…"
                         : active?.status === "FAILED"
-                          ? "Попробовать снова"
+                          ? "Начать заново"
                           : "Играть"}
                     </button>
                   )}

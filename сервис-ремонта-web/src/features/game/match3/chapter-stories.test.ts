@@ -21,6 +21,46 @@ const secondChapter: Match3Chapter = {
   description: "Сборка платы.",
 };
 
+const emptyInventory = {
+  parts: {
+    processor: 0,
+    ram: 0,
+    ssd: 0,
+    cooling: 0,
+    gpu: 0,
+    motherboard: 0,
+    power: 0,
+    case: 0,
+  },
+  boosters: { row_rocket: 0, pulse_bomb: 0 },
+};
+
+const boosterCatalog = [
+  {
+    id: "row_rocket" as const,
+    name: "Ракета",
+    icon: "🚀",
+    description: "Очищает ряд.",
+    recipe: [
+      { part: "processor" as const, name: "Процессор", icon: "🧠", quantity: 2 },
+      { part: "gpu" as const, name: "Видеокарта", icon: "🎮", quantity: 2 },
+      { part: "power" as const, name: "Блок питания", icon: "⚡", quantity: 1 },
+    ],
+  },
+  {
+    id: "pulse_bomb" as const,
+    name: "Импульсная бомба",
+    icon: "💥",
+    description: "Очищает область 3 × 3.",
+    recipe: [
+      { part: "ram" as const, name: "Память", icon: "🧩", quantity: 2 },
+      { part: "ssd" as const, name: "SSD", icon: "💽", quantity: 2 },
+      { part: "cooling" as const, name: "Охлаждение", icon: "🌀", quantity: 1 },
+      { part: "case" as const, name: "Корпус", icon: "🖥️", quantity: 1 },
+    ],
+  },
+];
+
 const makeProgress = (
   options: {
     currentLevel?: number | null;
@@ -48,7 +88,10 @@ const makeProgress = (
     completedCount: completedLevels.length,
     currentLevel: options.currentLevel === undefined ? 3 : options.currentLevel,
     totalGamePoints: completedLevels.length * 10,
+    pendingGamePoints: 0,
     maximumGamePoints: 40,
+    inventory: emptyInventory,
+    boosterCatalog,
     activeSession: null,
   };
 };
@@ -90,7 +133,10 @@ const makeCompletedProgress = (completedCount = 100): Match3Progress => {
     completedCount,
     currentLevel: completedCount === 100 ? null : completedCount + 1,
     totalGamePoints: completedCount * 10,
+    pendingGamePoints: 0,
     maximumGamePoints: 1000,
+    inventory: emptyInventory,
+    boosterCatalog,
     activeSession: null,
   };
 };

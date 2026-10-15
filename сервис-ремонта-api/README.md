@@ -234,3 +234,19 @@ legacy browser selection only when the account has no saved choice, so another d
 overwrite an existing preference. The server validates visor unlocks against that customer's
 completed levels. `users.match3_cosmetic_id` is nullable and independent of game sessions, level
 completions, loyalty points, and rewards; the additive migration leaves existing accounts unchanged.
+
+# Match-three boosters and reward claims
+
+Accepted matches add the cleared computer parts to the signed-in customer's `match3_inventory`.
+The player can spend recipe parts to craft a row rocket or a 3×3 pulse bomb; applying a booster
+consumes one item and one move. Each newly completed campaign level grants one booster gift
+(alternating rocket and pulse bomb by level number). The authenticated `POST /game/match3/hint`
+returns a legal adjacent swap that prioritizes the level target without changing the board or using
+a move.
+
+Ten loyalty points per completed level are recorded as pending until the customer presses the
+claim button. `POST /game/match3/rewards/claim` atomically marks all that customer's pending level
+rewards and creates one loyalty-ledger entry in the same transaction. The customer can claim after
+any number of completed levels; unfinished levels are not claimable and the entire campaign need
+not be completed. Already-claimed rewards and completion rows remain unchanged. The additive
+`20261015160000_match3_boosters_and_claims` migration creates only the per-customer inventory table.

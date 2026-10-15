@@ -40,6 +40,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.Match3Api
+import ru.utp.servise.data.Match3Hint
 import ru.utp.servise.data.Match3Progress
 import ru.utp.servise.data.Match3Session
 
@@ -72,7 +73,9 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
     }
     var gameProgress by remember(token) { mutableStateOf<Match3Progress?>(null) }
     var session by remember(token) { mutableStateOf<Match3Session?>(null) }
+    var gameHint by remember(token) { mutableStateOf<Match3Hint?>(null) }
     var selected by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var selectedBooster by remember { mutableStateOf<String?>(null) }
     var selectedVisor by remember(token) { mutableStateOf("default") }
     var loading by remember(token) { mutableStateOf(true) }
     var busy by remember { mutableStateOf(false) }
@@ -130,6 +133,8 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
             try {
                 session = withContext(Dispatchers.IO) { Match3Api.start(token) }
                 selected = null
+                selectedBooster = null
+                gameHint = null
             } catch (failure: Exception) {
                 error = failure.message ?: "Не удалось начать уровень."
             } finally {
@@ -138,9 +143,118 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
         }
     }
 
-    fun chooseTile(row: Int, column: Int) {
+    fun restartLevel() {
         val active = session ?: return
-        val first = selected
+        scope.launch {
+            busy = true
+            error = null
+            notice = null
+            try {
+                session = withContext(Dispatchers.IO) {
+                    Match3Api.restart(token, active.id)
+                }
+                gameProgress = withContext(Dispatchers.IO) { Match3Api.progress(token) }
+                selected = null
+                selectedBooster = null
+                gameHint = null
+                notice = "Уровень начат заново. Пройденные этапы, баллы и бустеры сохранены."
+            } catch (failure: Exception) {
+                error = failure.message ?: "Не удалось начать уровень заново."
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun claimGamePoints() {
+        scope.launch {
+            busy = true
+            error = null
+            try {
+                val result = withContext(Dispatchers.IO) { Match3Api.claimRewards(token) }
+                gameProgress = withContext(Dispatchers.IO) { Match3Api.progress(token) }
+                notice = if (result.claimedPoints > 0) {
+                    "Зачислено ${result.claimedPoints} баллов за ${result.claimedLevels} пройденных уровней."
+                } else "Нет новых баллов для получения."
+            } catch (failure: Exception) {
+                error = failure.message ?: "Не удалось получить баллы."
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun showMoveHint() {
+        val active = session ?: return
+        scope.launch {
+            busy = true
+            error = null
+            try {
+                gameHint = withContext(Dispatchers.IO) { Match3Api.hint(token, active.id) }
+                notice = if (gameHint == null) {
+                    "Подходящий ход не найден. Попробуйте перезапустить уровень."
+                } else {
+                    "Поменяйте местами подсвеченные фишки. Подсказка не расходует ход."
+                }
+            } catch (failure: Exception) {
+                error = failure.message ?: "Не удалось получить подсказку."
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun craftBooster(boosterId: String) {
+        scope.launch {
+            busy = true
+            error = null
+            try {
+                withContext(Dispatchers.IO) { Match3Api.craftBooster(token, boosterId) }
+                gameProgress = withContext(Dispatchers.IO) { Match3Api.progress(token) }
+                val name = gameProgress?.boosterCatalog?.firstOrNull { it.id == boosterId }?.name ?: "бустер"
+                notice = "Собран бустер «$name»."
+            } catch (failure: Exception) {
+                error = failure.message ?: "Не удалось собрать бустер."
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun useBooster(row: Int, column: Int) {
+        val active = session ?: return
+        val boosterId = selectedBooster ?: return
+        scope.launch {
+            busy = true
+            error = null
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    Match3Api.useBooster(token, active.id, boosterId, row, column)
+                }
+                session = result.session
+                selected = null
+                selectedBooster = null
+                gameHint = null
+                gameProgress = withContext(Dispatchers.IO) { Match3Api.progress(token) }
+                notice = if (result.pointsAwarded > 0) {
+                    "Уровень пройден! Баллы готовы к получению."
+                } else "Бустер применён: очищена область поля, потрачен один ход."
+            } catch (failure: Exception) {
+                error = failure.message ?: "Не удалось применить бустер."
+            } finally {
+                busy = false
+            }
+        }
+    }
+
+    fun chooseTile(row: Int, column: Int, swipeFrom: Pair<Int, Int>? = null) {
+        val active = session ?: return
+        gameHint = null
+        if (selectedBooster != null) {
+            useBooster(row, column)
+            return
+        }
+        val first = swipeFrom ?: selected
         if (first == null || first == (row to column)) {
             selected = if (first == null) row to column else null
             return
@@ -161,7 +275,12 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
                 selected = null
                 if (result.accepted) {
                     gameProgress = withContext(Dispatchers.IO) { Match3Api.progress(token) }
-                    if (result.pointsAwarded > 0) notice = "Уровень пройден! Получено ${result.pointsAwarded} баллов."
+                    if (result.pointsAwarded > 0) {
+                        val gift = result.boosterAwarded?.let { id ->
+                            gameProgress?.boosterCatalog?.firstOrNull { it.id == id }?.name
+                        }
+                        notice = "Уровень пройден! ${result.pointsAwarded} баллов готовы к получению.${gift?.let { " Подарок: $it." }.orEmpty()}"
+                    }
                 } else {
                     notice = "Обмен без совпадения — попробуйте соседние фишки."
                 }
@@ -241,13 +360,23 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
             Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("🦝 Кампания", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                    Text("Пройдено $completed из 100 · ${snapshot.totalGamePoints} / ${snapshot.maximumGamePoints} баллов", fontSize = 13.sp, color = UtpMuted)
+                    Text("Пройдено $completed из 100 · ${snapshot.totalGamePoints} / ${snapshot.maximumGamePoints} баллов · к получению ${snapshot.pendingGamePoints}", fontSize = 13.sp, color = UtpMuted)
                     LinearProgressIndicator(
                         progress = { completed / 100f },
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
+
+            Match3EconomyPanel(
+                progress = snapshot,
+                selectedBooster = selectedBooster,
+                canUseBoosters = session?.status == "ACTIVE" && story == null && !showEpilogue,
+                busy = busy,
+                onClaim = ::claimGamePoints,
+                onCraft = ::craftBooster,
+                onSelectBooster = { selectedBooster = it },
+            )
 
             Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
                 Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
@@ -325,15 +454,54 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
                             progress = { (active.targetCollected.toFloat() / active.level.targetCount.coerceAtLeast(1)).coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        Match3Board(active.board, selected, !busy && active.status == "ACTIVE", ::chooseTile)
-                        Text("Осталось ходов: ${active.level.moveLimit - active.movesUsed}. Выберите соседние фишки для обмена.", fontSize = 12.sp, color = UtpMuted)
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            OutlinedButton(
+                                onClick = ::showMoveHint,
+                                enabled = !busy && active.status == "ACTIVE",
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text("❔ Подсказка")
+                            }
+                            OutlinedButton(
+                                onClick = ::restartLevel,
+                                enabled = !busy && active.status == "ACTIVE",
+                                modifier = Modifier.weight(1f),
+                            ) {
+                                Text("Начать заново")
+                            }
+                        }
+                        Text(
+                            "Перезапускается только этот уровень; пройденные этапы и награды сохраняются.",
+                            fontSize = 12.sp,
+                            color = UtpMuted,
+                        )
+                        Match3Board(
+                            active.board,
+                            selected,
+                            !busy && active.status == "ACTIVE",
+                            onTileSelected = { row, column -> chooseTile(row, column) },
+                            onTileSwiped = { fromRow, fromColumn, toRow, toColumn ->
+                                chooseTile(toRow, toColumn, fromRow to fromColumn)
+                            },
+                            swipingEnabled = selectedBooster == null,
+                            hint = gameHint,
+                        )
+                        Text(
+                            if (selectedBooster != null) "Нажмите клетку, чтобы применить бустер."
+                            else "Осталось ходов: ${active.level.moveLimit - active.movesUsed}. Выберите соседние фишки для обмена.",
+                            fontSize = 12.sp,
+                            color = UtpMuted,
+                        )
                     }
                 }
             } else if (active?.status == "COMPLETE") {
                 Card(colors = CardDefaults.cardColors(containerColor = UtpMint)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Уровень ${active.level.number} пройден!", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                        Text("Сервер сохранил результат и начислил награду.", fontSize = 13.sp, color = UtpMuted)
+                        Text("Баллы за уровень доступны для получения кнопкой «Забрать баллы».", fontSize = 13.sp, color = UtpMuted)
                         if (completed < 100) Button(onClick = ::startLevel, enabled = !busy) { Text("Следующий уровень · ${completed + 1}") }
                     }
                 }
@@ -342,7 +510,7 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
                     Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Попробуем ещё раз?", fontWeight = FontWeight.Bold, color = UtpInk)
                         Text("Начните уровень заново — прохождение кампании не изменится.", fontSize = 13.sp, color = UtpMuted)
-                        Button(onClick = ::startLevel, enabled = !busy) { Text("Повторить уровень") }
+                        Button(onClick = ::startLevel, enabled = !busy) { Text("Начать заново") }
                     }
                 }
             } else if (snapshot.currentLevel != null) {

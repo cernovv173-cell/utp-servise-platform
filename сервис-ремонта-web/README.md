@@ -238,6 +238,13 @@ progress. `/game/garage` unlocks cosmetic raccoon visors at chapter completion; 
 saved in the signed-in customer's account and syncs across devices. A previously selected local
 visor is transferred to that account the first time the garage loads. The server checks chapter
 unlock progress, and the choice does not affect play, points, rewards, or campaign progress.
+Accepted combinations add collected computer parts to the account inventory. Players can combine
+recipe parts into a row rocket or 3×3 pulse bomb, and receive one booster gift for each newly
+completed level. The `?` hint button asks the API for a valid target-focused move and highlights the
+two cells without spending a move. Ten points per completed level remain pending until the player
+presses **Забрать баллы**; that credits the general loyalty balance at any point in the campaign.
+Only completed levels count, and the player does not need to finish all 100 levels. Inventory,
+completion rewards, and claims are server-backed; Web does not award them locally.
 `/game/daily` offers a reproducible one-match
 puzzle that resets on the Moscow calendar date; only its completion marker is stored separately in
 the browser and it does not call campaign move or reward endpoints.
