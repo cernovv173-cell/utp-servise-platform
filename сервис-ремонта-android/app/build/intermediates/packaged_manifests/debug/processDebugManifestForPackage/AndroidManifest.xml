@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="ru.utp.servise"
-    android:versionCode="20"
-    android:versionName="1.3.6" >
+    android:versionCode="23"
+    android:versionName="1.3.9" >
 
     <uses-sdk
         android:minSdkVersion="26"
         android:targetSdkVersion="35" />
 
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-
     <queries>
-
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
+        </intent>
         <!-- For available browsers request -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -21,10 +19,12 @@
             <category android:name="android.intent.category.BROWSABLE" />
 
             <data android:scheme="https" />
-        </intent>
-        <!-- For auth with vk client -->
+        </intent> <!-- For auth with vk client -->
         <intent>
             <action android:name="com.vk.silentauth.action.GET_INFO" />
+        </intent>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
         </intent>
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -45,12 +45,10 @@
         <package android:name="ru.yandex.key" /> <!-- Яндекс Ключ -->
         <package android:name="ru.yandex.auth.client" />
     </queries>
-    <queries>
-        <intent>
-            <action android:name="android.support.customtabs.action.CustomTabsService" />
-        </intent>
-    </queries>
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required by older versions of Google Play services to create IID tokens -->
     <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />

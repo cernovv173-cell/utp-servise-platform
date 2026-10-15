@@ -1,5 +1,6 @@
 package ru.utp.servise.ui
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -25,11 +26,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,6 +45,8 @@ import ru.utp.servise.data.Match3Session
 
 private data class ChapterStory(val afterLevel: Int, val chapter: String, val narration: String, val dialogue: String)
 private data class Visor(val id: String, val title: String, val icon: String, val unlockAt: Int)
+private const val RACCOON_VOICE_PREFERENCES = "match3_raccoon_voice_v1"
+private const val RACCOON_EPILOGUE_DIALOGUE = "Мы сделали это! Спасибо, что помог мне собрать компьютер мечты!"
 
 private val chapterStories = listOf(
     ChapterStory(20, "Материнская плата", "Последняя пластина встаёт на место. Енот проверяет корпус: тот звенит, как маленький колокол, и ни одна деталь не шатается.", "Теперь нужны дорожки, которые соединят все части. В корнях старого леса спрятана материнская плата!"),
@@ -61,6 +66,10 @@ private val visors = listOf(
 
 @Composable
 fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Unit) {
+    val context = LocalContext.current
+    val voicePreferences = remember(context) {
+        context.getSharedPreferences(RACCOON_VOICE_PREFERENCES, Context.MODE_PRIVATE)
+    }
     var gameProgress by remember(token) { mutableStateOf<Match3Progress?>(null) }
     var session by remember(token) { mutableStateOf<Match3Session?>(null) }
     var selected by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -72,7 +81,30 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
     var dismissedStories by remember { mutableStateOf(emptySet<Int>()) }
     var epilogueDismissed by remember { mutableStateOf(false) }
     var reloadVersion by remember(token) { mutableStateOf(0) }
+    var voiceEnabled by remember(context) { mutableStateOf(voicePreferences.getBoolean("enabled", false)) }
+    var speechAvailable by remember { mutableStateOf<Boolean?>(null) }
+    var isSpeaking by remember { mutableStateOf(false) }
+    val speech = remember(context) {
+        RaccoonSpeech(
+            context = context,
+            onAvailabilityChanged = { speechAvailable = it },
+            onSpeakingChanged = { isSpeaking = it },
+        )
+    }
     val scope = rememberCoroutineScope()
+
+    DisposableEffect(speech) {
+        onDispose { speech.shutdown() }
+    }
+
+    fun repeatRaccoonLine(line: String) {
+        if (voiceEnabled && speechAvailable == true) speech.speak(line)
+    }
+
+    fun setVoiceEnabled(enabled: Boolean) {
+        voiceEnabled = enabled
+        voicePreferences.edit().putBoolean("enabled", enabled).apply()
+    }
 
     LaunchedEffect(token, reloadVersion) {
         loading = true
@@ -161,6 +193,19 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
         chapterStories.firstOrNull { it.afterLevel == completed && it.afterLevel !in dismissedStories }
     } else null
     val showEpilogue = completed >= 100 && !epilogueDismissed
+    val dialogueToSpeak = when {
+        story != null -> story.dialogue
+        showEpilogue -> RACCOON_EPILOGUE_DIALOGUE
+        else -> null
+    }
+
+    LaunchedEffect(dialogueToSpeak, voiceEnabled) {
+        if (voiceEnabled && dialogueToSpeak != null) {
+            speech.speak(dialogueToSpeak)
+        } else {
+            speech.stop()
+        }
+    }
 
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
@@ -239,7 +284,14 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Глава ${(scene.afterLevel / 20) + 1} · ${scene.chapter}", fontWeight = FontWeight.Bold, color = UtpInk)
                         Text(scene.narration, fontSize = 13.sp, lineHeight = 19.sp, color = UtpMuted)
-                        Text("🦝 «${scene.dialogue}»", fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                        RaccoonDialogueControls(
+                            dialogue = scene.dialogue,
+                            voiceEnabled = voiceEnabled,
+                            speechAvailable = speechAvailable,
+                            isSpeaking = isSpeaking,
+                            onVoiceEnabledChange = ::setVoiceEnabled,
+                            onRepeat = { repeatRaccoonLine(scene.dialogue) },
+                        )
                         TextButton(onClick = { dismissedStories = dismissedStories + scene.afterLevel }) { Text("Продолжить") }
                     }
                 }
@@ -250,7 +302,14 @@ fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Uni
                     Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Компьютер ожил!", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                         Text("Последняя деталь встаёт на место, и мастерскую озаряет мягкий свет. Енот улыбается: его компьютер собран — от первого корпуса до последнего провода.", fontSize = 13.sp, lineHeight = 19.sp, color = UtpMuted)
-                        Text("🦝 «Мы сделали это! Спасибо, что помог мне собрать компьютер мечты!»", fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                        RaccoonDialogueControls(
+                            dialogue = RACCOON_EPILOGUE_DIALOGUE,
+                            voiceEnabled = voiceEnabled,
+                            speechAvailable = speechAvailable,
+                            isSpeaking = isSpeaking,
+                            onVoiceEnabledChange = ::setVoiceEnabled,
+                            onRepeat = { repeatRaccoonLine(RACCOON_EPILOGUE_DIALOGUE) },
+                        )
                         TextButton(onClick = { epilogueDismissed = true }) { Text("В мастерскую") }
                     }
                 }
