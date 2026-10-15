@@ -99,6 +99,11 @@ internal fun Match3EconomyPanel(
                 fontSize = 12.sp,
                 color = UtpMuted,
             )
+            Text(
+                "Игровые баллы — не деньги: после получения они попадут в бонусный баланс. 1 балл даёт 1 ₽ скидки на услуги ремонта, максимум 30% стоимости услуг; вывести или перевести баллы нельзя.",
+                fontSize = 12.sp,
+                color = UtpMuted,
+            )
             Button(
                 onClick = onClaim,
                 enabled = progress.pendingGamePoints > 0 && !busy,

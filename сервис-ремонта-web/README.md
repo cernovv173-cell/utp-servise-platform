@@ -99,7 +99,7 @@ print action, which prints that order's receipt rather than the whole list.
 On `/crafts`, administrators assign an active technician and set the quoted price before completing
 a craft request. Completion creates a service number, a receipt snapshot, and a salary entry at the
 technician's saved rate; craft salary is included in the regular salary summaries. Before payment,
-the customer may apply available bonuses up to 30% of the receipt. An administrator records the
+bonus points cannot be redeemed against craft orders. An administrator records the
 payment method after receiving payment outside the app, and the customer then receives 5% of the
 remaining cash amount as bonus points. This is not an online-payment flow.
 
@@ -143,7 +143,11 @@ delivered after the site is closed.
 In `/checks`, only administrators can apply customer loyalty bonuses to an unpaid repair receipt.
 The server caps redemption at 30% of service lines only; spare parts and craft-product orders are
 not eligible. The receipt identifies the redeemed amount on its own “Оплата бонусами” line, and
-customers can view it without being able to initiate redemption.
+customers can view it without being able to initiate redemption. One point equals one ruble of
+discount, but points are not cash and cannot be withdrawn or transferred. Repair receipts earn 10%
+of the amount paid in cash, craft orders earn 5% after payment, and the game awards 10 points per
+claimed level. Preventive work qualifies only when included in a repair order as a service line and
+uses the same 30% limit.
 
 Customer and administrator order cards show a Code 128 barcode generated from the order's existing
 unique service number. The barcode is derived at display time, so it adds no database field and does
@@ -243,7 +247,7 @@ unlock progress, and the choice does not affect play, points, rewards, or campai
 Accepted combinations add collected computer parts to the account inventory. Players can combine
 recipe parts into a row rocket or 3×3 pulse bomb, and receive one booster gift each time a level is
 completed, including a replay of the current level. The `?` hint button asks the API for a valid target-focused move and highlights the
-two cells without spending a move. Ten points per completed level remain pending until the player
+two cells without spending a move. Ten non-cash bonus points per completed level remain pending until the player
 presses **Забрать баллы**; that credits the general loyalty balance at any point in the campaign.
 Only completed levels count, and the player does not need to finish all 100 levels. Inventory,
 completion rewards, and claims are server-backed; Web does not award them locally.

@@ -21,7 +21,7 @@ const LoyaltyPage = () => {
       <PageTitle
         eyebrow="БОНУСЫ"
         title="Программа лояльности"
-        description="Начисляем 10% после подтверждения фактической оплаты. Один балл равен одному рублю; по чеку можно списать не более 30% его суммы."
+        description="Это бонусные баллы, а не денежный баланс. Их нельзя вывести или перевести; ими можно получить скидку на услуги ремонта."
       />
       <CampaignPlacement placement="LOYALTY" className="mb-5" />
       <SectionCard className="max-w-3xl">
@@ -30,16 +30,35 @@ const LoyaltyPage = () => {
             <Star fill="currentColor" />
           </span>
           <div>
-            <p className="text-sm text-slate-500">Доступный баланс</p>
+            <p className="text-sm text-slate-500">Баланс бонусных баллов</p>
             <h2 className="mt-1 text-3xl font-semibold">
               {(query.data?.balance ?? 0).toLocaleString("ru-RU")} баллов
             </h2>
             <p className="mt-2 text-sm text-slate-500">
-              Списание и начисление фиксируются после того, как администратор отметит чек как
-              оплаченный. Онлайн-оплата не подключена.
+              1 балл = 1 ₽ скидки на услуги ремонта. Баллы не являются наличными и не подлежат
+              выводу или переводу.
             </p>
           </div>
         </div>
+      </SectionCard>
+      <SectionCard className="mt-4 max-w-3xl">
+        <h2 className="font-semibold">Как начисляются и используются баллы</h2>
+        <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-500">
+          <li>За оплаченный ремонт начисляется 10% от суммы, оплаченной деньгами.</li>
+          <li>За оплаченный заказ изделия начисляется 5% от денежной оплаты.</li>
+          <li>
+            В игре за успешное прохождение уровня выдаётся 10 баллов. Их нужно отдельно забрать в
+            игре, после чего они попадут в этот бонусный баланс.
+          </li>
+          <li>
+            Списать можно до 30% стоимости строк «Услуга» в завершённом ремонте с неоплаченным
+            чеком. Запчасти, товары и заказные изделия бонусами не оплачиваются.
+          </li>
+          <li>
+            Профилактическая работа учитывается, если сервис включил её в заказ как услугу;
+            действует тот же лимит. Списание оформляет администратор до оплаты чека.
+          </li>
+        </ul>
       </SectionCard>
       <h2 className="mt-7 mb-3 font-semibold">История операций</h2>
       <div className="grid gap-2">
@@ -63,7 +82,7 @@ const LoyaltyPage = () => {
               className={`shrink-0 text-sm font-semibold ${entry.points < 0 ? "text-amber-700 dark:text-amber-300" : "text-emerald-700 dark:text-emerald-300"}`}
             >
               {entry.points > 0 ? "+" : ""}
-              {entry.points} ₽
+              {entry.points} баллов
             </span>
           </SectionCard>
         ))}
@@ -77,8 +96,8 @@ const LoyaltyPage = () => {
       </div>
       <p className="mt-4 flex items-start gap-2 text-xs leading-5 text-slate-400">
         <Info size={15} className="mt-0.5 shrink-0" />
-        Бонусы учитываются в приложении и не заменяют кассовый чек или подтверждение фактической
-        оплаты.
+        Баллы нельзя обналичить, перевести другому клиенту или вывести на карту. Они учитываются
+        только в программе лояльности и не заменяют чек или оплату деньгами.
       </p>
     </AppShell>
   );

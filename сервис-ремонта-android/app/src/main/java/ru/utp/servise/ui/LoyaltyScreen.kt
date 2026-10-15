@@ -44,8 +44,18 @@ fun LoyaltyScreen(
         Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Text("Бонусный баланс", fontSize = 13.sp, color = UtpMuted)
-                Text("${account.balance} ₽", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = UtpBlue, modifier = Modifier.padding(top = 4.dp))
-                Text("Начисляем 10% после подтверждения оплаты чека. При оплате можно списать не более 30% его суммы.", fontSize = 13.sp, color = UtpMuted, lineHeight = 19.sp, modifier = Modifier.padding(top = 8.dp))
+                Text("${account.balance} баллов", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = UtpBlue, modifier = Modifier.padding(top = 4.dp))
+                Text("1 балл = 1 ₽ скидки на услуги ремонта. Баллы нельзя вывести или перевести.", fontSize = 13.sp, color = UtpMuted, lineHeight = 19.sp, modifier = Modifier.padding(top = 8.dp))
+            }
+        }
+        Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("Как начисляются и используются баллы", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text("• 10% от суммы ремонта, оплаченной деньгами, после подтверждения оплаты.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
+                Text("• 5% от денежной оплаты заказного изделия.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
+                Text("• В игре за пройденный уровень начисляется 10 баллов; их нужно забрать в игре.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
+                Text("• В завершённом ремонте с неоплаченным чеком администратор может списать до 30% стоимости услуг. Запчасти, товары и заказные изделия не оплачиваются баллами.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
+                Text("• Профилактическая работа подходит, если оформлена в заказе как услуга; действует тот же лимит. Баллы не обналичиваются, не переводятся и не выводятся.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
             }
         }
         Text("История начислений и списаний", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.padding(top = 6.dp))
@@ -58,7 +68,7 @@ fun LoyaltyScreen(
                         val date = runCatching { Instant.parse(entry.createdAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString() }.getOrDefault(entry.createdAt.take(10))
                         Text(listOfNotNull(date, entry.serviceNumber).joinToString(" · "), fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
                     }
-                    Text("${if (entry.points > 0) "+" else ""}${entry.points} ₽", color = if (entry.points >= 0) UtpBlue else androidx.compose.material3.MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text("${if (entry.points > 0) "+" else ""}${entry.points} баллов", color = if (entry.points >= 0) UtpBlue else androidx.compose.material3.MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             }
         }

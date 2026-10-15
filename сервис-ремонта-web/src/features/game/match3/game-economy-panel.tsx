@@ -128,6 +128,10 @@ export const GameEconomyPanel = ({
           : `Забрать баллы${progress.pendingGamePoints ? ` · ${progress.pendingGamePoints}` : ""}`}
       </button>
     </div>
+    <p className="mt-2 text-xs leading-5 text-slate-300">
+      Игровые баллы — не деньги: после получения они попадут в бонусный баланс и дадут скидку на
+      услуги ремонта (1 балл = 1 ₽, максимум 30% стоимости услуг). Вывести или перевести их нельзя.
+    </p>
     {selectedBooster && (
       <p className="mt-3 text-sm text-fuchsia-100" role="status">
         Нажмите клетку поля, чтобы применить бустер. Он расходует один ход.
