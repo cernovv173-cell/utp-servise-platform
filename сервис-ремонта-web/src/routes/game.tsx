@@ -5,6 +5,8 @@ import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { getUpcomingChapterStory } from "@/features/game/match3/chapter-stories";
+import { ChapterStoryScene } from "@/features/game/match3/chapter-story-scene";
 import {
   type Match3Position,
   type Match3Session,
@@ -23,6 +25,10 @@ const GamePage = () => {
   const client = useQueryClient();
   const [session, setSession] = useState<Match3Session | null>(null);
   const [notice, setNotice] = useState("");
+  const [seenStories, setSeenStories] = useState<{
+    userId: string | null;
+    chapterNumbers: number[];
+  }>({ userId: null, chapterNumbers: [] });
   const key = ["match3-progress", token];
   const progress = useQuery({
     queryKey: key,
@@ -35,6 +41,19 @@ const GamePage = () => {
       : session) ??
     progress.data?.activeSession ??
     null;
+  const storyUserId = user?.id ?? null;
+  const seenChapterNumbers = seenStories.userId === storyUserId ? seenStories.chapterNumbers : [];
+  const upcomingStory = getUpcomingChapterStory(
+    progress.data,
+    seenChapterNumbers,
+    active?.status === "ACTIVE",
+  );
+  const markStorySeen = (chapterNumber: number) => {
+    const current = seenStories.userId === storyUserId ? seenStories.chapterNumbers : [];
+    if (!current.includes(chapterNumber)) {
+      setSeenStories({ userId: storyUserId, chapterNumbers: [...current, chapterNumber] });
+    }
+  };
   const onError = (error: Error) => {
     setNotice(error.message);
     void client.invalidateQueries({ queryKey: key });
@@ -128,7 +147,13 @@ const GamePage = () => {
                     </div>
                   )}
                 </div>
-                {active?.status === "ACTIVE" && (
+                {upcomingStory && (
+                  <ChapterStoryScene
+                    story={upcomingStory}
+                    onContinue={() => markStorySeen(upcomingStory.nextChapter.number)}
+                  />
+                )}
+                {!upcomingStory && active?.status === "ACTIVE" && (
                   <div className="mt-5">
                     <GameBoard
                       key={active.id}
@@ -143,30 +168,34 @@ const GamePage = () => {
                     {notice}
                   </p>
                 )}
-                {active?.status !== "ACTIVE" && progress.data?.currentLevel !== null && (
-                  <button
-                    type="button"
-                    disabled={start.isPending || move.isPending}
-                    onClick={() => start.mutate()}
-                    className="mt-5 min-h-11 rounded-xl bg-cyan-300 px-5 font-semibold text-[#071022] transition hover:bg-cyan-200 disabled:opacity-50"
-                  >
-                    {start.isPending
-                      ? "Открываем…"
-                      : active?.status === "FAILED"
-                        ? "Попробовать снова"
-                        : "Играть"}
-                  </button>
-                )}
+                {!upcomingStory &&
+                  active?.status !== "ACTIVE" &&
+                  progress.data?.currentLevel !== null && (
+                    <button
+                      type="button"
+                      disabled={start.isPending || move.isPending}
+                      onClick={() => start.mutate()}
+                      className="mt-5 min-h-11 rounded-xl bg-cyan-300 px-5 font-semibold text-[#071022] transition hover:bg-cyan-200 disabled:opacity-50"
+                    >
+                      {start.isPending
+                        ? "Открываем…"
+                        : active?.status === "FAILED"
+                          ? "Попробовать снова"
+                          : "Играть"}
+                    </button>
+                  )}
                 {progress.data && <ChapterProgress progress={progress.data} />}
               </>
             )}
           </div>
           <aside>
-            <img
-              src="/images/raccoon-computer-mascot.jpg"
-              alt="Енот собирает компьютер"
-              className="w-full rounded-2xl border border-cyan-300/20 object-cover"
-            />
+            {!upcomingStory && (
+              <img
+                src="/images/raccoon-computer-mascot.jpg"
+                alt="Енот собирает компьютер"
+                className="w-full rounded-2xl border border-cyan-300/20 object-cover"
+              />
+            )}
             {progress.data && (
               <div className="mt-4">
                 <ComputerBuildProgress completedCount={progress.data.completedCount} />

@@ -220,5 +220,8 @@ Customers can play the match-three computer-building game at `/game`. The menu e
 customer accounts. The page resumes the current server-backed session, accepts adjacent tile swaps,
 shows the target and remaining moves, and offers another attempt or the next level after a finished
 session. The API owns level progression, rewards, and the board; this page does not award points
-locally. The current base uses the existing raccoon mascot and forest artwork. Additional narrative
-and art refinements are not part of this base.
+locally. At a chapter boundary, a short scene with the existing raccoon mascot appears after the
+prior chapter is complete and before the next level is started. Confirming the scene only dismisses
+that card for the current page visit; the game API and the customer's saved level, session, and rewards
+remain unchanged. The scenes follow the existing five-part story: case, motherboard, processor,
+cooling, and first boot.
