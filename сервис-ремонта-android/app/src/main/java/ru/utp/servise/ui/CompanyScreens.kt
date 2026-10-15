@@ -92,7 +92,12 @@ fun CompanyScreen(
                 Text("О компании", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk, modifier = Modifier.weight(1f))
                 TextButton(onClick = { reloadKey += 1 }, enabled = !loading) { Text("Обновить") }
             }
-            banners.filter { it.placements.contains("ABOUT") }.forEach { CampaignBannerCard(it, token, onCampaignNavigate) }
+            CampaignBannerCarousel(
+                banners = banners,
+                placement = "ABOUT",
+                token = token,
+                onNavigate = onCampaignNavigate,
+            )
             if (loading && currentCompany == null) {
                 Column(
                     Modifier.fillMaxWidth().padding(vertical = 28.dp),

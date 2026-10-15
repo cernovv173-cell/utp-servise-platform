@@ -165,9 +165,13 @@ fun RepairRequestForm(
             color = UtpMuted,
             modifier = Modifier.padding(top = 5.dp, bottom = 16.dp),
         )
-        banners.filter { it.placements.contains("SERVICE") && it.isActive && it.imageObjectId != null }.forEach {
-            CampaignBannerCard(it, token, onCampaignNavigate)
-        }
+        CampaignBannerCarousel(
+            banners = banners,
+            placement = "SERVICE",
+            token = token,
+            onNavigate = onCampaignNavigate,
+            requireImage = true,
+        )
         if (customerDevices.isNotEmpty()) {
             var savedDeviceMenu by remember { mutableStateOf(false) }
             Box {

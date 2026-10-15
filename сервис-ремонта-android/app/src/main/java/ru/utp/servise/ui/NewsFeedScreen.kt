@@ -60,7 +60,12 @@ fun NewsFeedScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("Новости и отзывы", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        banners.filter { it.placements.contains("NEWS") }.forEach { CampaignBannerCard(it, token, onCampaignNavigate) }
+        CampaignBannerCarousel(
+            banners = banners,
+            placement = "NEWS",
+            token = token,
+            onNavigate = onCampaignNavigate,
+        )
         visibleArticles.forEach { article ->
             Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {

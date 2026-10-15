@@ -113,9 +113,12 @@ fun CustomerHomeScreen(
             }
         }
         Spacer(Modifier.height(12.dp))
-        banners.filter { it.placements.contains("HOME") }.forEach { banner ->
-            CampaignBannerCard(banner, token, onCampaignNavigate)
-        }
+        CampaignBannerCarousel(
+            banners = banners,
+            placement = "HOME",
+            token = token,
+            onNavigate = onCampaignNavigate,
+        )
         Card(onClick = onLoyalty, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("★", fontSize = 24.sp, color = UtpBlue)
@@ -192,7 +195,15 @@ fun CustomerHomeScreen(
             Spacer(Modifier.height(24.dp))
             Text("В центре внимания", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
             Spacer(Modifier.height(10.dp))
-            featuredNews.take(2).forEach { article -> CustomerNewsCard(article, token) }
+            TimedCarousel(
+                items = featuredNews.take(2),
+                itemKey = { it.id },
+                collectionLabel = "новостей",
+                previousActionLabel = "Предыдущая новость",
+                nextActionLabel = "Следующая новость",
+            ) { article ->
+                CustomerNewsCard(article, token)
+            }
         }
         Spacer(Modifier.height(24.dp))
         Text("Новости сервиса", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)

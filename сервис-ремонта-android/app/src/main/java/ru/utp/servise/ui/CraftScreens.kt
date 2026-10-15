@@ -62,7 +62,12 @@ fun CraftsScreen(
         TextButton(onClick = onBack) { Text("←  Назад") }
         Text("Рукоделия", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Готовые изделия и изготовление под заказ. Заявку обработает администратор.", fontSize = 13.sp, color = UtpMuted)
-        banners.filter { it.placements.contains("CRAFTS") }.forEach { CampaignBannerCard(it, token, onCampaignNavigate) }
+        CampaignBannerCarousel(
+            banners = banners,
+            placement = "CRAFTS",
+            token = token,
+            onNavigate = onCampaignNavigate,
+        )
 
         if (isAdmin) {
             CraftItemManagementScreen(token, items, runAction, refresh)

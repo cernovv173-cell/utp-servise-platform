@@ -25,11 +25,7 @@ fun CampaignBannerCard(
 ) {
     val uriHandler = LocalUriHandler.current
     val currentTime = System.currentTimeMillis()
-    if (
-        !banner.isActive ||
-        (banner.startsAt?.let { parseCampaignDate(it) > currentTime } == true) ||
-        (banner.endsAt?.let { parseCampaignDate(it) <= currentTime } == true)
-    ) return
+    if (!isCampaignBannerVisible(banner, currentTime)) return
     Card(
         modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp).clickable {
             val target = banner.targetUrl.orEmpty()
@@ -62,6 +58,37 @@ fun CampaignBannerCard(
         }
     }
 }
+
+@Composable
+fun CampaignBannerCarousel(
+    banners: List<SiteBanner>,
+    placement: String,
+    token: String,
+    onNavigate: (String) -> Unit = {},
+    requireImage: Boolean = false,
+) {
+    val currentTime = System.currentTimeMillis()
+    val publishedBanners = banners.filter { banner ->
+        banner.placements.contains(placement) &&
+            isCampaignBannerVisible(banner, currentTime) &&
+            (!requireImage || banner.imageObjectId != null)
+    }
+
+    TimedCarousel(
+        items = publishedBanners,
+        itemKey = { it.id },
+        collectionLabel = "рекламных объявлений",
+        previousActionLabel = "Предыдущее объявление",
+        nextActionLabel = "Следующее объявление",
+    ) { banner ->
+        CampaignBannerCard(banner, token, onNavigate)
+    }
+}
+
+private fun isCampaignBannerVisible(banner: SiteBanner, currentTime: Long): Boolean =
+    banner.isActive &&
+        banner.startsAt?.let { parseCampaignDate(it) > currentTime } != true &&
+        banner.endsAt?.let { parseCampaignDate(it) <= currentTime } != true
 
 private fun parseCampaignDate(value: String): Long =
     runCatching { java.time.Instant.parse(value).toEpochMilli() }.getOrDefault(0L)

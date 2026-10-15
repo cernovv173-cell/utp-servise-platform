@@ -95,6 +95,8 @@ export const FeaturedNewsCarousel = ({
       )}
       {article && (
         <div
+          key={article.id}
+          className="motion-safe:animate-[carousel-slide-in_420ms_ease-out]"
           role="group"
           aria-roledescription="слайд"
           aria-label={`Новость ${activeIndex + 1} из ${articles.length}`}

@@ -35,7 +35,12 @@ fun LoyaltyScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text("Программа лояльности", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        banners.filter { it.placements.contains("LOYALTY") }.forEach { CampaignBannerCard(it, token, onCampaignNavigate) }
+        CampaignBannerCarousel(
+            banners = banners,
+            placement = "LOYALTY",
+            token = token,
+            onNavigate = onCampaignNavigate,
+        )
         Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Text("Бонусный баланс", fontSize = 13.sp, color = UtpMuted)

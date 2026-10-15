@@ -93,7 +93,7 @@ export const CampaignCarousel = ({
     if (isPaused || publishedBanners.length < 2) return;
     const timer = window.setInterval(() => {
       setCurrentIndex((index) => getCampaignIndex(index, 1, publishedBanners.length));
-    }, 5_000);
+    }, 10_000);
     return () => window.clearInterval(timer);
   }, [isPaused, publishedBanners.length]);
 
@@ -114,6 +114,8 @@ export const CampaignCarousel = ({
       }}
     >
       <div
+        key={currentBanner.id}
+        className="motion-safe:animate-[carousel-slide-in_420ms_ease-out]"
         role="group"
         aria-roledescription="слайд"
         aria-label={`Объявление ${activeIndex + 1} из ${publishedBanners.length}`}
