@@ -20,6 +20,7 @@ import {
   ChapterProgress,
   ComputerBuildProgress,
 } from "@/features/game/match3/game-progress-panels";
+import { useRaccoonVoice } from "@/features/game/match3/use-raccoon-voice";
 
 const GamePage = () => {
   const { token, user } = useAuth();
@@ -49,6 +50,7 @@ const GamePage = () => {
     seenChapterNumbers,
     active?.status === "ACTIVE",
   );
+  const raccoonVoice = useRaccoonVoice(upcomingStory?.raccoonDialogue ?? null);
   const epilogue = getMatch3Epilogue(progress.data);
   const markStorySeen = (chapterNumber: number) => {
     const current = seenStories.userId === storyUserId ? seenStories.chapterNumbers : [];
@@ -153,6 +155,10 @@ const GamePage = () => {
                   <ChapterStoryScene
                     story={upcomingStory}
                     onContinue={() => markStorySeen(upcomingStory.nextChapter.number)}
+                    voiceEnabled={raccoonVoice.enabled}
+                    voiceSupported={raccoonVoice.supported}
+                    onToggleVoice={raccoonVoice.toggle}
+                    onReplayVoice={raccoonVoice.replay}
                   />
                 )}
                 {epilogue && <GameEpilogueScene epilogue={epilogue} />}

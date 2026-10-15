@@ -1,13 +1,24 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, RotateCcw, Sparkles, Volume2, VolumeX } from "lucide-react";
 
 import type { ChapterStory } from "./chapter-stories";
 
 type ChapterStorySceneProps = {
   story: ChapterStory;
   onContinue: () => void;
+  voiceEnabled: boolean;
+  voiceSupported: boolean;
+  onToggleVoice: () => void;
+  onReplayVoice: () => void;
 };
 
-export const ChapterStoryScene = ({ story, onContinue }: ChapterStorySceneProps) => (
+export const ChapterStoryScene = ({
+  story,
+  onContinue,
+  voiceEnabled,
+  voiceSupported,
+  onToggleVoice,
+  onReplayVoice,
+}: ChapterStorySceneProps) => (
   <section
     aria-labelledby="chapter-story-title"
     className="mt-6 overflow-hidden rounded-3xl border border-violet-300/30 bg-[#0b132a]/95 shadow-[0_20px_70px_rgba(0,0,0,0.28)]"
@@ -33,6 +44,45 @@ export const ChapterStoryScene = ({ story, onContinue }: ChapterStorySceneProps)
         <blockquote className="mt-4 rounded-2xl border border-violet-300/20 bg-violet-300/10 px-4 py-3 text-sm leading-6 text-violet-100">
           «{story.raccoonDialogue}»
         </blockquote>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={voiceSupported && voiceEnabled}
+            disabled={!voiceSupported}
+            onClick={onToggleVoice}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-cyan-200/25 bg-[#101a34] px-3 text-sm font-medium text-cyan-100 transition hover:bg-[#182648] focus-visible:ring-2 focus-visible:ring-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {voiceSupported && voiceEnabled ? (
+              <Volume2 size={16} aria-hidden="true" />
+            ) : (
+              <VolumeX size={16} aria-hidden="true" />
+            )}
+            {voiceSupported
+              ? voiceEnabled
+                ? "Озвучка включена"
+                : "Включить озвучку"
+              : "Озвучка недоступна"}
+          </button>
+          {voiceSupported && voiceEnabled && (
+            <button
+              type="button"
+              onClick={onReplayVoice}
+              aria-label="Повторить реплику енота"
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-violet-200/25 bg-violet-300/10 px-3 text-sm font-medium text-violet-100 transition hover:bg-violet-300/20 focus-visible:ring-2 focus-visible:ring-violet-100"
+            >
+              <RotateCcw size={15} aria-hidden="true" />
+              Повторить реплику
+            </button>
+          )}
+          {!voiceSupported && (
+            <p className="text-xs text-[#a0afd2]" role="status">
+              Браузер или устройство не поддерживает синтез речи.
+            </p>
+          )}
+          {voiceSupported && (
+            <p className="text-xs text-[#a0afd2]">Русский голос зависит от настроек устройства.</p>
+          )}
+        </div>
         <button
           type="button"
           onClick={onContinue}
