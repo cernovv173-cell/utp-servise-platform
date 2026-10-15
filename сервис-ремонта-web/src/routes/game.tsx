@@ -73,8 +73,9 @@ const GamePage = () => {
   const raccoonVoice = useRaccoonVoice(upcomingStory?.raccoonDialogue ?? null);
   const epilogue = getMatch3Epilogue(progress.data);
   const cosmetics = useRaccoonCosmeticSelection(
+    token,
     user?.id ?? null,
-    progress.data?.completedCount ?? 0,
+    progress.data?.completedCount ?? null,
   );
   const tutorialSeen = user
     ? tutorialSeenState.userId === user.id

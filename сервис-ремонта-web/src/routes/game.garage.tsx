@@ -19,7 +19,11 @@ const RaccoonGaragePage = () => {
     enabled: Boolean(token && user?.role === "CUSTOMER"),
   });
   const completedCount = progress.data?.completedCount ?? 0;
-  const cosmetics = useRaccoonCosmeticSelection(user?.id ?? null, completedCount);
+  const cosmetics = useRaccoonCosmeticSelection(
+    token,
+    user?.id ?? null,
+    progress.data?.completedCount ?? null,
+  );
   const chapterRewards = getUnlockedRaccoonCosmetics(completedCount).filter(
     (cosmetic) => cosmetic.chapterNumber !== null,
   ).length;
@@ -34,7 +38,8 @@ const RaccoonGaragePage = () => {
             </p>
             <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Коллекция визоров</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#d1def8]">
-              Открывай новые образы за главы и выбирай любимый. Визоры меняют только внешний вид.
+              Открывай новые образы за главы и выбирай любимый. Выбор сохранится в аккаунте и
+              синхронизируется на других устройствах; визоры меняют только внешний вид.
             </p>
           </div>
           <Link
@@ -65,6 +70,23 @@ const RaccoonGaragePage = () => {
           </div>
         ) : (
           <>
+            {cosmetics.isLoading && (
+              <p className="mt-5 text-sm text-cyan-100" role="status">
+                Синхронизируем выбранный визор…
+              </p>
+            )}
+            {cosmetics.loadError && (
+              <p className="mt-5 rounded-xl bg-rose-950/40 p-3 text-sm text-rose-100" role="alert">
+                Не удалось загрузить выбор визора: {cosmetics.loadError.message}. Обновите страницу
+                и попробуйте ещё раз.
+              </p>
+            )}
+            {cosmetics.saveError && (
+              <p className="mt-5 rounded-xl bg-rose-950/40 p-3 text-sm text-rose-100" role="alert">
+                Не удалось сохранить визор: {cosmetics.saveError.message}. Повторите выбор после
+                восстановления соединения.
+              </p>
+            )}
             <section className="mt-6 grid gap-5 rounded-3xl border border-violet-200/20 bg-[#0b132a]/90 p-4 sm:grid-cols-[12rem_minmax(0,1fr)] sm:items-center sm:p-5">
               <img
                 src={cosmetics.selected.image}
@@ -129,16 +151,18 @@ const RaccoonGaragePage = () => {
                       </div>
                       <button
                         type="button"
-                        disabled={!unlocked || selected}
+                        disabled={!unlocked || selected || cosmetics.isSaving || !cosmetics.isReady}
                         aria-pressed={selected}
                         onClick={() => cosmetics.select(cosmetic.id)}
                         className="min-h-10 w-full border-t border-[#26365f] px-3 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:text-[#8090b9]"
                       >
-                        {selected
-                          ? "Надет сейчас"
-                          : unlocked
-                            ? "Надеть визор"
-                            : `Закрыто · ещё ${Math.max(cosmetic.unlockAt - completedCount, 0)} этапов`}
+                        {cosmetics.isSaving
+                          ? "Сохраняем…"
+                          : selected
+                            ? "Надет сейчас"
+                            : unlocked
+                              ? "Надеть визор"
+                              : `Закрыто · ещё ${Math.max(cosmetic.unlockAt - completedCount, 0)} этапов`}
                       </button>
                     </article>
                   );

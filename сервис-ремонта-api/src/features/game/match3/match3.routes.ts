@@ -18,17 +18,24 @@ import {
   getMatch3Part,
   getMatch3TargetPart,
 } from "./match3-content.js";
+import { createMatch3CosmeticRouter } from "./match3-cosmetic.routes.js";
 import {
+  type Match3Position,
   applyMatch3Move,
   createMatch3Board,
   isMatch3Board,
-  type Match3Position,
 } from "./match3-engine.js";
 
 const moveSchema = z.object({
   sessionId: z.string().uuid(),
-  from: z.object({ row: z.number().int().min(0).max(7), column: z.number().int().min(0).max(7) }),
-  to: z.object({ row: z.number().int().min(0).max(7), column: z.number().int().min(0).max(7) }),
+  from: z.object({
+    row: z.number().int().min(0).max(7),
+    column: z.number().int().min(0).max(7),
+  }),
+  to: z.object({
+    row: z.number().int().min(0).max(7),
+    column: z.number().int().min(0).max(7),
+  }),
 });
 
 type LevelRecord = {
@@ -72,7 +79,11 @@ const serializeLevel = (level: LevelRecord) => {
 
 const serializeSession = (session: SessionRecord) => {
   if (!isMatch3Board(session.board)) {
-    throw new HttpError(500, "GAME_SESSION_INVALID", "Не удалось загрузить игровое поле.");
+    throw new HttpError(
+      500,
+      "GAME_SESSION_INVALID",
+      "Не удалось загрузить игровое поле.",
+    );
   }
   return {
     id: session.id,
@@ -93,88 +104,126 @@ const nextLevelNumber = (completedNumbers: Set<number>) => {
 };
 
 const isUniqueConstraintError = (error: unknown): boolean =>
-  typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  error.code === "P2002";
 
 export const createMatch3Router = (database: DatabaseClient): Router => {
   const router = Router();
+  router.use(createMatch3CosmeticRouter(database));
   const requireAuth = createRequireAuth(database);
   const customerOnly = [requireAuth, requireRoles("CUSTOMER")];
 
-  router.get("/game/match3/progress", ...customerOnly, async (_request, response) => {
-    const user = getAuthenticatedUser(response);
-    const [levels, completions, activeSession] = await Promise.all([
-      database.match3Level.findMany({ where: { isActive: true }, orderBy: { number: "asc" } }),
-      database.match3LevelCompletion.findMany({
+  router.get(
+    "/game/match3/progress",
+    ...customerOnly,
+    async (_request, response) => {
+      const user = getAuthenticatedUser(response);
+      const [levels, completions, activeSession] = await Promise.all([
+        database.match3Level.findMany({
+          where: { isActive: true },
+          orderBy: { number: "asc" },
+        }),
+        database.match3LevelCompletion.findMany({
+          where: { customerId: user.id },
+          include: { level: { select: { number: true } } },
+        }),
+        database.match3GameSession.findFirst({
+          where: { customerId: user.id, status: "ACTIVE" },
+          include: { level: true },
+          orderBy: { createdAt: "desc" },
+        }),
+      ]);
+      const completedNumbers = new Set(
+        completions.map((completion) => completion.level.number),
+      );
+      const next = nextLevelNumber(completedNumbers);
+      response.json({
+        levels: levels.map((level) => ({
+          ...serializeLevel(level),
+          isCompleted: completedNumbers.has(level.number),
+          isUnlocked: next !== null && level.number <= next,
+          pointsAwarded:
+            completions.find(
+              (completion) => completion.level.number === level.number,
+            )?.pointsAwarded ?? 0,
+        })),
+        completedCount: completedNumbers.size,
+        currentLevel: next,
+        totalGamePoints: completions.reduce(
+          (total, completion) => total + completion.pointsAwarded,
+          0,
+        ),
+        maximumGamePoints: MATCH3_TOTAL_POINTS,
+        activeSession: activeSession ? serializeSession(activeSession) : null,
+      });
+    },
+  );
+
+  router.post(
+    "/game/match3/start",
+    ...customerOnly,
+    async (_request, response) => {
+      const user = getAuthenticatedUser(response);
+      const activeSession = await database.match3GameSession.findFirst({
+        where: { customerId: user.id, status: "ACTIVE" },
+        include: { level: true },
+        orderBy: { createdAt: "desc" },
+      });
+      if (activeSession) {
+        response.json({ session: serializeSession(activeSession) });
+        return;
+      }
+
+      const completed = await database.match3LevelCompletion.findMany({
         where: { customerId: user.id },
         include: { level: { select: { number: true } } },
-      }),
-      database.match3GameSession.findFirst({
-        where: { customerId: user.id, status: "ACTIVE" },
-        include: { level: true },
-        orderBy: { createdAt: "desc" },
-      }),
-    ]);
-    const completedNumbers = new Set(completions.map((completion) => completion.level.number));
-    const next = nextLevelNumber(completedNumbers);
-    response.json({
-      levels: levels.map((level) => ({
-        ...serializeLevel(level),
-        isCompleted: completedNumbers.has(level.number),
-        isUnlocked: next !== null && level.number <= next,
-        pointsAwarded: completions.find((completion) => completion.level.number === level.number)?.pointsAwarded ?? 0,
-      })),
-      completedCount: completedNumbers.size,
-      currentLevel: next,
-      totalGamePoints: completions.reduce((total, completion) => total + completion.pointsAwarded, 0),
-      maximumGamePoints: MATCH3_TOTAL_POINTS,
-      activeSession: activeSession ? serializeSession(activeSession) : null,
-    });
-  });
-
-  router.post("/game/match3/start", ...customerOnly, async (_request, response) => {
-    const user = getAuthenticatedUser(response);
-    const activeSession = await database.match3GameSession.findFirst({
-      where: { customerId: user.id, status: "ACTIVE" },
-      include: { level: true },
-      orderBy: { createdAt: "desc" },
-    });
-    if (activeSession) {
-      response.json({ session: serializeSession(activeSession) });
-      return;
-    }
-
-    const completed = await database.match3LevelCompletion.findMany({
-      where: { customerId: user.id },
-      include: { level: { select: { number: true } } },
-    });
-    const number = nextLevelNumber(new Set(completed.map((entry) => entry.level.number)));
-    if (number === null) {
-      throw new HttpError(409, "GAME_COMPLETE", "Все 100 уровней уже пройдены.");
-    }
-    const level = await database.match3Level.findFirst({ where: { number, isActive: true } });
-    if (!level) throw new HttpError(404, "GAME_LEVEL_NOT_FOUND", "Уровень временно недоступен.");
-
-    try {
-      const session = await database.match3GameSession.create({
-        data: {
-          customerId: user.id,
-          levelId: level.id,
-          board: createMatch3Board(number) as unknown as Prisma.InputJsonValue,
-        },
-        include: { level: true },
       });
-      response.status(201).json({ session: serializeSession(session) });
-    } catch (error) {
-      if (!isUniqueConstraintError(error)) throw error;
-      const racedSession = await database.match3GameSession.findFirst({
-        where: { customerId: user.id, status: "ACTIVE" },
-        include: { level: true },
-        orderBy: { createdAt: "desc" },
+      const number = nextLevelNumber(
+        new Set(completed.map((entry) => entry.level.number)),
+      );
+      if (number === null) {
+        throw new HttpError(
+          409,
+          "GAME_COMPLETE",
+          "Все 100 уровней уже пройдены.",
+        );
+      }
+      const level = await database.match3Level.findFirst({
+        where: { number, isActive: true },
       });
-      if (!racedSession) throw error;
-      response.json({ session: serializeSession(racedSession) });
-    }
-  });
+      if (!level)
+        throw new HttpError(
+          404,
+          "GAME_LEVEL_NOT_FOUND",
+          "Уровень временно недоступен.",
+        );
+
+      try {
+        const session = await database.match3GameSession.create({
+          data: {
+            customerId: user.id,
+            levelId: level.id,
+            board: createMatch3Board(
+              number,
+            ) as unknown as Prisma.InputJsonValue,
+          },
+          include: { level: true },
+        });
+        response.status(201).json({ session: serializeSession(session) });
+      } catch (error) {
+        if (!isUniqueConstraintError(error)) throw error;
+        const racedSession = await database.match3GameSession.findFirst({
+          where: { customerId: user.id, status: "ACTIVE" },
+          include: { level: true },
+          orderBy: { createdAt: "desc" },
+        });
+        if (!racedSession) throw error;
+        response.json({ session: serializeSession(racedSession) });
+      }
+    },
+  );
 
   router.post(
     "/game/match3/move",
@@ -187,9 +236,18 @@ export const createMatch3Router = (database: DatabaseClient): Router => {
         where: { id: input.sessionId, customerId: user.id, status: "ACTIVE" },
         include: { level: true },
       });
-      if (!session) throw new HttpError(404, "GAME_SESSION_NOT_FOUND", "Игровая сессия не найдена.");
+      if (!session)
+        throw new HttpError(
+          404,
+          "GAME_SESSION_NOT_FOUND",
+          "Игровая сессия не найдена.",
+        );
       if (!isMatch3Board(session.board)) {
-        throw new HttpError(500, "GAME_SESSION_INVALID", "Не удалось загрузить игровое поле.");
+        throw new HttpError(
+          500,
+          "GAME_SESSION_INVALID",
+          "Не удалось загрузить игровое поле.",
+        );
       }
 
       const targetPart = getMatch3TargetPart(session.level.number);
@@ -228,7 +286,11 @@ export const createMatch3Router = (database: DatabaseClient): Router => {
           },
         });
         if (changed.count !== 1) {
-          throw new HttpError(409, "GAME_MOVE_CONFLICT", "Партия обновилась. Загрузите её заново.");
+          throw new HttpError(
+            409,
+            "GAME_MOVE_CONFLICT",
+            "Партия обновилась. Загрузите её заново.",
+          );
         }
 
         if (completed) {

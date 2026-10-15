@@ -225,3 +225,12 @@ already deducted from stock at approval, so active approved-estimate quantities 
 and are never added again to the suggested purchase. Dashboard averages use the interval from request
 creation to its `COMPLETED` status event; collected revenue uses paid receipts after bonus discounts.
 The Web admin navigation and Android **Управление** area expose all three views.
+
+# Match-three cosmetic preference
+
+Each signed-in customer can save a raccoon visor through the authenticated `GET` and `PUT`
+`/game/match3/cosmetic` endpoints. The first-use `POST /game/match3/cosmetic/initialize` stores a
+legacy browser selection only when the account has no saved choice, so another device cannot
+overwrite an existing preference. The server validates visor unlocks against that customer's
+completed levels. `users.match3_cosmetic_id` is nullable and independent of game sessions, level
+completions, loyalty points, and rewards; the additive migration leaves existing accounts unchanged.

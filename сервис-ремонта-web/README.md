@@ -233,6 +233,9 @@ rewards, or game mechanics. A first-run tutorial guides the player through a rea
 then explains frozen cells, junk, and anomalies; it can be skipped and its completion is stored
 locally per customer. The computer blueprint lights up its existing part milestones as chapters
 progress. `/game/garage` unlocks cosmetic raccoon visors at chapter completion; equipment choice is
-stored locally and does not affect play or points. `/game/daily` offers a reproducible one-match
+saved in the signed-in customer's account and syncs across devices. A previously selected local
+visor is transferred to that account the first time the garage loads. The server checks chapter
+unlock progress, and the choice does not affect play, points, rewards, or campaign progress.
+`/game/daily` offers a reproducible one-match
 puzzle that resets on the Moscow calendar date; only its completion marker is stored separately in
 the browser and it does not call campaign move or reward endpoints.
