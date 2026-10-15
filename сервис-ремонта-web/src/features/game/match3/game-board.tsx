@@ -1,5 +1,5 @@
 import { LockKeyhole, Sparkles } from "lucide-react";
-import { type PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useRef, useState } from "react";
 
 import type {
   Match3Board as Match3BoardState,
@@ -65,6 +65,7 @@ export const GameBoard = ({
     dy: number;
   } | null>(null);
   const [swipePreview, setSwipePreview] = useState<SwipePreview | null>(null);
+  const visibleSwipePreview = swipePreview?.board === session.board ? swipePreview : null;
   const gesture = useRef<{
     pointerId: number;
     from: Match3Position;
@@ -72,12 +73,6 @@ export const GameBoard = ({
     y: number;
   } | null>(null);
   const suppressClickUntil = useRef(0);
-
-  useEffect(() => {
-    if (swipePreview && swipePreview.board !== session.board) {
-      setSwipePreview(null);
-    }
-  }, [session.board, swipePreview]);
 
   const beginSwipe = (
     event: ReactPointerEvent<HTMLButtonElement>,
@@ -111,43 +106,26 @@ export const GameBoard = ({
 
     const dx = event.clientX - current.x;
     const dy = event.clientY - current.y;
-    if (Math.hypot(dx, dy) < 24) return;
+    if (Math.hypot(dx, dy) >= 24) suppressClickUntil.current = event.timeStamp + 350;
+    const swipe = getMatch3SwipeMove(current.from, dx, dy);
+    if (!swipe) return;
 
-    const targetButton = document
-      .elementFromPoint(event.clientX, event.clientY)
-      ?.closest<HTMLButtonElement>("button[data-match3-cell]");
-    const to = targetButton
-      ? {
-          row: Number(targetButton.dataset.row),
-          column: Number(targetButton.dataset.column),
-        }
-      : null;
-    const swipe = to
-      ? getMatch3SwipeMove(current.from, to, event.clientX - current.x, event.clientY - current.y)
-      : null;
-    if (
-      !targetButton ||
-      !to ||
-      !swipe ||
-      !Number.isInteger(to.row) ||
-      !Number.isInteger(to.column)
-    ) {
-      return;
-    }
-
-    const sourceButton = document.querySelector<HTMLButtonElement>(
-      `button[data-match3-cell][data-row="${current.from.row}"][data-column="${current.from.column}"]`,
+    const { to } = swipe;
+    const targetTile = session.board[to.row]?.[to.column];
+    const board = event.currentTarget.parentElement;
+    const targetButton = board?.querySelector<HTMLButtonElement>(
+      `button[data-match3-cell][data-row="${to.row}"][data-column="${to.column}"]`,
     );
-    const sourceRect = sourceButton?.getBoundingClientRect();
-    const targetRect = targetButton.getBoundingClientRect();
+    if (!targetTile || isBlocked(targetTile) || !targetButton) return;
+
+    const sourceButton = event.currentTarget;
     setSwipePreview({
       from: swipe.from,
       to: swipe.to,
-      dx: targetRect.left - (sourceRect?.left ?? targetRect.left),
-      dy: targetRect.top - (sourceRect?.top ?? targetRect.top),
+      dx: targetButton.offsetLeft - sourceButton.offsetLeft,
+      dy: targetButton.offsetTop - sourceButton.offsetTop,
       board: session.board,
     });
-    suppressClickUntil.current = Date.now() + 350;
     setSelected(null);
     onMove(swipe.from, swipe.to);
   };
@@ -158,8 +136,8 @@ export const GameBoard = ({
     setDragPreview(null);
   };
 
-  const choose = (position: Match3Position, tile: Match3Tile) => {
-    if (Date.now() < suppressClickUntil.current) return;
+  const choose = (position: Match3Position, tile: Match3Tile, timeStamp: number) => {
+    if (timeStamp < suppressClickUntil.current) return;
     if (disabled) return;
     if (boosterSelected && onBoosterTarget) {
       onBoosterTarget(position);
@@ -217,26 +195,34 @@ export const GameBoard = ({
               onPointerMove={moveSwipe}
               onPointerUp={finishSwipe}
               onPointerCancel={cancelSwipe}
-              onClick={() => choose(position, tile)}
+              onClick={(event) => choose(position, tile, event.timeStamp)}
               style={{
                 transform:
                   dragPreview?.from.row === row && dragPreview.from.column === column
                     ? `translate(${dragPreview.dx}px, ${dragPreview.dy}px)`
-                    : swipePreview?.from.row === row && swipePreview.from.column === column
-                      ? `translate(${swipePreview.dx}px, ${swipePreview.dy}px)`
-                      : swipePreview?.to.row === row && swipePreview.to.column === column
-                        ? `translate(${-swipePreview.dx}px, ${-swipePreview.dy}px)`
+                    : visibleSwipePreview?.from.row === row &&
+                        visibleSwipePreview.from.column === column
+                      ? `translate(${visibleSwipePreview.dx}px, ${visibleSwipePreview.dy}px)`
+                      : visibleSwipePreview?.to.row === row &&
+                          visibleSwipePreview.to.column === column
+                        ? `translate(${-visibleSwipePreview.dx}px, ${-visibleSwipePreview.dy}px)`
                         : undefined,
+                transitionDuration:
+                  dragPreview?.from.row === row && dragPreview.from.column === column
+                    ? "0ms"
+                    : undefined,
                 zIndex:
                   dragPreview?.from.row === row && dragPreview.from.column === column
                     ? 20
-                    : swipePreview &&
-                        ((swipePreview.from.row === row && swipePreview.from.column === column) ||
-                          (swipePreview.to.row === row && swipePreview.to.column === column))
+                    : visibleSwipePreview &&
+                        ((visibleSwipePreview.from.row === row &&
+                          visibleSwipePreview.from.column === column) ||
+                          (visibleSwipePreview.to.row === row &&
+                            visibleSwipePreview.to.column === column))
                       ? 10
                       : undefined,
               }}
-              className={`relative grid aspect-square min-w-0 touch-none place-items-center overflow-hidden rounded-lg border text-base transition-transform duration-150 ease-out sm:rounded-xl sm:text-2xl ${style ? `bg-gradient-to-br ${style.tone}` : "bg-slate-800/70"} ${chosen ? "z-10 scale-105 border-cyan-200 shadow-[0_0_20px_rgba(82,232,255,0.5)] ring-2 ring-cyan-300" : isHinted ? "z-10 border-amber-200 shadow-[0_0_18px_rgba(252,211,77,0.55)] ring-2 ring-amber-300" : "border-white/10 hover:border-cyan-200/50"} ${disabled ? "opacity-70" : "hover:-translate-y-0.5"}`}
+              className={`relative grid aspect-square min-w-0 touch-none place-items-center overflow-hidden rounded-lg border text-base transition-transform duration-200 ease-out sm:rounded-xl sm:text-2xl ${style ? `bg-gradient-to-br ${style.tone}` : "bg-slate-800/70"} ${chosen ? "z-10 scale-105 border-cyan-200 shadow-[0_0_20px_rgba(82,232,255,0.5)] ring-2 ring-cyan-300" : isHinted ? "z-10 border-amber-200 shadow-[0_0_18px_rgba(252,211,77,0.55)] ring-2 ring-amber-300" : "border-white/10 hover:border-cyan-200/50"} ${disabled ? "opacity-70" : "hover:-translate-y-0.5"}`}
             >
               {tile.junk ? (
                 <span aria-hidden="true" className="text-lg sm:text-2xl">
