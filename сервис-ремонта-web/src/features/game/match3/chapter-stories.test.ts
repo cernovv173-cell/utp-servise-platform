@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getUpcomingChapterStory } from "./chapter-stories";
+import { getMatch3Epilogue, getUpcomingChapterStory } from "./chapter-stories";
 import type { Match3Chapter, Match3Progress } from "./game-api";
 
 const firstChapter: Match3Chapter = {
@@ -53,6 +53,48 @@ const makeProgress = (
   };
 };
 
+const makeCompletedProgress = (completedCount = 100): Match3Progress => {
+  const chapterTitles = [
+    "Корпус",
+    "Материнская плата",
+    "Процессор",
+    "Система охлаждения",
+    "Первый запуск",
+  ];
+  const levels = Array.from({ length: 100 }, (_, index) => {
+    const number = index + 1;
+    const chapterNumber = Math.ceil(number / 20);
+    const firstLevel = (chapterNumber - 1) * 20 + 1;
+    const chapter: Match3Chapter = {
+      number: chapterNumber,
+      firstLevel,
+      lastLevel: chapterNumber * 20,
+      title: chapterTitles[chapterNumber - 1]!,
+      setting: "Лес",
+      description: "Сборка компьютера.",
+    };
+
+    return {
+      ...makeProgress().levels[0]!,
+      id: `level-${number}`,
+      number,
+      chapter,
+      isCompleted: number <= completedCount,
+      isUnlocked: number <= completedCount + 1,
+      pointsAwarded: number <= completedCount ? 10 : 0,
+    };
+  });
+
+  return {
+    levels,
+    completedCount,
+    currentLevel: completedCount === 100 ? null : completedCount + 1,
+    totalGamePoints: completedCount * 10,
+    maximumGamePoints: 1000,
+    activeSession: null,
+  };
+};
+
 describe("getUpcomingChapterStory", () => {
   it("shows the scene for the next chapter after the previous chapter is complete", () => {
     const story = getUpcomingChapterStory(makeProgress(), []);
@@ -72,5 +114,23 @@ describe("getUpcomingChapterStory", () => {
   it("only shows at the first level of the next chapter and only once", () => {
     expect(getUpcomingChapterStory(makeProgress({ currentLevel: 4 }), [])).toBeNull();
     expect(getUpcomingChapterStory(makeProgress(), [2])).toBeNull();
+  });
+});
+
+describe("getMatch3Epilogue", () => {
+  it("returns the ending only after all 100 levels, including level 100, are complete", () => {
+    const progress = makeCompletedProgress();
+
+    expect(getMatch3Epilogue(progress)?.title).toBe("Компьютер ожил!");
+    expect(progress.completedCount).toBe(100);
+    expect(progress.levels[99]?.isCompleted).toBe(true);
+  });
+
+  it("does not show the ending while the last level or any previous level is incomplete", () => {
+    expect(getMatch3Epilogue(makeCompletedProgress(99))).toBeNull();
+
+    const missingLevel = makeCompletedProgress();
+    missingLevel.levels[50]!.isCompleted = false;
+    expect(getMatch3Epilogue(missingLevel)).toBeNull();
   });
 });

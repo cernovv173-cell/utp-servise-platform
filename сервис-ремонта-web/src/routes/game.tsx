@@ -5,7 +5,7 @@ import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
-import { getUpcomingChapterStory } from "@/features/game/match3/chapter-stories";
+import { getMatch3Epilogue, getUpcomingChapterStory } from "@/features/game/match3/chapter-stories";
 import { ChapterStoryScene } from "@/features/game/match3/chapter-story-scene";
 import {
   type Match3Position,
@@ -15,6 +15,7 @@ import {
   startMatch3Level,
 } from "@/features/game/match3/game-api";
 import { GameBoard } from "@/features/game/match3/game-board";
+import { GameEpilogueScene } from "@/features/game/match3/game-epilogue-scene";
 import {
   ChapterProgress,
   ComputerBuildProgress,
@@ -48,6 +49,7 @@ const GamePage = () => {
     seenChapterNumbers,
     active?.status === "ACTIVE",
   );
+  const epilogue = getMatch3Epilogue(progress.data);
   const markStorySeen = (chapterNumber: number) => {
     const current = seenStories.userId === storyUserId ? seenStories.chapterNumbers : [];
     if (!current.includes(chapterNumber)) {
@@ -153,7 +155,8 @@ const GamePage = () => {
                     onContinue={() => markStorySeen(upcomingStory.nextChapter.number)}
                   />
                 )}
-                {!upcomingStory && active?.status === "ACTIVE" && (
+                {epilogue && <GameEpilogueScene epilogue={epilogue} />}
+                {!upcomingStory && !epilogue && active?.status === "ACTIVE" && (
                   <div className="mt-5">
                     <GameBoard
                       key={active.id}
@@ -169,6 +172,7 @@ const GamePage = () => {
                   </p>
                 )}
                 {!upcomingStory &&
+                  !epilogue &&
                   active?.status !== "ACTIVE" &&
                   progress.data?.currentLevel !== null && (
                     <button
@@ -189,7 +193,7 @@ const GamePage = () => {
             )}
           </div>
           <aside>
-            {!upcomingStory && (
+            {!upcomingStory && !epilogue && (
               <img
                 src="/images/raccoon-computer-mascot.jpg"
                 alt="Енот собирает компьютер"

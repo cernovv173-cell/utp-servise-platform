@@ -10,6 +10,19 @@ export type ChapterStory = ChapterStoryContent & {
   nextChapter: Match3Chapter;
 };
 
+export type Match3Epilogue = {
+  title: string;
+  narration: string;
+  raccoonDialogue: string;
+};
+
+const match3Epilogue: Match3Epilogue = {
+  title: "Компьютер ожил!",
+  narration:
+    "Последняя деталь встаёт на место, и мастерскую озаряет мягкий свет. Енот улыбается: его компьютер собран — от первого корпуса до последнего провода.",
+  raccoonDialogue: "Мы сделали это! Спасибо, что помог мне собрать компьютер мечты!",
+};
+
 const chapterStoryContent: ChapterStoryContent[] = [
   {
     nextChapterNumber: 2,
@@ -81,4 +94,20 @@ export const getUpcomingChapterStory = (
   const story = chapterStoryContent.find((item) => item.nextChapterNumber === nextChapter.number);
 
   return story ? { ...story, nextChapter } : null;
+};
+
+export const getMatch3Epilogue = (progress: Match3Progress | undefined) => {
+  if (
+    !progress ||
+    progress.currentLevel !== null ||
+    progress.completedCount !== 100 ||
+    progress.levels.length !== 100
+  ) {
+    return null;
+  }
+
+  const finalLevel = progress.levels.find((level) => level.number === 100);
+  return finalLevel?.isCompleted && progress.levels.every((level) => level.isCompleted)
+    ? match3Epilogue
+    : null;
 };

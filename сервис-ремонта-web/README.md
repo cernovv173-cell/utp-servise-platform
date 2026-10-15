@@ -224,4 +224,6 @@ locally. At a chapter boundary, a short scene with the existing raccoon mascot a
 prior chapter is complete and before the next level is started. Confirming the scene only dismisses
 that card for the current page visit; the game API and the customer's saved level, session, and rewards
 remain unchanged. The scenes follow the existing five-part story: case, motherboard, processor,
-cooling, and first boot.
+cooling, and first boot. After the server reports all 100 levels complete, the page shows a short
+final epilogue with the same raccoon artwork; this is display-only and does not alter saved progress,
+rewards, or game mechanics.
