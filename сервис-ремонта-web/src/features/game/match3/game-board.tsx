@@ -1,12 +1,7 @@
-import { useState } from "react";
 import { LockKeyhole, Sparkles } from "lucide-react";
+import { useState } from "react";
 
-import type {
-  Match3PartKey,
-  Match3Position,
-  Match3Session,
-  Match3Tile,
-} from "./game-api";
+import type { Match3PartKey, Match3Position, Match3Session, Match3Tile } from "./game-api";
 
 const pieceStyles: Record<Match3PartKey, { icon: string; name: string; tone: string }> = {
   processor: { icon: "🧠", name: "процессор", tone: "from-cyan-300/25 to-blue-500/20" },
@@ -34,7 +29,7 @@ export const GameBoard = ({
   disabled,
   onMove,
 }: {
-  session: Match3Session;
+  session: Pick<Match3Session, "board">;
   disabled: boolean;
   onMove: (from: Match3Position, to: Match3Position) => void;
 }) => {
@@ -80,10 +75,12 @@ export const GameBoard = ({
               aria-pressed={chosen}
               disabled={disabled}
               onClick={() => choose(position, tile)}
-              className={`relative grid aspect-square min-w-0 place-items-center overflow-hidden rounded-lg border text-base transition duration-150 sm:rounded-xl sm:text-2xl ${style ? `bg-gradient-to-br ${style.tone}` : "bg-slate-800/70"} ${chosen ? "z-10 scale-105 border-cyan-200 ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(82,232,255,0.5)]" : "border-white/10 hover:border-cyan-200/50"} ${disabled ? "opacity-70" : "hover:-translate-y-0.5"}`}
+              className={`relative grid aspect-square min-w-0 place-items-center overflow-hidden rounded-lg border text-base transition duration-150 sm:rounded-xl sm:text-2xl ${style ? `bg-gradient-to-br ${style.tone}` : "bg-slate-800/70"} ${chosen ? "z-10 scale-105 border-cyan-200 shadow-[0_0_20px_rgba(82,232,255,0.5)] ring-2 ring-cyan-300" : "border-white/10 hover:border-cyan-200/50"} ${disabled ? "opacity-70" : "hover:-translate-y-0.5"}`}
             >
               {tile.junk ? (
-                <span aria-hidden="true" className="text-lg sm:text-2xl">🗑️</span>
+                <span aria-hidden="true" className="text-lg sm:text-2xl">
+                  🗑️
+                </span>
               ) : style ? (
                 <span aria-hidden="true" className="drop-shadow-[0_2px_6px_rgba(0,0,0,0.4)]">
                   {style.icon}
@@ -95,7 +92,7 @@ export const GameBoard = ({
                 </span>
               )}
               {tile.anomalyTurns !== null && (
-                <span className="absolute top-0 right-0 grid size-4 -translate-y-1/4 translate-x-1/4 place-items-center rounded-full bg-fuchsia-500 text-[9px] text-white sm:size-5 sm:text-[10px]">
+                <span className="absolute top-0 right-0 grid size-4 translate-x-1/4 -translate-y-1/4 place-items-center rounded-full bg-fuchsia-500 text-[9px] text-white sm:size-5 sm:text-[10px]">
                   <Sparkles className="size-2.5 sm:size-3" aria-hidden="true" />
                 </span>
               )}

@@ -35,6 +35,8 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminOverviewRouteImport } from './routes/admin.overview'
 import { Route as AdminProcurementRouteImport } from './routes/admin.procurement'
 import { Route as AdminScheduleRouteImport } from './routes/admin.schedule'
+import { Route as GameDailyRouteImport } from './routes/game.daily'
+import { Route as GameGarageRouteImport } from './routes/game.garage'
 import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
 
@@ -168,6 +170,16 @@ const AdminScheduleRoute = AdminScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => AdminRoute,
 } as any)
+const GameDailyRoute = GameDailyRouteImport.update({
+  id: '/daily',
+  path: '/daily',
+  getParentRoute: () => GameRoute,
+} as any)
+const GameGarageRoute = GameGarageRouteImport.update({
+  id: '/garage',
+  path: '/garage',
+  getParentRoute: () => GameRoute,
+} as any)
 const SupportCustomerIdRoute = SupportCustomerIdRouteImport.update({
   id: '/$customerId',
   path: '/$customerId',
@@ -190,7 +202,7 @@ export interface FileRoutesByFullPath {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
-  '/game': typeof GameRoute
+  '/game': typeof GameRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -206,6 +218,8 @@ export interface FileRoutesByFullPath {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/game/daily': typeof GameDailyRoute
+  '/game/garage': typeof GameGarageRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -220,7 +234,7 @@ export interface FileRoutesByTo {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
-  '/game': typeof GameRoute
+  '/game': typeof GameRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -236,6 +250,8 @@ export interface FileRoutesByTo {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/game/daily': typeof GameDailyRoute
+  '/game/garage': typeof GameGarageRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -251,7 +267,7 @@ export interface FileRoutesById {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
-  '/game': typeof GameRoute
+  '/game': typeof GameRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -267,6 +283,8 @@ export interface FileRoutesById {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/game/daily': typeof GameDailyRoute
+  '/game/garage': typeof GameGarageRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -299,6 +317,8 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/game/daily'
+    | '/game/garage'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
@@ -329,6 +349,8 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/game/daily'
+    | '/game/garage'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   id:
@@ -359,6 +381,8 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/game/daily'
+    | '/game/garage'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesById: FileRoutesById
@@ -374,7 +398,7 @@ export interface RootRouteChildren {
   ChecksRoute: typeof ChecksRoute
   CraftsRoute: typeof CraftsRoute
   DevicesRoute: typeof DevicesRoute
-  GameRoute: typeof GameRoute
+  GameRoute: typeof GameRouteWithChildren
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   NewsRoute: typeof NewsRoute
@@ -570,6 +594,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScheduleRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/game/daily': {
+      id: '/game/daily'
+      path: '/daily'
+      fullPath: '/game/daily'
+      preLoaderRoute: typeof GameDailyRouteImport
+      parentRoute: typeof GameRoute
+    }
+    '/game/garage': {
+      id: '/game/garage'
+      path: '/garage'
+      fullPath: '/game/garage'
+      preLoaderRoute: typeof GameGarageRouteImport
+      parentRoute: typeof GameRoute
+    }
     '/support/$customerId': {
       id: '/support/$customerId'
       path: '/$customerId'
@@ -619,6 +657,18 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface GameRouteChildren {
+  GameDailyRoute: typeof GameDailyRoute
+  GameGarageRoute: typeof GameGarageRoute
+}
+
+const GameRouteChildren: GameRouteChildren = {
+  GameDailyRoute: GameDailyRoute,
+  GameGarageRoute: GameGarageRoute,
+}
+
+const GameRouteWithChildren = GameRoute._addFileChildren(GameRouteChildren)
+
 interface SupportRouteChildren {
   SupportCustomerIdRoute: typeof SupportCustomerIdRoute
 }
@@ -641,7 +691,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChecksRoute: ChecksRoute,
   CraftsRoute: CraftsRoute,
   DevicesRoute: DevicesRoute,
-  GameRoute: GameRoute,
+  GameRoute: GameRouteWithChildren,
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   NewsRoute: NewsRoute,

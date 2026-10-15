@@ -229,4 +229,10 @@ each line can be replayed, and disabling speech stops it. Available Russian voic
 browser and device. The scenes follow the existing five-part story: case, motherboard, processor,
 cooling, and first boot. After the server reports all 100 levels complete, the page shows a short
 final epilogue with the same raccoon artwork; this is display-only and does not alter saved progress,
-rewards, or game mechanics.
+rewards, or game mechanics. A first-run tutorial guides the player through a real opening-level move,
+then explains frozen cells, junk, and anomalies; it can be skipped and its completion is stored
+locally per customer. The computer blueprint lights up its existing part milestones as chapters
+progress. `/game/garage` unlocks cosmetic raccoon visors at chapter completion; equipment choice is
+stored locally and does not affect play or points. `/game/daily` offers a reproducible one-match
+puzzle that resets on the Moscow calendar date; only its completion marker is stored separately in
+the browser and it does not call campaign move or reward endpoints.

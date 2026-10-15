@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 
 import { AppShell } from "@/components/app-shell";
@@ -20,7 +20,19 @@ import {
   ChapterProgress,
   ComputerBuildProgress,
 } from "@/features/game/match3/game-progress-panels";
+import { GameTutorial, type GameTutorialStep } from "@/features/game/match3/game-tutorial";
+import { useRaccoonCosmeticSelection } from "@/features/game/match3/use-raccoon-cosmetic-selection";
 import { useRaccoonVoice } from "@/features/game/match3/use-raccoon-voice";
+
+const tutorialStorageKey = (userId: string) => `match3:first-tutorial-seen:v1:${userId}`;
+
+const readTutorialSeen = (userId: string) => {
+  try {
+    return window.localStorage.getItem(tutorialStorageKey(userId)) === "true";
+  } catch {
+    return false;
+  }
+};
 
 const GamePage = () => {
   const { token, user } = useAuth();
@@ -31,6 +43,14 @@ const GamePage = () => {
     userId: string | null;
     chapterNumbers: number[];
   }>({ userId: null, chapterNumbers: [] });
+  const [tutorialProgress, setTutorialProgress] = useState<{
+    userId: string | null;
+    step: GameTutorialStep;
+  }>({ userId: null, step: 0 });
+  const [tutorialSeenState, setTutorialSeenState] = useState<{
+    userId: string | null;
+    seen: boolean;
+  }>({ userId: null, seen: false });
   const key = ["match3-progress", token];
   const progress = useQuery({
     queryKey: key,
@@ -52,6 +72,30 @@ const GamePage = () => {
   );
   const raccoonVoice = useRaccoonVoice(upcomingStory?.raccoonDialogue ?? null);
   const epilogue = getMatch3Epilogue(progress.data);
+  const cosmetics = useRaccoonCosmeticSelection(
+    user?.id ?? null,
+    progress.data?.completedCount ?? 0,
+  );
+  const tutorialSeen = user
+    ? tutorialSeenState.userId === user.id
+      ? tutorialSeenState.seen
+      : readTutorialSeen(user.id)
+    : true;
+  const tutorialStep = tutorialProgress.userId === user?.id ? tutorialProgress.step : 0;
+  const tutorialVisible = Boolean(
+    user?.role === "CUSTOMER" &&
+    !tutorialSeen &&
+    ((active?.level.number === 1 && progress.data?.completedCount === 0) || tutorialStep === 1),
+  );
+  const finishTutorial = () => {
+    if (!user) return;
+    try {
+      window.localStorage.setItem(tutorialStorageKey(user.id), "true");
+    } catch {
+      // The tutorial can still be dismissed for this visit if storage is unavailable.
+    }
+    setTutorialSeenState({ userId: user.id, seen: true });
+  };
   const markStorySeen = (chapterNumber: number) => {
     const current = seenStories.userId === storyUserId ? seenStories.chapterNumbers : [];
     if (!current.includes(chapterNumber)) {
@@ -82,16 +126,22 @@ const GamePage = () => {
       client.setQueryData<Awaited<ReturnType<typeof getMatch3Progress>>>(key, (previous) =>
         previous ? { ...previous, activeSession: result.session } : previous,
       );
+      const tutorialMoveAccepted = tutorialVisible && tutorialStep === 0 && result.accepted;
+      if (tutorialMoveAccepted && user) {
+        setTutorialProgress({ userId: user.id, step: 1 });
+      }
       setNotice(
-        !result.accepted
-          ? "Этот обмен не создаёт комбинацию. Попробуйте другую пару."
-          : result.session.status === "COMPLETE"
-            ? "Уровень пройден! Награда начислена."
-            : result.session.status === "FAILED"
-              ? "Ходы закончились. Попробуйте ещё раз."
-              : result.targetMatched
-                ? `Собрано деталей: +${result.targetMatched}`
-                : "Комбинация собрана!",
+        tutorialMoveAccepted
+          ? "Получилось! Вот как работают препятствия — потом можно продолжать игру."
+          : !result.accepted
+            ? "Этот обмен не создаёт комбинацию. Попробуйте другую пару."
+            : result.session.status === "COMPLETE"
+              ? "Уровень пройден! Награда начислена."
+              : result.session.status === "FAILED"
+                ? "Ходы закончились. Попробуйте ещё раз."
+                : result.targetMatched
+                  ? `Собрано деталей: +${result.targetMatched}`
+                  : "Комбинация собрана!",
       );
       if (result.session.status !== "ACTIVE") void client.invalidateQueries({ queryKey: key });
     },
@@ -115,6 +165,20 @@ const GamePage = () => {
               Выберите две соседние фишки. Собирайте три одинаковые детали в ряд, чтобы пройти этап.
               Застывшие клетки и мусор исчезают от комбинаций рядом с ними.
             </p>
+            <nav aria-label="Дополнительные режимы игры" className="mt-4 flex flex-wrap gap-2">
+              <Link
+                to="/game/daily"
+                className="min-h-10 rounded-xl border border-cyan-200/25 bg-[#101a34]/90 px-4 py-2 text-sm font-medium text-cyan-100 transition hover:bg-[#182648] focus-visible:ring-2 focus-visible:ring-cyan-100"
+              >
+                Задача дня
+              </Link>
+              <Link
+                to="/game/garage"
+                className="min-h-10 rounded-xl border border-violet-200/25 bg-[#101a34]/90 px-4 py-2 text-sm font-medium text-violet-100 transition hover:bg-[#182648] focus-visible:ring-2 focus-visible:ring-violet-100"
+              >
+                Мастерская · {cosmetics.unlocked.length} образов
+              </Link>
+            </nav>
             {user?.role !== "CUSTOMER" ? (
               <p className="mt-6 rounded-xl bg-[#101a34] p-4">Игра доступна аккаунтам клиентов.</p>
             ) : progress.isPending ? (
@@ -162,12 +226,19 @@ const GamePage = () => {
                   />
                 )}
                 {epilogue && <GameEpilogueScene epilogue={epilogue} />}
+                {tutorialVisible && (
+                  <GameTutorial
+                    step={tutorialStep}
+                    onSkip={finishTutorial}
+                    onContinue={finishTutorial}
+                  />
+                )}
                 {!upcomingStory && !epilogue && active?.status === "ACTIVE" && (
                   <div className="mt-5">
                     <GameBoard
                       key={active.id}
                       session={active}
-                      disabled={move.isPending}
+                      disabled={move.isPending || (tutorialVisible && tutorialStep === 1)}
                       onMove={(from, to) => move.mutate({ from, to })}
                     />
                   </div>
@@ -201,8 +272,8 @@ const GamePage = () => {
           <aside>
             {!upcomingStory && !epilogue && (
               <img
-                src="/images/raccoon-computer-mascot.jpg"
-                alt="Енот собирает компьютер"
+                src={cosmetics.selected.image}
+                alt={`Енот в образе «${cosmetics.selected.name}» собирает компьютер`}
                 className="w-full rounded-2xl border border-cyan-300/20 object-cover"
               />
             )}
