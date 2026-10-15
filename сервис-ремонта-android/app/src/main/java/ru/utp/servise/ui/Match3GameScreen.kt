@@ -60,7 +60,7 @@ private val visors = listOf(
 )
 
 @Composable
-fun Match3GameScreen(token: String, onBack: () -> Unit) {
+fun Match3GameScreen(token: String, onBack: () -> Unit, onDailyPuzzle: () -> Unit) {
     var gameProgress by remember(token) { mutableStateOf<Match3Progress?>(null) }
     var session by remember(token) { mutableStateOf<Match3Session?>(null) }
     var selected by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -171,6 +171,9 @@ fun Match3GameScreen(token: String, onBack: () -> Unit) {
             Text("Мастерская енота", fontSize = 21.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         }
         Text("Собери компьютер мечты: 100 уровней, пять глав и общий прогресс аккаунта.", fontSize = 13.sp, lineHeight = 19.sp, color = UtpMuted)
+        OutlinedButton(onClick = onDailyPuzzle, modifier = Modifier.fillMaxWidth()) {
+            Text("📅 Испытание дня · отдельно от кампании")
+        }
 
         error?.let { message ->
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)) {
@@ -263,7 +266,7 @@ fun Match3GameScreen(token: String, onBack: () -> Unit) {
                             progress = { (active.targetCollected.toFloat() / active.level.targetCount.coerceAtLeast(1)).coerceIn(0f, 1f) },
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        Match3Board(active, selected, busy, ::chooseTile)
+                        Match3Board(active.board, selected, !busy && active.status == "ACTIVE", ::chooseTile)
                         Text("Осталось ходов: ${active.level.moveLimit - active.movesUsed}. Выберите соседние фишки для обмена.", fontSize = 12.sp, color = UtpMuted)
                     }
                 }

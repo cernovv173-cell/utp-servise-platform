@@ -53,8 +53,8 @@ android {
         applicationId = "ru.utp.servise"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "1.3.7"
+        versionCode = 22
+        versionName = "1.3.8"
     }
 
     buildFeatures {
@@ -109,5 +109,6 @@ dependencies {
     implementation("com.google.zxing:core:3.5.4")
     implementation("com.yandex.android:authsdk:3.1.3")
     implementation("com.vk.id:vkid:2.7.3")
+    testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }

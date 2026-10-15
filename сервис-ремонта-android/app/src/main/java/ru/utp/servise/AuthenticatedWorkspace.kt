@@ -60,6 +60,7 @@ import ru.utp.servise.ui.CustomerHomeScreen
 import ru.utp.servise.ui.CustomerDevicesScreen
 import ru.utp.servise.ui.CustomerManagementScreen
 import ru.utp.servise.ui.LoyaltyScreen
+import ru.utp.servise.ui.Match3DailyPuzzleScreen
 import ru.utp.servise.ui.Match3GameScreen
 import ru.utp.servise.ui.NewsFeedScreen
 import ru.utp.servise.ui.NewsManagementScreen
@@ -229,10 +230,18 @@ internal fun AuthenticatedWorkspace(
                                     onCampaignNavigate,
                                     { navController.navigate("customer/support-chat") },
                                     { navController.navigate("customer/game") },
+                                    { navController.navigate("customer/game/daily") },
                                 )
                             }
                             composable("customer/game") {
-                                Match3GameScreen(token) { navController.popBackStack() }
+                                Match3GameScreen(
+                                    token = token,
+                                    onBack = { navController.popBackStack() },
+                                    onDailyPuzzle = { navController.navigate("customer/game/daily") },
+                                )
+                            }
+                            composable("customer/game/daily") {
+                                Match3DailyPuzzleScreen(user.id) { navController.popBackStack() }
                             }
                             composable("customer/news") { NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate) }
                             composable("customer/loyalty") { LoyaltyScreen(loyalty, token, banners, onCampaignNavigate) }

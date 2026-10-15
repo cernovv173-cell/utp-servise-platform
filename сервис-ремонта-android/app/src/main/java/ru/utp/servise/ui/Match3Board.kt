@@ -23,18 +23,17 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ru.utp.servise.data.Match3Session
 import ru.utp.servise.data.Match3Tile
 
 @Composable
 internal fun Match3Board(
-    session: Match3Session,
+    board: List<List<Match3Tile>>,
     selected: Pair<Int, Int>?,
-    busy: Boolean,
+    enabled: Boolean,
     onTileSelected: (Int, Int) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-        session.board.forEachIndexed { rowIndex, row ->
+        board.forEachIndexed { rowIndex, row ->
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                 row.forEachIndexed { columnIndex, tile ->
                     val isSelected = selected == (rowIndex to columnIndex)
@@ -50,7 +49,7 @@ internal fun Match3Board(
                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.22f),
                                 shape = RoundedCornerShape(9.dp),
                             )
-                            .clickable(enabled = !busy && session.status == "ACTIVE") {
+                            .clickable(enabled = enabled) {
                                 onTileSelected(rowIndex, columnIndex)
                             }
                             .semantics {
