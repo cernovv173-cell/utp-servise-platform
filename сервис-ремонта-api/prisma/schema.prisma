@@ -89,6 +89,12 @@ enum BonusTransactionType {
   REDEEM
   MANUAL_ADJUSTMENT
   GAME_REWARD
+  REFERRAL_REWARD
+}
+
+enum ReferralStatus {
+  PENDING
+  REWARDED
 }
 
 enum ReceiptPaymentStatus {
@@ -125,6 +131,7 @@ model User {
   telegramChatId          String?                        @unique @map("telegram_chat_id") @db.VarChar(64)
   maxUserId               String?                        @unique @map("max_user_id") @db.VarChar(64)
   match3CosmeticId        String?                        @map("match3_cosmetic_id") @db.VarChar(32)
+  referralCode            String?                        @unique @map("referral_code") @db.VarChar(16)
   role                    UserRole                       @default(CUSTOMER)
   salaryRatePercent       Int                            @default(75) @map("salary_rate_percent") @db.SmallInt
   active                  Boolean                        @default(true)
@@ -177,6 +184,8 @@ model User {
   telegramNotifications   TelegramNotificationDelivery[]
   maxLinkTokens           MaxLinkToken[]
   maxNotifications        MaxNotificationDelivery[]
+  referralsSent           CustomerReferral[]             @relation("ReferralInviter")
+  referralReceived        CustomerReferral?              @relation("ReferralInvitee")
 
   @@index([role, active])
   @@map("users")
@@ -284,6 +293,7 @@ model RepairOrder {
   chat                  OrderChat?
   review                Review?
   bonusTransactions     LoyaltyTransaction[]
+  referralReward        CustomerReferral?              @relation("ReferralRewardOrder")
   receipt               RepairReceipt?
   salaryEntry           TechnicianSalaryEntry?
   telegramNotifications TelegramNotificationDelivery[]
@@ -836,6 +846,7 @@ model LoyaltyTransaction {
   customerId   String               @map("customer_id") @db.Uuid
   orderId      String?              @map("order_id") @db.Uuid
   craftOrderId String?              @map("craft_order_id") @db.Uuid
+  referralId   String?              @map("referral_id") @db.Uuid
   actorId      String?              @map("actor_id") @db.Uuid
   type         BonusTransactionType
   points       Int
@@ -844,12 +855,31 @@ model LoyaltyTransaction {
   customer     User                 @relation("BonusCustomer", fields: [customerId], references: [id], onDelete: Restrict)
   order        RepairOrder?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
   craftOrder   CraftOrder?          @relation(fields: [craftOrderId], references: [id], onDelete: SetNull)
+  referral     CustomerReferral?    @relation("ReferralTransactions", fields: [referralId], references: [id], onDelete: SetNull)
   actor        User?                @relation("BonusActor", fields: [actorId], references: [id], onDelete: SetNull)
 
+  @@unique([referralId, customerId])
   @@index([customerId, createdAt])
   @@index([orderId])
   @@index([craftOrderId])
   @@map("loyalty_transactions")
+}
+
+model CustomerReferral {
+  id            String               @id @default(uuid()) @db.Uuid
+  referrerId    String               @map("referrer_id") @db.Uuid
+  inviteeId     String               @unique @map("invitee_id") @db.Uuid
+  status        ReferralStatus       @default(PENDING)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  rewardedAt    DateTime?            @map("rewarded_at") @db.Timestamptz(3)
+  rewardOrderId String?              @unique @map("reward_order_id") @db.Uuid
+  referrer      User                 @relation("ReferralInviter", fields: [referrerId], references: [id], onDelete: Restrict)
+  invitee       User                 @relation("ReferralInvitee", fields: [inviteeId], references: [id], onDelete: Restrict)
+  rewardOrder   RepairOrder?         @relation("ReferralRewardOrder", fields: [rewardOrderId], references: [id], onDelete: SetNull)
+  transactions  LoyaltyTransaction[] @relation("ReferralTransactions")
+
+  @@index([referrerId, status, createdAt])
+  @@map("customer_referrals")
 }
 
 model GameEpisode {

@@ -5,6 +5,8 @@ import { z } from "zod";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
+import { createCustomerWithReferral } from "../referrals/customer-registration.js";
+import { referralCodeSchema } from "../referrals/referral-code.js";
 import {
   createRequireAuth,
   getAuthenticatedUser,
@@ -48,6 +50,7 @@ const registerSchema = z
     displayName: z.string().trim().min(2).max(120),
     phoneNumber: phoneNumberSchema,
     password: passwordSchema,
+    referralCode: referralCodeSchema,
   })
   .strict();
 const loginSchema = z
@@ -62,6 +65,7 @@ const yandexLoginSchema = z
     accessToken: z.string().trim().min(20).max(4096),
     password: z.string().min(1).max(128).optional(),
     portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN"]),
+    referralCode: referralCodeSchema,
   })
   .strict();
 const changePasswordSchema = z
@@ -121,15 +125,16 @@ export const createAuthRouter = (
     async (_request, response, next) => {
       const input = bodyOf<z.infer<typeof registerSchema>>(response);
       try {
-        const user = await database.user.create({
-          data: {
+        const passwordHash = await hashPassword(input.password);
+        const { user } = await database.$transaction((transaction) =>
+          createCustomerWithReferral(transaction, {
             email: input.email,
             displayName: input.displayName,
             phoneNumber: input.phoneNumber?.trim() || null,
-            passwordHash: await hashPassword(input.password),
-            role: "CUSTOMER",
-          },
-        });
+            passwordHash,
+            referralCode: input.referralCode,
+          }),
+        );
         const session = await createSession(database, user.id);
         response.status(201).json({
           accessToken: session.accessToken,
@@ -201,6 +206,8 @@ export const createAuthRouter = (
           input.accessToken,
           yandexClientId,
         );
+        let accountCreated = false;
+        let referralApplied = false;
         let user = await database.user.findUnique({
           where: { yandexId: identity.id },
         });
@@ -258,17 +265,22 @@ export const createAuthRouter = (
               );
               return;
             }
-            user = await database.user.create({
-              data: {
+            const passwordHash = await hashPassword(
+              randomBytes(32).toString("base64url"),
+            );
+            const created = await database.$transaction((transaction) =>
+              createCustomerWithReferral(transaction, {
                 email: identity.email,
                 displayName: identity.displayName,
-                passwordHash: await hashPassword(
-                  randomBytes(32).toString("base64url"),
-                ),
+                phoneNumber: null,
+                passwordHash,
                 yandexId: identity.id,
-                role: "CUSTOMER",
-              },
-            });
+                referralCode: input.referralCode,
+              }),
+            );
+            user = created.user;
+            accountCreated = true;
+            referralApplied = created.referralApplied;
           }
         }
 
@@ -297,6 +309,8 @@ export const createAuthRouter = (
         response.json({
           accessToken: session.accessToken,
           expiresAt: session.expiresAt,
+          accountCreated,
+          referralApplied,
           user: publicUser(user),
         });
       } catch (error) {

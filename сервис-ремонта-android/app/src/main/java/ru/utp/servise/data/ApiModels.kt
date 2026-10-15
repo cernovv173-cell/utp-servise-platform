@@ -261,6 +261,21 @@ data class LoyaltyTransaction(
 
 data class LoyaltyAccount(val balance: Int, val transactions: List<LoyaltyTransaction>)
 
+data class ReferralEntry(
+    val id: String,
+    val status: String,
+    val createdAt: String,
+    val rewardedAt: String?,
+)
+
+data class ReferralProgram(
+    val referralCode: String = "",
+    val totalInvites: Int = 0,
+    val pendingCount: Int = 0,
+    val rewardedCount: Int = 0,
+    val referrals: List<ReferralEntry> = emptyList(),
+)
+
 data class SalaryAmounts(val day: Int = 0, val week: Int = 0, val month: Int = 0)
 data class SalaryRange(val startsAt: String = "", val endsAt: String = "")
 data class SalaryTechnician(

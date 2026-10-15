@@ -52,6 +52,7 @@ import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.PushTokenManager
+import ru.utp.servise.data.ReferralProgram
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SessionStore
 import ru.utp.servise.data.SiteBanner
@@ -100,6 +101,7 @@ private fun UtpServiseApp() {
     var news by remember { mutableStateOf<List<NewsArticle>>(emptyList()) }
     var banners by remember { mutableStateOf<List<SiteBanner>>(emptyList()) }
     var loyalty by remember { mutableStateOf(LoyaltyAccount(0, emptyList())) }
+    var referralProgram by remember { mutableStateOf(ReferralProgram()) }
     var salary by remember { mutableStateOf(SalarySummary()) }
     var adminChats by remember { mutableStateOf<List<AdminChatInboxItem>>(emptyList()) }
     var activeChat by remember { mutableStateOf<OrderChat?>(null) }
@@ -180,6 +182,9 @@ private fun UtpServiseApp() {
                         news = ApiClient.news(token),
                         banners = ApiClient.banners(token),
                         loyalty = if (currentUser.role == "CUSTOMER") ApiClient.loyalty(token) else LoyaltyAccount(0, emptyList()),
+                        referralProgram = if (currentUser.role == "CUSTOMER") {
+                            runCatching { ApiClient.referralProgram(token) }.getOrDefault(ReferralProgram())
+                        } else ReferralProgram(),
                         salary = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.salary(token) else SalarySummary(),
                         adminChats = if (currentUser.role == "ADMIN") ApiClient.administratorChatInbox(token) else emptyList(),
                         supportChats = if (currentUser.role == "ADMIN") ApiClient.administratorSupportChats(token) else emptyList(),
@@ -197,6 +202,7 @@ private fun UtpServiseApp() {
                 news = data.news
                 banners = data.banners
                 loyalty = data.loyalty
+                referralProgram = data.referralProgram
                 salary = data.salary
                 adminChats = data.adminChats
                 supportChats = data.supportChats
@@ -245,6 +251,7 @@ private fun UtpServiseApp() {
             news = news,
             banners = banners,
             loyalty = loyalty,
+            referralProgram = referralProgram,
             salary = salary,
             adminChats = adminChats,
             supportChats = supportChats,
@@ -310,6 +317,7 @@ private fun UtpServiseApp() {
                 news = emptyList()
                 banners = emptyList()
                 loyalty = LoyaltyAccount(0, emptyList())
+                referralProgram = ReferralProgram()
                 adminChats = emptyList()
                 activeChat = null
                 supportChats = emptyList()

@@ -132,6 +132,17 @@ bonus transaction. For repair receipts, only an administrator can apply bonuses,
 `SERVICE` line totals; spare parts and products are excluded. The server deducts the redeemed amount
 when the administrator confirms the repair payment and awards 10% of the remaining cash amount.
 
+## Customer referrals
+
+Each customer receives a unique referral code. `GET /referrals/me` returns the code, totals, and up to
+50 recent invitations; legacy accounts receive a code on first access. Public registration may
+include `referralCode`, which links the new customer to one active customer inviter. When an
+administrator confirms payment for the referred customer's first completed repair, the same database
+transaction marks the referral rewarded and records two 100-point `REFERRAL_REWARD` ledger entries with a
+referral-specific reason.
+Registration, craft orders, repeated payment confirmation, and later repairs do not issue another
+referral reward. Points remain non-cash loyalty points and follow the existing repair-redemption cap.
+
 ## Intake, work orders, and customer pickup
 
 Administrators and the assigned technician maintain one intake act per repair order. It records the visible condition and a protected photo for the front, back, left, and right sides, plus the serial number, included accessories, and notes. The order cannot be marked ready for pickup until all four condition notes and photos are saved; the act becomes read-only once the order is ready, completed, or cancelled.

@@ -137,6 +137,7 @@ private fun LoginScreen(
     val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var referralCode by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var recovering by remember { mutableStateOf(false) }
     var recoveryMessage by remember { mutableStateOf<String?>(null) }
@@ -153,6 +154,7 @@ private fun LoginScreen(
                         accessToken,
                         portal,
                         linkPassword,
+                        referralCode.trim().takeIf { it.isNotEmpty() },
                     )
                 }
                 yandexTokenToLink = null
@@ -183,6 +185,7 @@ private fun LoginScreen(
                         accessToken,
                         portal,
                         linkPassword,
+                        referralCode.trim().takeIf { it.isNotEmpty() },
                     )
                 }
                 vkTokenToLink = null
@@ -249,6 +252,23 @@ private fun LoginScreen(
                 trailingIcon = { TextButton(onClick = { showPassword = !showPassword }) { Text(if (showPassword) "Скрыть" else "Показать") } },
                 shape = RoundedCornerShape(14.dp),
             )
+            if (portal == "CUSTOMER") {
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = referralCode,
+                    onValueChange = { referralCode = it.trim().uppercase().take(16) },
+                    label = { Text("Код приглашения (если есть)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                )
+                Text(
+                    "Применится только при создании нового аккаунта через Яндекс ID или VK ID.",
+                    fontSize = 11.sp,
+                    color = UtpMuted,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             Spacer(Modifier.height(18.dp))
             Button(onClick = {
                 onError(null)
@@ -371,6 +391,7 @@ private fun RegisterScreen(
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
+    var referralCode by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(22.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
@@ -391,12 +412,34 @@ private fun RegisterScreen(
         )
         Text("Контакт будет доступен только участникам вашей заявки.", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
         Spacer(Modifier.height(10.dp))
+        OutlinedTextField(
+            value = referralCode,
+            onValueChange = { referralCode = it.uppercase().take(16) },
+            label = { Text("Код приглашения (если есть)") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+        )
+        Text(
+            "После завершения первого ремонта и подтверждения оплаты сервисом вам и пригласившему начислят по 100 бонусных баллов.",
+            fontSize = 11.sp,
+            color = UtpMuted,
+            lineHeight = 16.sp,
+            modifier = Modifier.padding(top = 5.dp),
+        )
+        Spacer(Modifier.height(10.dp))
         OutlinedTextField(password, { password = it }, label = { Text("Пароль (не менее 8 символов)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = PasswordVisualTransformation(), shape = RoundedCornerShape(14.dp))
         Spacer(Modifier.height(18.dp))
         Button(onClick = {
             onError(null)
             performAuth(scope, onBusy, onError, onAuthenticated) {
-                ru.utp.servise.data.ApiClient.register(email.trim(), name.trim(), password, phoneNumber.trim().takeIf { it.isNotEmpty() })
+                ru.utp.servise.data.ApiClient.register(
+                    email.trim(),
+                    name.trim(),
+                    password,
+                    phoneNumber.trim().takeIf { it.isNotEmpty() },
+                    referralCode.trim().takeIf { it.isNotEmpty() },
+                )
             }
         }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2 && email.isNotBlank() && password.length >= 8, shape = RoundedCornerShape(18.dp)) { Text("Зарегистрироваться") }
     }

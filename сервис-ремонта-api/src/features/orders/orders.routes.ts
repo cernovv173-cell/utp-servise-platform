@@ -17,6 +17,7 @@ import {
   sendRepairOrderNotification,
   sendRepairOrderNotificationForId,
 } from "../notifications/push-notifications.js";
+import { awardReferralForFirstPaidRepair } from "../referrals/referral-rewards.js";
 import {
   TECHNICIAN_SALARY_RATE_PERCENT,
   calculateTechnicianSalaryRub,
@@ -1261,6 +1262,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             },
           });
         }
+        await awardReferralForFirstPaidRepair(transaction, {
+          inviteeId: order.customerId,
+          orderId,
+          serviceNumber: order.serviceNumber,
+          actorId: admin.id,
+        });
         return transaction.repairReceipt.findUniqueOrThrow({
           where: { id: currentReceipt.id },
         });

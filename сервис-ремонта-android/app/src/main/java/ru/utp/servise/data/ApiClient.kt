@@ -75,15 +75,27 @@ object ApiClient {
         request("POST", "/auth/login", body = JSONObject().put("email", email).put("password", password).put("portal", portal))
     )
 
-    fun loginWithYandex(accessToken: String, portal: String, password: String? = null): AuthResult {
+    fun loginWithYandex(
+        accessToken: String,
+        portal: String,
+        password: String? = null,
+        referralCode: String? = null,
+    ): AuthResult {
         val body = JSONObject().put("accessToken", accessToken).put("portal", portal)
         password?.let { body.put("password", it) }
+        referralCode?.trim()?.takeIf { it.isNotEmpty() }?.let { body.put("referralCode", it.uppercase()) }
         return authResult(request("POST", "/auth/yandex", body = body))
     }
 
-    fun loginWithVk(accessToken: String, portal: String, password: String? = null): AuthResult {
+    fun loginWithVk(
+        accessToken: String,
+        portal: String,
+        password: String? = null,
+        referralCode: String? = null,
+    ): AuthResult {
         val body = JSONObject().put("accessToken", accessToken).put("portal", portal)
         password?.let { body.put("password", it) }
+        referralCode?.trim()?.takeIf { it.isNotEmpty() }?.let { body.put("referralCode", it.uppercase()) }
         return authResult(request("POST", "/auth/vk", body = body))
     }
 
@@ -91,13 +103,21 @@ object ApiClient {
         request("POST", "/auth/password-reset/request", body = JSONObject().put("email", email))
     }
 
-    fun register(email: String, displayName: String, password: String, phoneNumber: String?): AuthResult = authResult(
-        request("POST", "/auth/register", body = JSONObject()
+    fun register(
+        email: String,
+        displayName: String,
+        password: String,
+        phoneNumber: String?,
+        referralCode: String? = null,
+    ): AuthResult {
+        val body = JSONObject()
             .put("email", email)
             .put("displayName", displayName)
             .put("phoneNumber", phoneNumber ?: JSONObject.NULL)
-            .put("password", password))
-    )
+            .put("password", password)
+        referralCode?.trim()?.takeIf { it.isNotEmpty() }?.let { body.put("referralCode", it.uppercase()) }
+        return authResult(request("POST", "/auth/register", body = body))
+    }
 
     fun me(token: String): AppUser = request("GET", "/auth/me", token).getJSONObject("user").toUser()
     fun updateProfile(
@@ -341,6 +361,24 @@ object ApiClient {
                     reason = transaction.optString("reason"),
                     createdAt = transaction.optString("createdAt"),
                     serviceNumber = transaction.optJSONObject("order")?.nullableString("serviceNumber"),
+                )
+            },
+        )
+    }
+
+    fun referralProgram(token: String): ReferralProgram {
+        val json = request("GET", "/referrals/me", token)
+        return ReferralProgram(
+            referralCode = json.optString("referralCode"),
+            totalInvites = json.optInt("totalInvites"),
+            pendingCount = json.optInt("pendingCount"),
+            rewardedCount = json.optInt("rewardedCount"),
+            referrals = json.optJSONArray("referrals").mapObjects { referral ->
+                ReferralEntry(
+                    id = referral.getString("id"),
+                    status = referral.optString("status"),
+                    createdAt = referral.optString("createdAt"),
+                    rewardedAt = referral.nullableString("rewardedAt"),
                 )
             },
         )

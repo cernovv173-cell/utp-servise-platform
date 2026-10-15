@@ -9,6 +9,7 @@ import ru.utp.servise.data.CustomerDevice
 import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.NewsArticle
+import ru.utp.servise.data.ReferralProgram
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.SalarySummary
@@ -27,6 +28,7 @@ internal data class WorkspaceData(
     val news: List<NewsArticle>,
     val banners: List<SiteBanner>,
     val loyalty: LoyaltyAccount,
+    val referralProgram: ReferralProgram,
     val salary: SalarySummary,
     val adminChats: List<AdminChatInboxItem>,
     val supportChats: List<SupportChatInboxItem>,

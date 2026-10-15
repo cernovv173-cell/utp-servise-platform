@@ -19,7 +19,12 @@ import {
 const LoginPage = () => {
   const { setSession } = useAuth();
   const navigate = useNavigate();
-  const [registering, setRegistering] = useState(false);
+  const referralFromLink =
+    typeof window === "undefined"
+      ? ""
+      : (new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? "");
+  const [registering, setRegistering] = useState(Boolean(referralFromLink));
+  const [referralCode, setReferralCode] = useState(referralFromLink);
   const [recovering, setRecovering] = useState(false);
   const [recoverySent, setRecoverySent] = useState(false);
   const [role, setRole] = useState<Role>("CUSTOMER");
@@ -27,16 +32,23 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
   const [registeredName, setRegisteredName] = useState<string | null>(null);
+  const [joinedWithReferral, setJoinedWithReferral] = useState(false);
   const [pendingYandexToken, setPendingYandexToken] = useState<string | null>(null);
 
   const authenticateWithYandex = async (accessToken: string, linkPassword?: string) => {
     setBusy(true);
     setError("");
     try {
-      const session = await yandexLoginRequest(accessToken, role, linkPassword);
+      const session = await yandexLoginRequest(
+        accessToken,
+        registering ? "CUSTOMER" : role,
+        linkPassword,
+        referralCode,
+      );
       setPendingYandexToken(null);
       setSession(session);
-      if (registering) {
+      if (session.accountCreated) {
+        setJoinedWithReferral(Boolean(session.referralApplied));
         setRegisteredName(session.user.displayName);
         return;
       }
@@ -64,16 +76,19 @@ const LoginPage = () => {
         setRecoverySent(true);
         return;
       }
+      const enteredReferralCode = String(values.get("referralCode") ?? "").trim();
       const session = registering
         ? await registerRequest(
             String(values.get("name")),
             String(values.get("email")),
             String(values.get("phone")),
             String(values.get("password")),
+            enteredReferralCode,
           )
         : await loginRequest(String(values.get("email")), String(values.get("password")), role);
       setSession(session);
       if (registering) {
+        setJoinedWithReferral(Boolean(enteredReferralCode));
         setRegisteredName(session.user.displayName);
         return;
       }
@@ -109,6 +124,13 @@ const LoginPage = () => {
               Теперь можно оформить заявку на ремонт, следить за её статусом и общаться с сервисом в
               одном месте.
             </p>
+            {joinedWithReferral && (
+              <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-100">
+                Вас пригласил друг. После завершения первого ремонта и подтверждения оплаты сервисом
+                вам начислят 100 бонусных баллов, и пригласивший тоже получит 100 баллов. Это баллы
+                для скидки, а не деньги для вывода.
+              </p>
+            )}
             <div className="mt-8 grid gap-3">
               <div className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
                 <ClipboardList size={20} className="mt-0.5 shrink-0 text-blue-600" />
@@ -220,6 +242,25 @@ const LoginPage = () => {
                 />
               </label>
             )}
+            {registering && !recovering && (
+              <label className="grid gap-1.5 text-sm font-medium">
+                Код приглашения, если есть
+                <input
+                  name="referralCode"
+                  value={referralCode}
+                  onChange={(event) => setReferralCode(event.target.value.toUpperCase())}
+                  maxLength={16}
+                  autoCapitalize="characters"
+                  autoComplete="off"
+                  aria-describedby="referral-help"
+                  className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal uppercase outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"
+                />
+                <span id="referral-help" className="text-xs leading-5 text-slate-500">
+                  Если вы пришли по ссылке, код уже заполнен. После завершения первого ремонта и
+                  подтверждения оплаты сервисом вы и ваш друг получите по 100 бонусных баллов.
+                </span>
+              </label>
+            )}
             {!registering && !recovering && (
               <fieldset className="grid gap-2">
                 <legend className="mb-1 text-sm font-medium">Войти как</legend>
@@ -285,7 +326,7 @@ const LoginPage = () => {
                     : "Войти"}
             </button>
           </form>
-          {!registering && !recovering && (
+          {!recovering && (
             <div className="mt-4 grid gap-3">
               <YandexIdLogin
                 busy={busy}

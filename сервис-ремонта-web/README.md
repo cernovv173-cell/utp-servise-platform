@@ -149,6 +149,11 @@ of the amount paid in cash, craft orders earn 5% after payment, and the game awa
 claimed level. Preventive work qualifies only when included in a repair order as a service line and
 uses the same 30% limit.
 
+On `/loyalty`, customers can copy a personal referral link and see invitation statuses. The link opens
+registration with the referral code filled in; a code can also be entered manually. After the referred
+customer's first paid repair, both people receive 100 bonus points. The reward is not issued for
+registration alone and remains subject to the normal non-cash redemption rules.
+
 Customer and administrator order cards show a Code 128 barcode generated from the order's existing
 unique service number. The barcode is derived at display time, so it adds no database field and does
 not replace the separate pickup QR code.

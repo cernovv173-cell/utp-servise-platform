@@ -62,6 +62,8 @@ export type AndroidApkInfo = {
 export type AuthResponse = {
   accessToken: string;
   expiresAt: string;
+  accountCreated?: boolean;
+  referralApplied?: boolean;
   user: User;
 };
 
@@ -453,11 +455,23 @@ export type CraftOrderChat = {
 
 export type LoyaltyTransaction = {
   id: string;
-  type: "EARN" | "REDEEM" | "MANUAL_ADJUSTMENT";
+  type: "EARN" | "REDEEM" | "MANUAL_ADJUSTMENT" | "GAME_REWARD" | "REFERRAL_REWARD";
   points: number;
   reason: string;
   createdAt: string;
   order?: { serviceNumber: string } | null;
+};
+export type ReferralProgram = {
+  referralCode: string;
+  totalInvites: number;
+  pendingCount: number;
+  rewardedCount: number;
+  referrals: Array<{
+    id: string;
+    status: "PENDING" | "REWARDED";
+    createdAt: string;
+    rewardedAt: string | null;
+  }>;
 };
 export type LoyaltyCustomer = {
   customer: { id: string; displayName: string; email: string };
@@ -534,11 +548,18 @@ export const yandexLoginRequest = async (
   accessToken: string,
   portal: Role,
   password?: string,
+  referralCode?: string,
 ): Promise<AuthResponse> => {
+  const normalizedReferralCode = referralCode?.trim().toUpperCase();
   const response = await fetch(`${apiBase}/auth/yandex`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ accessToken, portal, ...(password ? { password } : {}) }),
+    body: JSON.stringify({
+      accessToken,
+      portal,
+      ...(password ? { password } : {}),
+      ...(normalizedReferralCode ? { referralCode: normalizedReferralCode } : {}),
+    }),
   });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok) {
@@ -572,10 +593,17 @@ export const registerRequest = (
   email: string,
   phoneNumber: string,
   password: string,
+  referralCode?: string,
 ) =>
   apiRequest<AuthResponse>("/auth/register", null, {
     method: "POST",
-    body: JSON.stringify({ displayName, email, phoneNumber: phoneNumber || undefined, password }),
+    body: JSON.stringify({
+      displayName,
+      email,
+      phoneNumber: phoneNumber || undefined,
+      password,
+      referralCode: referralCode?.trim() || undefined,
+    }),
   });
 
 export const getOrders = (token: string, signal?: AbortSignal, archive?: OrderArchiveView) =>
@@ -1223,6 +1251,9 @@ export const getLoyalty = (token: string, signal?: AbortSignal) =>
   apiRequest<{ balance: number; transactions: LoyaltyTransaction[] }>("/loyalty/me", token, {
     signal,
   });
+
+export const getReferralProgram = (token: string, signal?: AbortSignal) =>
+  apiRequest<ReferralProgram>("/referrals/me", token, { signal });
 
 export const getSalarySummary = (token: string, timeZone: string, signal?: AbortSignal) =>
   apiRequest<SalarySummary>(`/salary?timeZone=${encodeURIComponent(timeZone)}`, token, { signal });

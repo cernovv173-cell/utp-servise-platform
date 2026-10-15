@@ -8,9 +8,9 @@ import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
 import { createChatRouter } from "./features/chat/chat.routes.js";
 import { createCompanyRouter } from "./features/company/company.routes.js";
 import { createCraftsRouter } from "./features/crafts/crafts.routes.js";
-import { createMatch3Router } from "./features/game/match3/match3.routes.js";
 import { createCustomerAdminRouter } from "./features/customers/customer.routes.js";
 import { createCustomerDevicesRouter } from "./features/customers/devices.routes.js";
+import { createMatch3Router } from "./features/game/match3/match3.routes.js";
 import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
 import { createMaxRouter } from "./features/max/max.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
@@ -18,6 +18,7 @@ import { createNewsRouter } from "./features/news/news.routes.js";
 import { createOperationsRouter } from "./features/operations/operations.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
 import { createRepairEstimatesRouter } from "./features/orders/repair-estimates.routes.js";
+import { createReferralRouter } from "./features/referrals/referral.routes.js";
 import { createSalaryRouter } from "./features/salary/salary.routes.js";
 import { createStaffRouter } from "./features/staff/staff.routes.js";
 import { createSupportChatRouter } from "./features/support-chat/support-chat.routes.js";
@@ -83,6 +84,7 @@ export const createApiRouter = ({
     router.use(createBannersRouter(database.client));
     router.use(createMatch3Router(database.client));
     router.use(createLoyaltyRouter(database.client));
+    router.use(createReferralRouter(database.client));
     router.use(createRepairEstimatesRouter(database.client));
     router.use(createOrdersRouter(database.client));
     router.use(createSalaryRouter(database.client));
@@ -110,6 +112,7 @@ export const createApiRouter = ({
         request.path.startsWith("/craft-items") ||
         request.path.startsWith("/craft-orders") ||
         request.path.startsWith("/loyalty") ||
+        request.path.startsWith("/referrals") ||
         request.path.startsWith("/game/match3") ||
         request.path.startsWith("/banners") ||
         request.path.startsWith("/admin/loyalty") ||

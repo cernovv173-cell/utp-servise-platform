@@ -6,11 +6,12 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
+import { ReferralCard } from "@/features/loyalty/referral-card";
 
 import { getLoyalty } from "@/lib/api";
 
 const LoyaltyPage = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const query = useQuery({
     queryKey: ["loyalty", token],
     queryFn: ({ signal }) => getLoyalty(token!, signal),
@@ -60,6 +61,7 @@ const LoyaltyPage = () => {
           </li>
         </ul>
       </SectionCard>
+      {token && user?.role === "CUSTOMER" && <ReferralCard token={token} />}
       <h2 className="mt-7 mb-3 font-semibold">История операций</h2>
       <div className="grid gap-2">
         {(query.data?.transactions ?? []).map((entry) => (

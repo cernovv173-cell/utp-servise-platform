@@ -5,6 +5,8 @@ import { z } from "zod";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
+import { createCustomerWithReferral } from "../referrals/customer-registration.js";
+import { referralCodeSchema } from "../referrals/referral-code.js";
 import { publicUser } from "./auth.middleware.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { createSession, isUniqueViolation } from "./session.js";
@@ -15,6 +17,7 @@ const vkLoginSchema = z
     accessToken: z.string().trim().min(20).max(4096),
     password: z.string().min(1).max(128).optional(),
     portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN"]),
+    referralCode: referralCodeSchema,
   })
   .strict();
 
@@ -55,6 +58,8 @@ export const createVkAuthRouter = (
       const input = bodyOf<z.infer<typeof vkLoginSchema>>(response);
       try {
         const identity = await fetchIdentity(input.accessToken, appId);
+        let accountCreated = false;
+        let referralApplied = false;
         let user = await database.user.findUnique({
           where: { vkId: identity.id },
         });
@@ -110,17 +115,22 @@ export const createVkAuthRouter = (
               );
               return;
             }
-            user = await database.user.create({
-              data: {
+            const passwordHash = await hashPassword(
+              randomBytes(32).toString("base64url"),
+            );
+            const created = await database.$transaction((transaction) =>
+              createCustomerWithReferral(transaction, {
                 email: identity.email,
                 displayName: identity.displayName,
-                passwordHash: await hashPassword(
-                  randomBytes(32).toString("base64url"),
-                ),
+                phoneNumber: null,
+                passwordHash,
                 vkId: identity.id,
-                role: "CUSTOMER",
-              },
-            });
+                referralCode: input.referralCode,
+              }),
+            );
+            user = created.user;
+            accountCreated = true;
+            referralApplied = created.referralApplied;
           }
         }
         if (!user.active) {
@@ -147,6 +157,8 @@ export const createVkAuthRouter = (
         response.json({
           accessToken: session.accessToken,
           expiresAt: session.expiresAt,
+          accountCreated,
+          referralApplied,
           user: publicUser(user),
         });
       } catch (error) {

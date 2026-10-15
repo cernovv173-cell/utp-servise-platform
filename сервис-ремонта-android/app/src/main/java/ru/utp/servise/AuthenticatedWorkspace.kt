@@ -42,6 +42,7 @@ import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.LoyaltyAccount
+import ru.utp.servise.data.ReferralProgram
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.RepairOrder
@@ -96,6 +97,7 @@ internal fun AuthenticatedWorkspace(
     news: List<NewsArticle>,
     banners: List<SiteBanner>,
     loyalty: LoyaltyAccount,
+    referralProgram: ReferralProgram,
     salary: SalarySummary,
     adminChats: List<AdminChatInboxItem>,
     supportChats: List<SupportChatInboxItem>,
@@ -244,7 +246,9 @@ internal fun AuthenticatedWorkspace(
                                 Match3DailyPuzzleScreen(user.id) { navController.popBackStack() }
                             }
                             composable("customer/news") { NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate) }
-                            composable("customer/loyalty") { LoyaltyScreen(loyalty, token, banners, onCampaignNavigate) }
+                            composable("customer/loyalty") {
+                                LoyaltyScreen(loyalty, referralProgram, token, banners, onCampaignNavigate)
+                            }
                             composable("customer/about") {
                                 CompanyScreen(token, false, busy, runAction, onBack = { navController.popBackStack() }, banners = banners, onCampaignNavigate = onCampaignNavigate)
                             }
