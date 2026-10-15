@@ -273,9 +273,10 @@ const GamePage = () => {
           <aside>
             {!upcomingStory && !epilogue && (
               <img
+                key={`${active?.id ?? "idle"}:${active?.movesUsed ?? 0}`}
                 src={cosmetics.selected.image}
                 alt={`Енот в образе «${cosmetics.selected.name}» собирает компьютер`}
-                className="w-full rounded-2xl border border-cyan-300/20 object-cover"
+                className={`w-full rounded-2xl border border-cyan-300/20 object-cover ${active?.movesUsed ? "game-raccoon-react" : ""}`}
               />
             )}
             {progress.data && (

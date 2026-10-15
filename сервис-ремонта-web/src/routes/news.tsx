@@ -4,23 +4,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { ProtectedImage } from "@/components/protected-image";
 
-import { useAuth } from "@/features/auth/auth-context";
 import { NewsAdmin } from "@/features/admin/news-admin";
-import { CampaignBanner } from "@/features/campaigns/campaign-banner";
+import { useAuth } from "@/features/auth/auth-context";
+import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { BirthdayGreetingCard } from "@/features/news/birthday-greeting-card";
 
-import { getBanners, getNews } from "@/lib/api";
+import { getNews } from "@/lib/api";
 
 const NewsPage = () => {
   const { token, user } = useAuth();
   const query = useQuery({
     queryKey: ["news", token],
     queryFn: ({ signal }) => getNews(token!, signal),
-    enabled: Boolean(token),
-  });
-  const banners = useQuery({
-    queryKey: ["banners", token],
-    queryFn: ({ signal }) => getBanners(token!, signal),
     enabled: Boolean(token),
   });
   const publishedReviews = (query.data?.reviews ?? []).filter((review) => review.isPublished);
@@ -38,13 +33,7 @@ const NewsPage = () => {
           Не удалось загрузить новости.
         </p>
       )}
-      <div className="mb-5 grid gap-4 md:grid-cols-2">
-        {(banners.data?.banners ?? [])
-          .filter((banner) => banner.placements.includes("NEWS"))
-          .map((banner) => (
-            <CampaignBanner key={banner.id} banner={banner} />
-          ))}
-      </div>
+      <CampaignPlacement placement="NEWS" className="mb-5" />
       {query.data?.birthdayGreeting && (
         <BirthdayGreetingCard greeting={query.data.birthdayGreeting} />
       )}
