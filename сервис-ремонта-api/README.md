@@ -26,6 +26,12 @@ clears the temporary-password flag, and revokes every active session. Email deli
 server-bound Yandex Mail application credentials over implicit TLS on SMTP port 465. Reset links are
 restricted to origins in `WEB_APP_ORIGIN` and lead to the web `/reset-password` screen.
 
+Customer registration accepts an optional referral code from Web, Android, or Yandex/VK signup.
+After the invited customer's first repair is completed and an administrator confirms its receipt as
+paid, the same transaction records 100 personal bonus points for both customers and marks the
+referral rewarded. A conditional status claim and unique referral/customer ledger key prevent repeat
+rewards; registration alone never awards points.
+
 Startup diagnostics identify invalid configuration fields and sanitize other error messages without
 printing configuration values. Run `pnpm test` for configuration and diagnostic regressions.
 

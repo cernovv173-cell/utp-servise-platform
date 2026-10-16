@@ -40,7 +40,11 @@ test("first paid repair awards 100 points to both customers only once", async ()
     serviceNumber: "SRV-2026-000001",
     actorId: "admin-1",
   };
-  assert.equal(await awardReferralForFirstPaidRepair(transaction, input), true);
+  const concurrentClaims = await Promise.all([
+    awardReferralForFirstPaidRepair(transaction, input),
+    awardReferralForFirstPaidRepair(transaction, input),
+  ]);
+  assert.equal(concurrentClaims.filter(Boolean).length, 1);
   assert.equal(
     await awardReferralForFirstPaidRepair(transaction, input),
     false,

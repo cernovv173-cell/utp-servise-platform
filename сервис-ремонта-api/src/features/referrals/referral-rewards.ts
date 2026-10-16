@@ -51,7 +51,6 @@ export const awardReferralForFirstPaidRepair = async (
         reason: `Приветственные баллы за первый завершённый и оплаченный ремонт ${input.serviceNumber}`,
       },
     ],
-    skipDuplicates: true,
   });
   return true;
 };
