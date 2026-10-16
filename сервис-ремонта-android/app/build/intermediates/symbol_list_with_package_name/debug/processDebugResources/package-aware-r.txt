@@ -799,8 +799,6 @@ drawable common_google_signin_btn_text_light
 drawable common_google_signin_btn_text_light_focused
 drawable common_google_signin_btn_text_light_normal
 drawable common_google_signin_btn_text_light_normal_background
-drawable game_raccoon_happy
-drawable game_raccoon_sad
 drawable googleg_disabled_color_18
 drawable googleg_standard_color_18
 drawable ic_arrow_down_24dp
@@ -827,6 +825,10 @@ drawable notify_panel_notification_icon_bg
 drawable preference_list_divider_material
 drawable raccoon_welcome
 drawable repair_nebula_bg
+drawable seasonal_autumn
+drawable seasonal_spring
+drawable seasonal_summer
+drawable seasonal_winter
 drawable test_level_drawable
 drawable tooltip_frame_dark
 drawable tooltip_frame_light

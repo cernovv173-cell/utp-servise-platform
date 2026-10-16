@@ -80,6 +80,7 @@ import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.SalaryScreen
 import ru.utp.servise.ui.SeasonalThemeCard
+import ru.utp.servise.ui.SeasonalSceneBanner
 import ru.utp.servise.ui.UtpBlue
 
 private data class Destination(val route: String, val label: String, val icon: String)
@@ -214,6 +215,9 @@ internal fun AuthenticatedWorkspace(
         },
     ) { insets ->
         Column(Modifier.fillMaxSize().padding(insets)) {
+            if (seasonalTheme.activeSeason != "NONE") {
+                SeasonalSceneBanner(seasonalTheme.activeSeason)
+            }
             if (errorMessage != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp)) {
                     Text(errorMessage, Modifier.weight(1f), color = androidx.compose.material3.MaterialTheme.colorScheme.error)

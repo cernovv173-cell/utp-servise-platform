@@ -263,6 +263,10 @@ the browser and it does not call campaign move or reward endpoints.
 ## Seasonal themes
 
 The root layout reads the public `GET /seasonal-theme` state and applies the active palette across
-Web pages; it refreshes the server state once per minute. Only an administrator sees the seasonal
-control on the home page. It can enable the current calendar season or turn the theme off, while the
-API enforces the start date and administrator role. Winter cannot be enabled before December 1.
+Web pages; it refreshes the server state once per minute. When a theme is active, authenticated
+pages also show its computer-repair illustration and subtle seasonal motion: spring petals, summer
+light glints, autumn leaves, or winter snow. The illustrations feature laptops, computer parts, and
+repair tools, not household appliances. Motion is disabled when the visitor requests reduced motion.
+Only an administrator sees the seasonal control on the home page. It can enable the current calendar
+season or turn the theme off, while the API enforces the start date and administrator role. Winter
+cannot be enabled before December 1.

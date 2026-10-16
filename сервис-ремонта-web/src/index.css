@@ -130,6 +130,55 @@ html:not([data-theme="dark"])[data-season="winter"] body {
   background-image: radial-gradient(ellipse at 85% 0%, rgb(56 189 248 / 12%), transparent 34%);
 }
 
+@keyframes seasonal-drift {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0) rotate(-18deg);
+  }
+
+  18% {
+    opacity: 0.82;
+  }
+
+  78% {
+    opacity: 0.72;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(20px, 64px, 0) rotate(190deg);
+  }
+}
+
+@keyframes seasonal-sparkle {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: translateY(3px) scale(0.78);
+  }
+
+  50% {
+    opacity: 0.92;
+    transform: translateY(-4px) scale(1.12);
+  }
+}
+
+.seasonal-drift {
+  animation: seasonal-drift 8.5s ease-in-out infinite;
+}
+
+.seasonal-sparkle {
+  animation: seasonal-sparkle 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seasonal-drift,
+  .seasonal-sparkle {
+    animation: none;
+    opacity: 0.65;
+  }
+}
+
 .app-shell {
   min-height: 100dvh;
 }

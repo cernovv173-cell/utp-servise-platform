@@ -12,6 +12,8 @@ import { IncomingOrderNotifications } from "@/features/admin/incoming-order-noti
 import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
+import { SeasonalSceneBanner } from "@/features/seasonal/seasonal-scene-banner";
+import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
 const links = [
   { to: "/", label: "Главная", motion: "peek" },
@@ -52,6 +54,7 @@ const DnsConfiguratorLink = ({ mobile = false }: { mobile?: boolean }) => (
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
   const { user, ready, logout } = useAuth();
   const queryClient = useQueryClient();
+  const seasonalTheme = useSeasonalTheme();
   const [dark, setDark] = useState(() => localStorage.getItem("utp-web-theme") !== "light");
 
   useEffect(() => {
@@ -221,6 +224,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
           )}
         </nav>
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">
+          <SeasonalSceneBanner season={seasonalTheme.data?.activeSeason ?? "NONE"} />
           <div className="mb-5 flex justify-end">
             <AppInstallButton />
           </div>
