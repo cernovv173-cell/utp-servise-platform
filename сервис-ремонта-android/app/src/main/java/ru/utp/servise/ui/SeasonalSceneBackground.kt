@@ -10,40 +10,22 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.R
-
-private val seasonLabels = mapOf(
-    "SPRING" to "Весна",
-    "SUMMER" to "Лето",
-    "AUTUMN" to "Осень",
-    "WINTER" to "Зима",
-)
 
 private val seasonArtwork = mapOf(
     "SPRING" to R.drawable.seasonal_spring,
@@ -53,92 +35,59 @@ private val seasonArtwork = mapOf(
 )
 
 private val seasonParticles = mapOf(
-    "SPRING" to listOf("✿", "❀", "✿", "❀", "✿"),
-    "SUMMER" to listOf("✦", "✧", "✦", "✧", "✦"),
-    "AUTUMN" to listOf("🍂", "🍁", "🍂", "🍁", "🍂"),
-    "WINTER" to listOf("❄", "❅", "❄", "❅", "❄"),
+    "SPRING" to listOf("✿", "❀", "✿", "❀", "✿", "❀", "✿", "❀"),
+    "SUMMER" to listOf("✦", "✧", "✦", "✧", "✦", "✧", "✦", "✧"),
+    "AUTUMN" to listOf("🍂", "🍁", "🍂", "🍁", "🍂", "🍁", "🍂", "🍁"),
+    "WINTER" to listOf("❄", "❅", "❄", "❅", "❄", "❅", "❄", "❅"),
+)
+
+private val particleColumns = listOf(
+    0.04f, 0.17f, 0.30f, 0.43f, 0.56f, 0.69f, 0.82f, 0.94f,
 )
 
 @Composable
-fun SeasonalSceneBanner(season: String, modifier: Modifier = Modifier) {
+fun SeasonalSceneBackground(season: String, dark: Boolean, modifier: Modifier = Modifier) {
     val imageResource = seasonArtwork[season] ?: return
-    val seasonLabel = seasonLabels[season] ?: return
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .height(132.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.primaryContainer)
-            .semantics { contentDescription = "Сезонное оформление: $seasonLabel" },
-    ) {
+    Box(modifier.fillMaxSize().clearAndSetSemantics { }) {
         Image(
             painter = painterResource(imageResource),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(0.68f)
-                .align(Alignment.CenterEnd),
+                .fillMaxSize()
+                .graphicsLayer(alpha = if (dark) 0.58f else 0.72f),
         )
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
-                    Brush.horizontalGradient(
+                    Brush.verticalGradient(
                         listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.98f),
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.84f),
-                            Color.Transparent,
+                            if (dark) Color(0x330B1024) else Color(0x14FFFFFF),
+                            if (dark) Color(0x660B1024) else Color(0x22FFFFFF),
                         ),
                     ),
                 ),
         )
         SeasonalParticleField(season, Modifier.fillMaxSize())
-        Column(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth(0.48f)
-                .padding(start = 16.dp, end = 4.dp),
-        ) {
-            Text(
-                "СЕЗОННОЕ ОФОРМЛЕНИЕ",
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-            )
-            Text(
-                seasonLabel,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                "Ремонт компьютеров и ноутбуков",
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
-                fontSize = 11.sp,
-                lineHeight = 14.sp,
-            )
-        }
     }
 }
 
 @Composable
 private fun SeasonalParticleField(season: String, modifier: Modifier = Modifier) {
     val particles = seasonParticles[season] ?: return
-    BoxWithConstraints(modifier = modifier.clearAndSetSemantics { }) {
+    BoxWithConstraints(modifier = modifier) {
         particles.forEachIndexed { index, symbol ->
-            val duration = 7_000 + index * 730
-            val repeatMode = if (season == "SUMMER") RepeatMode.Reverse else RepeatMode.Restart
+            val summer = season == "SUMMER"
+            val duration = 11_000 + index * 1_100
             val transition = rememberInfiniteTransition(label = "season-particle-$index")
             val progress by transition.animateFloat(
                 initialValue = 0f,
                 targetValue = 1f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(durationMillis = duration, easing = LinearEasing),
-                    repeatMode = repeatMode,
+                    repeatMode = if (summer) RepeatMode.Reverse else RepeatMode.Restart,
                 ),
                 label = "season-particle-progress-$index",
             )
@@ -147,23 +96,21 @@ private fun SeasonalParticleField(season: String, modifier: Modifier = Modifier)
                 targetValue = 190f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(durationMillis = duration, easing = LinearEasing),
-                    repeatMode = repeatMode,
+                    repeatMode = if (summer) RepeatMode.Reverse else RepeatMode.Restart,
                 ),
                 label = "season-particle-rotation-$index",
             )
-            val verticalOffset = if (season == "SUMMER") {
-                maxHeight * 0.1f * progress
+            val verticalOffset = if (summer) {
+                maxHeight * 0.08f * progress
             } else {
-                (-14).dp + (maxHeight + 28.dp) * progress
+                (-28).dp + (maxHeight + 56.dp) * progress
             }
-            val alpha = if (season == "SUMMER") {
-                0.24f + progress * 0.62f
+            val alpha = if (summer) {
+                0.28f + progress * 0.58f
             } else {
-                val fadeIn = (progress * 5f).coerceAtMost(0.8f)
-                val fadeOut = ((1f - progress) * 5f).coerceAtMost(1f)
-                fadeIn * fadeOut
+                (progress * 5f).coerceAtMost(0.8f) * ((1f - progress) * 5f).coerceAtMost(1f)
             }
-            val particleColor = if (season == "SUMMER") {
+            val particleColor = if (summer) {
                 MaterialTheme.colorScheme.tertiary
             } else {
                 MaterialTheme.colorScheme.primary
@@ -175,7 +122,7 @@ private fun SeasonalParticleField(season: String, modifier: Modifier = Modifier)
                 fontSize = (15 + index % 3 * 3).sp,
                 modifier = Modifier
                     .offset(
-                        x = maxWidth * (0.54f + index * 0.085f),
+                        x = maxWidth * particleColumns[index] - 8.dp,
                         y = verticalOffset,
                     )
                     .graphicsLayer {

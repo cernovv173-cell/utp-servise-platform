@@ -146,7 +146,7 @@ html:not([data-theme="dark"])[data-season="winter"] body {
 
   100% {
     opacity: 0;
-    transform: translate3d(20px, 64px, 0) rotate(190deg);
+    transform: translate3d(20px, 100vh, 0) rotate(190deg);
   }
 }
 

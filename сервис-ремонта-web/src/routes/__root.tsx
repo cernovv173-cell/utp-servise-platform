@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LaunchIntro } from "@/components/launch-intro";
 
 import { AuthProvider } from "@/features/auth/auth-provider";
+import { SeasonalSceneBackground } from "@/features/seasonal/seasonal-scene-background";
 import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
 const RootComponent = () => {
@@ -20,13 +21,16 @@ const RootComponent = () => {
   }, [seasonalTheme.data?.activeSeason]);
 
   return (
-    <>
+    <div className="relative isolate min-h-dvh">
       <HeadContent />
+      <SeasonalSceneBackground season={seasonalTheme.data?.activeSeason ?? "NONE"} />
       <AuthProvider>
-        <Outlet />
-        {!introDismissed && <LaunchIntro onClose={() => setIntroDismissed(true)} />}
+        <div className="relative z-10">
+          <Outlet />
+          {!introDismissed && <LaunchIntro onClose={() => setIntroDismissed(true)} />}
+        </div>
       </AuthProvider>
-    </>
+    </div>
   );
 };
 

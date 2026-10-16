@@ -12,8 +12,6 @@ import { IncomingOrderNotifications } from "@/features/admin/incoming-order-noti
 import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
-import { SeasonalSceneBanner } from "@/features/seasonal/seasonal-scene-banner";
-import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
 const links = [
   { to: "/", label: "Главная", motion: "peek" },
@@ -54,7 +52,6 @@ const DnsConfiguratorLink = ({ mobile = false }: { mobile?: boolean }) => (
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
   const { user, ready, logout } = useAuth();
   const queryClient = useQueryClient();
-  const seasonalTheme = useSeasonalTheme();
   const [dark, setDark] = useState(() => localStorage.getItem("utp-web-theme") !== "light");
 
   useEffect(() => {
@@ -68,8 +65,8 @@ export const AppShell = ({ active, children }: { active: string; children: React
     );
   if (!user) {
     return (
-      <main className="grid min-h-dvh place-items-center bg-slate-50 p-6 dark:bg-slate-950">
-        <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <main className="grid min-h-dvh place-items-center bg-slate-50/35 p-6 dark:bg-slate-950/35">
+        <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white/90 p-8 text-center shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/90">
           <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-100 text-xl font-bold text-blue-700">
             U
           </div>
@@ -113,7 +110,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
     </Link>
   );
   return (
-    <div className="app-shell min-h-dvh bg-slate-50/80 text-slate-900 dark:bg-transparent dark:text-[#edf2ff]">
+    <div className="app-shell min-h-dvh bg-slate-50/45 text-slate-900 dark:bg-transparent dark:text-[#edf2ff]">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)]">
         <Link to="/" className="flex items-center gap-3 px-2 text-lg font-bold tracking-tight">
           <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[#55e6ff] via-[#5580ff] to-[#ad65ff] text-xl text-white shadow-[0_0_24px_rgba(83,121,255,0.5)]">
@@ -224,7 +221,6 @@ export const AppShell = ({ active, children }: { active: string; children: React
           )}
         </nav>
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">
-          <SeasonalSceneBanner season={seasonalTheme.data?.activeSeason ?? "NONE"} />
           <div className="mb-5 flex justify-end">
             <AppInstallButton />
           </div>

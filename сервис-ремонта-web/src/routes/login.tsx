@@ -102,7 +102,7 @@ const LoginPage = () => {
 
   if (registeredName) {
     return (
-      <main className="grid min-h-dvh bg-slate-50 lg:grid-cols-2 dark:bg-slate-950">
+      <main className="grid min-h-dvh bg-slate-50/35 lg:grid-cols-2 dark:bg-slate-950/35">
         <section className="flex items-center justify-center px-5 py-12">
           <div className="w-full max-w-lg">
             <Link to="/" className="flex items-center gap-3 text-lg font-bold">
@@ -183,7 +183,7 @@ const LoginPage = () => {
   }
 
   return (
-    <main className="grid min-h-dvh bg-slate-50 lg:grid-cols-2 dark:bg-slate-950">
+    <main className="grid min-h-dvh bg-slate-50/35 lg:grid-cols-2 dark:bg-slate-950/35">
       <section className="flex items-center justify-center px-5 py-10">
         <div className="w-full max-w-md">
           <Link to="/" className="flex items-center gap-3 text-lg font-bold">

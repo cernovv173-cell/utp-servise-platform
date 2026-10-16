@@ -1,15 +1,18 @@
 package ru.utp.servise.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
-import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
@@ -31,8 +34,8 @@ val UtpMint: Color
 val UtpAmber: Color
     @Composable get() = MaterialTheme.colorScheme.tertiary
 
-private fun seasonalColorScheme(base: ColorScheme, season: String, dark: Boolean): ColorScheme =
-    when (season) {
+private fun seasonalColorScheme(base: ColorScheme, season: String, dark: Boolean): ColorScheme {
+    val themed = when (season) {
         "SPRING" -> if (dark) base.copy(
             primary = Color(0xFF83E6A0), onPrimary = Color(0xFF093A1A),
             primaryContainer = Color(0xFF14532D), onPrimaryContainer = Color(0xFFD2FADF),
@@ -87,6 +90,11 @@ private fun seasonalColorScheme(base: ColorScheme, season: String, dark: Boolean
         )
         else -> base
     }
+    if (season == "NONE") return themed
+    return themed.copy(
+        background = if (dark) Color(0xA60B1024) else Color(0xC7F5F7FC),
+    )
+}
 
 @Composable
 fun UtpServiseTheme(season: String = "NONE", content: @Composable () -> Unit) {
@@ -142,6 +150,11 @@ fun UtpServiseTheme(season: String = "NONE", content: @Composable () -> Unit) {
             large = RoundedCornerShape(26.dp),
             extraLarge = RoundedCornerShape(32.dp),
         ),
-        content = content,
+        content = {
+            Box(Modifier.fillMaxSize()) {
+                SeasonalSceneBackground(season = season, dark = dark)
+                content()
+            }
+        },
     )
 }
