@@ -391,8 +391,8 @@ internal fun RepairOrderCard(
                     shape = RoundedCornerShape(12.dp),
                 ) { Text(if (estimateBlocksAction) "Ожидает согласия клиента" else label) }
             }
-            if (role == "CUSTOMER" && order.status == "COMPLETED" && !order.hasReview) {
-                Button(onClick = { onReview(order.id) }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), shape = RoundedCornerShape(12.dp)) { Text("Оставить отзыв") }
+            if (role == "CUSTOMER" && order.status == "COMPLETED") {
+                RepairCompletionCard(order = order, onReview = onReview)
             }
         }
     }

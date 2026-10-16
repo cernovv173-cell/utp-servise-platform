@@ -19,12 +19,12 @@ import {
 import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
+import { RepairCompletionCard } from "@/features/orders/repair-completion-card";
 import { RepairDeadlineHistory } from "@/features/orders/repair-deadline";
 import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
-import { RepairOrderReviewForm } from "@/features/orders/repair-order-review-form";
 import { RepairRequestForm } from "@/features/orders/repair-request-form";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
@@ -440,8 +440,8 @@ const OrdersPage = () => {
                 </p>
               </div>
             )}
-            {user?.role === "CUSTOMER" && order.status === "COMPLETED" && !order.review && (
-              <RepairOrderReviewForm orderId={order.id} serviceNumber={order.serviceNumber} />
+            {user?.role === "CUSTOMER" && order.status === "COMPLETED" && (
+              <RepairCompletionCard order={order} />
             )}
           </SectionCard>
         ))}
