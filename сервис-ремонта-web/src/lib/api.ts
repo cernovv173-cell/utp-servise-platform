@@ -59,6 +59,18 @@ export type AndroidApkInfo = {
   pendingDeletionCount?: number;
 };
 
+export type SeasonalSeason = "SPRING" | "SUMMER" | "AUTUMN" | "WINTER";
+export type SeasonalSeasonChoice = SeasonalSeason | "NONE";
+
+export type SeasonalThemeState = {
+  activeSeason: SeasonalSeasonChoice;
+  calendarSeason: SeasonalSeason;
+  seasonStartsOn: string;
+  nextSeason: SeasonalSeason;
+  nextSeasonStartsOn: string;
+  activatedAt: string | null;
+};
+
 export type AuthResponse = {
   accessToken: string;
   expiresAt: string;
@@ -1301,6 +1313,15 @@ export const fetchProtectedMedia = async (
 
 export const getAndroidApk = (signal?: AbortSignal) =>
   apiRequest<{ apk: AndroidApkInfo }>("/android-app", null, { signal });
+
+export const getSeasonalTheme = (signal?: AbortSignal) =>
+  apiRequest<SeasonalThemeState>("/seasonal-theme", null, { signal });
+
+export const setSeasonalTheme = (token: string, season: SeasonalSeasonChoice) =>
+  apiRequest<SeasonalThemeState>("/seasonal-theme", token, {
+    method: "PUT",
+    body: JSON.stringify({ season }),
+  });
 
 export const getAdminAndroidApk = (token: string, signal?: AbortSignal) =>
   apiRequest<{ apk: AndroidApkInfo }>("/admin/android-app", token, { signal });

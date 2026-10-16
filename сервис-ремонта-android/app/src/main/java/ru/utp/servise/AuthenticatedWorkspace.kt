@@ -43,6 +43,7 @@ import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.ReferralProgram
+import ru.utp.servise.data.SeasonalThemeState
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.RepairOrder
@@ -78,6 +79,7 @@ import ru.utp.servise.ui.ReviewsScreen
 import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.SalaryScreen
+import ru.utp.servise.ui.SeasonalThemeCard
 import ru.utp.servise.ui.UtpBlue
 
 private data class Destination(val route: String, val label: String, val icon: String)
@@ -98,6 +100,8 @@ internal fun AuthenticatedWorkspace(
     banners: List<SiteBanner>,
     loyalty: LoyaltyAccount,
     referralProgram: ReferralProgram,
+    seasonalTheme: SeasonalThemeState,
+    onSeasonalThemeChanged: (SeasonalThemeState) -> Unit,
     salary: SalarySummary,
     adminChats: List<AdminChatInboxItem>,
     supportChats: List<SupportChatInboxItem>,
@@ -330,7 +334,28 @@ internal fun AuthenticatedWorkspace(
                             composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
                         }
                         else -> {
-                            composable("admin/orders") { RepairOrdersScreen("Управление заказами", orders, user.role, token, staff, catalogItems, false, runAction, refresh, onReview = {}) }
+                            composable("admin/orders") {
+                                RepairOrdersScreen(
+                                    "Управление заказами", orders, user.role, token, staff,
+                                    catalogItems, false, runAction, refresh, onReview = {},
+                                    headerContent = {
+                                        if (user.role == "ADMIN") {
+                                            SeasonalThemeCard(
+                                                state = seasonalTheme,
+                                                busy = busy,
+                                                onSeasonChange = { season ->
+                                                    runAction(
+                                                        { ApiClient.setSeasonalTheme(token, season) },
+                                                        { result ->
+                                                            (result as? SeasonalThemeState)?.let(onSeasonalThemeChanged)
+                                                        },
+                                                    )
+                                                },
+                                            )
+                                        }
+                                    },
+                                )
+                            }
                             composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, catalogItems, true, runAction, refresh, onReview = {}) }
                             composable("admin/new-order") {
                                 AdminOrderCreationScreen(

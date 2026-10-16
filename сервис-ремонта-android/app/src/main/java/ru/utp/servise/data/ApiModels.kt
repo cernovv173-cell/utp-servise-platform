@@ -276,6 +276,15 @@ data class ReferralProgram(
     val referrals: List<ReferralEntry> = emptyList(),
 )
 
+data class SeasonalThemeState(
+    val activeSeason: String = "NONE",
+    val calendarSeason: String = "",
+    val seasonStartsOn: String = "",
+    val nextSeason: String = "",
+    val nextSeasonStartsOn: String = "",
+    val activatedAt: String? = null,
+)
+
 data class SalaryAmounts(val day: Int = 0, val week: Int = 0, val month: Int = 0)
 data class SalaryRange(val startsAt: String = "", val endsAt: String = "")
 data class SalaryTechnician(

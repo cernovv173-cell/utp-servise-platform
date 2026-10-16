@@ -55,6 +55,7 @@ fun RepairOrdersScreen(
     onChat: (String) -> Unit = {},
     onReview: (String) -> Unit,
     onCreateOrder: (() -> Unit)? = null,
+    headerContent: (@Composable () -> Unit)? = null,
 ) {
     var searchText by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<RepairOrder>?>(null) }
@@ -96,6 +97,7 @@ fun RepairOrdersScreen(
                 TextButton(onClick = refresh) { Text("Обновить") }
             }
         }
+        headerContent?.invoke()
         Row(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),

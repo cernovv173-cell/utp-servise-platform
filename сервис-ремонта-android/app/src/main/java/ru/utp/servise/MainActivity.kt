@@ -36,6 +36,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.firebase.messaging.FirebaseMessaging
 import com.vk.id.VKID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
@@ -53,6 +54,7 @@ import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.PushTokenManager
 import ru.utp.servise.data.ReferralProgram
+import ru.utp.servise.data.SeasonalThemeState
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SessionStore
 import ru.utp.servise.data.SiteBanner
@@ -74,12 +76,33 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         if (BuildConfig.VK_ID_APP_ID.isNotBlank()) VKID.init(this)
         NotificationChannels.ensureCreated(this)
-        setContent { UtpServiseTheme { UtpServiseApp() } }
+        setContent { SeasonalThemeHost() }
     }
 }
 
 @Composable
-private fun UtpServiseApp() {
+private fun SeasonalThemeHost() {
+    var seasonalTheme by remember { mutableStateOf(SeasonalThemeState()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            runCatching { withContext(Dispatchers.IO) { ApiClient.seasonalTheme() } }
+                .onSuccess { seasonalTheme = it }
+            delay(60_000)
+        }
+    }
+    UtpServiseTheme(season = seasonalTheme.activeSeason) {
+        UtpServiseApp(
+            seasonalTheme = seasonalTheme,
+            onSeasonalThemeChanged = { seasonalTheme = it },
+        )
+    }
+}
+
+@Composable
+private fun UtpServiseApp(
+    seasonalTheme: SeasonalThemeState,
+    onSeasonalThemeChanged: (SeasonalThemeState) -> Unit,
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val tokenStore = remember { SessionStore(context) }
@@ -252,6 +275,8 @@ private fun UtpServiseApp() {
             banners = banners,
             loyalty = loyalty,
             referralProgram = referralProgram,
+            seasonalTheme = seasonalTheme,
+            onSeasonalThemeChanged = onSeasonalThemeChanged,
             salary = salary,
             adminChats = adminChats,
             supportChats = supportChats,

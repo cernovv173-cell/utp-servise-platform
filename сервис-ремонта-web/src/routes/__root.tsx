@@ -1,12 +1,23 @@
 import { HeadContent, Link, Outlet, createRootRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { LaunchIntro } from "@/components/launch-intro";
 
 import { AuthProvider } from "@/features/auth/auth-provider";
+import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
 const RootComponent = () => {
   const [introDismissed, setIntroDismissed] = useState(false);
+  const seasonalTheme = useSeasonalTheme();
+
+  useEffect(() => {
+    const activeSeason = seasonalTheme.data?.activeSeason;
+    if (!activeSeason || activeSeason === "NONE") {
+      delete document.documentElement.dataset.season;
+      return;
+    }
+    document.documentElement.dataset.season = activeSeason.toLowerCase();
+  }, [seasonalTheme.data?.activeSeason]);
 
   return (
     <>

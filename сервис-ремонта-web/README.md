@@ -259,3 +259,10 @@ completion rewards, and claims are server-backed; Web does not award them locall
 `/game/daily` offers a reproducible one-match
 puzzle that resets on the Moscow calendar date; only its completion marker is stored separately in
 the browser and it does not call campaign move or reward endpoints.
+
+## Seasonal themes
+
+The root layout reads the public `GET /seasonal-theme` state and applies the active palette across
+Web pages; it refreshes the server state once per minute. Only an administrator sees the seasonal
+control on the home page. It can enable the current calendar season or turn the theme off, while the
+API enforces the start date and administrator role. Winter cannot be enabled before December 1.

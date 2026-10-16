@@ -270,3 +270,16 @@ not be completed. The original completion row remains the progression record, wh
 have their own claimable events; already-credited points are never issued again by a replay. The
 additive `20261015190000_match3_repeat_rewards` migration adds an event table without rewriting
 existing completions or loyalty transactions.
+
+## Seasonal themes
+
+`GET /seasonal-theme` exposes the active theme and the Moscow calendar season to Web and Android.
+The calendar uses meteorological season starts: spring on March 1, summer on June 1, autumn on
+September 1, and winter on December 1. `PUT /seasonal-theme` is restricted to administrators and
+accepts only the current season or `NONE`; the server rejects early activation even if a client
+submits a direct request. The theme is never enabled automatically: an administrator must use the
+control on the Web home page or Android administrator's order screen on or after the season start.
+The setting is stored in the existing `app_settings` row `seasonal_theme`, with no schema migration.
+When the calendar moves to another season, the prior theme stops applying; an administrator must
+enable the new season. Both clients refresh the public state periodically and do not decide whether
+a season is available locally.

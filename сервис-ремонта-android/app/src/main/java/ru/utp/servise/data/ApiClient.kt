@@ -384,6 +384,13 @@ object ApiClient {
         )
     }
 
+    fun seasonalTheme(): SeasonalThemeState =
+        request("GET", "/seasonal-theme").toSeasonalThemeState()
+
+    fun setSeasonalTheme(token: String, season: String): SeasonalThemeState =
+        request("PUT", "/seasonal-theme", token, JSONObject().put("season", season))
+            .toSeasonalThemeState()
+
     fun salary(token: String): SalarySummary {
         val timeZone = URLEncoder.encode(java.time.ZoneId.systemDefault().id, Charsets.UTF_8.name())
         return request("GET", "/salary?timeZone=$timeZone", token).toSalarySummary()
@@ -861,6 +868,15 @@ object ApiClient {
         .put("additionalInfo", address.additionalInfo)
 
     private fun authResult(json: JSONObject) = AuthResult(json.getString("accessToken"), json.getJSONObject("user").toUser())
+
+    private fun JSONObject.toSeasonalThemeState() = SeasonalThemeState(
+        activeSeason = optString("activeSeason", "NONE"),
+        calendarSeason = optString("calendarSeason"),
+        seasonStartsOn = optString("seasonStartsOn"),
+        nextSeason = optString("nextSeason"),
+        nextSeasonStartsOn = optString("nextSeasonStartsOn"),
+        activatedAt = nullableString("activatedAt"),
+    )
 
     internal fun request(method: String, path: String, token: String? = null, body: JSONObject? = null): JSONObject {
         if (baseUrl.isBlank()) throw ApiException("API_NOT_CONFIGURED", "Адрес сервера ещё не настроен для этой сборки.")

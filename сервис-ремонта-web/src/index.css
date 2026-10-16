@@ -26,6 +26,110 @@ html[data-theme="dark"] body {
   background-attachment: fixed;
 }
 
+html[data-season="spring"] {
+  --color-blue-50: #effcf2;
+  --color-blue-100: #dcfce6;
+  --color-blue-200: #bbf7d0;
+  --color-blue-300: #86efac;
+  --color-blue-400: #4ade80;
+  --color-blue-500: #22c55e;
+  --color-blue-600: #16a34a;
+  --color-blue-700: #15803d;
+  --color-blue-800: #166534;
+  --color-blue-900: #14532d;
+  --color-sky-50: #ecfdf5;
+  --color-sky-100: #d1fae5;
+  --color-sky-200: #a7f3d0;
+  --color-sky-300: #6ee7b7;
+  --color-sky-400: #34d399;
+  --color-sky-500: #10b981;
+  --color-sky-600: #059669;
+  --color-sky-700: #047857;
+}
+
+html[data-season="summer"] {
+  --color-blue-50: #fff8e8;
+  --color-blue-100: #ffefc2;
+  --color-blue-200: #fedf91;
+  --color-blue-300: #fdd05e;
+  --color-blue-400: #fbbf24;
+  --color-blue-500: #f59e0b;
+  --color-blue-600: #d97706;
+  --color-blue-700: #b45309;
+  --color-blue-800: #92400e;
+  --color-blue-900: #78350f;
+  --color-sky-50: #fffbeb;
+  --color-sky-100: #fef3c7;
+  --color-sky-200: #fde68a;
+  --color-sky-300: #fcd34d;
+  --color-sky-400: #fbbf24;
+  --color-sky-500: #f59e0b;
+  --color-sky-600: #d97706;
+  --color-sky-700: #b45309;
+}
+
+html[data-season="autumn"] {
+  --color-blue-50: #fff5eb;
+  --color-blue-100: #ffe6ce;
+  --color-blue-200: #fed0a1;
+  --color-blue-300: #f6ad70;
+  --color-blue-400: #ed8b4b;
+  --color-blue-500: #dd6b32;
+  --color-blue-600: #c05621;
+  --color-blue-700: #9c4221;
+  --color-blue-800: #7b341e;
+  --color-blue-900: #652b19;
+  --color-sky-50: #fff7ed;
+  --color-sky-100: #ffedd5;
+  --color-sky-200: #fed7aa;
+  --color-sky-300: #fdba74;
+  --color-sky-400: #fb923c;
+  --color-sky-500: #f97316;
+  --color-sky-600: #ea580c;
+  --color-sky-700: #c2410c;
+}
+
+html[data-season="winter"] {
+  --color-blue-50: #eff8fd;
+  --color-blue-100: #dceefa;
+  --color-blue-200: #b9dff1;
+  --color-blue-300: #8cc9e1;
+  --color-blue-400: #5baecb;
+  --color-blue-500: #278eaf;
+  --color-blue-600: #137795;
+  --color-blue-700: #12617a;
+  --color-blue-800: #144f63;
+  --color-blue-900: #153f50;
+  --color-sky-50: #f0f9ff;
+  --color-sky-100: #e0f2fe;
+  --color-sky-200: #bae6fd;
+  --color-sky-300: #7dd3fc;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-sky-600: #0284c7;
+  --color-sky-700: #0369a1;
+}
+
+html:not([data-theme="dark"])[data-season="spring"] body {
+  background-color: #f2faf4;
+  background-image: radial-gradient(ellipse at 85% 0%, rgb(74 222 128 / 10%), transparent 34%);
+}
+
+html:not([data-theme="dark"])[data-season="summer"] body {
+  background-color: #fffbf2;
+  background-image: radial-gradient(ellipse at 85% 0%, rgb(251 191 36 / 13%), transparent 34%);
+}
+
+html:not([data-theme="dark"])[data-season="autumn"] body {
+  background-color: #fff8f1;
+  background-image: radial-gradient(ellipse at 85% 0%, rgb(249 115 22 / 10%), transparent 34%);
+}
+
+html:not([data-theme="dark"])[data-season="winter"] body {
+  background-color: #f2f8fc;
+  background-image: radial-gradient(ellipse at 85% 0%, rgb(56 189 248 / 12%), transparent 34%);
+}
+
 .app-shell {
   min-height: 100dvh;
 }

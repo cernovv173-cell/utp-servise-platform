@@ -10,6 +10,7 @@ import { RaccoonIcon } from "@/components/raccoon-icon";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
+import { SeasonalThemeControl } from "@/features/seasonal/seasonal-theme-control";
 
 import { getBanners, getNews, getOrders } from "@/lib/api";
 
@@ -43,6 +44,7 @@ const HomePage = () => {
         title={`Здравствуйте, ${user?.displayName ?? ""}!`}
         description="Рады видеть вас в сервисе ремонта техники."
       />
+      {user?.role === "ADMIN" && token && <SeasonalThemeControl token={token} />}
       <SectionCard className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-600 to-sky-500 text-white">
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>
