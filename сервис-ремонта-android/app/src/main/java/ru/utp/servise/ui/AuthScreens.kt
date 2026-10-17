@@ -1,13 +1,10 @@
 package ru.utp.servise.ui
 
-import androidx.compose.foundation.Image
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,9 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -42,7 +36,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.yandex.authsdk.YandexAuthLoginOptions
@@ -58,7 +51,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.BuildConfig
-import ru.utp.servise.R
 import ru.utp.servise.data.AppUser
 
 @Composable
@@ -66,9 +58,11 @@ fun AuthNavigation(onAuthenticated: (String, AppUser) -> Unit, onBusy: (Boolean)
     val controller = androidx.navigation.compose.rememberNavController()
     NavHost(controller, startDestination = "entry") {
         composable("entry") {
-            AuthEntryScreen(
-                onLogin = { portal -> controller.navigate("login/$portal") },
-                onRegister = { controller.navigate("register") },
+            PublicHomeScreen(
+                onRequest = { controller.navigate("register") },
+                onCustomerLogin = { controller.navigate("login/CUSTOMER") },
+                onTechnicianLogin = { controller.navigate("login/TECHNICIAN") },
+                onAdminLogin = { controller.navigate("login/ADMIN") },
             )
         }
         composable("login/{portal}") { entry ->
@@ -87,41 +81,6 @@ fun AuthNavigation(onAuthenticated: (String, AppUser) -> Unit, onBusy: (Boolean)
                 onBusy = onBusy,
                 onError = onError,
             )
-        }
-    }
-}
-
-@Composable
-private fun AuthEntryScreen(onLogin: (String) -> Unit, onRegister: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().background(UtpPale).padding(horizontal = 24.dp, vertical = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Image(painterResource(R.drawable.utp_servise_logo), "Логотип UTP Servise", Modifier.size(104.dp).clip(RoundedCornerShape(26.dp)))
-        Spacer(Modifier.height(16.dp))
-        Text("UTP Servise", fontSize = 28.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Сервис ремонта компьютеров и гаджетов", color = UtpMuted, modifier = Modifier.padding(top = 6.dp, bottom = 28.dp))
-        PortalCard("Клиент", "Оформление заявок и история ремонта", "👤") { onLogin("CUSTOMER") }
-        Spacer(Modifier.height(10.dp))
-        PortalCard("Мастер", "Назначенные заказы и статусы", "🛠") { onLogin("TECHNICIAN") }
-        Spacer(Modifier.height(10.dp))
-        PortalCard("Администратор", "Заказы, сотрудники и отзывы", "▦") { onLogin("ADMIN") }
-        TextButton(onClick = onRegister, modifier = Modifier.padding(top = 12.dp)) { Text("Создать аккаунт клиента") }
-        Text("Роли сотрудников выдаёт только администратор", fontSize = 12.sp, color = UtpMuted)
-    }
-}
-
-@Composable
-private fun PortalCard(title: String, description: String, icon: String, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(icon, fontSize = 23.sp, modifier = Modifier.padding(end = 14.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Text(description, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
-            }
-            Text("›", color = UtpBlue, fontSize = 24.sp)
         }
     }
 }
