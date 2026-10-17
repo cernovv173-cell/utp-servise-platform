@@ -255,6 +255,49 @@ html:not([data-theme="dark"])[data-season="winter"] body {
   transform-origin: center bottom;
 }
 
+@keyframes raccoon-guide-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.raccoon-guide-sprite {
+  width: 7rem;
+  height: 11rem;
+  background-image: url("/images/raccoon-helper-sprite.png");
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+  animation: raccoon-guide-float 2.3s ease-in-out infinite;
+}
+
+.raccoon-guide-sprite--0 {
+  background-position: 0 0;
+}
+
+.raccoon-guide-sprite--1 {
+  background-position: 50% 0;
+}
+
+.raccoon-guide-sprite--2 {
+  background-position: 100% 0;
+}
+
+.raccoon-guide-sprite--compact {
+  width: 5.25rem;
+  height: 8rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .raccoon-guide-sprite {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .game-raccoon-react {
     animation: raccoon-bounce 650ms ease-in-out 1;

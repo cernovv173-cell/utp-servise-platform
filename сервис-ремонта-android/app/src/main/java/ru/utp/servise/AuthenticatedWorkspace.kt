@@ -2,6 +2,7 @@ package ru.utp.servise
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -76,6 +77,7 @@ import ru.utp.servise.ui.ServiceDashboardScreen
 import ru.utp.servise.ui.compressSelectedImage
 import ru.utp.servise.ui.ReviewFormScreen
 import ru.utp.servise.ui.ReviewsScreen
+import ru.utp.servise.ui.RaccoonGuide
 import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.SalaryScreen
@@ -177,19 +179,22 @@ internal fun AuthenticatedWorkspace(
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         floatingActionButton = {
-            if (user.role == "ADMIN" && currentRoute != "admin/new-order") {
-                ExtendedFloatingActionButton(
-                    onClick = { navController.navigate("admin/new-order") { launchSingleTop = true } },
-                    icon = { Text("⏻", fontSize = 20.sp) },
-                    text = {
-                        Column {
-                            Text("СТАРТ / СТОП", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                            Text("Создать заявку", fontWeight = FontWeight.SemiBold)
-                        }
-                    },
-                    containerColor = UtpBlue,
-                    contentColor = Color.White,
-                )
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                RaccoonGuide(route = currentRoute, role = user.role)
+                if (user.role == "ADMIN" && currentRoute != "admin/new-order") {
+                    ExtendedFloatingActionButton(
+                        onClick = { navController.navigate("admin/new-order") { launchSingleTop = true } },
+                        icon = { Text("⏻", fontSize = 20.sp) },
+                        text = {
+                            Column {
+                                Text("СТАРТ / СТОП", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                Text("Создать заявку", fontWeight = FontWeight.SemiBold)
+                            }
+                        },
+                        containerColor = UtpBlue,
+                        contentColor = Color.White,
+                    )
+                }
             }
         },
         bottomBar = {

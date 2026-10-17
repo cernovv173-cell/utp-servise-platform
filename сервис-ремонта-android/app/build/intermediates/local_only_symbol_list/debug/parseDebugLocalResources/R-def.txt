@@ -3,6 +3,7 @@ local
 color utp_servise_launcher_background
 drawable game_raccoon_happy
 drawable game_raccoon_sad
+drawable raccoon_helper_sprite
 drawable raccoon_welcome
 drawable repair_nebula_bg
 drawable seasonal_autumn
