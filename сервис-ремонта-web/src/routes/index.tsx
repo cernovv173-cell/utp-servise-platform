@@ -10,12 +10,13 @@ import { RaccoonIcon } from "@/components/raccoon-icon";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
+import { PublicHome } from "@/features/public/public-home";
 import { SeasonalThemeControl } from "@/features/seasonal/seasonal-theme-control";
 
 import { getBanners, getNews, getOrders } from "@/lib/api";
 
 const HomePage = () => {
-  const { token, user } = useAuth();
+  const { ready, token, user } = useAuth();
   const orders = useQuery({
     queryKey: ["orders", token],
     queryFn: ({ signal }) => getOrders(token!, signal),
@@ -36,6 +37,8 @@ const HomePage = () => {
   const openOrders = (orders.data?.orders ?? []).filter(
     (order) => !["COMPLETED", "CANCELLED"].includes(order.status),
   ).length;
+
+  if (ready && !user) return <PublicHome />;
 
   return (
     <AppShell active="/">

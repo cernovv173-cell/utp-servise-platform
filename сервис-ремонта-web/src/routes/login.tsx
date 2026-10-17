@@ -23,7 +23,15 @@ const LoginPage = () => {
     typeof window === "undefined"
       ? ""
       : (new URLSearchParams(window.location.search).get("ref")?.trim().toUpperCase() ?? "");
-  const [registering, setRegistering] = useState(Boolean(referralFromLink));
+  const queryParams =
+    typeof window === "undefined"
+      ? new URLSearchParams()
+      : new URLSearchParams(window.location.search);
+  const nextPath = queryParams.get("next");
+  const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/";
+  const [registering, setRegistering] = useState(
+    Boolean(referralFromLink) || queryParams.get("register") === "1",
+  );
   const [referralCode, setReferralCode] = useState(referralFromLink);
   const [recovering, setRecovering] = useState(false);
   const [recoverySent, setRecoverySent] = useState(false);
@@ -52,7 +60,7 @@ const LoginPage = () => {
         setRegisteredName(session.user.displayName);
         return;
       }
-      await navigate({ to: "/" });
+      await navigate({ to: safeNextPath });
     } catch (failure) {
       if (failure instanceof ApiRequestError && failure.code === "YANDEX_PASSWORD_REQUIRED") {
         setPendingYandexToken(accessToken);
@@ -92,7 +100,7 @@ const LoginPage = () => {
         setRegisteredName(session.user.displayName);
         return;
       }
-      await navigate({ to: "/" });
+      await navigate({ to: safeNextPath });
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Не удалось выполнить вход.");
     } finally {

@@ -3,16 +3,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Clock3, Mail, MapPin, Phone, Share2 } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
+import { PublicSiteShell } from "@/components/public-site-shell";
 
+import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 
 import { getCompany } from "@/lib/api";
 
 const AboutPage = () => {
+  const { ready, user } = useAuth();
   const query = useQuery({ queryKey: ["company"], queryFn: ({ signal }) => getCompany(signal) });
   const company = query.data?.company;
-  return (
-    <AppShell active="/about">
+  const content = (
+    <>
       <PageTitle
         eyebrow="О НАС"
         title={company?.name ?? "О компании"}
@@ -123,7 +126,14 @@ const AboutPage = () => {
           Не удалось загрузить раздел о компании.
         </p>
       )}
-    </AppShell>
+    </>
+  );
+  if (!ready)
+    return <div className="grid min-h-dvh place-items-center text-slate-500">Загружаем…</div>;
+  return user ? (
+    <AppShell active="/about">{content}</AppShell>
+  ) : (
+    <PublicSiteShell>{content}</PublicSiteShell>
   );
 };
 export const Route = createFileRoute("/about")({ component: AboutPage });
