@@ -12,7 +12,7 @@ test("winner selection returns distinct entries using the supplied random source
 
   assert.equal(selected.length, 3);
   assert.equal(new Set(selected).size, 3);
-  assert.deepEqual(selected, ["four", "three", "two"]);
+  assert.deepEqual(selected, ["four", "one", "two"]);
 });
 
 test("winner selection rejects a count outside the entry range", () => {

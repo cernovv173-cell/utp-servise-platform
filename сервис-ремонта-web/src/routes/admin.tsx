@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { AndroidApkManagement } from "@/features/admin/android-apk-management";
+import { CustomerOffersManagement } from "@/features/admin/customer-offers-management";
 import { CompanyAdmin } from "@/features/admin/company-admin";
 import { LoyaltyManagement } from "@/features/admin/loyalty-management";
 import { StaffManagement } from "@/features/admin/staff-management";
@@ -15,7 +16,7 @@ const AdminPage = () => {
       <PageTitle
         eyebrow="УПРАВЛЕНИЕ"
         title="Панель администратора"
-        description="Заявки, новости по расписанию, реклама, отзывы, бонусы и публичная информация о компании."
+        description="Заявки, новости, акции и розыгрыши, реклама, отзывы, бонусы и информация о компании."
       />
       {user?.role !== "ADMIN" ? (
         <SectionCard>
@@ -24,6 +25,7 @@ const AdminPage = () => {
       ) : (
         <div className="grid gap-6">
           <AndroidApkManagement />
+          <CustomerOffersManagement />
           <StaffManagement />
           <LoyaltyManagement />
           <CompanyAdmin />

@@ -406,6 +406,40 @@ data class NewsArticle(
     val isFeatured: Boolean,
 )
 
+data class CustomerOfferParticipation(
+    val id: String,
+    val joinedAt: String,
+    val place: Int?,
+)
+
+data class CustomerOfferWinner(
+    val place: Int,
+    val displayName: String,
+    val prize: String?,
+    val bonusPoints: Int,
+)
+
+data class CustomerOffer(
+    val id: String,
+    val type: String,
+    val title: String,
+    val content: String,
+    val firstPlacePrize: String?,
+    val firstPlacePoints: Int,
+    val secondPlacePrize: String?,
+    val secondPlacePoints: Int,
+    val thirdPlacePrize: String?,
+    val thirdPlacePoints: Int,
+    val isPublished: Boolean,
+    val startsAt: String,
+    val endsAt: String,
+    val drawnAt: String?,
+    val resultsPublishedAt: String?,
+    val participantCount: Int,
+    val myParticipation: CustomerOfferParticipation?,
+    val winners: List<CustomerOfferWinner>,
+)
+
 data class OrderChatMessage(
     val id: String,
     val senderName: String,

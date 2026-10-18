@@ -283,3 +283,16 @@ The setting is stored in the existing `app_settings` row `seasonal_theme`, with 
 When the calendar moves to another season, the prior theme stops applying; an administrator must
 enable the new season. Both clients refresh the public state periodically and do not decide whether
 a season is available locally.
+
+## Customer promotions and giveaways
+
+Administrators create scheduled `PROMOTION` and `GIVEAWAY` offers through the authenticated admin
+endpoints and publish them for customers. A signed-in customer may join each published offer once while
+it is open. Promotions are participation campaigns only; they do not change repair-order prices.
+Giveaways require a prize or bonus-point amount for each of the three places. After an offer closes,
+an administrator can draw three distinct participants; the selected names remain private until the
+administrator publishes the results. Publishing reveals the three-place podium and credits each
+winner's configured bonus points to the loyalty ledger in the same transaction. A unique ledger key
+prevents duplicate awards if results are published again. The additive
+`20261018200000_customer_offers` migration creates the offer and participation records and links
+award transactions without rewriting existing customer data.

@@ -23,6 +23,7 @@ import { Route as GameRouteImport } from './routes/game'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
 import { Route as NewsRouteImport } from './routes/news'
+import { Route as OffersRouteImport } from './routes/offers'
 import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReviewsRouteImport } from './routes/reviews'
@@ -108,6 +109,11 @@ const LoyaltyRoute = LoyaltyRouteImport.update({
 const NewsRoute = NewsRouteImport.update({
   id: '/news',
   path: '/news',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OffersRoute = OffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OrdersRoute = OrdersRouteImport.update({
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
+  '/offers': typeof OffersRoute
   '/orders': typeof OrdersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
@@ -238,6 +245,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
+  '/offers': typeof OffersRoute
   '/orders': typeof OrdersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
@@ -271,6 +279,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
+  '/offers': typeof OffersRoute
   '/orders': typeof OrdersRoute
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
@@ -305,6 +314,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/loyalty'
     | '/news'
+    | '/offers'
     | '/orders'
     | '/reset-password'
     | '/reviews'
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/loyalty'
     | '/news'
+    | '/offers'
     | '/orders'
     | '/reset-password'
     | '/reviews'
@@ -369,6 +380,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/loyalty'
     | '/news'
+    | '/offers'
     | '/orders'
     | '/reset-password'
     | '/reviews'
@@ -402,6 +414,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   NewsRoute: typeof NewsRoute
+  OffersRoute: typeof OffersRoute
   OrdersRoute: typeof OrdersRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   ReviewsRoute: typeof ReviewsRoute
@@ -508,6 +521,13 @@ declare module '@tanstack/react-router' {
       path: '/news'
       fullPath: '/news'
       preLoaderRoute: typeof NewsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offers': {
+      id: '/offers'
+      path: '/offers'
+      fullPath: '/offers'
+      preLoaderRoute: typeof OffersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/orders': {
@@ -695,6 +715,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   NewsRoute: NewsRoute,
+  OffersRoute: OffersRoute,
   OrdersRoute: OrdersRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   ReviewsRoute: ReviewsRoute,

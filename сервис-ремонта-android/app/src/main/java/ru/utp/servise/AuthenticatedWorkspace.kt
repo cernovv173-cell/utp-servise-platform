@@ -38,6 +38,7 @@ import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.CustomerDevice
+import ru.utp.servise.data.CustomerOffer
 import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrder
@@ -60,6 +61,7 @@ import ru.utp.servise.ui.CatalogManagementScreen
 import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
+import ru.utp.servise.ui.CustomerOffersScreen
 import ru.utp.servise.ui.CustomerDevicesScreen
 import ru.utp.servise.ui.CustomerManagementScreen
 import ru.utp.servise.ui.LoyaltyScreen
@@ -98,6 +100,7 @@ internal fun AuthenticatedWorkspace(
     craftItems: List<CraftItem>,
     craftOrders: List<CraftOrder>,
     news: List<NewsArticle>,
+    customerOffers: List<CustomerOffer>,
     banners: List<SiteBanner>,
     loyalty: LoyaltyAccount,
     referralProgram: ReferralProgram,
@@ -153,6 +156,7 @@ internal fun AuthenticatedWorkspace(
             Destination("customer/history", "История", "◷"),
             Destination("customer/devices", "Техника", "▣"),
             Destination("customer/news", "Новости", "▧"),
+            Destination("customer/offers", "Акции", "🎁"),
             Destination("customer/loyalty", "Бонусы", "★"),
             Destination("customer/profile", "Профиль", "♙"),
         )
@@ -253,6 +257,17 @@ internal fun AuthenticatedWorkspace(
                                 Match3DailyPuzzleScreen(user.id) { navController.popBackStack() }
                             }
                             composable("customer/news") { NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate) }
+                            composable("customer/offers") {
+                                CustomerOffersScreen(
+                                    offers = customerOffers,
+                                    busy = busy,
+                                    onParticipate = { offerId ->
+                                        runAction({ ApiClient.participateInCustomerOffer(token, offerId) }) {
+                                            refresh()
+                                        }
+                                    },
+                                )
+                            }
                             composable("customer/loyalty") {
                                 LoyaltyScreen(loyalty, referralProgram, token, banners, onCampaignNavigate)
                             }

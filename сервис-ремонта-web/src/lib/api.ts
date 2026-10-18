@@ -518,6 +518,58 @@ export type SiteBanner = {
   placements: ("HOME" | "NEWS" | "SERVICE" | "CRAFTS" | "ABOUT" | "LOYALTY")[];
 };
 
+export type CustomerOfferType = "PROMOTION" | "GIVEAWAY";
+
+export type CustomerOfferReward = {
+  prize: string | null;
+  bonusPoints: number;
+};
+
+export type CustomerOfferWinner = CustomerOfferReward & {
+  place: number;
+  displayName: string;
+  customerId?: string;
+};
+
+export type CustomerOffer = {
+  id: string;
+  type: CustomerOfferType;
+  title: string;
+  content: string;
+  firstPlacePrize: string | null;
+  firstPlacePoints: number;
+  secondPlacePrize: string | null;
+  secondPlacePoints: number;
+  thirdPlacePrize: string | null;
+  thirdPlacePoints: number;
+  isPublished: boolean;
+  startsAt: string;
+  endsAt: string;
+  drawnAt: string | null;
+  resultsPublishedAt: string | null;
+  createdAt: string;
+  participantCount: number;
+  myParticipation: { id: string; joinedAt: string; place: number | null } | null;
+  winners: CustomerOfferWinner[];
+};
+
+export type AdminCustomerOffer = Omit<CustomerOffer, "myParticipation">;
+
+export type CreateCustomerOfferInput = {
+  type: CustomerOfferType;
+  title: string;
+  content: string;
+  firstPlacePrize: string | null;
+  firstPlacePoints: number;
+  secondPlacePrize: string | null;
+  secondPlacePoints: number;
+  thirdPlacePrize: string | null;
+  thirdPlacePoints: number;
+  startsAt: string;
+  endsAt: string;
+  isPublished: boolean;
+};
+
 export type CompanyInfo = {
   name: string;
   description: string;
@@ -1275,6 +1327,52 @@ export const getAdminLoyalty = (token: string, signal?: AbortSignal) =>
 
 export const getBanners = (token: string, signal?: AbortSignal) =>
   apiRequest<{ banners: SiteBanner[] }>("/banners", token, { signal });
+
+export const getCustomerOffers = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ offers: CustomerOffer[] }>("/offers", token, { signal });
+
+export const participateInCustomerOffer = (token: string, offerId: string) =>
+  apiRequest<{
+    participation: { id: string; joinedAt: string; place: number | null };
+    alreadyParticipating: boolean;
+  }>(`/offers/${offerId}/participate`, token, { method: "POST" });
+
+export const getAdminCustomerOffers = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ offers: AdminCustomerOffer[] }>("/admin/offers", token, { signal });
+
+export const createAdminCustomerOffer = (
+  token: string,
+  offer: CreateCustomerOfferInput,
+) =>
+  apiRequest<{ offer: AdminCustomerOffer }>("/admin/offers", token, {
+    method: "POST",
+    body: JSON.stringify(offer),
+  });
+
+export const updateAdminCustomerOffer = (
+  token: string,
+  offerId: string,
+  isPublished: boolean,
+) =>
+  apiRequest<{ offer: AdminCustomerOffer }>(`/admin/offers/${offerId}`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ isPublished }),
+  });
+
+export const drawAdminCustomerOffer = (token: string, offerId: string) =>
+  apiRequest<{ offer: AdminCustomerOffer }>(`/admin/offers/${offerId}/draw`, token, {
+    method: "POST",
+  });
+
+export const publishAdminCustomerOfferResults = (
+  token: string,
+  offerId: string,
+) =>
+  apiRequest<{ offer: AdminCustomerOffer }>(
+    `/admin/offers/${offerId}/publish-results`,
+    token,
+    { method: "POST" },
+  );
 
 export const createBanner = (token: string, banner: Omit<SiteBanner, "id" | "imageObjectId">) =>
   apiRequest<{ banner: SiteBanner }>("/banners", token, {

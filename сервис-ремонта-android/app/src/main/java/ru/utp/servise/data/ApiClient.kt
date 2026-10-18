@@ -334,6 +334,14 @@ object ApiClient {
             response.getJSONArray("articles").mapObjects { it.toNewsArticle() }
     }
 
+    fun customerOffers(token: String): List<CustomerOffer> = request(
+        "GET", "/offers", token,
+    ).getJSONArray("offers").mapObjects { it.toCustomerOffer() }
+
+    fun participateInCustomerOffer(token: String, offerId: String) {
+        request("POST", "/offers/$offerId/participate", token)
+    }
+
     fun banners(token: String): List<SiteBanner> = request("GET", "/banners", token)
         .getJSONArray("banners").mapObjects { banner ->
             SiteBanner(

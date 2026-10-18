@@ -386,6 +386,43 @@ internal fun JSONObject.toNewsArticle() = NewsArticle(
     isFeatured = optBoolean("isFeatured"),
 )
 
+internal fun JSONObject.toCustomerOffer(): CustomerOffer {
+    val participation = optJSONObject("myParticipation")?.let { value ->
+        CustomerOfferParticipation(
+            id = value.getString("id"),
+            joinedAt = value.getString("joinedAt"),
+            place = if (value.isNull("place")) null else value.optInt("place"),
+        )
+    }
+    return CustomerOffer(
+        id = getString("id"),
+        type = getString("type"),
+        title = getString("title"),
+        content = getString("content"),
+        firstPlacePrize = nullableString("firstPlacePrize"),
+        firstPlacePoints = optInt("firstPlacePoints"),
+        secondPlacePrize = nullableString("secondPlacePrize"),
+        secondPlacePoints = optInt("secondPlacePoints"),
+        thirdPlacePrize = nullableString("thirdPlacePrize"),
+        thirdPlacePoints = optInt("thirdPlacePoints"),
+        isPublished = optBoolean("isPublished"),
+        startsAt = getString("startsAt"),
+        endsAt = getString("endsAt"),
+        drawnAt = nullableString("drawnAt"),
+        resultsPublishedAt = nullableString("resultsPublishedAt"),
+        participantCount = optInt("participantCount"),
+        myParticipation = participation,
+        winners = optJSONArray("winners")?.mapObjects { winner ->
+            CustomerOfferWinner(
+                place = winner.getInt("place"),
+                displayName = winner.optString("displayName"),
+                prize = winner.nullableString("prize"),
+                bonusPoints = winner.optInt("bonusPoints"),
+            )
+        }.orEmpty(),
+    )
+}
+
 internal fun JSONObject.toOrderChat() = OrderChat(
     id = nullableString("id"),
     orderId = getString("orderId"),

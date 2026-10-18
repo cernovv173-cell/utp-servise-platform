@@ -20,6 +20,7 @@ const links = [
   { to: "/catalog", label: "Каталог ремонта", motion: "wiggle" },
   { to: "/checks", label: "Чеки и номера", motion: "bounce" },
   { to: "/news", label: "Новости", motion: "peek" },
+  { to: "/offers", label: "Акции и розыгрыши", motion: "bounce" },
   { to: "/loyalty", label: "Бонусы", motion: "wiggle" },
   { to: "/game", label: "Три в ряд", motion: "bounce" },
   { to: "/salary", label: "Зарплата", motion: "bounce" },
@@ -93,6 +94,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
   const nav = links.filter((link) => {
     if (link.to === "/support") return user.role === "ADMIN" || user.role === "CUSTOMER";
     if (link.to === "/advertising") return user.role === "ADMIN";
+    if (link.to === "/offers") return user.role === "CUSTOMER";
     if (link.to === "/catalog" || link.to === "/salary")
       return user.role === "TECHNICIAN" || user.role === "ADMIN";
     if (link.to === "/loyalty" || link.to === "/game") return user.role === "CUSTOMER";

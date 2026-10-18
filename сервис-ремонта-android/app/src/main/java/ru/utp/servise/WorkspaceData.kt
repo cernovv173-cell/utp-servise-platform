@@ -7,6 +7,7 @@ import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.CustomerDevice
 import ru.utp.servise.data.CustomerServicePrice
+import ru.utp.servise.data.CustomerOffer
 import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.ReferralProgram
@@ -26,6 +27,7 @@ internal data class WorkspaceData(
     val craftItems: List<CraftItem>,
     val craftOrders: List<CraftOrder>,
     val news: List<NewsArticle>,
+    val customerOffers: List<CustomerOffer>,
     val banners: List<SiteBanner>,
     val loyalty: LoyaltyAccount,
     val referralProgram: ReferralProgram,
