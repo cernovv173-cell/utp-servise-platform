@@ -77,7 +77,6 @@ import ru.utp.servise.ui.ServiceDashboardScreen
 import ru.utp.servise.ui.compressSelectedImage
 import ru.utp.servise.ui.ReviewFormScreen
 import ru.utp.servise.ui.ReviewsScreen
-import ru.utp.servise.ui.RaccoonGuide
 import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.SalaryScreen
@@ -180,7 +179,6 @@ internal fun AuthenticatedWorkspace(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
         floatingActionButton = {
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                RaccoonGuide(route = currentRoute, role = user.role)
                 if (user.role == "ADMIN" && currentRoute != "admin/new-order") {
                     ExtendedFloatingActionButton(
                         onClick = { navController.navigate("admin/new-order") { launchSingleTop = true } },

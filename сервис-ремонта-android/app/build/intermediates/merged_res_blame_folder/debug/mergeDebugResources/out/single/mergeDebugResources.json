@@ -40,16 +40,16 @@
         "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/utp_servise_logo.jpg"
     },
     {
+        "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/drawable-nodpi_raccoon_helper_sprite.png.flat",
+        "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/drawable-nodpi/raccoon_helper_sprite.png"
+    },
+    {
         "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-anydpi-v26_ic_launcher_round.xml.flat",
         "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/mipmap-anydpi-v26/ic_launcher_round.xml"
     },
     {
         "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/xml_update_file_paths.xml.flat",
         "source": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-main-69:/xml/update_file_paths.xml"
-    },
-    {
-        "merged": "ru.utp.servise.app-debug-67:/drawable-nodpi_raccoon_helper_sprite.png.flat",
-        "source": "ru.utp.servise.app-main-69:/drawable-nodpi/raccoon_helper_sprite.png"
     },
     {
         "merged": "/var/cache/amazi-android/gradle/daemon/8.11.1/ru.utp.servise.app-debug-67:/mipmap-mdpi_ic_launcher.png.flat",

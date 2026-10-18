@@ -4,7 +4,6 @@ import { Cpu, ExternalLink, LogOut, Moon, Power, Sun } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
-import { RaccoonGuide } from "@/components/raccoon-guide";
 import { RaccoonIcon } from "@/components/raccoon-icon";
 import type { RaccoonMotion } from "@/components/raccoon-icon";
 
@@ -228,12 +227,6 @@ export const AppShell = ({ active, children }: { active: string; children: React
           {children}
         </main>
       </div>
-      <RaccoonGuide
-        active={active}
-        offsetForAdminAction={user.role === "ADMIN"}
-        role={user.role}
-        userId={user.id}
-      />
       {user.role === "ADMIN" && (
         <div className="fixed right-5 bottom-5 z-30">
           <AdminOrderCreate
