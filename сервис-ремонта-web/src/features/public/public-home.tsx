@@ -1,5 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, CheckCircle2, ClipboardList, Clock3, ShieldCheck, Wrench } from "lucide-react";
+import {
+  ArrowRight,
+  BadgeCheck,
+  CheckCircle2,
+  ClipboardCheck,
+  ClipboardList,
+  Clock3,
+  Eye,
+  ShieldCheck,
+  Wrench,
+} from "lucide-react";
 
 import { PublicSiteShell, repairRequestHref } from "@/components/public-site-shell";
 import { RaccoonIcon } from "@/components/raccoon-icon";
@@ -27,6 +37,24 @@ const steps = [
     icon: CheckCircle2,
     title: "Следите за результатом",
     description: "Статус ремонта, сообщения и история обращения сохраняются в аккаунте.",
+  },
+];
+
+const trustPoints = [
+  {
+    icon: Eye,
+    title: "Каждый этап на виду",
+    description: "В личном кабинете доступны статус ремонта, сообщения и история обращения.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Работы зафиксированы",
+    description: "В чеках и сервисных номерах можно посмотреть заказ и состав выполненных работ.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Гарантия оформлена",
+    description: "После выдачи заказа в аккаунте формируется гарантийный талон с данными ремонта.",
   },
 ];
 
@@ -165,6 +193,34 @@ export const PublicHome = () => {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="trust" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16 md:px-8">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold tracking-[0.18em] text-blue-600 uppercase dark:text-cyan-300">
+            Для клиентов
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight">Нам доверяют</h2>
+          <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">
+            Понятные этапы ремонта и документы помогают вам видеть, что происходит с техникой.
+          </p>
+        </div>
+        <div className="mt-8 grid gap-4 md:grid-cols-3">
+          {trustPoints.map(({ icon: Icon, title, description }) => (
+            <article
+              key={title}
+              className="rounded-2xl border border-slate-200 bg-white/85 p-5 shadow-sm dark:border-[#405b9c]/40 dark:bg-[#0c142b]/85"
+            >
+              <div className="grid size-11 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-cyan-200">
+                <Icon size={21} aria-hidden="true" />
+              </div>
+              <h3 className="mt-4 font-semibold">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                {description}
+              </p>
+            </article>
+          ))}
         </div>
       </section>
 

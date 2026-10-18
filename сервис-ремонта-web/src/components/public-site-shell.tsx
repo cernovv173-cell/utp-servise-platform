@@ -34,6 +34,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
             >
               Услуги
             </a>
+            <a
+              href="/#trust"
+              className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
+            >
+              Нам доверяют
+            </a>
             <Link
               to="/about"
               className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
@@ -74,6 +80,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
             className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
           >
             Услуги
+          </a>
+          <a
+            href="/#trust"
+            className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
+          >
+            Нам доверяют
           </a>
           <Link
             to="/about"
