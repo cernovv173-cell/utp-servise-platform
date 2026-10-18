@@ -90,6 +90,7 @@ enum BonusTransactionType {
   MANUAL_ADJUSTMENT
   GAME_REWARD
   REFERRAL_REWARD
+  OFFER_REWARD
 }
 
 enum ReferralStatus {
@@ -107,6 +108,11 @@ enum ReceiptPaymentMethod {
   CARD_TERMINAL
   BANK_TRANSFER
   OTHER
+}
+
+enum CustomerOfferType {
+  PROMOTION
+  GIVEAWAY
 }
 
 model AppSetting {
@@ -186,6 +192,8 @@ model User {
   maxNotifications        MaxNotificationDelivery[]
   referralsSent           CustomerReferral[]             @relation("ReferralInviter")
   referralReceived        CustomerReferral?              @relation("ReferralInvitee")
+  createdCustomerOffers   CustomerOffer[]                @relation("CustomerOfferCreator")
+  customerOfferEntries    CustomerOfferParticipation[]   @relation("CustomerOfferParticipant")
 
   @@index([role, active])
   @@map("users")
@@ -842,23 +850,26 @@ model CraftOrderChatMessage {
 }
 
 model LoyaltyTransaction {
-  id           String               @id @default(uuid()) @db.Uuid
-  customerId   String               @map("customer_id") @db.Uuid
-  orderId      String?              @map("order_id") @db.Uuid
-  craftOrderId String?              @map("craft_order_id") @db.Uuid
-  referralId   String?              @map("referral_id") @db.Uuid
-  actorId      String?              @map("actor_id") @db.Uuid
-  type         BonusTransactionType
-  points       Int
-  reason       String               @db.VarChar(255)
-  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  customer     User                 @relation("BonusCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  order        RepairOrder?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  craftOrder   CraftOrder?          @relation(fields: [craftOrderId], references: [id], onDelete: SetNull)
-  referral     CustomerReferral?    @relation("ReferralTransactions", fields: [referralId], references: [id], onDelete: SetNull)
-  actor        User?                @relation("BonusActor", fields: [actorId], references: [id], onDelete: SetNull)
+  id              String               @id @default(uuid()) @db.Uuid
+  customerId      String               @map("customer_id") @db.Uuid
+  orderId         String?              @map("order_id") @db.Uuid
+  craftOrderId    String?              @map("craft_order_id") @db.Uuid
+  referralId      String?              @map("referral_id") @db.Uuid
+  customerOfferId String?              @map("customer_offer_id") @db.Uuid
+  actorId         String?              @map("actor_id") @db.Uuid
+  type            BonusTransactionType
+  points          Int
+  reason          String               @db.VarChar(255)
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  customer        User                 @relation("BonusCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+  order           RepairOrder?         @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  craftOrder      CraftOrder?          @relation(fields: [craftOrderId], references: [id], onDelete: SetNull)
+  referral        CustomerReferral?    @relation("ReferralTransactions", fields: [referralId], references: [id], onDelete: SetNull)
+  customerOffer   CustomerOffer?       @relation("CustomerOfferReward", fields: [customerOfferId], references: [id], onDelete: SetNull)
+  actor           User?                @relation("BonusActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@unique([referralId, customerId])
+  @@unique([customerOfferId, customerId])
   @@index([customerId, createdAt])
   @@index([orderId])
   @@index([craftOrderId])
@@ -1038,4 +1049,42 @@ model SiteBanner {
 
   @@index([isActive, startsAt, endsAt])
   @@map("site_banners")
+}
+
+model CustomerOffer {
+  id                 String                       @id @default(uuid()) @db.Uuid
+  type               CustomerOfferType
+  title              String                       @db.VarChar(160)
+  content            String                       @db.VarChar(8000)
+  prize              String?                      @db.VarChar(500)
+  bonusPoints        Int                          @default(0) @map("bonus_points")
+  isPublished        Boolean                      @default(false) @map("is_published")
+  startsAt           DateTime                     @map("starts_at") @db.Timestamptz(3)
+  endsAt             DateTime                     @map("ends_at") @db.Timestamptz(3)
+  drawnAt            DateTime?                    @map("drawn_at") @db.Timestamptz(3)
+  createdById        String?                      @map("created_by_id") @db.Uuid
+  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy          User?                        @relation("CustomerOfferCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  entries            CustomerOfferParticipation[]
+  rewardTransactions LoyaltyTransaction[]         @relation("CustomerOfferReward")
+
+  @@index([isPublished, startsAt, endsAt])
+  @@index([type, endsAt])
+  @@map("customer_offers")
+}
+
+model CustomerOfferParticipation {
+  id         String        @id @default(uuid()) @db.Uuid
+  offerId    String        @map("offer_id") @db.Uuid
+  customerId String        @map("customer_id") @db.Uuid
+  joinedAt   DateTime      @default(now()) @map("joined_at") @db.Timestamptz(3)
+  isWinner   Boolean       @default(false) @map("is_winner")
+  offer      CustomerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  customer   User          @relation("CustomerOfferParticipant", fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@unique([offerId, customerId])
+  @@index([offerId, isWinner, joinedAt])
+  @@index([customerId, joinedAt])
+  @@map("customer_offer_participations")
 }
