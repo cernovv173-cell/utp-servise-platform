@@ -141,6 +141,7 @@ object ApiClient {
         .binaryRequest("POST", "/media/avatar", token, image)
         .getJSONObject("user")
         .toUser()
+    fun deleteOwnAccount(token: String) { request("DELETE", "/customer/account", token) }
     fun logout(token: String) { request("POST", "/auth/logout", token) }
 
     fun registerPushToken(sessionToken: String, pushToken: String) {

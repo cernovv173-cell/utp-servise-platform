@@ -31,3 +31,10 @@ fun saveShopCart(context: Context, customerId: String, cart: Map<String, Int>) {
         .putString(customerId, json.toString())
         .apply()
 }
+
+fun clearShopCart(context: Context, customerId: String) {
+    context.getSharedPreferences(SHOP_CART_PREFERENCES, Context.MODE_PRIVATE)
+        .edit()
+        .remove(customerId)
+        .apply()
+}

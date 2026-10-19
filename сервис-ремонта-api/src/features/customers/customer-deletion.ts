@@ -129,7 +129,7 @@ const deleteCustomerMedia = async (
         throw new HttpError(
           503,
           "CUSTOMER_MEDIA_CLEANUP_PENDING",
-          "Удаление не завершено: учётная запись отключена, но фотографии пока не удалось очистить. Повторите попытку позже.",
+          "Не удалось завершить удаление и очистить фотографии. Повторите попытку позже.",
         );
       }
     }
@@ -266,9 +266,15 @@ export const deleteCustomerAndData = async (
   database: DatabaseClient,
   storage: MediaStorage,
   customerId: string,
+  options: { disableAccountBeforeCleanup?: boolean } = {},
 ): Promise<{ id: string; email: string; displayName: string }> => {
+  const disableAccountBeforeCleanup =
+    options.disableAccountBeforeCleanup ?? true;
+
   await database.$transaction(async (transaction) => {
     await findAndLockCustomer(transaction, customerId);
+    if (!disableAccountBeforeCleanup) return;
+
     await transaction.session.deleteMany({ where: { userId: customerId } });
     await transaction.user.update({
       where: { id: customerId },
@@ -316,6 +322,6 @@ export const deleteCustomerAndData = async (
   throw new HttpError(
     503,
     "CUSTOMER_DELETE_RETRY_REQUIRED",
-    "Удаление не завершено: учётная запись отключена. Повторите попытку, чтобы очистить оставшиеся фотографии и записи.",
+    "Не удалось завершить удаление. Повторите попытку, чтобы очистить оставшиеся фотографии и записи.",
   );
 };

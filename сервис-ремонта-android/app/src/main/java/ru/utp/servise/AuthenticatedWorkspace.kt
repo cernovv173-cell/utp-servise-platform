@@ -318,7 +318,17 @@ internal fun AuthenticatedWorkspace(
                                 )
                             }
                             composable("customer/reviews") { ReviewsScreen("Мои отзывы", reviews, refresh, token = token) }
-                            composable("customer/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
+                            composable("customer/profile") {
+                                ProfileScreen(
+                                    user,
+                                    token,
+                                    runAction,
+                                    onUserUpdated,
+                                    onPasswordChanged,
+                                    onLogout,
+                                    onAccountDeleted = onLogout,
+                                )
+                            }
                             composable("customer/new-order") {
                                 val repeatDeviceId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("repeatDeviceId")
                                 RepairRequestForm(

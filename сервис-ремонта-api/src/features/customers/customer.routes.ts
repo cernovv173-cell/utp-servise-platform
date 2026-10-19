@@ -9,7 +9,11 @@ import {
   paginationQuerySchema,
 } from "../../lib/http/pagination.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  getAuthenticatedUser,
+  requireRoles,
+} from "../auth/auth.middleware.js";
 import { generateTemporaryPassword, hashPassword } from "../auth/passwords.js";
 import {
   type MediaStorage,
@@ -80,6 +84,33 @@ export const createCustomerAdminRouter = (
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
+
+  router.delete(
+    "/customer/account",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    async (_request, response, next) => {
+      const { id: customerId } = getAuthenticatedUser(response);
+      try {
+        await deleteCustomerAndData(database, storage, customerId, {
+          disableAccountBeforeCleanup: false,
+        });
+        response.json({ deleted: true });
+      } catch (error) {
+        if (isForeignKeyViolation(error)) {
+          next(
+            new HttpError(
+              409,
+              "CUSTOMER_DELETE_BLOCKED",
+              "Не удалось удалить все связанные записи. Повторите попытку позже.",
+            ),
+          );
+          return;
+        }
+        next(error);
+      }
+    },
+  );
 
   router.post(
     "/admin/customers",

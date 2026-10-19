@@ -94,6 +94,15 @@ const createHarness = (failOnceFor?: string) => {
         record("user", "delete", { where });
         const index = users.findIndex((user) => user.id === where.id);
         assert.notEqual(index, -1);
+        for (
+          let sessionIndex = sessions.length - 1;
+          sessionIndex >= 0;
+          sessionIndex -= 1
+        ) {
+          if (sessions[sessionIndex]?.userId === where.id) {
+            sessions.splice(sessionIndex, 1);
+          }
+        }
         return users.splice(index, 1)[0];
       },
     },
@@ -195,6 +204,7 @@ const createHarness = (failOnceFor?: string) => {
     calls,
     customer: customerRecord,
     storageDeleted,
+    sessions,
     tokens,
     users,
   };
@@ -209,12 +219,13 @@ const startServer = async (
   after(() => server.close());
   const address = server.address();
   assert.ok(address && typeof address !== "string");
-  return `http://127.0.0.1:${address.port}/api/admin/customers/${customerId}`;
+  return `http://127.0.0.1:${address.port}/api`;
 };
 
 test("admins can delete a customer and all of their linked records and media", async (t) => {
   const harness = createHarness();
-  const endpoint = await startServer(harness.app, t.after.bind(t));
+  const baseUrl = await startServer(harness.app, t.after.bind(t));
+  const endpoint = `${baseUrl}/admin/customers/${customerId}`;
   const headers = (token: string) => ({ authorization: `Bearer ${token}` });
 
   const denied = await fetch(endpoint, {
@@ -289,7 +300,8 @@ test("admins can delete a customer and all of their linked records and media", a
 
 test("a failed photo cleanup disables access and allows the admin to retry deletion", async (t) => {
   const harness = createHarness("review-photo");
-  const endpoint = await startServer(harness.app, t.after.bind(t));
+  const baseUrl = await startServer(harness.app, t.after.bind(t));
+  const endpoint = `${baseUrl}/admin/customers/${customerId}`;
   const headers = { authorization: `Bearer ${harness.tokens.admin}` };
 
   const firstAttempt = await fetch(endpoint, {
@@ -309,5 +321,72 @@ test("a failed photo cleanup disables access and allows the admin to retry delet
   const retry = await fetch(endpoint, { method: "DELETE", headers });
   assert.equal(retry.status, 200);
   assert.equal(harness.customer(), undefined);
+  assert.ok(harness.storageDeleted.has("review-photo"));
+});
+
+test("a customer can delete only their own account from the authenticated app session", async (t) => {
+  const harness = createHarness();
+  const baseUrl = await startServer(harness.app, t.after.bind(t));
+  const endpoint = `${baseUrl}/customer/account`;
+
+  const unauthenticated = await fetch(endpoint, { method: "DELETE" });
+  assert.equal(unauthenticated.status, 401);
+  assert.ok(harness.customer());
+
+  const administrator = await fetch(endpoint, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${harness.tokens.admin}` },
+  });
+  assert.equal(administrator.status, 403);
+  assert.ok(harness.customer());
+
+  const otherAccount = await fetch(`${endpoint}/${adminId}`, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${harness.tokens.customer}` },
+  });
+  assert.equal(otherAccount.status, 404);
+  assert.ok(harness.customer());
+
+  const deleted = await fetch(endpoint, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${harness.tokens.customer}` },
+  });
+  assert.equal(deleted.status, 200);
+  assert.deepEqual(await deleted.json(), { deleted: true });
+  assert.equal(harness.customer(), undefined);
+  assert.ok(harness.users.some((user) => user.id === adminId));
+  assert.equal(
+    harness.sessions.some((session) => session.userId === customerId),
+    false,
+  );
+});
+
+test("a customer can retry self-deletion after temporary photo cleanup failure", async (t) => {
+  const harness = createHarness("review-photo");
+  const baseUrl = await startServer(harness.app, t.after.bind(t));
+  const endpoint = `${baseUrl}/customer/account`;
+  const headers = { authorization: `Bearer ${harness.tokens.customer}` };
+
+  const firstAttempt = await fetch(endpoint, { method: "DELETE", headers });
+  assert.equal(firstAttempt.status, 503);
+  assert.equal(harness.customer()?.active, true);
+  assert.equal(
+    harness.sessions.some((session) => session.userId === customerId),
+    true,
+  );
+  assert.equal(
+    harness.calls.some(
+      (call) => call.model === "session" && call.method === "deleteMany",
+    ),
+    false,
+  );
+
+  const retry = await fetch(endpoint, { method: "DELETE", headers });
+  assert.equal(retry.status, 200);
+  assert.equal(harness.customer(), undefined);
+  assert.equal(
+    harness.sessions.some((session) => session.userId === customerId),
+    false,
+  );
   assert.ok(harness.storageDeleted.has("review-photo"));
 });

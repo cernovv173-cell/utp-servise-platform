@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,6 +51,8 @@ import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.SiteBanner
+import ru.utp.servise.data.clearShopCart
+import ru.utp.servise.data.clearDailyChallengeCompletion
 import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.roleLabel
 import java.time.LocalDate
@@ -238,6 +241,7 @@ fun ProfileScreen(
     onUserUpdated: (AppUser) -> Unit,
     onPasswordChanged: (AuthResult) -> Unit,
     onLogout: () -> Unit,
+    onAccountDeleted: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
@@ -256,6 +260,7 @@ fun ProfileScreen(
     var telegramLinkUrl by remember(user.id) { mutableStateOf<String?>(null) }
     var maxLinked by remember(user.id, user.maxLinked) { mutableStateOf(user.maxLinked) }
     var maxLinkUrl by remember(user.id) { mutableStateOf<String?>(null) }
+    var showAccountDeletionDialog by remember(user.id) { mutableStateOf(false) }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Профиль", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Spacer(Modifier.height(15.dp))
@@ -553,8 +558,61 @@ fun ProfileScreen(
                 }
             }
         }
+        if (user.role == "CUSTOMER" && onAccountDeleted != null) {
+            Spacer(Modifier.height(12.dp))
+            Card(
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.fillMaxWidth().padding(18.dp)) {
+                    Text("Удаление аккаунта", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text(
+                        "Удалить аккаунт и связанные с ним данные можно здесь, в приложении.",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 5.dp, bottom = 4.dp),
+                    )
+                    TextButton(onClick = { showAccountDeletionDialog = true }) {
+                        Text("Удалить аккаунт", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
+        }
         Spacer(Modifier.height(16.dp))
         OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) { Text("Выйти из аккаунта") }
+    }
+
+    if (showAccountDeletionDialog) {
+        AlertDialog(
+            onDismissRequest = { showAccountDeletionDialog = false },
+            title = { Text("Удалить аккаунт безвозвратно?") },
+            text = {
+                Text(
+                    "Будут удалены аккаунт, заявки и история ремонтов, заказы магазина и изделий, " +
+                        "переписки, отзывы, фотографии, бонусные и игровые данные. Незавершённые " +
+                        "заявки тоже будут удалены. Восстановить данные после удаления нельзя.",
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showAccountDeletionDialog = false
+                        runAction({ ru.utp.servise.data.ApiClient.deleteOwnAccount(token) }) {
+                            clearShopCart(context, user.id)
+                            clearDailyChallengeCompletion(context, user.id)
+                            onAccountDeleted?.invoke()
+                        }
+                    },
+                ) {
+                    Text("Удалить навсегда", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAccountDeletionDialog = false }) {
+                    Text("Отмена")
+                }
+            },
+        )
     }
 }
 

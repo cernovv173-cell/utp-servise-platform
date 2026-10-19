@@ -68,14 +68,19 @@ spare part or product. Administrators can create a repair order for an
 active customer through `POST /admin/orders`; its creation is recorded in order history. The
 administrator can create a customer record through `POST /admin/customers`; the one-time temporary
 password is returned only with that creation response and must be changed on first sign-in.
-Only administrators can permanently delete a customer through `DELETE /admin/customers/:customerId`.
-The API disables the account and revokes its sessions before cleaning up the customer's repair and
-craft orders, receipts, related payroll entries, device records, chats, reviews, bonuses, referral
-links, offer participation, and game progress in a database transaction. Customer-specific photos
-are removed from project storage first; objects still referenced by another account or shared content
-are preserved. If storage cleanup fails, the account stays disabled and an administrator can retry.
-Deleting a referral also detaches, but does not delete, another customer's referral bonus ledger
-entry. Removing repair history does not restore stock quantities.
+Customers can permanently delete their own account from the signed-in app through
+`DELETE /customer/account`; the endpoint uses the authenticated customer's ID and accepts no target
+account ID. Only administrators can delete another customer through
+`DELETE /admin/customers/:customerId`. Both paths remove the customer's repair and craft orders,
+receipts, related payroll entries, device records, chats, reviews, bonuses, referral links, offer
+participation, and game progress in a database transaction. Customer-specific photos are removed
+from project storage first; objects still referenced by another account or shared content are
+preserved. The administrator path disables the account and revokes its sessions before cleanup. The
+self-service path keeps the current session available until cleanup succeeds, so the customer can
+retry if photo storage is temporarily unavailable; successful user deletion also removes all
+sessions. Deleting a referral also detaches, but does not delete, another customer's referral bonus
+ledger entry. Confirmed shop orders restore their tracked stock before their history is removed.
+Removing repair history does not restore spare-part stock quantities.
 
 Repair orders are archived automatically after the Moscow calendar day in which they were created.
 The worker checks once per minute and marks older orders with `archived_at`; it never deletes the

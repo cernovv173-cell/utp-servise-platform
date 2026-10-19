@@ -1,6 +1,5 @@
 package ru.utp.servise.ui
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -32,18 +31,17 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import ru.utp.servise.data.Match3DailyChallenge
 import ru.utp.servise.data.Match3Position
-
-private const val DAILY_PUZZLE_PREFERENCES = "match3_daily_challenge_v1"
+import ru.utp.servise.data.readDailyChallengeCompletion
+import ru.utp.servise.data.saveDailyChallengeCompletion
 
 @Composable
 fun Match3DailyPuzzleScreen(userId: String, onBack: () -> Unit) {
     val context = LocalContext.current
-    val preferences = remember(context) {
-        context.getSharedPreferences(DAILY_PUZZLE_PREFERENCES, Context.MODE_PRIVATE)
-    }
     var dayKey by remember { mutableStateOf(Match3DailyChallenge.dayKey()) }
     val board = remember(dayKey) { Match3DailyChallenge.createBoard(dayKey) }
-    var completedDayKey by remember(userId) { mutableStateOf(preferences.getString(userId, null)) }
+    var completedDayKey by remember(userId) {
+        mutableStateOf(readDailyChallengeCompletion(context, userId))
+    }
     var selected by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var message by remember { mutableStateOf("") }
     val completed = completedDayKey == dayKey
@@ -54,7 +52,7 @@ fun Match3DailyPuzzleScreen(userId: String, onBack: () -> Unit) {
             val currentDay = Match3DailyChallenge.dayKey()
             if (currentDay != dayKey) {
                 dayKey = currentDay
-                completedDayKey = preferences.getString(userId, null)
+                completedDayKey = readDailyChallengeCompletion(context, userId)
                 selected = null
                 message = ""
             }
@@ -75,7 +73,7 @@ fun Match3DailyPuzzleScreen(userId: String, onBack: () -> Unit) {
         selected = null
         if (solved) {
             completedDayKey = dayKey
-            preferences.edit().putString(userId, dayKey).apply()
+            saveDailyChallengeCompletion(context, userId, dayKey)
             message = "Отличный ход! Новая задача появится завтра."
         } else {
             message = "Эта пара не собирает три в ряд. Попробуй другой соседний обмен."
