@@ -1,5 +1,6 @@
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { createLogger } from "../../lib/logger.js";
+import { awardBirthdayBonusPoints } from "./birthday-bonus.js";
 import { getMoscowBirthdayDate } from "./birthday-time.js";
 import { sendCustomerBirthdayNotification } from "./push-notifications.js";
 
@@ -78,6 +79,20 @@ export const runBirthdayPushWorkerOnce = async (
   now = new Date(),
 ): Promise<void> => {
   const { year, monthDay } = getMoscowBirthdayDate(now);
+  try {
+    const awardCount = await awardBirthdayBonusPoints(database, year, monthDay);
+    if (awardCount > 0) {
+      logger.info(
+        { awardCount, birthdayYear: year },
+        "birthday_bonus_awards_created",
+      );
+    }
+  } catch {
+    logger.warn(
+      { code: "BIRTHDAY_BONUS_AWARDS_UNAVAILABLE" },
+      "birthday_bonus_awards_will_retry",
+    );
+  }
   await enqueueTodaysBirthdays(database, year, monthDay);
   const deliveries = await claimTodaysBirthdays(database, year, monthDay);
 

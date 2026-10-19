@@ -198,6 +198,7 @@ model User {
   supportConversations    SupportConversation[]          @relation("SupportConversationCustomer")
   supportMessages         SupportChatMessage[]           @relation("SupportChatMessageSender")
   birthdayPushDeliveries  BirthdayPushDelivery[]
+  birthdayBonusAwards     BirthdayBonusAward[]
   customerDevices         CustomerDevice[]
   telegramLinkTokens      TelegramLinkToken[]
   telegramNotifications   TelegramNotificationDelivery[]
@@ -263,6 +264,17 @@ model BirthdayPushDelivery {
   @@unique([userId, birthdayYear])
   @@index([birthdayYear, sentAt, nextAttemptAt, lockedUntil])
   @@map("birthday_push_deliveries")
+}
+
+model BirthdayBonusAward {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  birthdayYear Int      @map("birthday_year")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, birthdayYear])
+  @@map("birthday_bonus_awards")
 }
 
 model RepairOrder {

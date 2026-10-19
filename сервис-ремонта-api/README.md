@@ -232,7 +232,13 @@ Customer gender and birth date are optional profile fields. The birthday push
 worker runs only in production, because development and production share the
 managed database and push credentials. It sends the configured greeting to
 customers with a registered push device token on their birthday in Moscow time,
-at most once per customer per calendar year.
+at most once per customer per calendar year. The same production worker gives every
+active customer with a saved birth date **250 bonus points** on that Moscow birthday,
+whether or not push notifications are enabled. It writes a "Подарок ко дню рождения"
+entry to the loyalty ledger and uses a unique customer/year award record so repeated
+worker runs or multiple API instances cannot award the same birthday twice. The award
+and ledger entry are committed together; removing a customer also removes the private
+award marker.
 
 On the same Moscow calendar day, `GET /news` also returns a personal birthday
 greeting only for the signed-in customer whose saved birth date matches that
