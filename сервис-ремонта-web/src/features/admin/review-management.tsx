@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SectionCard } from "@/components/app-shell";
 import { ProtectedImage } from "@/components/protected-image";
 
+import { ReviewShowcaseImages } from "@/features/admin/review-showcase-images";
 import { useAuth } from "@/features/auth/auth-context";
 
 import { getReviews, moderateReview } from "@/lib/api";
@@ -17,7 +18,12 @@ export const ReviewManagement = () => {
   const mutation = useMutation({
     mutationFn: ({ id, published }: { id: string; published: boolean }) =>
       moderateReview(token!, id, published),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["reviews", token] }),
+    onSuccess: async () => {
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["reviews", token] }),
+        client.invalidateQueries({ queryKey: ["public-reviews"] }),
+      ]);
+    },
   });
   return (
     <SectionCard>
@@ -46,8 +52,9 @@ export const ReviewManagement = () => {
                 />
               )}
               <p className="mt-2 text-xs font-medium text-amber-700 dark:text-amber-300">
-                {review.isPublished ? "Опубликован в новостях" : "Ожидает модерации"}
+                {review.isPublished ? "Опубликован на главной и в новостях" : "Ожидает модерации"}
               </p>
+              <ReviewShowcaseImages review={review} />
             </div>
             <button
               onClick={() => mutation.mutate({ id: review.id, published: !review.isPublished })}

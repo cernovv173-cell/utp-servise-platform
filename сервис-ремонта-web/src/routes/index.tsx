@@ -10,6 +10,7 @@ import { RaccoonIcon } from "@/components/raccoon-icon";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
+import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { PublicHome } from "@/features/public/public-home";
 import { SeasonalThemeControl } from "@/features/seasonal/seasonal-theme-control";
 
@@ -148,6 +149,7 @@ const HomePage = () => {
           </SectionCard>
         </Link>
       </div>
+      <HomeReviewShowcase />
       <MyTargetAd />
       <MailRuAd />
     </AppShell>

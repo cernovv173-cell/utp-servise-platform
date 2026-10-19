@@ -404,7 +404,23 @@ export type Review = {
   order: { deviceType: string; problem: string };
   isPublished: boolean;
   imageObjectId?: string | null;
+  clientPhotoObjectId?: string | null;
+  clientPhotoConsentAt?: string | null;
+  workPhotoObjectId?: string | null;
 };
+
+export type PublicReview = {
+  id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  customer: { displayName: string };
+  order: { deviceType: string };
+  hasClientPhoto: boolean;
+  hasWorkPhoto: boolean;
+};
+
+export type ReviewShowcaseImageKind = "client" | "work";
 
 export type CraftItem = {
   id: string;
@@ -1047,6 +1063,40 @@ export const updateNews = (token: string, id: string, input: Partial<NewsArticle
 
 export const getReviews = (token: string, signal?: AbortSignal) =>
   apiRequest<{ reviews: Review[] }>("/reviews", token, { signal });
+
+export const getPublicReviews = (signal?: AbortSignal) =>
+  apiRequest<{ reviews: PublicReview[] }>("/public/reviews", null, { signal });
+
+export const getPublicReviewImageUrl = (reviewId: string, kind: ReviewShowcaseImageKind) =>
+  `${apiBase || "/api"}/public/reviews/${reviewId}/image/${kind}`;
+
+export const uploadReviewShowcaseImage = (
+  token: string,
+  reviewId: string,
+  kind: ReviewShowcaseImageKind,
+  file: File,
+  clientPhotoConsent: boolean,
+) =>
+  apiRequest<{ review: Review }>(
+    `/admin/reviews/${reviewId}/showcase-image/${kind}${
+      kind === "client" ? `?clientPhotoConsent=${clientPhotoConsent}` : ""
+    }`,
+    token,
+    {
+      method: "POST",
+      headers: { "Content-Type": file.type || "image/jpeg" },
+      body: file,
+    },
+  );
+
+export const deleteReviewShowcaseImage = (
+  token: string,
+  reviewId: string,
+  kind: ReviewShowcaseImageKind,
+) =>
+  apiRequest<{ review: Review }>(`/admin/reviews/${reviewId}/showcase-image/${kind}`, token, {
+    method: "DELETE",
+  });
 
 export const getCompany = (signal?: AbortSignal) =>
   apiRequest<{ company: CompanyInfo }>("/about", null, { signal });

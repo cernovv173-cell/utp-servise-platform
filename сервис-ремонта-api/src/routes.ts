@@ -20,6 +20,7 @@ import { createOperationsRouter } from "./features/operations/operations.routes.
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
 import { createRepairEstimatesRouter } from "./features/orders/repair-estimates.routes.js";
 import { createReferralRouter } from "./features/referrals/referral.routes.js";
+import { createReviewShowcaseRouter } from "./features/reviews/review-showcase.routes.js";
 import { createSalaryRouter } from "./features/salary/salary.routes.js";
 import { createSeasonalThemeRouter } from "./features/seasonal/seasonal-theme.routes.js";
 import { createStaffRouter } from "./features/staff/staff.routes.js";
@@ -90,6 +91,7 @@ export const createApiRouter = ({
     router.use(createReferralRouter(database.client));
     router.use(createRepairEstimatesRouter(database.client));
     router.use(createOrdersRouter(database.client));
+    router.use(createReviewShowcaseRouter(database.client));
     router.use(createSalaryRouter(database.client));
     router.use(createSeasonalThemeRouter(database.client));
     router.use(createMediaRouter(database.client));
@@ -107,6 +109,8 @@ export const createApiRouter = ({
         request.path.startsWith("/admin/chats") ||
         request.path.startsWith("/news") ||
         request.path.startsWith("/reviews") ||
+        request.path.startsWith("/public/reviews") ||
+        request.path.startsWith("/admin/reviews") ||
         request.path.startsWith("/staff") ||
         request.path.startsWith("/support") ||
         request.path.startsWith("/admin/support") ||

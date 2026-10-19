@@ -80,12 +80,18 @@ export const createProtectedMediaRouter = (
         const now = new Date();
         const review = await database.review.findFirst({
           where: {
-            imageObjectId: objectId,
-            ...(user.role === "ADMIN"
-              ? {}
-              : {
-                  OR: [{ isPublished: true }, { customerId: user.id }],
-                }),
+            AND: [
+              {
+                OR: [
+                  { imageObjectId: objectId },
+                  { clientPhotoObjectId: objectId },
+                  { workPhotoObjectId: objectId },
+                ],
+              },
+              ...(user.role === "ADMIN"
+                ? []
+                : [{ OR: [{ isPublished: true }, { customerId: user.id }] }]),
+            ],
           },
           select: { id: true },
         });

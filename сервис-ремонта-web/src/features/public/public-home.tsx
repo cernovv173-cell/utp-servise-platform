@@ -14,6 +14,8 @@ import {
 import { PublicSiteShell, repairRequestHref } from "@/components/public-site-shell";
 import { RaccoonIcon } from "@/components/raccoon-icon";
 
+import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
+
 import { getCompany } from "@/lib/api";
 
 const defaultServices = [
@@ -223,6 +225,8 @@ export const PublicHome = () => {
           ))}
         </div>
       </section>
+
+      <HomeReviewShowcase />
 
       <section className="mx-auto max-w-7xl px-4 py-16 md:px-8">
         <div className="grid gap-5 rounded-[2rem] border border-blue-100 bg-blue-50/75 p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center dark:border-cyan-400/20 dark:bg-[#0d1b38]/80">
