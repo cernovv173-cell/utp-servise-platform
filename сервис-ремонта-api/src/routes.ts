@@ -23,6 +23,7 @@ import { createReferralRouter } from "./features/referrals/referral.routes.js";
 import { createReviewShowcaseRouter } from "./features/reviews/review-showcase.routes.js";
 import { createSalaryRouter } from "./features/salary/salary.routes.js";
 import { createSeasonalThemeRouter } from "./features/seasonal/seasonal-theme.routes.js";
+import { createShopRouter } from "./features/shop/shop.routes.js";
 import { createStaffRouter } from "./features/staff/staff.routes.js";
 import { createSupportChatRouter } from "./features/support-chat/support-chat.routes.js";
 import { createSystemRouter } from "./features/system/system.routes.js";
@@ -94,6 +95,7 @@ export const createApiRouter = ({
     router.use(createReviewShowcaseRouter(database.client));
     router.use(createSalaryRouter(database.client));
     router.use(createSeasonalThemeRouter(database.client));
+    router.use(createShopRouter(database.client));
     router.use(createMediaRouter(database.client));
   } else {
     router.use((request, _response, next) => {
@@ -128,7 +130,9 @@ export const createApiRouter = ({
         request.path.startsWith("/admin/loyalty") ||
         request.path.startsWith("/admin/android-app") ||
         request.path.startsWith("/android-app") ||
-        request.path.startsWith("/seasonal-theme")
+        request.path.startsWith("/seasonal-theme") ||
+        request.path.startsWith("/shop") ||
+        request.path.startsWith("/admin/shop")
       ) {
         next(
           new HttpError(

@@ -325,6 +325,42 @@ data class CatalogItem(
     val minimumStockQuantity: Int? = null,
 )
 
+data class ShopProduct(
+    val id: String,
+    val name: String,
+    val unitPriceRub: Int,
+    val availability: String,
+)
+
+data class ShopOrderItem(
+    val id: String,
+    val catalogItemId: String?,
+    val name: String,
+    val quantity: Int,
+    val unitPriceRub: Int,
+    val stockDeducted: Boolean,
+)
+
+data class ShopOrderCustomer(
+    val id: String,
+    val displayName: String,
+    val email: String,
+    val phoneNumber: String?,
+)
+
+data class ShopOrder(
+    val id: String,
+    val status: String,
+    val customerNote: String?,
+    val totalRub: Int,
+    val createdAt: String,
+    val confirmedAt: String?,
+    val completedAt: String?,
+    val cancelledAt: String?,
+    val items: List<ShopOrderItem>,
+    val customer: ShopOrderCustomer? = null,
+)
+
 data class CustomerServicePrice(
     val id: String,
     val name: String,

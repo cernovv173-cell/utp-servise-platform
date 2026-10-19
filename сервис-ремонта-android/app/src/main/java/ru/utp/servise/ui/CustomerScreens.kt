@@ -64,6 +64,7 @@ fun CustomerHomeScreen(
     banners: List<SiteBanner>,
     onCreateRequest: () -> Unit,
     onOrders: () -> Unit,
+    onShop: () -> Unit,
     onCrafts: () -> Unit,
     onAbout: () -> Unit,
     onNews: () -> Unit,
@@ -153,6 +154,17 @@ fun CustomerHomeScreen(
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text("История и статус заказа", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text("Все обращения — в одном месте", fontSize = 12.sp, color = UtpMuted)
+                }
+                Text("›", fontSize = 24.sp, color = UtpMuted)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Card(onClick = onShop, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🛍", fontSize = 24.sp)
+                Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text("Магазин товаров", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text("Отдельная корзина и заказы", fontSize = 12.sp, color = UtpMuted)
                 }
                 Text("›", fontSize = 24.sp, color = UtpMuted)
             }

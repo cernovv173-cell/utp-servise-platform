@@ -49,6 +49,7 @@ fun AdminManagementScreen(
     onAbout: () -> Unit,
     onSupportChats: () -> Unit,
     onCustomers: () -> Unit,
+    onShopOrders: () -> Unit,
 ) {
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
@@ -59,6 +60,7 @@ fun AdminManagementScreen(
         ManagementCard("Обзор сервиса", "Просрочки, выручка и популярные работы", "▦", onOverview)
         ManagementCard("Расписание мастеров", "Заявки по удобному времени и загрузка", "◷", onSchedule)
         ManagementCard("Закупка запчастей", "Пороговые остатки и детали в ремонте", "▣", onProcurement)
+        ManagementCard("Заказы магазина", "Проверка наличия и выдача товаров", "🛍", onShopOrders)
         ManagementCard("Новости", "Создание черновиков и публикаций", "▤", onNews)
         ManagementCard("Каталог услуг и запчастей", "Позиции прайса и цены", "▧", onCatalog)
         ManagementCard("Чаты с запросом помощи", "Подключение администратора к беседе", "✉", onChats)

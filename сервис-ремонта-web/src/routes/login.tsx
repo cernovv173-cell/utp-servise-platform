@@ -160,12 +160,21 @@ const LoginPage = () => {
               </div>
             </div>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to="/orders"
-                className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
-              >
-                Создать заявку <ArrowRight size={18} />
-              </Link>
+              {safeNextPath === "/shop" ? (
+                <Link
+                  to="/shop"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
+                >
+                  Перейти в магазин <ArrowRight size={18} />
+                </Link>
+              ) : (
+                <Link
+                  to="/orders"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
+                >
+                  Создать заявку <ArrowRight size={18} />
+                </Link>
+              )}
               <Link
                 to="/"
                 className="inline-flex min-h-12 items-center rounded-xl border border-slate-200 px-5 font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"

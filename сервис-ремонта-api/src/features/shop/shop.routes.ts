@@ -1,0 +1,314 @@
+import { Router } from "express";
+import { z } from "zod";
+
+import type { DatabaseClient } from "../../lib/database/database.js";
+import { HttpError } from "../../lib/http/http-error.js";
+import { validateRequest } from "../../lib/http/validate-request.js";
+import {
+  createRequireAuth,
+  getAuthenticatedUser,
+  requireRoles,
+} from "../auth/auth.middleware.js";
+
+const orderItemsBody = z
+  .array(
+    z
+      .object({
+        catalogItemId: z.string().uuid(),
+        quantity: z.number().int().min(1).max(100),
+      })
+      .strict(),
+  )
+  .min(1)
+  .max(50)
+  .refine(
+    (items) =>
+      new Set(items.map((item) => item.catalogItemId)).size === items.length,
+    "Каждый товар можно добавить в заказ только один раз.",
+  );
+
+const createOrderBody = z
+  .object({
+    items: orderItemsBody,
+    customerNote: z.string().trim().max(1000).optional().nullable(),
+  })
+  .strict();
+
+const orderIdParams = z.object({ orderId: z.string().uuid() });
+const orderStatusBody = z
+  .object({ status: z.enum(["CONFIRMED", "COMPLETED", "CANCELLED"]) })
+  .strict();
+
+const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
+  (response.locals.input as { readonly body: T }).body;
+const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
+  (response.locals.input as { readonly params: T }).params;
+
+const orderInclude = {
+  items: { orderBy: { name: "asc" as const } },
+};
+
+const adminOrderInclude = {
+  ...orderInclude,
+  customer: {
+    select: { id: true, displayName: true, email: true, phoneNumber: true },
+  },
+};
+
+const unavailableProduct = () =>
+  new HttpError(
+    409,
+    "SHOP_PRODUCT_UNAVAILABLE",
+    "Один из товаров больше недоступен. Обновите корзину.",
+  );
+
+export const createShopRouter = (database: DatabaseClient): Router => {
+  const router = Router();
+  const requireAuth = createRequireAuth(database);
+
+  router.get("/shop/products", async (_request, response) => {
+    const products = await database.repairCatalogItem.findMany({
+      where: { type: "PRODUCT", active: true },
+      select: { id: true, name: true, unitPriceRub: true, stockQuantity: true },
+      orderBy: { name: "asc" },
+      take: 250,
+    });
+    response.json({
+      products: products.map(({ stockQuantity, ...product }) => ({
+        ...product,
+        availability:
+          stockQuantity === null
+            ? "ADMIN_CONFIRMATION_REQUIRED"
+            : stockQuantity > 0
+              ? "IN_STOCK"
+              : "OUT_OF_STOCK",
+      })),
+    });
+  });
+
+  router.post(
+    "/shop/orders",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    validateRequest({ body: createOrderBody }),
+    async (_request, response) => {
+      const customer = getAuthenticatedUser(response);
+      const { items, customerNote } =
+        bodyOf<z.infer<typeof createOrderBody>>(response);
+
+      const order = await database.$transaction(async (transaction) => {
+        const requestedIds = items.map((item) => item.catalogItemId);
+        const products = await transaction.repairCatalogItem.findMany({
+          where: {
+            id: { in: requestedIds },
+            type: "PRODUCT",
+            active: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            unitPriceRub: true,
+            stockQuantity: true,
+          },
+        });
+        if (products.length !== items.length) throw unavailableProduct();
+
+        const productById = new Map(
+          products.map((product) => [product.id, product]),
+        );
+        const orderItems = items.map((item) => {
+          const product = productById.get(item.catalogItemId);
+          if (!product || product.stockQuantity === 0)
+            throw unavailableProduct();
+          return {
+            catalogItemId: product.id,
+            name: product.name,
+            quantity: item.quantity,
+            unitPriceRub: product.unitPriceRub,
+          };
+        });
+        const totalRub = orderItems.reduce(
+          (sum, item) => sum + item.quantity * item.unitPriceRub,
+          0,
+        );
+        if (!Number.isSafeInteger(totalRub) || totalRub > 2_147_483_647) {
+          throw new HttpError(
+            400,
+            "SHOP_ORDER_TOTAL_LIMIT_EXCEEDED",
+            "Сумма заказа превышает допустимое значение.",
+          );
+        }
+
+        return transaction.shopOrder.create({
+          data: {
+            customerId: customer.id,
+            customerNote: customerNote?.trim() || null,
+            totalRub,
+            items: { create: orderItems },
+          },
+          include: orderInclude,
+        });
+      });
+
+      response.status(201).json({ order });
+    },
+  );
+
+  router.get(
+    "/shop/orders",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    async (_request, response) => {
+      const customer = getAuthenticatedUser(response);
+      const orders = await database.shopOrder.findMany({
+        where: { customerId: customer.id },
+        include: orderInclude,
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+      response.json({ orders });
+    },
+  );
+
+  router.get(
+    "/admin/shop/orders",
+    requireAuth,
+    requireRoles("ADMIN"),
+    async (_request, response) => {
+      const orders = await database.shopOrder.findMany({
+        include: adminOrderInclude,
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+      response.json({ orders });
+    },
+  );
+
+  router.patch(
+    "/admin/shop/orders/:orderId/status",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: orderIdParams, body: orderStatusBody }),
+    async (_request, response) => {
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const { status } = bodyOf<z.infer<typeof orderStatusBody>>(response);
+      const order = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "shop_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
+        `;
+        const current = await transaction.shopOrder.findUnique({
+          where: { id: orderId },
+          include: { items: true },
+        });
+        if (!current) {
+          throw new HttpError(
+            404,
+            "SHOP_ORDER_NOT_FOUND",
+            "Заказ магазина не найден.",
+          );
+        }
+
+        const now = new Date();
+        if (status === "CONFIRMED") {
+          if (current.status !== "PENDING") {
+            throw new HttpError(
+              409,
+              "SHOP_ORDER_STATUS_CONFLICT",
+              "Подтвердить можно только ожидающий заказ.",
+            );
+          }
+          for (const item of current.items) {
+            if (!item.catalogItemId) throw unavailableProduct();
+            const product = await transaction.repairCatalogItem.findUnique({
+              where: { id: item.catalogItemId },
+              select: { type: true, active: true, stockQuantity: true },
+            });
+            if (!product || product.type !== "PRODUCT" || !product.active) {
+              throw unavailableProduct();
+            }
+            if (product.stockQuantity !== null) {
+              const reserved = await transaction.repairCatalogItem.updateMany({
+                where: {
+                  id: item.catalogItemId,
+                  type: "PRODUCT",
+                  active: true,
+                  stockQuantity: { gte: item.quantity },
+                },
+                data: { stockQuantity: { decrement: item.quantity } },
+              });
+              if (reserved.count !== 1) {
+                throw new HttpError(
+                  409,
+                  "SHOP_STOCK_INSUFFICIENT",
+                  `Недостаточно товара «${item.name}» на складе. Заказ пока не подтверждён.`,
+                );
+              }
+              await transaction.shopOrderItem.update({
+                where: { id: item.id },
+                data: { stockDeducted: true },
+              });
+            }
+          }
+        } else if (status === "COMPLETED") {
+          if (current.status !== "CONFIRMED") {
+            throw new HttpError(
+              409,
+              "SHOP_ORDER_STATUS_CONFLICT",
+              "Завершить можно только подтверждённый заказ.",
+            );
+          }
+        } else if (
+          current.status !== "PENDING" &&
+          current.status !== "CONFIRMED"
+        ) {
+          throw new HttpError(
+            409,
+            "SHOP_ORDER_STATUS_CONFLICT",
+            "Отменить можно только ожидающий или подтверждённый заказ.",
+          );
+        }
+
+        if (status === "CANCELLED" && current.status === "CONFIRMED") {
+          for (const item of current.items.filter(
+            (entry) => entry.stockDeducted,
+          )) {
+            if (!item.catalogItemId) throw unavailableProduct();
+            const restored = await transaction.repairCatalogItem.updateMany({
+              where: {
+                id: item.catalogItemId,
+                type: "PRODUCT",
+                stockQuantity: { not: null },
+              },
+              data: { stockQuantity: { increment: item.quantity } },
+            });
+            if (restored.count !== 1) {
+              throw new HttpError(
+                409,
+                "SHOP_STOCK_RESTORE_FAILED",
+                `Не удалось вернуть товар «${item.name}» в остаток. Обратитесь к администратору.`,
+              );
+            }
+            await transaction.shopOrderItem.update({
+              where: { id: item.id },
+              data: { stockDeducted: false },
+            });
+          }
+        }
+
+        return transaction.shopOrder.update({
+          where: { id: orderId },
+          data: {
+            status,
+            ...(status === "CONFIRMED" ? { confirmedAt: now } : {}),
+            ...(status === "COMPLETED" ? { completedAt: now } : {}),
+            ...(status === "CANCELLED" ? { cancelledAt: now } : {}),
+          },
+          include: adminOrderInclude,
+        });
+      });
+      response.json({ order });
+    },
+  );
+
+  return router;
+};

@@ -118,6 +118,9 @@ const createHarness = (failOnceFor?: string) => {
         return [{ id: repairOrderId }];
       },
     },
+    shopOrder: {
+      findMany: async () => [],
+    },
     review: {
       findMany: async () => [{ imageObjectId: "review-photo" }],
     },

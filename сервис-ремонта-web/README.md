@@ -90,6 +90,13 @@ highlights items at or below that threshold, and always highlights zero stock. A
 alerts only on zero balance; newly tracked items default to 3. Services do not carry stock. Customer
 accounts do not have permission to browse this internal price catalog.
 
+The separate `/shop` storefront uses only active product entries, never repair services or spare parts.
+Customers can browse the catalog, keep a per-account cart, and submit an order without online payment;
+the order stores the item names and prices at submission time. Administrators review requests at
+`/admin/shop-orders`, confirm availability before tracked stock is deducted, and can mark a confirmed
+order as handed over or cancel it. Cancelling a confirmed order restores its reserved stock. Payment
+and pickup are arranged outside the app, independently of repair requests.
+
 On `/checks`, administrators manage each completed order's receipt separately in the shared list:
 they can adjust its service and spare-part quantities, add one manual service or product line, and
 save or revise an unpaid receipt. The server synchronizes those changes with the order, bonus

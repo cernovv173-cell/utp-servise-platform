@@ -166,6 +166,41 @@ const deleteCustomerRecords = async (
   transaction: Prisma.TransactionClient,
   customerId: string,
 ): Promise<void> => {
+  await transaction.$queryRaw<Array<{ id: string }>>`
+    SELECT id FROM shop_orders WHERE customer_id = ${customerId}::uuid FOR UPDATE
+  `;
+  const confirmedShopOrders = await transaction.shopOrder.findMany({
+    where: { customerId, status: "CONFIRMED" },
+    include: { items: true },
+  });
+  for (const order of confirmedShopOrders) {
+    for (const item of order.items) {
+      if (!item.stockDeducted) continue;
+      if (!item.catalogItemId) {
+        throw new HttpError(
+          409,
+          "SHOP_STOCK_RESTORE_FAILED",
+          "Нельзя удалить клиента: сначала проверьте остаток подтверждённого заказа магазина.",
+        );
+      }
+      const restored = await transaction.repairCatalogItem.updateMany({
+        where: {
+          id: item.catalogItemId,
+          type: "PRODUCT",
+          stockQuantity: { not: null },
+        },
+        data: { stockQuantity: { increment: item.quantity } },
+      });
+      if (restored.count !== 1) {
+        throw new HttpError(
+          409,
+          "SHOP_STOCK_RESTORE_FAILED",
+          "Нельзя удалить клиента: не удалось вернуть товар из подтверждённого заказа в остаток.",
+        );
+      }
+    }
+  }
+
   const [repairOrders, craftOrders] = await Promise.all([
     transaction.repairOrder.findMany({
       where: { customerId },

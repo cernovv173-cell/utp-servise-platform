@@ -43,6 +43,13 @@ enum RepairOrderItemType {
   PRODUCT
 }
 
+enum ShopOrderStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
 enum RepairEstimateKind {
   INITIAL
   ADDITIONAL
@@ -152,6 +159,7 @@ model User {
   sessions                Session[]
   passwordResetTokens     PasswordResetToken[]
   customerOrders          RepairOrder[]                  @relation("CustomerOrders")
+  shopOrders              ShopOrder[]                    @relation("ShopOrderCustomer")
   assignedOrders          RepairOrder[]                  @relation("AssignedOrders")
   statusChanges           RepairStatusEvent[]            @relation("StatusActor")
   createdRepairEstimates  RepairEstimate[]               @relation("RepairEstimateCreator")
@@ -541,9 +549,45 @@ model RepairCatalogItem {
   updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
   createdBy            User?               @relation("CatalogItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
   orderItems           RepairOrderItem[]
+  shopOrderItems       ShopOrderItem[]
 
   @@index([active, type, name])
   @@map("repair_catalog_items")
+}
+
+model ShopOrder {
+  id           String          @id @default(uuid()) @db.Uuid
+  customerId   String          @map("customer_id") @db.Uuid
+  status       ShopOrderStatus @default(PENDING)
+  customerNote String?         @map("customer_note") @db.VarChar(1000)
+  totalRub     Int             @map("total_rub")
+  confirmedAt  DateTime?       @map("confirmed_at") @db.Timestamptz(3)
+  completedAt  DateTime?       @map("completed_at") @db.Timestamptz(3)
+  cancelledAt  DateTime?       @map("cancelled_at") @db.Timestamptz(3)
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer     User            @relation("ShopOrderCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  items        ShopOrderItem[]
+
+  @@index([customerId, createdAt])
+  @@index([status, createdAt])
+  @@map("shop_orders")
+}
+
+model ShopOrderItem {
+  id            String             @id @default(uuid()) @db.Uuid
+  orderId       String             @map("order_id") @db.Uuid
+  catalogItemId String?            @map("catalog_item_id") @db.Uuid
+  name          String             @db.VarChar(160)
+  quantity      Int
+  unitPriceRub  Int                @map("unit_price_rub")
+  stockDeducted Boolean            @default(false) @map("stock_deducted")
+  order         ShopOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  catalogItem   RepairCatalogItem? @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([catalogItemId])
+  @@map("shop_order_items")
 }
 
 model NewsArticle {

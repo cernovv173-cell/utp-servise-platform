@@ -16,6 +16,7 @@ import { useAuth } from "@/features/auth/auth-context";
 const links = [
   { to: "/", label: "Главная", motion: "peek" },
   { to: "/orders", label: "Заявки", motion: "bounce" },
+  { to: "/shop", label: "Магазин товаров", motion: "peek" },
   { to: "/devices", label: "Моя техника", motion: "peek" },
   { to: "/catalog", label: "Каталог ремонта", motion: "wiggle" },
   { to: "/checks", label: "Чеки и номера", motion: "bounce" },
@@ -92,6 +93,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
   }
 
   const nav = links.filter((link) => {
+    if (link.to === "/shop") return user.role === "CUSTOMER";
     if (link.to === "/support") return user.role === "ADMIN" || user.role === "CUSTOMER";
     if (link.to === "/advertising") return user.role === "ADMIN";
     if (link.to === "/offers") return user.role === "CUSTOMER";

@@ -297,6 +297,46 @@ internal fun JSONObject.toCatalogItem() = CatalogItem(
     minimumStockQuantity = if (isNull("minimumStockQuantity")) null else optInt("minimumStockQuantity"),
 )
 
+internal fun JSONObject.toShopProduct() = ShopProduct(
+    id = getString("id"),
+    name = getString("name"),
+    unitPriceRub = getInt("unitPriceRub"),
+    availability = optString("availability", "OUT_OF_STOCK"),
+)
+
+internal fun JSONObject.toShopOrderItem() = ShopOrderItem(
+    id = getString("id"),
+    catalogItemId = nullableString("catalogItemId"),
+    name = getString("name"),
+    quantity = getInt("quantity"),
+    unitPriceRub = getInt("unitPriceRub"),
+    stockDeducted = optBoolean("stockDeducted"),
+)
+
+internal fun JSONObject.toShopOrder(): ShopOrder {
+    val customerJson = optJSONObject("customer")
+    val customer = customerJson?.let {
+        ShopOrderCustomer(
+            id = it.optString("id"),
+            displayName = it.optString("displayName", "Клиент"),
+            email = it.optString("email"),
+            phoneNumber = it.nullableString("phoneNumber"),
+        )
+    }
+    return ShopOrder(
+        id = getString("id"),
+        status = optString("status", "PENDING"),
+        customerNote = nullableString("customerNote"),
+        totalRub = getInt("totalRub"),
+        createdAt = optString("createdAt"),
+        confirmedAt = nullableString("confirmedAt"),
+        completedAt = nullableString("completedAt"),
+        cancelledAt = nullableString("cancelledAt"),
+        items = optJSONArray("items").mapObjects { it.toShopOrderItem() },
+        customer = customer,
+    )
+}
+
 internal fun JSONObject.toCraftItem() = CraftItem(
     id = getString("id"),
     title = getString("title"),

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, LogIn, Moon, Sun, Wrench } from "lucide-react";
+import { ArrowRight, LogIn, Moon, ShoppingBag, Sun, Wrench } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
@@ -34,6 +34,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
             >
               Услуги
             </a>
+            <Link
+              to="/shop"
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
+            >
+              <ShoppingBag size={15} aria-hidden="true" /> Магазин
+            </Link>
             <a
               href="/#trust"
               className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
@@ -92,6 +98,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
             className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
           >
             О компании
+          </Link>
+          <Link
+            to="/shop"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
+          >
+            <ShoppingBag size={14} aria-hidden="true" /> Магазин
           </Link>
           <Link
             to="/login"

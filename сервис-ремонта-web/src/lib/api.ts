@@ -377,6 +377,44 @@ export type RepairCatalogItem = {
   active: boolean;
 };
 
+export type ShopProductAvailability = "IN_STOCK" | "OUT_OF_STOCK" | "ADMIN_CONFIRMATION_REQUIRED";
+
+export type ShopProduct = {
+  id: string;
+  name: string;
+  unitPriceRub: number;
+  availability: ShopProductAvailability;
+};
+
+export type ShopOrderStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+
+export type ShopOrderItem = {
+  id: string;
+  catalogItemId: string | null;
+  name: string;
+  quantity: number;
+  unitPriceRub: number;
+  stockDeducted: boolean;
+};
+
+export type ShopOrder = {
+  id: string;
+  status: ShopOrderStatus;
+  customerNote: string | null;
+  totalRub: number;
+  confirmedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  items: ShopOrderItem[];
+  customer?: {
+    id: string;
+    displayName: string;
+    email: string;
+    phoneNumber: string | null;
+  };
+};
+
 export type CustomerServicePrice = Pick<RepairCatalogItem, "id" | "name" | "unitPriceRub">;
 
 export type AdminCustomer = {
@@ -933,6 +971,35 @@ export const getNews = (token: string, signal?: AbortSignal) =>
 
 export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
   apiRequest<{ catalogItems: RepairCatalogItem[] }>("/catalog", token, { signal });
+
+export const getShopProducts = (signal?: AbortSignal) =>
+  apiRequest<{ products: ShopProduct[] }>("/shop/products", null, { signal });
+
+export const getMyShopOrders = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ orders: ShopOrder[] }>("/shop/orders", token, { signal });
+
+export const getAdminShopOrders = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ orders: ShopOrder[] }>("/admin/shop/orders", token, { signal });
+
+export const createShopOrder = (
+  token: string,
+  items: { catalogItemId: string; quantity: number }[],
+  customerNote: string,
+) =>
+  apiRequest<{ order: ShopOrder }>("/shop/orders", token, {
+    method: "POST",
+    body: JSON.stringify({ items, customerNote }),
+  });
+
+export const updateShopOrderStatus = (
+  token: string,
+  orderId: string,
+  status: Extract<ShopOrderStatus, "CONFIRMED" | "COMPLETED" | "CANCELLED">,
+) =>
+  apiRequest<{ order: ShopOrder }>(`/admin/shop/orders/${orderId}/status`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
 
 export const getCustomerServicePrices = (token: string, signal?: AbortSignal) =>
   apiRequest<{ prices: CustomerServicePrice[] }>("/customer/service-prices", token, {

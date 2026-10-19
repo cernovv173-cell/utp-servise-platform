@@ -43,6 +43,19 @@ Each stock-tracked item can have its own `minimumStockQuantity`; new items defau
 older tracked rows keep that threshold until an administrator changes it. A threshold of 0 alerts only
 when the balance reaches zero; zero-stock items are always highlighted. The additive migration leaves
 untracked legacy balances and service rows untracked.
+
+## Product shop
+
+The standalone shop sells only active `PRODUCT` catalog entries; repair services and spare parts stay
+in the repair workflow. Customers submit a separate cart order with server-calculated price snapshots,
+and can review its status in their account. A new shop order starts as `PENDING` and does not reserve
+stock. An administrator checks availability and confirms it; tracked stock is then deducted atomically
+with the status change, while an untracked (`null`) balance still requires the administrator's manual
+availability check. If tracked stock is insufficient, confirmation fails without changing the order
+or partially deducting its lines. Cancelling a confirmed order restores its tracked stock; completing
+it records the handoff after payment and receiving have been arranged outside the app. There is no
+online payment integration. Permanently deleting a customer releases any still-confirmed shop-order
+stock before removing that customer's shop order history.
 Adding a tracked spare part or product to an open order decrements inventory atomically with the new
 order line. Removing that line returns its quantity. In an unpaid completed-order receipt, an
 administrator can set an existing line quantity to zero to remove it; linked stock is restored in the

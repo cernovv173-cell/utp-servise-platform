@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Sparkles, UsersRound } from "lucide-react";
+import { ArrowRight, ShoppingBag, Sparkles, UsersRound } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { MailRuAd } from "@/components/mailru-ad";
@@ -85,6 +85,30 @@ const HomePage = () => {
               </span>
               <h3 className="mt-4 font-semibold">База клиентов</h3>
               <p className="mt-1 text-sm text-slate-500">Управление клиентскими профилями</p>
+            </SectionCard>
+          </Link>
+        )}
+        {user?.role === "ADMIN" && (
+          <Link to="/admin/shop-orders">
+            <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
+              <span className="grid size-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <ShoppingBag size={22} aria-hidden="true" />
+              </span>
+              <h3 className="mt-4 font-semibold">Заказы магазина</h3>
+              <p className="mt-1 text-sm text-slate-500">Проверка наличия и выдача товаров</p>
+            </SectionCard>
+          </Link>
+        )}
+        {user?.role === "CUSTOMER" && (
+          <Link to="/shop">
+            <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
+              <span className="grid size-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <ShoppingBag size={22} aria-hidden="true" />
+              </span>
+              <h3 className="mt-4 font-semibold">Магазин товаров</h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Отдельно от запчастей и заявок на ремонт
+              </p>
             </SectionCard>
           </Link>
         )}

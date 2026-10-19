@@ -57,10 +57,12 @@ import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.ui.AdminChatInboxScreen
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminOrderCreationScreen
+import ru.utp.servise.ui.AdminShopOrdersScreen
 import ru.utp.servise.ui.CatalogManagementScreen
 import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
+import ru.utp.servise.ui.CustomerShopScreen
 import ru.utp.servise.ui.CustomerOffersScreen
 import ru.utp.servise.ui.CustomerDevicesScreen
 import ru.utp.servise.ui.CustomerManagementScreen
@@ -236,6 +238,7 @@ internal fun AuthenticatedWorkspace(
                                     user, token, news, banners,
                                     { navController.navigate("customer/new-order") },
                                     { navController.navigate("customer/orders") },
+                                    { navController.navigate("customer/shop") },
                                     { navController.navigate("customer/crafts") },
                                     { navController.navigate("customer/about") },
                                     { navController.navigate("customer/news") },
@@ -244,6 +247,14 @@ internal fun AuthenticatedWorkspace(
                                     { navController.navigate("customer/support-chat") },
                                     { navController.navigate("customer/game") },
                                     { navController.navigate("customer/game/daily") },
+                                )
+                            }
+                            composable("customer/shop") {
+                                CustomerShopScreen(
+                                    user = user,
+                                    token = token,
+                                    runAction = runAction,
+                                    onBack = { navController.popBackStack() },
                                 )
                             }
                             composable("customer/game") {
@@ -399,6 +410,7 @@ internal fun AuthenticatedWorkspace(
                                     onAbout = { navController.navigate("admin/about") },
                                     onSupportChats = { navController.navigate("admin/support-chats") },
                                     onCustomers = { navController.navigate("admin/customers") },
+                                    onShopOrders = { navController.navigate("admin/shop-orders") },
                                 )
                             }
                             composable("admin/overview") { ServiceDashboardScreen(token, onError) }
@@ -428,6 +440,15 @@ internal fun AuthenticatedWorkspace(
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
                             composable("admin/customers") {
                                 CustomerManagementScreen(token, busy, runAction) { navController.popBackStack() }
+                            }
+                            composable("admin/shop-orders") {
+                                AdminShopOrdersScreen(
+                                    token = token,
+                                    busy = busy,
+                                    runAction = runAction,
+                                    onBack = { navController.popBackStack() },
+                                    onRefresh = refresh,
+                                )
                             }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh, token = token, canModerate = true, runAction = runAction) }
                             composable("admin/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }

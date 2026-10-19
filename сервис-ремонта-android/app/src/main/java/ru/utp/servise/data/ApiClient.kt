@@ -173,6 +173,45 @@ object ApiClient {
     fun catalog(token: String): List<CatalogItem> = request("GET", "/catalog", token)
         .getJSONArray("catalogItems").mapObjects { it.toCatalogItem() }
 
+    fun shopProducts(): List<ShopProduct> = request("GET", "/shop/products")
+        .getJSONArray("products").mapObjects { it.toShopProduct() }
+
+    fun customerShopOrders(token: String): List<ShopOrder> = request("GET", "/shop/orders", token)
+        .getJSONArray("orders").mapObjects { it.toShopOrder() }
+
+    fun adminShopOrders(token: String): List<ShopOrder> = request("GET", "/admin/shop/orders", token)
+        .getJSONArray("orders").mapObjects { it.toShopOrder() }
+
+    fun createShopOrder(
+        token: String,
+        items: Map<String, Int>,
+        customerNote: String,
+    ): ShopOrder {
+        val bodyItems = JSONArray().apply {
+            items.forEach { (catalogItemId, quantity) ->
+                put(JSONObject().put("catalogItemId", catalogItemId).put("quantity", quantity))
+            }
+        }
+        return request(
+            "POST",
+            "/shop/orders",
+            token,
+            JSONObject()
+                .put("items", bodyItems)
+                .put("customerNote", customerNote.trim().take(1000)),
+        ).getJSONObject("order").toShopOrder()
+    }
+
+    fun updateShopOrderStatus(token: String, orderId: String, status: String): ShopOrder {
+        require(status in setOf("CONFIRMED", "COMPLETED", "CANCELLED"))
+        return request(
+            "PATCH",
+            "/admin/shop/orders/$orderId/status",
+            token,
+            JSONObject().put("status", status),
+        ).getJSONObject("order").toShopOrder()
+    }
+
     fun customerServicePrices(token: String): List<CustomerServicePrice> = request(
         "GET",
         "/customer/service-prices",

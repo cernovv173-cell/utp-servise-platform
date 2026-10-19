@@ -142,64 +142,87 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
       const { catalogItemId } =
         paramsOf<z.infer<typeof catalogItemIdParams>>(response);
       const input = bodyOf<z.infer<typeof catalogUpdateBody>>(response);
-      const existing = await database.repairCatalogItem.findUnique({
-        where: { id: catalogItemId },
-        select: { id: true, type: true, stockQuantity: true },
-      });
-      if (!existing)
-        throw new HttpError(
-          404,
-          "CATALOG_ITEM_NOT_FOUND",
-          "Позиция каталога не найдена.",
-        );
-      const nextType = input.type ?? existing.type;
-      if (
-        input.stockQuantity !== undefined &&
-        !isInventoryCatalogItem(nextType)
-      ) {
-        throw new HttpError(
-          400,
-          "SERVICE_STOCK_NOT_SUPPORTED",
-          "Остаток можно указать только для товара или запчасти.",
-        );
-      }
-      if (
-        input.minimumStockQuantity !== undefined &&
-        !isInventoryCatalogItem(nextType)
-      ) {
-        throw new HttpError(
-          400,
-          "SERVICE_STOCK_NOT_SUPPORTED",
-          "Порог остатка можно задать только для товара или запчасти.",
-        );
-      }
-      if (
-        input.type === "SERVICE" &&
-        isInventoryCatalogItem(existing.type) &&
-        existing.stockQuantity !== null &&
-        existing.stockQuantity > 0
-      ) {
-        throw new HttpError(
-          409,
-          "CATALOG_STOCK_NOT_EMPTY",
-          "Сначала обнулите остаток, затем измените тип позиции.",
-        );
-      }
-      const catalogItem = await database.repairCatalogItem.update({
-        where: { id: catalogItemId },
-        data: {
-          ...input,
-          ...(input.type === "SERVICE"
-            ? { stockQuantity: null, minimumStockQuantity: null }
-            : input.type !== undefined &&
-                isInventoryCatalogItem(input.type) &&
-                existing.type === "SERVICE"
-              ? {
-                  stockQuantity: input.stockQuantity ?? 0,
-                  minimumStockQuantity: input.minimumStockQuantity ?? 3,
-                }
-              : {}),
-        },
+      const catalogItem = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_catalog_items" WHERE "id" = ${catalogItemId}::uuid FOR UPDATE
+        `;
+        const existing = await transaction.repairCatalogItem.findUnique({
+          where: { id: catalogItemId },
+          select: { id: true, type: true, stockQuantity: true },
+        });
+        if (!existing)
+          throw new HttpError(
+            404,
+            "CATALOG_ITEM_NOT_FOUND",
+            "Позиция каталога не найдена.",
+          );
+        const nextType = input.type ?? existing.type;
+        if (
+          input.stockQuantity !== undefined &&
+          !isInventoryCatalogItem(nextType)
+        ) {
+          throw new HttpError(
+            400,
+            "SERVICE_STOCK_NOT_SUPPORTED",
+            "Остаток можно указать только для товара или запчасти.",
+          );
+        }
+        if (
+          input.minimumStockQuantity !== undefined &&
+          !isInventoryCatalogItem(nextType)
+        ) {
+          throw new HttpError(
+            400,
+            "SERVICE_STOCK_NOT_SUPPORTED",
+            "Порог остатка задаётся только для товара или запчасти.",
+          );
+        }
+        if (
+          input.type !== undefined &&
+          input.type !== existing.type &&
+          (await transaction.shopOrderItem.findFirst({
+            where: {
+              catalogItemId,
+              stockDeducted: true,
+              order: { status: "CONFIRMED" },
+            },
+            select: { id: true },
+          }))
+        ) {
+          throw new HttpError(
+            409,
+            "SHOP_STOCK_RESERVED",
+            "Нельзя менять тип товара, пока подтверждённый заказ удерживает его остаток.",
+          );
+        }
+        if (
+          input.type === "SERVICE" &&
+          isInventoryCatalogItem(existing.type) &&
+          existing.stockQuantity !== null &&
+          existing.stockQuantity > 0
+        ) {
+          throw new HttpError(
+            409,
+            "CATALOG_STOCK_NOT_EMPTY",
+            "Сначала обнулите остаток, затем измените тип позиции.",
+          );
+        }
+        return transaction.repairCatalogItem.update({
+          where: { id: catalogItemId },
+          data: {
+            ...input,
+            ...(input.type === "SERVICE"
+              ? { stockQuantity: null, minimumStockQuantity: null }
+              : input.type !== undefined &&
+                  isInventoryCatalogItem(input.type) &&
+                  existing.type === "SERVICE"
+                ? {
+                    stockQuantity: input.stockQuantity ?? 0,
+                    minimumStockQuantity: input.minimumStockQuantity ?? 3,
+                  }
+                : {}),
+          },
+        });
       });
       response.json({ catalogItem });
     },

@@ -28,6 +28,7 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SalaryRouteImport } from './routes/salary'
+import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as YandexTokenRouteImport } from './routes/yandex-token'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
@@ -36,6 +37,7 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminOverviewRouteImport } from './routes/admin.overview'
 import { Route as AdminProcurementRouteImport } from './routes/admin.procurement'
 import { Route as AdminScheduleRouteImport } from './routes/admin.schedule'
+import { Route as AdminShopOrdersRouteImport } from './routes/admin.shop-orders'
 import { Route as GameDailyRouteImport } from './routes/game.daily'
 import { Route as GameGarageRouteImport } from './routes/game.garage'
 import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
@@ -136,6 +138,11 @@ const SalaryRoute = SalaryRouteImport.update({
   path: '/salary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShopRoute = ShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupportRoute = SupportRouteImport.update({
   id: '/support',
   path: '/support',
@@ -174,6 +181,11 @@ const AdminProcurementRoute = AdminProcurementRouteImport.update({
 const AdminScheduleRoute = AdminScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminShopOrdersRoute = AdminShopOrdersRouteImport.update({
+  id: '/shop-orders',
+  path: '/shop-orders',
   getParentRoute: () => AdminRoute,
 } as any)
 const GameDailyRoute = GameDailyRouteImport.update({
@@ -217,6 +229,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -225,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/shop-orders': typeof AdminShopOrdersRoute
   '/game/daily': typeof GameDailyRoute
   '/game/garage': typeof GameGarageRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
@@ -250,6 +264,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -258,6 +273,7 @@ export interface FileRoutesByTo {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/shop-orders': typeof AdminShopOrdersRoute
   '/game/daily': typeof GameDailyRoute
   '/game/garage': typeof GameGarageRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
@@ -284,6 +300,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -292,6 +309,7 @@ export interface FileRoutesById {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/shop-orders': typeof AdminShopOrdersRoute
   '/game/daily': typeof GameDailyRoute
   '/game/garage': typeof GameGarageRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
@@ -319,6 +337,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/shop'
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
@@ -327,6 +346,7 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/admin/shop-orders'
     | '/game/daily'
     | '/game/garage'
     | '/support/$customerId'
@@ -352,6 +372,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/shop'
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
@@ -360,6 +381,7 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/admin/shop-orders'
     | '/game/daily'
     | '/game/garage'
     | '/support/$customerId'
@@ -385,6 +407,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/shop'
     | '/support'
     | '/yandex-token'
     | '/admin/customers'
@@ -393,6 +416,7 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/admin/shop-orders'
     | '/game/daily'
     | '/game/garage'
     | '/support/$customerId'
@@ -419,6 +443,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ReviewsRoute: typeof ReviewsRoute
   SalaryRoute: typeof SalaryRoute
+  ShopRoute: typeof ShopRoute
   SupportRoute: typeof SupportRouteWithChildren
   YandexTokenRoute: typeof YandexTokenRoute
 }
@@ -558,6 +583,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SalaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/shop': {
+      id: '/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof ShopRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/support': {
       id: '/support'
       path: '/support'
@@ -614,6 +646,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScheduleRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/shop-orders': {
+      id: '/admin/shop-orders'
+      path: '/shop-orders'
+      fullPath: '/admin/shop-orders'
+      preLoaderRoute: typeof AdminShopOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/game/daily': {
       id: '/game/daily'
       path: '/daily'
@@ -664,6 +703,7 @@ interface AdminRouteChildren {
   AdminOverviewRoute: typeof AdminOverviewRoute
   AdminProcurementRoute: typeof AdminProcurementRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
+  AdminShopOrdersRoute: typeof AdminShopOrdersRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -673,6 +713,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOverviewRoute: AdminOverviewRoute,
   AdminProcurementRoute: AdminProcurementRoute,
   AdminScheduleRoute: AdminScheduleRoute,
+  AdminShopOrdersRoute: AdminShopOrdersRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
@@ -720,6 +761,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ReviewsRoute: ReviewsRoute,
   SalaryRoute: SalaryRoute,
+  ShopRoute: ShopRoute,
   SupportRoute: SupportRouteWithChildren,
   YandexTokenRoute: YandexTokenRoute,
 }

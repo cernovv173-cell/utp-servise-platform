@@ -125,6 +125,12 @@ test("only administrators manage the shared catalog and technicians see active p
         return found;
       },
     },
+    shopOrderItem: {
+      findFirst: async () => null,
+    },
+    $queryRaw: async () => [],
+    $transaction: async (operation: (transaction: unknown) => unknown) =>
+      operation(client),
   };
   const app = express();
   app.use(express.json());
