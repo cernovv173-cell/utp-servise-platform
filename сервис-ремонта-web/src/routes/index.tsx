@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, UsersRound } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { MailRuAd } from "@/components/mailru-ad";
@@ -77,6 +77,17 @@ const HomePage = () => {
         className="mb-5"
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {user?.role === "ADMIN" && (
+          <Link to="/admin/customers">
+            <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
+              <span className="grid size-11 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                <UsersRound size={22} aria-hidden="true" />
+              </span>
+              <h3 className="mt-4 font-semibold">База клиентов</h3>
+              <p className="mt-1 text-sm text-slate-500">Управление клиентскими профилями</p>
+            </SectionCard>
+          </Link>
+        )}
         {user?.role === "CUSTOMER" && (
           <Link to="/devices">
             <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
