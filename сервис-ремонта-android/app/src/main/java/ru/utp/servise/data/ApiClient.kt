@@ -620,11 +620,12 @@ object ApiClient {
         customerId: String,
         deviceType: String,
         problem: String,
+        repairLocation: String,
         address: OrderAddress,
     ): RepairOrder = request(
         "POST", "/admin/orders", token,
         JSONObject().put("customerId", customerId).put("deviceType", deviceType)
-            .put("problem", problem).putAddress(address),
+            .put("problem", problem).put("repairLocation", repairLocation).putAddress(address),
     ).getJSONObject("order").toOrder()
 
     fun updateOrder(token: String, orderId: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(

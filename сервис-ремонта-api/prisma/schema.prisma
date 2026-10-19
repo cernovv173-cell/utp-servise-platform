@@ -32,6 +32,11 @@ enum RepairOrderPriority {
   URGENT
 }
 
+enum RepairLocation {
+  CUSTOMER_ADDRESS
+  SERVICE_CENTER
+}
+
 enum RepairOrderItemType {
   SERVICE
   SPARE_PART
@@ -265,6 +270,7 @@ model RepairOrder {
   deviceSerialNumber    String?                        @map("device_serial_number") @db.VarChar(160)
   problem               String                         @db.VarChar(2000)
   address               String                         @db.VarChar(500)
+  repairLocation        RepairLocation?                @map("repair_location")
   contactPhone          String?                        @map("contact_phone") @db.VarChar(32)
   city                  String?                        @db.VarChar(120)
   street                String?                        @db.VarChar(180)

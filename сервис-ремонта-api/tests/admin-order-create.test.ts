@@ -114,8 +114,29 @@ test("only admins create repair orders for active customers and creation is audi
   assert.equal((await created.json()).order.id, orderId);
   assert.equal(createdData?.customerId, customerId);
   assert.equal(createdData?.contactPhone, users[1]!.phoneNumber);
+  assert.equal(createdData?.repairLocation, null);
   assert.equal(statusEvent?.actorId, adminId);
   assert.equal(statusEvent?.note, "Заявка создана администратором");
+
+  for (const repairLocation of [
+    "CUSTOMER_ADDRESS",
+    "SERVICE_CENTER",
+  ] as const) {
+    const locationOrder = await fetch(endpoint, {
+      method: "POST",
+      headers: headers(adminToken),
+      body: JSON.stringify({ ...body, repairLocation }),
+    });
+    assert.equal(locationOrder.status, 201);
+    assert.equal(createdData?.repairLocation, repairLocation);
+  }
+
+  const invalidLocation = await fetch(endpoint, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({ ...body, repairLocation: "UNKNOWN" }),
+  });
+  assert.equal(invalidLocation.status, 400);
 
   const customerDenied = await fetch(endpoint, {
     method: "POST",

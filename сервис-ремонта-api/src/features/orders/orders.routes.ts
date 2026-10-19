@@ -86,6 +86,7 @@ const createAdminOrderBody = createOrderBody
   .extend({
     customerId: z.string().uuid(),
     contactPhone: contactPhone.optional(),
+    repairLocation: z.enum(["CUSTOMER_ADDRESS", "SERVICE_CENTER"]).optional(),
   })
   .strict();
 const editOrderBody = z
@@ -668,6 +669,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             deviceSerialNumber: input.deviceSerialNumber || null,
             problem: input.problem,
             address: addressFromFields(input),
+            repairLocation: input.repairLocation ?? null,
             contactPhone,
             city: input.city,
             street: input.street,

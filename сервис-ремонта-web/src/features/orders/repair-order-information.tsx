@@ -74,8 +74,16 @@ export const RepairOrderInformation = ({ order, token }: { order: RepairOrder; t
               <dd>{new Date(order.preferredAt).toLocaleString("ru-RU")}</dd>
             </div>
           )}
+          {order.repairLocation && (
+            <div>
+              <dt className="text-slate-500">Место ремонта</dt>
+              <dd>
+                {order.repairLocation === "SERVICE_CENTER" ? "В сервисном центре" : "У клиента"}
+              </dd>
+            </div>
+          )}
           <div>
-            <dt className="text-slate-500">Адрес</dt>
+            <dt className="text-slate-500">Контактный адрес клиента</dt>
             <dd>{address || order.address || "Не указан"}</dd>
           </div>
           <div>

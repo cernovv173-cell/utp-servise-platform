@@ -162,7 +162,10 @@ Administrators can also start a repair order from the fixed “СТАРТ / СТ
 The form supports an existing client or registering a new client with their email as the login;
 the generated temporary password is shown once after account creation, and the client must change
 it at first sign-in. If order creation fails after account registration, the client remains in the
-customer list and the order can be retried for that account.
+customer list and the order can be retried for that account. The administrator also selects whether
+the repair will take place at the client's address or at the service center. This choice is saved
+separately from the client's contact address and shown in the order details; the company address
+continues to be maintained independently in “About the company.”
 
 On `/admin/customers`, administrators can permanently delete a customer after entering the customer's
 email in a confirmation dialog. This removes the account and its linked repair/craft orders, receipts,

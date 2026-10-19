@@ -77,6 +77,7 @@ fun AdminOrderCreationScreen(
     var credentialOrderError by remember { mutableStateOf<String?>(null) }
     var deviceType by remember { mutableStateOf(orderDevices.first().first) }
     var deviceMenu by remember { mutableStateOf(false) }
+    var repairLocation by remember { mutableStateOf("CUSTOMER_ADDRESS") }
     var problem by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
@@ -175,6 +176,29 @@ fun AdminOrderCreationScreen(
             }
         }
 
+        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Место ремонта", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = repairLocation == "CUSTOMER_ADDRESS",
+                        onClick = { repairLocation = "CUSTOMER_ADDRESS" },
+                        label = { Text("У клиента") },
+                    )
+                    FilterChip(
+                        selected = repairLocation == "SERVICE_CENTER",
+                        onClick = { repairLocation = "SERVICE_CENTER" },
+                        label = { Text("В сервисе") },
+                    )
+                }
+                Text(
+                    "Адрес ниже — контактный адрес клиента. Выбранное место сохранится в заявке.",
+                    fontSize = 12.sp,
+                    color = UtpMuted,
+                )
+            }
+        }
+
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { deviceMenu = true }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
                 Text(orderDevices.first { it.first == deviceType }.second)
@@ -224,6 +248,7 @@ fun AdminOrderCreationScreen(
                             customer.id,
                             deviceType,
                             problem.trim(),
+                            repairLocation,
                             OrderAddress(
                                 contactPhone = phone.trim(),
                                 city = city.trim(),

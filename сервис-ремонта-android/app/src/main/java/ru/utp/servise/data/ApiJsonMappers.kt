@@ -100,6 +100,7 @@ internal fun JSONObject.toOrder(): RepairOrder {
         deviceSerialNumber = nullableString("deviceSerialNumber"),
         preferredAt = nullableString("preferredAt"),
         priority = optString("priority", "NORMAL"),
+        repairLocation = nullableString("repairLocation"),
     )
 }
 

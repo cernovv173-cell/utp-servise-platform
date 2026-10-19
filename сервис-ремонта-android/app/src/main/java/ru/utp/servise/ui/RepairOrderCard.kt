@@ -116,6 +116,14 @@ internal fun RepairOrderCard(
                 )
             }
             Text(order.problem, fontSize = 13.sp, color = UtpInk, modifier = Modifier.padding(top = 9.dp))
+            order.repairLocation?.let { location ->
+                Text(
+                    "Место ремонта: ${if (location == "SERVICE_CENTER") "в сервисном центре" else "у клиента"}",
+                    fontSize = 11.sp,
+                    color = UtpMuted,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             if (order.preferredAt != null) {
                 Text(
                     "Желаемое время: ${formatArchiveDate(order.preferredAt)} · сервис подтвердит отдельно",

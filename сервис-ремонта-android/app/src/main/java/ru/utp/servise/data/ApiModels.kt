@@ -134,6 +134,7 @@ data class RepairOrder(
     val deviceSerialNumber: String? = null,
     val preferredAt: String? = null,
     val priority: String = "NORMAL",
+    val repairLocation: String? = null,
 )
 
 data class OperationsDashboard(

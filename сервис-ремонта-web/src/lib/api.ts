@@ -90,6 +90,7 @@ export type RepairOrder = {
   priority?: "NORMAL" | "URGENT";
   problem: string;
   address: string;
+  repairLocation?: RepairLocation | null;
   contactPhone: string | null;
   city: string | null;
   street: string | null;
@@ -150,6 +151,8 @@ export type RepairOrder = {
     avatarObjectId?: string | null;
   };
 };
+
+export type RepairLocation = "CUSTOMER_ADDRESS" | "SERVICE_CENTER";
 
 export type CustomerDevice = {
   id: string;
@@ -788,6 +791,7 @@ export const createAdminOrder = (
   input: {
     customerId: string;
     deviceType: string;
+    repairLocation: RepairLocation;
     deviceBrand?: string;
     deviceModel?: string;
     deviceSerialNumber?: string;
