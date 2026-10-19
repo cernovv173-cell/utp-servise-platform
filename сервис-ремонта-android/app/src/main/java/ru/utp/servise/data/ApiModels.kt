@@ -323,6 +323,8 @@ data class CatalogItem(
     val active: Boolean,
     val stockQuantity: Int? = null,
     val minimumStockQuantity: Int? = null,
+    val description: String? = null,
+    val imageObjectIds: List<String> = emptyList(),
 )
 
 data class ShopProduct(
@@ -330,6 +332,8 @@ data class ShopProduct(
     val name: String,
     val unitPriceRub: Int,
     val availability: String,
+    val description: String? = null,
+    val imageObjectIds: List<String> = emptyList(),
 )
 
 data class ShopOrderItem(

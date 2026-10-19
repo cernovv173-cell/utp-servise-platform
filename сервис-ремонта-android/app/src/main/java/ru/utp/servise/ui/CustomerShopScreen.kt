@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -146,6 +147,7 @@ fun CustomerShopScreen(
             products.forEach { product ->
                 CustomerShopProductCard(
                     product = product,
+                    token = token,
                     quantity = cart[product.id] ?: 0,
                     onAdd = { setQuantity(product.id, (cart[product.id] ?: 0) + 1) },
                 )
@@ -238,23 +240,41 @@ fun CustomerShopScreen(
 @Composable
 private fun CustomerShopProductCard(
     product: ShopProduct,
+    token: String,
     quantity: Int,
     onAdd: () -> Unit,
 ) {
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-        Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("📦", fontSize = 28.sp, modifier = Modifier.padding(end = 12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(product.name, fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Text(shopPrice(product.unitPriceRub), fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 3.dp))
-                Text(productAvailability(product.availability), fontSize = 11.sp, color = if (product.availability == "OUT_OF_STOCK") androidx.compose.material3.MaterialTheme.colorScheme.error else UtpBlue, modifier = Modifier.padding(top = 3.dp))
-            }
-            if (product.availability == "OUT_OF_STOCK") {
-                Text("Нет в наличии", fontSize = 11.sp, color = UtpMuted)
-            } else {
-                Button(onClick = onAdd, shape = RoundedCornerShape(12.dp)) {
-                    Text(if (quantity > 0) "В корзине: $quantity" else "В корзину")
+        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (product.imageObjectIds.isNotEmpty()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    product.imageObjectIds.take(4).forEachIndexed { index, objectId ->
+                        RemoteProjectImage(
+                            objectId = objectId,
+                            token = token,
+                            modifier = Modifier.size(64.dp),
+                            contentDescription = "Фото ${index + 1}: ${product.name}",
+                        )
+                    }
                 }
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("📦", fontSize = 28.sp, modifier = Modifier.padding(end = 12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(product.name, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text(shopPrice(product.unitPriceRub), fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 3.dp))
+                    Text(productAvailability(product.availability), fontSize = 11.sp, color = if (product.availability == "OUT_OF_STOCK") androidx.compose.material3.MaterialTheme.colorScheme.error else UtpBlue, modifier = Modifier.padding(top = 3.dp))
+                }
+                if (product.availability == "OUT_OF_STOCK") {
+                    Text("Нет в наличии", fontSize = 11.sp, color = UtpMuted)
+                } else {
+                    Button(onClick = onAdd, shape = RoundedCornerShape(12.dp)) {
+                        Text(if (quantity > 0) "В корзине: $quantity" else "В корзину")
+                    }
+                }
+            }
+            product.description?.takeIf { it.isNotBlank() }?.let {
+                Text(it, fontSize = 12.sp, lineHeight = 18.sp, color = UtpMuted)
             }
         }
     }

@@ -1,4 +1,5 @@
 import { Flower2, Leaf, Snowflake, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { SeasonalArtwork } from "@/features/seasonal/seasonal-artwork";
 
@@ -23,6 +24,25 @@ const particlePositions = [
 ];
 
 export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoice }) => {
+  const [isRaining, setIsRaining] = useState(false);
+
+  useEffect(() => {
+    setIsRaining(false);
+    if (season !== "AUTUMN") return;
+
+    let rainEndTimeout: number | undefined;
+    const startRain = () => {
+      setIsRaining(true);
+      rainEndTimeout = window.setTimeout(() => setIsRaining(false), 30 * 60 * 1_000);
+    };
+    const rainInterval = window.setInterval(startRain, 60 * 60 * 1_000);
+
+    return () => {
+      window.clearInterval(rainInterval);
+      if (rainEndTimeout !== undefined) window.clearTimeout(rainEndTimeout);
+    };
+  }, [season]);
+
   if (season === "NONE") return null;
 
   const ParticleIcon = particleIcons[season];
@@ -50,6 +70,21 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
           }}
         />
       ))}
+      {season === "AUTUMN" && isRaining && (
+        <div className="absolute inset-0 overflow-hidden">
+          {Array.from({ length: 32 }, (_, index) => (
+            <span
+              key={`rain-${index}`}
+              className="seasonal-rain-drop absolute -top-7 block"
+              style={{
+                left: `${(index * 37 + 3) % 100}%`,
+                animationDuration: `${620 + (index % 7) * 55}ms`,
+                animationDelay: `${-(index % 9) * 70}ms`,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

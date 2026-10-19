@@ -552,6 +552,8 @@ model RepairCatalogItem {
   id                   String              @id @default(uuid()) @db.Uuid
   type                 RepairOrderItemType
   name                 String              @db.VarChar(160)
+  description          String?             @db.VarChar(2000)
+  imageObjectIds       String[]            @default([]) @map("image_object_ids")
   unitPriceRub         Int                 @map("unit_price_rub")
   stockQuantity        Int?                @map("stock_quantity")
   minimumStockQuantity Int?                @map("minimum_stock_quantity")

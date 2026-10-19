@@ -9,6 +9,10 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import {
+  type MediaStorage,
+  projectMediaStorage,
+} from "../media/media-storage.js";
 
 const orderItemsBody = z
   .array(
@@ -62,14 +66,24 @@ const unavailableProduct = () =>
     "Один из товаров больше недоступен. Обновите корзину.",
   );
 
-export const createShopRouter = (database: DatabaseClient): Router => {
+export const createShopRouter = (
+  database: DatabaseClient,
+  storage: MediaStorage = projectMediaStorage,
+): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
 
   router.get("/shop/products", async (_request, response) => {
     const products = await database.repairCatalogItem.findMany({
       where: { type: "PRODUCT", active: true },
-      select: { id: true, name: true, unitPriceRub: true, stockQuantity: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        imageObjectIds: true,
+        unitPriceRub: true,
+        stockQuantity: true,
+      },
       orderBy: { name: "asc" },
       take: 250,
     });
@@ -85,6 +99,40 @@ export const createShopRouter = (database: DatabaseClient): Router => {
       })),
     });
   });
+
+  router.get(
+    "/shop/products/:catalogItemId/images/:objectId",
+    validateRequest({
+      params: z.object({
+        catalogItemId: z.string().uuid(),
+        objectId: z.string().trim().min(1).max(255),
+      }),
+    }),
+    async (_request, response) => {
+      const { catalogItemId, objectId } = paramsOf<{
+        catalogItemId: string;
+        objectId: string;
+      }>(response);
+      const product = await database.repairCatalogItem.findFirst({
+        where: {
+          id: catalogItemId,
+          type: "PRODUCT",
+          active: true,
+          imageObjectIds: { has: objectId },
+        },
+        select: { id: true },
+      });
+      if (!product) {
+        throw new HttpError(404, "IMAGE_NOT_FOUND", "Фотография не найдена.");
+      }
+      const image = await storage.download(objectId);
+      response
+        .setHeader("Content-Type", image.contentType)
+        .setHeader("Cache-Control", "public, max-age=300")
+        .setHeader("X-Content-Type-Options", "nosniff")
+        .send(image.bytes);
+    },
+  );
 
   router.post(
     "/shop/orders",

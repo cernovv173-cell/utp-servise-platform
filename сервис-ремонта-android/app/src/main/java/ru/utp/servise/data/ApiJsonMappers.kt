@@ -295,6 +295,10 @@ internal fun JSONObject.toCatalogItem() = CatalogItem(
     active = optBoolean("active", true),
     stockQuantity = if (isNull("stockQuantity")) null else optInt("stockQuantity"),
     minimumStockQuantity = if (isNull("minimumStockQuantity")) null else optInt("minimumStockQuantity"),
+    description = nullableString("description"),
+    imageObjectIds = optJSONArray("imageObjectIds")?.let { images ->
+        List(images.length()) { index -> images.getString(index) }
+    }.orEmpty(),
 )
 
 internal fun JSONObject.toShopProduct() = ShopProduct(
@@ -302,6 +306,10 @@ internal fun JSONObject.toShopProduct() = ShopProduct(
     name = getString("name"),
     unitPriceRub = getInt("unitPriceRub"),
     availability = optString("availability", "OUT_OF_STOCK"),
+    description = nullableString("description"),
+    imageObjectIds = optJSONArray("imageObjectIds")?.let { images ->
+        List(images.length()) { index -> images.getString(index) }
+    }.orEmpty(),
 )
 
 internal fun JSONObject.toShopOrderItem() = ShopOrderItem(

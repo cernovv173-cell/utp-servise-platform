@@ -124,11 +124,14 @@ and notification permission. Existing dates are preserved and are not presented 
 changes because their earlier values were not recorded. The `20261011195000_repair_deadline_history`
 migration adds the history table without rewriting existing orders.
 
-Customers may save an optional gender and birth date with `PATCH /auth/profile`. The birthday worker
-uses the Moscow calendar date and sends the greeting once per customer per year only to active
-customers with a registered push-device token. A unique `(user_id, birthday_year)` delivery record
-prevents duplicates across API instances; failed delivery is retried during that birthday only.
-Clearing the date stops future greetings. Customers without a registered push token are not queued.
+Customers may save an optional gender and birth date with `PATCH /auth/profile`. On the customer's
+Moscow-calendar birthday, the production worker records one 250-point `EARN` entry in the normal
+loyalty balance and transaction history, even if the customer has no push token. A unique
+`(user_id, birthday_year)` award record prevents duplicate points across API instances. The same
+worker sends the birthday greeting once per year to active customers with a registered push-device
+token; a separate unique delivery record prevents duplicate notifications, and failed delivery is
+retried during that birthday only. Clearing the date stops future awards and greetings. The additive
+`20261019230000_birthday_bonus_points` migration preserves existing loyalty transactions.
 
 ## Craft-order chat
 

@@ -41,40 +41,53 @@ export const createLoyaltyRouter = (database: DatabaseClient): Router => {
     requireAuth,
     requireRoles("ADMIN"),
     async (_request, response) => {
-      const transactions = await database.loyaltyTransaction.findMany({
-        include: {
-          customer: { select: { id: true, displayName: true, email: true } },
-          order: { select: { serviceNumber: true } },
-          craftOrder: { select: { serviceNumber: true } },
+      const [balances, transactions] = await Promise.all([
+        database.loyaltyTransaction.groupBy({
+          by: ["customerId"],
+          _sum: { points: true },
+        }),
+        database.loyaltyTransaction.findMany({
+          include: {
+            order: { select: { serviceNumber: true } },
+            craftOrder: { select: { serviceNumber: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 1000,
+        }),
+      ]);
+      const customers = await database.user.findMany({
+        where: {
+          id: { in: balances.map(({ customerId }) => customerId) },
+          role: "CUSTOMER",
         },
-        orderBy: { createdAt: "desc" },
-        take: 1000,
+        select: { id: true, displayName: true, email: true },
       });
-      const byCustomer = new Map<
-        string,
-        {
-          customer: { id: string; displayName: string; email: string };
-          balance: number;
-          transactions: typeof transactions;
-        }
-      >();
+      const balanceByCustomer = new Map(
+        balances.map(({ customerId, _sum }) => [customerId, _sum.points ?? 0]),
+      );
+      const transactionsByCustomer = new Map<string, typeof transactions>();
       for (const transaction of transactions) {
-        const existing = byCustomer.get(transaction.customerId) ?? {
-          customer: transaction.customer,
-          balance: 0,
-          transactions: [],
-        };
-        existing.balance += transaction.points;
-        existing.transactions.push(transaction);
-        byCustomer.set(transaction.customerId, existing);
+        const customerTransactions =
+          transactionsByCustomer.get(transaction.customerId) ?? [];
+        customerTransactions.push(transaction);
+        transactionsByCustomer.set(
+          transaction.customerId,
+          customerTransactions,
+        );
       }
       response.json({
-        customers: [...byCustomer.values()].sort((left, right) =>
-          left.customer.displayName.localeCompare(
-            right.customer.displayName,
-            "ru",
+        customers: customers
+          .map((customer) => ({
+            customer,
+            balance: balanceByCustomer.get(customer.id) ?? 0,
+            transactions: transactionsByCustomer.get(customer.id) ?? [],
+          }))
+          .sort((left, right) =>
+            left.customer.displayName.localeCompare(
+              right.customer.displayName,
+              "ru",
+            ),
           ),
-        ),
       });
     },
   );

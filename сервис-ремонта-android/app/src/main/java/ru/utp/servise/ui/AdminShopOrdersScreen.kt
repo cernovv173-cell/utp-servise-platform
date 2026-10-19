@@ -56,6 +56,7 @@ fun AdminShopOrdersScreen(
     var orders by remember { mutableStateOf<List<ShopOrder>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
+    var showAllOrders by remember { mutableStateOf(false) }
 
     suspend fun reloadOrders() {
         isLoading = true
@@ -81,6 +82,9 @@ fun AdminShopOrdersScreen(
 
     LaunchedEffect(token) { reloadOrders() }
 
+    val pendingCount = orders.count { it.status == "PENDING" }
+    val visibleOrders = if (showAllOrders) orders else orders.filter { it.status == "PENDING" }
+
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -88,12 +92,34 @@ fun AdminShopOrdersScreen(
         TextButton(onClick = onBack) { Text("←  Управление") }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Заказы магазина", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text("Подтверждение заказов магазина", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("Проверьте наличие до подтверждения. Оплату и получение согласуйте с клиентом отдельно.", fontSize = 12.sp, color = UtpMuted)
             }
             TextButton(onClick = { scope.launch { reloadOrders() } }, enabled = !isLoading) { Text("Обновить") }
         }
         if (isLoading && orders.isEmpty()) Text("Загружаем заказы…", color = UtpMuted)
+        if (orders.isNotEmpty()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (showAllOrders) {
+                    OutlinedButton(onClick = { showAllOrders = false }) {
+                        Text("На подтверждение · $pendingCount")
+                    }
+                } else {
+                    Button(onClick = { showAllOrders = false }) {
+                        Text("На подтверждение · $pendingCount")
+                    }
+                }
+                if (showAllOrders) {
+                    Button(onClick = { showAllOrders = true }) {
+                        Text("Все заказы · ${orders.size}")
+                    }
+                } else {
+                    OutlinedButton(onClick = { showAllOrders = true }) {
+                        Text("Все заказы · ${orders.size}")
+                    }
+                }
+            }
+        }
         if (loadError != null && orders.isEmpty()) {
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(15.dp)) {
@@ -107,7 +133,12 @@ fun AdminShopOrdersScreen(
                 Text("Заказов из магазина пока нет.", Modifier.padding(15.dp), color = UtpMuted)
             }
         }
-        orders.forEach { order ->
+        if (!isLoading && loadError == null && orders.isNotEmpty() && visibleOrders.isEmpty()) {
+            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                Text("Нет заказов, ожидающих подтверждения.", Modifier.padding(15.dp), color = UtpMuted)
+            }
+        }
+        visibleOrders.forEach { order ->
             AdminShopOrderCard(
                 order = order,
                 busy = busy,

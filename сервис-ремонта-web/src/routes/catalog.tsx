@@ -1,18 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Boxes, Package, Plus, Wrench } from "lucide-react";
+import { Boxes, ImagePlus, Package, Plus, Trash2, Wrench } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
+import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 
 import {
   type RepairCatalogItem,
   createRepairCatalogItem,
+  deleteCatalogProductImage,
   getRepairCatalog,
   updateRepairCatalogItem,
+  uploadCatalogProductImage,
 } from "@/lib/api";
 
 const itemTypeLabels = { SERVICE: "Услуги", SPARE_PART: "Запчасти", PRODUCT: "Товары" } as const;
@@ -32,6 +35,7 @@ const CatalogPage = () => {
   const create = useMutation({
     mutationFn: (
       input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
+        description?: string | null;
         stockQuantity?: number;
         minimumStockQuantity?: number;
       },
@@ -51,7 +55,13 @@ const CatalogPage = () => {
       input: Partial<
         Pick<
           RepairCatalogItem,
-          "type" | "name" | "unitPriceRub" | "stockQuantity" | "minimumStockQuantity" | "active"
+          | "type"
+          | "name"
+          | "description"
+          | "unitPriceRub"
+          | "stockQuantity"
+          | "minimumStockQuantity"
+          | "active"
         >
       >;
     }) => updateRepairCatalogItem(token!, id, input),
@@ -60,6 +70,25 @@ const CatalogPage = () => {
       await refresh();
     },
     onError: () => toast.error("Не удалось обновить каталог."),
+  });
+  const uploadImage = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) =>
+      uploadCatalogProductImage(token!, id, file),
+    onSuccess: async () => {
+      toast.success("Фото товара добавлено.");
+      await refresh();
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Не удалось добавить фото товара."),
+  });
+  const deleteImage = useMutation({
+    mutationFn: ({ id, objectId }: { id: string; objectId: string }) =>
+      deleteCatalogProductImage(token!, id, objectId),
+    onSuccess: async () => {
+      toast.success("Фото удалено.");
+      await refresh();
+    },
+    onError: () => toast.error("Не удалось удалить фото товара."),
   });
   const [newType, setNewType] = useState<RepairCatalogItem["type"]>("SERVICE");
 
@@ -71,6 +100,9 @@ const CatalogPage = () => {
       {
         type: newType,
         name: String(data.get("name")).trim(),
+        ...(newType === "PRODUCT"
+          ? { description: String(data.get("description")).trim() || null }
+          : {}),
         unitPriceRub: Number(data.get("unitPriceRub")),
         ...(tracksStock(newType)
           ? {
@@ -104,7 +136,7 @@ const CatalogPage = () => {
     <AppShell active="/catalog">
       <PageTitle
         eyebrow="СПРАВОЧНИК СЕРВИСА"
-        title="Каталог услуг и запчастей"
+        title="Каталог услуг, запчастей и товаров"
         description="Единый список и цены, которые используются при оформлении и расчёте ремонта."
       />
       {!canView ? (
@@ -177,6 +209,18 @@ const CatalogPage = () => {
                     className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
                   />
                 </label>
+                {newType === "PRODUCT" && (
+                  <label className="grid gap-1 text-sm font-medium md:col-span-2">
+                    Описание товара
+                    <textarea
+                      name="description"
+                      maxLength={2000}
+                      rows={3}
+                      className="resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 font-normal dark:border-slate-700 dark:bg-slate-950"
+                      placeholder="Расскажите о характеристиках и особенностях товара"
+                    />
+                  </label>
+                )}
                 {tracksStock(newType) && (
                   <>
                     <label className="grid gap-1 text-sm font-medium">
@@ -252,6 +296,9 @@ const CatalogPage = () => {
                         editable={user?.role === "ADMIN"}
                         saving={update.isPending}
                         onSave={(input) => update.mutate({ id: item.id, input })}
+                        onImageUpload={(file) => uploadImage.mutate({ id: item.id, file })}
+                        onImageDelete={(objectId) => deleteImage.mutate({ id: item.id, objectId })}
+                        imageBusy={uploadImage.isPending || deleteImage.isPending}
                       />
                     ))}
                   </div>
@@ -275,13 +322,28 @@ const CatalogItemRow = ({
   editable,
   saving,
   onSave,
+  onImageUpload,
+  onImageDelete,
+  imageBusy,
 }: {
   item: RepairCatalogItem;
   editable: boolean;
   saving: boolean;
+  imageBusy: boolean;
+  onImageUpload: (file: File) => void;
+  onImageDelete: (objectId: string) => void;
   onSave: (
     input: Partial<
-      Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub" | "stockQuantity" | "active">
+      Pick<
+        RepairCatalogItem,
+        | "type"
+        | "name"
+        | "description"
+        | "unitPriceRub"
+        | "stockQuantity"
+        | "minimumStockQuantity"
+        | "active"
+      >
     >,
   ) => void;
 }) => {
@@ -293,6 +355,9 @@ const CatalogItemRow = ({
     onSave({
       type,
       name: String(data.get("name")).trim(),
+      ...(type === "PRODUCT"
+        ? { description: String(data.get("description")).trim() || null }
+        : {}),
       unitPriceRub: Number(data.get("unitPriceRub")),
       ...(tracksStock(type)
         ? {
@@ -353,6 +418,50 @@ const CatalogItemRow = ({
           </div>
         )}
       </div>
+      {item.type === "PRODUCT" && item.description && (
+        <p className="mt-3 max-w-3xl text-sm leading-6 whitespace-pre-wrap text-slate-600 dark:text-slate-300">
+          {item.description}
+        </p>
+      )}
+      {item.type === "PRODUCT" && editable && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {item.imageObjectIds.map((objectId, index) => (
+            <div key={objectId} className="relative">
+              <ProtectedImage
+                objectId={objectId}
+                alt={`Фото ${index + 1}: ${item.name}`}
+                className="size-20 rounded-xl object-cover"
+              />
+              <button
+                type="button"
+                disabled={imageBusy}
+                onClick={() => onImageDelete(objectId)}
+                aria-label={`Удалить фото ${index + 1}: ${item.name}`}
+                className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-white text-rose-600 shadow hover:bg-rose-50 disabled:opacity-50 dark:bg-slate-900"
+              >
+                <Trash2 size={14} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+          {item.imageObjectIds.length < 4 && (
+            <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900">
+              <ImagePlus size={16} aria-hidden="true" />
+              {`Фото ${item.imageObjectIds.length}/4 · добавить`}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="sr-only"
+                disabled={imageBusy}
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  if (file) onImageUpload(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          )}
+        </div>
+      )}
       {showEditor && editable && (
         <form
           onSubmit={submit}
@@ -395,6 +504,18 @@ const CatalogItemRow = ({
               className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
+          {type === "PRODUCT" && (
+            <label className="grid gap-1 text-sm font-medium md:col-span-2">
+              Описание товара
+              <textarea
+                name="description"
+                defaultValue={item.description ?? ""}
+                maxLength={2000}
+                rows={3}
+                className="resize-y rounded-lg border border-slate-200 bg-white px-3 py-2 font-normal dark:border-slate-700 dark:bg-slate-950"
+              />
+            </label>
+          )}
           {tracksStock(type) && (
             <>
               <label className="grid gap-1 text-sm font-medium">

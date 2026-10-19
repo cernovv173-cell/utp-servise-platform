@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Clock3, PackageCheck, X } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
@@ -134,6 +135,7 @@ const ShopOrderCard = ({
 export const ShopOrdersManagement = () => {
   const { token } = useAuth();
   const queryClient = useQueryClient();
+  const [showAllOrders, setShowAllOrders] = useState(false);
   const ordersQuery = useQuery({
     queryKey: ["admin-shop-orders", token],
     queryFn: ({ signal }) => getAdminShopOrders(token!, signal),
@@ -163,6 +165,9 @@ export const ShopOrdersManagement = () => {
 
   const orders = ordersQuery.data?.orders ?? [];
   const pendingCount = orders.filter((order) => order.status === "PENDING").length;
+  const visibleOrders = showAllOrders
+    ? orders
+    : orders.filter((order) => order.status === "PENDING");
 
   return (
     <div>
@@ -180,9 +185,24 @@ export const ShopOrdersManagement = () => {
         </button>
       </div>
       {!ordersQuery.isLoading && !ordersQuery.isError && orders.length > 0 && (
-        <p className="mb-3 text-xs font-semibold text-slate-500">
-          Ожидают проверки: {pendingCount.toLocaleString("ru-RU")}
-        </p>
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={!showAllOrders}
+            onClick={() => setShowAllOrders(false)}
+            className={`min-h-9 rounded-lg px-3 text-sm font-semibold ${showAllOrders ? "border border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300" : "bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200"}`}
+          >
+            На подтверждение · {pendingCount}
+          </button>
+          <button
+            type="button"
+            aria-pressed={showAllOrders}
+            onClick={() => setShowAllOrders(true)}
+            className={`min-h-9 rounded-lg px-3 text-sm font-semibold ${showAllOrders ? "bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-cyan-200" : "border border-slate-200 text-slate-600 dark:border-slate-700 dark:text-slate-300"}`}
+          >
+            Все заказы · {orders.length}
+          </button>
+        </div>
       )}
       {ordersQuery.isLoading && (
         <SectionCard>
@@ -201,9 +221,17 @@ export const ShopOrdersManagement = () => {
           Заказов из магазина пока нет.
         </SectionCard>
       )}
-      {orders.length > 0 && (
+      {!ordersQuery.isLoading &&
+        !ordersQuery.isError &&
+        orders.length > 0 &&
+        visibleOrders.length === 0 && (
+          <SectionCard className="py-8 text-center text-sm text-slate-500">
+            Нет заказов, ожидающих подтверждения.
+          </SectionCard>
+        )}
+      {visibleOrders.length > 0 && (
         <div className="grid gap-3 xl:grid-cols-2">
-          {orders.map((order) => (
+          {visibleOrders.map((order) => (
             <ShopOrderCard
               key={order.id}
               order={order}

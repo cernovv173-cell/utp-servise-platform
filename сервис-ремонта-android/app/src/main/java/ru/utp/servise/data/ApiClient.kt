@@ -253,8 +253,10 @@ object ApiClient {
         unitPriceRub: Int,
         stockQuantity: Int? = null,
         minimumStockQuantity: Int? = null,
+        description: String? = null,
     ): CatalogItem {
         val body = JSONObject().put("type", type).put("name", name).put("unitPriceRub", unitPriceRub)
+        if (type == "PRODUCT") body.put("description", description ?: JSONObject.NULL)
         if (type != "SERVICE") {
             body.put("stockQuantity", stockQuantity ?: 0)
             body.put("minimumStockQuantity", minimumStockQuantity ?: 3)
@@ -270,6 +272,9 @@ object ApiClient {
             .put("unitPriceRub", item.unitPriceRub)
             .put("active", item.active)
             .apply {
+                if (item.type == "PRODUCT") {
+                    put("description", item.description ?: JSONObject.NULL)
+                }
                 if (item.type != "SERVICE" && item.stockQuantity != null) {
                     put("stockQuantity", item.stockQuantity)
                 }
@@ -277,6 +282,25 @@ object ApiClient {
                     put("minimumStockQuantity", item.minimumStockQuantity)
                 }
             },
+    ).getJSONObject("catalogItem").toCatalogItem()
+
+    fun uploadCatalogProductImage(token: String, catalogItemId: String, image: ByteArray) {
+        MediaApiClient.binaryRequest(
+            "POST",
+            "/catalog/$catalogItemId/images",
+            token,
+            image,
+        )
+    }
+
+    fun deleteCatalogProductImage(
+        token: String,
+        catalogItemId: String,
+        objectId: String,
+    ): CatalogItem = request(
+        "DELETE",
+        "/catalog/$catalogItemId/images/${android.net.Uri.encode(objectId)}",
+        token,
     ).getJSONObject("catalogItem").toCatalogItem()
 
     fun craftItems(token: String): List<CraftItem> = request("GET", "/craft-items", token)

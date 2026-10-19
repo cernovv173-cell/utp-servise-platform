@@ -31,9 +31,9 @@ const AdminPage = () => {
                 <ShoppingBag size={22} aria-hidden="true" />
               </span>
               <span>
-                <span className="block font-semibold">Заказы магазина</span>
+                <span className="block font-semibold">Подтверждение заказов магазина</span>
                 <span className="mt-1 block text-sm text-slate-500">
-                  Подтверждение наличия и выдача товаров
+                  Отдельная очередь проверки наличия и дальнейшей выдачи
                 </span>
               </span>
             </SectionCard>

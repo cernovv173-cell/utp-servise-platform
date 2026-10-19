@@ -47,6 +47,7 @@ const LoyaltyPage = () => {
         <ul className="mt-3 grid gap-2 text-sm leading-6 text-slate-500">
           <li>За оплаченный ремонт начисляется 10% от суммы, оплаченной деньгами.</li>
           <li>За оплаченный заказ изделия начисляется 5% от денежной оплаты.</li>
+          <li>В день рождения клиент получает 250 баллов — один раз за календарный год.</li>
           <li>
             В игре за успешное прохождение уровня выдаётся 10 баллов. Их нужно отдельно забрать в
             игре, после чего они попадут в этот бонусный баланс.
@@ -61,6 +62,20 @@ const LoyaltyPage = () => {
           </li>
         </ul>
       </SectionCard>
+      {query.isError && (
+        <SectionCard className="max-w-3xl">
+          <p className="text-sm text-rose-700 dark:text-rose-300">
+            Не удалось обновить баланс и историю бонусов.
+          </p>
+          <button
+            className="mt-3 rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+            onClick={() => void query.refetch()}
+            type="button"
+          >
+            Повторить загрузку
+          </button>
+        </SectionCard>
+      )}
       {token && user?.role === "CUSTOMER" && <ReferralCard token={token} />}
       <h2 className="mt-7 mb-3 font-semibold">История операций</h2>
       <div className="grid gap-2">

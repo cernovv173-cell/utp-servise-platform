@@ -171,11 +171,34 @@ html:not([data-theme="dark"])[data-season="winter"] body {
   animation: seasonal-sparkle 3.2s ease-in-out infinite;
 }
 
+.seasonal-rain-drop {
+  width: 1px;
+  height: 20px;
+  border-radius: 999px;
+  background: linear-gradient(to bottom, transparent, rgb(105 155 190 / 58%));
+  animation: seasonal-rain-fall 760ms linear infinite;
+}
+
+@keyframes seasonal-rain-fall {
+  from {
+    transform: translate3d(0, 0, 0) rotate(14deg);
+  }
+
+  to {
+    transform: translate3d(-34px, calc(100vh + 64px), 0) rotate(14deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .seasonal-drift,
   .seasonal-sparkle {
     animation: none;
     opacity: 0.65;
+  }
+
+  .seasonal-rain-drop {
+    animation: none;
+    opacity: 0.3;
   }
 }
 

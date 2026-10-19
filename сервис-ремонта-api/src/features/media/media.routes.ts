@@ -17,6 +17,7 @@ import {
   sendRepairOrderNotification,
 } from "../notifications/push-notifications.js";
 import { canViewRepairOrder } from "../orders/order-policy.js";
+import { createCatalogProductImagesRouter } from "./catalog-product-images.routes.js";
 import { type MediaStorage, projectMediaStorage } from "./media-storage.js";
 import { createProtectedMediaRouter } from "./protected-media.routes.js";
 
@@ -388,6 +389,7 @@ export const createMediaRouter = (
     },
   );
 
+  router.use(createCatalogProductImagesRouter(database, storage));
   router.use(createProtectedMediaRouter(database, storage));
 
   return router;

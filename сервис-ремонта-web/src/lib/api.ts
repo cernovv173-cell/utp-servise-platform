@@ -371,6 +371,8 @@ export type RepairCatalogItem = {
   id: string;
   type: RepairCatalogType;
   name: string;
+  description: string | null;
+  imageObjectIds: string[];
   unitPriceRub: number;
   stockQuantity: number | null;
   minimumStockQuantity: number | null;
@@ -382,6 +384,8 @@ export type ShopProductAvailability = "IN_STOCK" | "OUT_OF_STOCK" | "ADMIN_CONFI
 export type ShopProduct = {
   id: string;
   name: string;
+  description: string | null;
+  imageObjectIds: string[];
   unitPriceRub: number;
   availability: ShopProductAvailability;
 };
@@ -975,6 +979,9 @@ export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
 export const getShopProducts = (signal?: AbortSignal) =>
   apiRequest<{ products: ShopProduct[] }>("/shop/products", null, { signal });
 
+export const getShopProductImageUrl = (productId: string, objectId: string) =>
+  `${apiBase}/shop/products/${encodeURIComponent(productId)}/images/${encodeURIComponent(objectId)}`;
+
 export const getMyShopOrders = (token: string, signal?: AbortSignal) =>
   apiRequest<{ orders: ShopOrder[] }>("/shop/orders", token, { signal });
 
@@ -1093,6 +1100,7 @@ export const deleteAdminCustomer = (token: string, customerId: string) =>
 export const createRepairCatalogItem = (
   token: string,
   input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
+    description?: string | null;
     stockQuantity?: number;
     minimumStockQuantity?: number;
   },
@@ -1108,7 +1116,13 @@ export const updateRepairCatalogItem = (
   input: Partial<
     Pick<
       RepairCatalogItem,
-      "type" | "name" | "unitPriceRub" | "stockQuantity" | "minimumStockQuantity" | "active"
+      | "type"
+      | "name"
+      | "description"
+      | "unitPriceRub"
+      | "stockQuantity"
+      | "minimumStockQuantity"
+      | "active"
     >
   >,
 ) =>
@@ -1116,6 +1130,16 @@ export const updateRepairCatalogItem = (
     method: "PATCH",
     body: JSON.stringify(input),
   });
+
+export const uploadCatalogProductImage = (token: string, catalogItemId: string, file: File) =>
+  uploadAdminImage(`/catalog/${catalogItemId}/images`, token, file);
+
+export const deleteCatalogProductImage = (token: string, catalogItemId: string, objectId: string) =>
+  apiRequest<{ catalogItem: RepairCatalogItem }>(
+    `/catalog/${catalogItemId}/images/${encodeURIComponent(objectId)}`,
+    token,
+    { method: "DELETE" },
+  );
 
 export const createNews = (
   token: string,

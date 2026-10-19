@@ -189,11 +189,23 @@ export const createProtectedMediaRouter = (
                         },
                       },
                     });
-                    if (
-                      !intake ||
-                      !canViewRepairOrder(user.role, user.id, intake.order)
-                    )
-                      invalidMedia();
+                    if (intake) {
+                      if (
+                        !canViewRepairOrder(user.role, user.id, intake.order)
+                      )
+                        invalidMedia();
+                    } else {
+                      const catalogProduct =
+                        await database.repairCatalogItem.findFirst({
+                          where: {
+                            type: "PRODUCT",
+                            imageObjectIds: { has: objectId },
+                            ...(user.role === "ADMIN" ? {} : { active: true }),
+                          },
+                          select: { id: true },
+                        });
+                      if (!catalogProduct) invalidMedia();
+                    }
                   }
                 }
               }

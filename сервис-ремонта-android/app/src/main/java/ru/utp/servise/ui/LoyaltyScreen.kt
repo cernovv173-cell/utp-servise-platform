@@ -57,6 +57,7 @@ fun LoyaltyScreen(
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text("Как начисляются и используются баллы", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text("• В день рождения клиента начисляется 250 баллов один раз в календарный год.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
                 Text("• 10% от суммы ремонта, оплаченной деньгами, после подтверждения оплаты.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
                 Text("• 5% от денежной оплаты заказного изделия.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
                 Text("• В игре за пройденный уровень начисляется 10 баллов; их нужно забрать в игре.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)

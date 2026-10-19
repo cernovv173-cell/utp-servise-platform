@@ -15,6 +15,7 @@ import {
   type ShopProduct,
   createShopOrder,
   getMyShopOrders,
+  getShopProductImageUrl,
   getShopProducts,
 } from "@/lib/api";
 
@@ -53,18 +54,35 @@ const ProductCard = ({
   onAdd: () => void;
 }) => (
   <article className="flex min-h-52 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
-    <div className="flex items-start gap-4">
-      <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-cyan-200">
+    {product.imageObjectIds.length > 0 ? (
+      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+        {product.imageObjectIds.slice(0, 4).map((objectId, index) => (
+          <img
+            key={objectId}
+            src={getShopProductImageUrl(product.id, objectId)}
+            alt={`${product.name} — фото ${index + 1}`}
+            loading="lazy"
+            className="size-24 shrink-0 rounded-xl bg-slate-100 object-cover dark:bg-slate-800"
+          />
+        ))}
+      </div>
+    ) : (
+      <span className="mb-4 grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-cyan-200">
         <PackageOpen size={23} aria-hidden="true" />
       </span>
-      <div className="min-w-0 flex-1">
-        <h2 className="font-semibold">{product.name}</h2>
-        <p
-          className={`mt-2 text-xs font-medium ${product.availability === "OUT_OF_STOCK" ? "text-rose-600 dark:text-rose-300" : "text-emerald-700 dark:text-emerald-300"}`}
-        >
-          {availabilityLabel(product.availability)}
+    )}
+    <div className="min-w-0">
+      <h2 className="font-semibold">{product.name}</h2>
+      {product.description && (
+        <p className="mt-2 line-clamp-4 text-sm leading-5 whitespace-pre-wrap text-slate-600 dark:text-slate-300">
+          {product.description}
         </p>
-      </div>
+      )}
+      <p
+        className={`mt-2 text-xs font-medium ${product.availability === "OUT_OF_STOCK" ? "text-rose-600 dark:text-rose-300" : "text-emerald-700 dark:text-emerald-300"}`}
+      >
+        {availabilityLabel(product.availability)}
+      </p>
     </div>
     <div className="mt-auto flex items-end justify-between gap-3 pt-6">
       <p className="text-xl font-bold tabular-nums">{formatRub(product.unitPriceRub)}</p>
@@ -197,7 +215,7 @@ export const ShopStorefront = () => {
               to="/admin/shop-orders"
               className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
             >
-              Заказы магазина
+              Подтверждение заказов
             </Link>
           ) : undefined
         }

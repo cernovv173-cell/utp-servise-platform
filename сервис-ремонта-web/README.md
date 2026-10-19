@@ -92,10 +92,12 @@ accounts do not have permission to browse this internal price catalog.
 
 The separate `/shop` storefront uses only active product entries, never repair services or spare parts.
 Customers can browse the catalog, keep a per-account cart, and submit an order without online payment;
-the order stores the item names and prices at submission time. Administrators review requests at
-`/admin/shop-orders`, confirm availability before tracked stock is deducted, and can mark a confirmed
-order as handed over or cancel it. Cancelling a confirmed order restores its reserved stock. Payment
-and pickup are arranged outside the app, independently of repair requests.
+the order stores the item names and prices at submission time. Product entries support an optional
+description and up to four protected product photos, managed from the shared catalog in Web or
+Android. Administrators review requests in the dedicated confirmation queue at `/admin/shop-orders`;
+the page also retains an all-orders view. They confirm availability before tracked stock is deducted,
+then can mark a confirmed order as handed over or cancel it. Cancelling a confirmed order restores
+its reserved stock. Payment and pickup are arranged outside the app, independently of repair requests.
 
 On `/checks`, administrators manage each completed order's receipt separately in the shared list:
 they can adjust its service and spare-part quantities, add one manual service or product line, and
@@ -116,7 +118,9 @@ invalidates active sessions after a successful reset.
 
 Customers can optionally save gender and date of birth in `/account`. The API sends one birthday
 push greeting per customer per year, using the Moscow calendar date and only to devices with a
-registered, permitted push token. Staff profiles do not expose these fields.
+registered, permitted push token. In production, the birthday worker also grants 250 loyalty points
+once per customer per birthday year; the unique award record prevents duplicate grants. Push permission
+is not required for points. Staff profiles do not expose these fields.
 
 On the customer's birthday, `/news` shows a personalized greeting only to that signed-in customer.
 It expires at the next Moscow midnight (a 24-hour Moscow calendar day), matching the birthday push
@@ -291,7 +295,8 @@ The root layout reads the public `GET /seasonal-theme` state and applies the act
 Web pages; it refreshes the server state once per minute. When a theme is active, its computer-repair
 illustration fills a shared, fixed background behind every route, including sign-in, while seasonal
 particles move across the viewport: spring petals, summer light glints, autumn leaves, or winter
-snow. The illustrations feature laptops, computer parts, and repair tools, not household appliances.
+snow. During the autumn theme, a 30-minute rain effect runs once per hour alongside the leaves.
+The illustrations feature laptops, computer parts, and repair tools, not household appliances.
 Motion is disabled when the visitor requests reduced motion.
 Only an administrator sees the seasonal control on the home page. It can enable the current calendar
 season or turn the theme off, while the API enforces the start date and administrator role. Winter

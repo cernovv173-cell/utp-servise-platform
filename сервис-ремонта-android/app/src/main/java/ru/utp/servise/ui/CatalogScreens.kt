@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -129,9 +131,11 @@ fun CatalogManagementScreen(
     refresh: () -> Unit,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
     var showRestockOnly by remember { mutableStateOf(false) }
     var type by remember { mutableStateOf("SERVICE") }
     var name by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
     var stockText by remember { mutableStateOf("0") }
     var minimumStockText by remember {
@@ -228,6 +232,17 @@ fun CatalogManagementScreen(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 )
+                if (type == "PRODUCT") {
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it.take(2000) },
+                        label = { Text("Описание товара") },
+                        supportingText = { Text("До 2 000 символов") },
+                        minLines = 2,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                }
                 if (type != "SERVICE") {
                     OutlinedTextField(
                         value = stockText,
@@ -260,9 +275,11 @@ fun CatalogManagementScreen(
                                 price!!,
                                 if (type != "SERVICE") stockText.toIntOrNull() ?: 0 else null,
                                 if (type != "SERVICE") minimumStock else null,
+                                if (type == "PRODUCT") description.trim().takeIf { it.isNotEmpty() } else null,
                             )
                         }) {
                             name = ""
+                            description = ""
                             priceText = ""
                             stockText = "0"
                             minimumStockText = DEFAULT_MINIMUM_STOCK_QUANTITY.toString()
@@ -322,6 +339,48 @@ fun CatalogManagementScreen(
                             modifier = Modifier.padding(top = 5.dp),
                         )
                     }
+                    if (item.type == "PRODUCT") {
+                        item.description?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 6.dp))
+                        }
+                        if (item.imageObjectIds.isNotEmpty()) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.padding(top = 8.dp),
+                            ) {
+                                item.imageObjectIds.take(4).forEachIndexed { index, objectId ->
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        RemoteProjectImage(
+                                            objectId = objectId,
+                                            token = token,
+                                            modifier = Modifier.size(72.dp),
+                                            contentDescription = "Фото ${index + 1}: ${item.name}",
+                                        )
+                                        TextButton(
+                                            onClick = {
+                                                runAction({
+                                                    ApiClient.deleteCatalogProductImage(token, item.id, objectId)
+                                                }) { refresh() }
+                                            },
+                                        ) { Text("Удалить", fontSize = 10.sp) }
+                                    }
+                                }
+                            }
+                        }
+                        if (item.imageObjectIds.size < 4) {
+                            PhotoPickerButton(
+                                label = "Добавить фото · ${item.imageObjectIds.size}/4",
+                            ) { uri ->
+                                runAction({
+                                    ApiClient.uploadCatalogProductImage(
+                                        token,
+                                        item.id,
+                                        compressSelectedImage(context, uri),
+                                    )
+                                }) { refresh() }
+                            }
+                        }
+                    }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         TextButton(onClick = { editedItem = item }) { Text("Изменить") }
                         TextButton(
@@ -355,6 +414,7 @@ private fun CatalogItemEditDialog(
 ) {
     var type by remember(item.id) { mutableStateOf(item.type) }
     var name by remember(item.id) { mutableStateOf(item.name) }
+    var description by remember(item.id) { mutableStateOf(item.description.orEmpty()) }
     var priceText by remember(item.id) { mutableStateOf(item.unitPriceRub.toString()) }
     var stockText by remember(item.id) { mutableStateOf(item.stockQuantity?.toString().orEmpty()) }
     var minimumStockText by remember(item.id) {
@@ -385,6 +445,17 @@ private fun CatalogItemEditDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 )
+                if (type == "PRODUCT") {
+                    OutlinedTextField(
+                        value = description,
+                        onValueChange = { description = it.take(2000) },
+                        label = { Text("Описание товара") },
+                        supportingText = { Text("До 2 000 символов") },
+                        minLines = 2,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                }
                 if (type != "SERVICE") {
                     OutlinedTextField(
                         value = stockText,
@@ -421,6 +492,7 @@ private fun CatalogItemEditDialog(
                         item.copy(
                             type = type,
                             name = name.trim(),
+                            description = if (type == "PRODUCT") description.trim().takeIf { it.isNotEmpty() } else null,
                             unitPriceRub = price!!,
                             stockQuantity = if (type != "SERVICE") stockText.toIntOrNull() else null,
                             minimumStockQuantity = if (type != "SERVICE") minimumStock else null,

@@ -19,11 +19,16 @@ const catalogCreateBody = z
   .object({
     type: itemType,
     name: z.string().trim().min(2).max(160),
+    description: z.string().trim().max(2000).nullable().optional(),
     unitPriceRub: z.number().int().min(0).max(10_000_000),
     stockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
     minimumStockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
   })
   .strict()
+  .refine((body) => body.type === "PRODUCT" || body.description == null, {
+    message: "Описание доступно только для товаров.",
+    path: ["description"],
+  })
   .refine(
     (body) =>
       isInventoryCatalogItem(body.type) || body.stockQuantity === undefined,
@@ -45,6 +50,7 @@ const catalogUpdateBody = z
   .object({
     type: itemType.optional(),
     name: z.string().trim().min(2).max(160).optional(),
+    description: z.string().trim().max(2000).nullable().optional(),
     unitPriceRub: z.number().int().min(0).max(10_000_000).optional(),
     stockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
     minimumStockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
@@ -157,6 +163,13 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
             "Позиция каталога не найдена.",
           );
         const nextType = input.type ?? existing.type;
+        if (input.description !== undefined && nextType !== "PRODUCT") {
+          throw new HttpError(
+            400,
+            "CATALOG_DESCRIPTION_NOT_SUPPORTED",
+            "Описание можно задать только для товара.",
+          );
+        }
         if (
           input.stockQuantity !== undefined &&
           !isInventoryCatalogItem(nextType)
