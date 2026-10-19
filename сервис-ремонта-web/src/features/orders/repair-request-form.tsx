@@ -190,30 +190,25 @@ export const RepairRequestForm = ({
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
-        Город
+        Город (необязательно)
         <input
           name="city"
-          required
-          minLength={2}
           maxLength={120}
           className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
-        Улица
+        Улица (необязательно)
         <input
           name="street"
-          required
-          minLength={2}
           maxLength={180}
           className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
-        Дом
+        Дом (необязательно)
         <input
           name="house"
-          required
           maxLength={30}
           className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
         />

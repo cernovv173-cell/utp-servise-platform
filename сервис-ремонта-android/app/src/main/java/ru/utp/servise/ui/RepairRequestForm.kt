@@ -83,7 +83,7 @@ fun RepairRequestForm(
     var selectedCustomerDeviceId by remember { mutableStateOf(initialDeviceId) }
     var problem by remember { mutableStateOf("") }
     var phone by remember(initialPhone) { mutableStateOf(initialPhone) }
-    var city by remember { mutableStateOf("Пушкино") }
+    var city by remember { mutableStateOf("") }
     var street by remember { mutableStateOf("") }
     var house by remember { mutableStateOf("") }
     var apartment by remember { mutableStateOf("") }
@@ -254,9 +254,10 @@ fun RepairRequestForm(
         }
         Spacer(Modifier.height(10.dp))
         AddressField(phone, { phone = it.take(32) }, "Телефон для связи *", KeyboardType.Phone)
-        AddressField(city, { city = it.take(120) }, "Город *")
-        AddressField(street, { street = it.take(180) }, "Улица *")
-        AddressField(house, { house = it.take(30) }, "Дом *")
+        Text("Адрес клиента (необязательно)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+        AddressField(city, { city = it.take(120) }, "Город")
+        AddressField(street, { street = it.take(180) }, "Улица")
+        AddressField(house, { house = it.take(30) }, "Дом")
         AddressField(apartment, { apartment = it.take(30) }, "Квартира")
         AddressField(entrance, { entrance = it.take(30) }, "Подъезд")
         AddressField(floor, { floor = it.take(20) }, "Этаж")
@@ -306,9 +307,6 @@ fun RepairRequestForm(
         val missingFields = buildList {
             if (problem.trim().length < 5) add("опишите неисправность (не менее 5 символов)")
             if (phone.count(Char::isDigit) < 7) add("укажите телефон для связи")
-            if (city.trim().length < 2) add("укажите город")
-            if (street.trim().length < 2) add("укажите улицу")
-            if (house.isBlank()) add("укажите дом")
         }
         if (showValidation && missingFields.isNotEmpty()) {
             Text(

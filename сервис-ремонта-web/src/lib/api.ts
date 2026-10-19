@@ -769,9 +769,9 @@ export const createOrder = (
     deviceSerialNumber?: string;
     problem: string;
     contactPhone: string;
-    city: string;
-    street: string;
-    house: string;
+    city?: string;
+    street?: string;
+    house?: string;
     apartment?: string;
     entrance?: string;
     hasBarrier?: boolean;
@@ -797,9 +797,9 @@ export const createAdminOrder = (
     deviceSerialNumber?: string;
     problem: string;
     contactPhone?: string;
-    city: string;
-    street: string;
-    house: string;
+    city?: string;
+    street?: string;
+    house?: string;
     apartment?: string;
     entrance?: string;
     hasBarrier?: boolean;

@@ -54,6 +54,12 @@ const contactPhone = z
   .min(7)
   .max(32)
   .refine((value) => (value.match(/\d/g)?.length ?? 0) >= 7);
+const optionalAddressField = (minimumLength: number, maximumLength: number) =>
+  z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    z.string().trim().min(minimumLength).max(maximumLength).optional(),
+  );
 const createOrderBody = z
   .object({
     deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]),
@@ -63,9 +69,9 @@ const createOrderBody = z
     deviceSerialNumber: z.string().trim().max(160).optional(),
     problem: z.string().trim().min(5).max(2000),
     contactPhone,
-    city: z.string().trim().min(2).max(120),
-    street: z.string().trim().min(2).max(180),
-    house: z.string().trim().min(1).max(30),
+    city: optionalAddressField(2, 120),
+    street: optionalAddressField(2, 180),
+    house: optionalAddressField(1, 30),
     apartment: z.string().trim().max(30).optional(),
     entrance: z.string().trim().max(30).optional(),
     hasBarrier: z.boolean().optional(),
@@ -478,9 +484,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             problem: input.problem,
             address,
             contactPhone: input.contactPhone,
-            city: input.city,
-            street: input.street,
-            house: input.house,
+            city: input.city ?? null,
+            street: input.street ?? null,
+            house: input.house ?? null,
             apartment: input.apartment || null,
             entrance: input.entrance || null,
             hasBarrier: input.hasBarrier ?? false,
@@ -671,9 +677,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             address: addressFromFields(input),
             repairLocation: input.repairLocation ?? null,
             contactPhone,
-            city: input.city,
-            street: input.street,
-            house: input.house,
+            city: input.city ?? null,
+            street: input.street ?? null,
+            house: input.house ?? null,
             apartment: input.apartment || null,
             entrance: input.entrance || null,
             hasBarrier: input.hasBarrier ?? false,

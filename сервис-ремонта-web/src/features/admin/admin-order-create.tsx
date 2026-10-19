@@ -312,28 +312,19 @@ export const AdminOrderCreate = ({
             </p>
           </fieldset>
           <div className="sm:col-span-2">
-            <p className="text-sm font-semibold">Контактный адрес клиента</p>
+            <p className="text-sm font-semibold">Контактный адрес клиента (необязательно)</p>
           </div>
           <label className="grid gap-1 text-sm font-medium">
-            Город{"\u00a0"}
-            <span aria-hidden="true">*</span>
-            <input name="city" required minLength={2} maxLength={120} className={fieldClassName} />
+            Город
+            <input name="city" maxLength={120} className={fieldClassName} />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Улица{"\u00a0"}
-            <span aria-hidden="true">*</span>
-            <input
-              name="street"
-              required
-              minLength={2}
-              maxLength={180}
-              className={fieldClassName}
-            />
+            Улица
+            <input name="street" maxLength={180} className={fieldClassName} />
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Дом{"\u00a0"}
-            <span aria-hidden="true">*</span>
-            <input name="house" required minLength={1} maxLength={30} className={fieldClassName} />
+            Дом
+            <input name="house" maxLength={30} className={fieldClassName} />
           </label>
           <label className="grid gap-1 text-sm font-medium">
             Квартира
