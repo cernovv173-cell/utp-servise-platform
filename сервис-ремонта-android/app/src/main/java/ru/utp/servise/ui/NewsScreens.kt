@@ -63,7 +63,7 @@ fun AdminManagementScreen(
         ManagementCard("Каталог услуг и запчастей", "Позиции прайса и цены", "▧", onCatalog)
         ManagementCard("Чаты с запросом помощи", "Подключение администратора к беседе", "✉", onChats)
         ManagementCard("Чаты клиентов", "Ответы клиентам напрямую", "✉", onSupportChats)
-        ManagementCard("База клиентов", "Поиск и редактирование контактов", "♙", onCustomers)
+        ManagementCard("База клиентов", "Поиск, контакты и удаление записей", "♙", onCustomers)
         ManagementCard("Сотрудники", "Мастера и административные аккаунты", "♙", onStaff)
         ManagementCard("Отзывы", "Отзывы клиентов о ремонтах", "★", onReviews)
         ManagementCard("Рукоделия", "Изделия, цены, фото и заявки", "✿", onCrafts)

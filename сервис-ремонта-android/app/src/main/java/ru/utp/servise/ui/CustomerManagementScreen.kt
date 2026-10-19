@@ -41,6 +41,7 @@ import ru.utp.servise.data.NewAdminCustomerResult
 @Composable
 fun CustomerManagementScreen(
     token: String,
+    busy: Boolean,
     runAction: RunAction,
     onBack: () -> Unit,
 ) {
@@ -52,6 +53,8 @@ fun CustomerManagementScreen(
     var totalItems by remember { mutableStateOf(0) }
     var customers by remember { mutableStateOf<List<AdminCustomer>>(emptyList()) }
     var editingCustomer by remember { mutableStateOf<AdminCustomer?>(null) }
+    var deletingCustomer by remember { mutableStateOf<AdminCustomer?>(null) }
+    var deleteConfirmation by remember { mutableStateOf("") }
     var showCreateCustomer by remember { mutableStateOf(false) }
     var newCustomerCredentials by remember { mutableStateOf<NewAdminCustomerResult?>(null) }
 
@@ -73,7 +76,7 @@ fun CustomerManagementScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("База клиентов", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("$totalItems клиентов · изменяйте только контактные данные", fontSize = 12.sp, color = UtpMuted)
+                Text("$totalItems клиентов · управление записями и контактами", fontSize = 12.sp, color = UtpMuted)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Button(onClick = { showCreateCustomer = true }, shape = RoundedCornerShape(12.dp)) { Text("Добавить") }
@@ -117,6 +120,15 @@ fun CustomerManagementScreen(
                     TextButton(onClick = { editingCustomer = customer }, modifier = Modifier.align(Alignment.End)) {
                         Text("Изменить данные")
                     }
+                    TextButton(
+                        onClick = {
+                            deletingCustomer = customer
+                            deleteConfirmation = ""
+                        },
+                        modifier = Modifier.align(Alignment.End),
+                    ) {
+                        Text("Удалить навсегда", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }
@@ -145,6 +157,28 @@ fun CustomerManagementScreen(
             },
         )
     }
+    deletingCustomer?.let { customer ->
+        DeleteCustomerDialog(
+            customer = customer,
+            confirmation = deleteConfirmation,
+            busy = busy,
+            onConfirmationChange = { deleteConfirmation = it },
+            onDismiss = {
+                deletingCustomer = null
+                deleteConfirmation = ""
+            },
+            onConfirm = {
+                runAction({ ApiClient.deleteAdministratorCustomer(token, customer.id) }) {
+                    val lastCustomerOnLaterPage = customers.size == 1 && page > 1
+                    customers = customers.filterNot { it.id == customer.id }
+                    totalItems = (totalItems - 1).coerceAtLeast(0)
+                    deletingCustomer = null
+                    deleteConfirmation = ""
+                    if (lastCustomerOnLaterPage) page -= 1 else loadRevision += 1
+                }
+            },
+        )
+    }
     if (showCreateCustomer) {
         CreateCustomerDialog(
             onDismiss = { showCreateCustomer = false },
@@ -165,6 +199,46 @@ fun CustomerManagementScreen(
     newCustomerCredentials?.let { result ->
         NewCustomerCredentialsDialog(result) { newCustomerCredentials = null }
     }
+}
+
+@Composable
+private fun DeleteCustomerDialog(
+    customer: AdminCustomer,
+    confirmation: String,
+    busy: Boolean,
+    onConfirmationChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Удалить клиента навсегда?") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Аккаунт и связанные заявки, чеки, устройства, фото, переписки, отзывы, бонусы, рефералы, участия в акциях и игровой прогресс будут удалены безвозвратно.",
+                    fontSize = 12.sp,
+                )
+                Text("${customer.displayName} · ${customer.email}", fontWeight = FontWeight.SemiBold)
+                OutlinedTextField(
+                    value = confirmation,
+                    onValueChange = onConfirmationChange,
+                    label = { Text("Введите почту клиента для подтверждения") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = !busy && confirmation.trim() == customer.email,
+            ) { Text(if (busy) "Удаляем…" else "Удалить навсегда", color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Отмена") } },
+    )
 }
 
 @Composable

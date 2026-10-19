@@ -426,7 +426,9 @@ internal fun AuthenticatedWorkspace(
                                 AdminChatInboxScreen(adminChats, refresh, { navController.navigate("chat/$it") }) { navController.popBackStack() }
                             }
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
-                            composable("admin/customers") { CustomerManagementScreen(token, runAction) { navController.popBackStack() } }
+                            composable("admin/customers") {
+                                CustomerManagementScreen(token, busy, runAction) { navController.popBackStack() }
+                            }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh, token = token, canModerate = true, runAction = runAction) }
                             composable("admin/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
                         }

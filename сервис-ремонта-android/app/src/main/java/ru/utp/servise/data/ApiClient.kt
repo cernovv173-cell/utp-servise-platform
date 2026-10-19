@@ -520,6 +520,10 @@ object ApiClient {
             .put("phoneNumber", customer.phoneNumber ?: JSONObject.NULL),
     ).getJSONObject("customer").toAdminCustomer()
 
+    fun deleteAdministratorCustomer(token: String, customerId: String) {
+        request("DELETE", "/admin/customers/$customerId", token)
+    }
+
     fun createAdministratorCustomer(
         token: String,
         displayName: String,

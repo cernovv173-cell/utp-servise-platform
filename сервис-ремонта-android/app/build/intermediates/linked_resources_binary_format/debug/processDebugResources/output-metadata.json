@@ -11,8 +11,8 @@
       "type": "SINGLE",
       "filters": [],
       "attributes": [],
-      "versionCode": 31,
-      "versionName": "1.4.7",
+      "versionCode": 34,
+      "versionName": "1.5.0",
       "outputFile": "linked-resources-binary-format-debug.ap_"
     }
   ],
