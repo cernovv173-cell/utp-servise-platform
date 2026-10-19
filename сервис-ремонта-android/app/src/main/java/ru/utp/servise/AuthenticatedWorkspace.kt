@@ -16,6 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,6 +55,7 @@ import ru.utp.servise.data.SalarySummary
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.SupportChat
 import ru.utp.servise.data.SupportChatInboxItem
+import ru.utp.servise.navigation.workspaceNavigationForRole
 import ru.utp.servise.ui.AdminChatInboxScreen
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminOrderCreationScreen
@@ -86,8 +88,7 @@ import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.SalaryScreen
 import ru.utp.servise.ui.SeasonalThemeCard
 import ru.utp.servise.ui.UtpBlue
-
-private data class Destination(val route: String, val label: String, val icon: String)
+import ru.utp.servise.ui.WorkspaceSectionsScreen
 
 @Composable
 internal fun AuthenticatedWorkspace(
@@ -136,33 +137,8 @@ internal fun AuthenticatedWorkspace(
                 .onFailure { onError(it.message ?: "Не удалось обновить чат.") }
         }
     }
-    val destinations = when (user.role) {
-        "TECHNICIAN" -> listOf(
-            Destination("technician/jobs", "Заказы", "▤"),
-            Destination("technician/history", "История", "◷"),
-            Destination("technician/salary", "Зарплата", "₽"),
-            Destination("technician/reviews", "Отзывы", "★"),
-            Destination("technician/about", "О компании", "ℹ"),
-            Destination("technician/profile", "Профиль", "♙"),
-        )
-        "ADMIN" -> listOf(
-            Destination("admin/orders", "Заказы", "▤"),
-            Destination("admin/history", "История", "◷"),
-            Destination("admin/salary", "Зарплата", "₽"),
-            Destination("admin/manage", "Управление", "⚙"),
-            Destination("admin/profile", "Профиль", "⚙"),
-        )
-        else -> listOf(
-            Destination("customer/home", "Главная", "⌂"),
-            Destination("customer/orders", "Заявки", "▤"),
-            Destination("customer/history", "История", "◷"),
-            Destination("customer/devices", "Техника", "▣"),
-            Destination("customer/news", "Новости", "▧"),
-            Destination("customer/offers", "Акции", "🎁"),
-            Destination("customer/loyalty", "Бонусы", "★"),
-            Destination("customer/profile", "Профиль", "♙"),
-        )
-    }
+    val workspaceNavigation = remember(user.role) { workspaceNavigationForRole(user.role) }
+    val destinations = workspaceNavigation.primaryDestinations
     val navController = rememberNavController()
     val onCampaignNavigate: (String) -> Unit = { target ->
         val route = when (target.lowercase()) {
@@ -179,7 +155,7 @@ internal fun AuthenticatedWorkspace(
     }
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val mainRoutes = destinations.map { it.route }
+    val activeBottomRoute = workspaceNavigation.selectedTabRoute(currentRoute)
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -202,11 +178,11 @@ internal fun AuthenticatedWorkspace(
             }
         },
         bottomBar = {
-            if (currentRoute in mainRoutes) {
+            if (activeBottomRoute != null) {
                 NavigationBar {
                     destinations.forEach { destination ->
                         NavigationBarItem(
-                            selected = currentRoute == destination.route,
+                            selected = activeBottomRoute == destination.route,
                             onClick = {
                                 navController.navigate(destination.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -230,7 +206,11 @@ internal fun AuthenticatedWorkspace(
                 }
             }
             Box(Modifier.weight(1f)) {
-                NavHost(navController = navController, startDestination = destinations.first().route, modifier = Modifier.fillMaxSize()) {
+                NavHost(
+                    navController = navController,
+                    startDestination = destinations.first().route,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
                     when (user.role) {
                         "CUSTOMER" -> {
                             composable("customer/home") {
@@ -421,6 +401,7 @@ internal fun AuthenticatedWorkspace(
                                     onSupportChats = { navController.navigate("admin/support-chats") },
                                     onCustomers = { navController.navigate("admin/customers") },
                                     onShopOrders = { navController.navigate("admin/shop-orders") },
+                                    onSalary = { navController.navigate("admin/salary") },
                                 )
                             }
                             composable("admin/overview") { ServiceDashboardScreen(token, onError) }
@@ -462,6 +443,16 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh, token = token, canModerate = true, runAction = runAction) }
                             composable("admin/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
+                        }
+                    }
+                    workspaceNavigation.sectionHubRoute?.let { route ->
+                        composable(route) {
+                            WorkspaceSectionsScreen(
+                                groups = workspaceNavigation.sectionGroups,
+                                onOpenSection = { destinationRoute ->
+                                    navController.navigate(destinationRoute) { launchSingleTop = true }
+                                },
+                            )
                         }
                     }
                     addSupportChatRoutes(

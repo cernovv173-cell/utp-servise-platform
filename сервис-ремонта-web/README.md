@@ -145,6 +145,12 @@ the device type, fault description and customer address; active service-catalog 
 to an open order with a quantity. The card lists existing service and item lines, while the API
 checks the active catalog entry, order status and inventory balance before saving changes.
 
+Navigation is filtered by account role. On small screens, four frequently used destinations stay
+visible, while the remaining permitted pages are grouped under “Разделы”; the desktop sidebar keeps
+the same groups in its own scrollable area. Administrator-only pages, including scheduling,
+procurement, customer records, repair editing and store-order confirmation, are available directly
+from the administrator group.
+
 While an administrator is signed in to the Web app, it checks for new repair and craft-product orders
 every 30 seconds. New orders appear as in-app alerts with a shortcut to the relevant order list. The
 administrator can also enable browser system notifications from the header; these can appear while

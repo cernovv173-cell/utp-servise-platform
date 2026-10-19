@@ -8,7 +8,7 @@ import { ShopOrdersManagement } from "@/features/shop/shop-orders-management";
 const AdminShopOrdersPage = () => {
   const { user } = useAuth();
   return (
-    <AppShell active="/admin">
+    <AppShell active="/admin/shop-orders">
       <PageTitle
         eyebrow="МАГАЗИН"
         title="Подтверждение заказов магазина"

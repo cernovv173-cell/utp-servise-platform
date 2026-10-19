@@ -1,55 +1,22 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Cpu, ExternalLink, LogOut, Moon, Power, Sun } from "lucide-react";
+import { LogOut, Moon, Power, Sun } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
 import { RaccoonIcon } from "@/components/raccoon-icon";
-import type { RaccoonMotion } from "@/components/raccoon-icon";
 
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { IncomingOrderNotifications } from "@/features/admin/incoming-order-notifications";
 import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
-
-const links = [
-  { to: "/", label: "Главная", motion: "peek" },
-  { to: "/orders", label: "Заявки", motion: "bounce" },
-  { to: "/shop", label: "Магазин товаров", motion: "peek" },
-  { to: "/devices", label: "Моя техника", motion: "peek" },
-  { to: "/catalog", label: "Каталог ремонта", motion: "wiggle" },
-  { to: "/checks", label: "Чеки и номера", motion: "bounce" },
-  { to: "/news", label: "Новости", motion: "peek" },
-  { to: "/offers", label: "Акции и розыгрыши", motion: "bounce" },
-  { to: "/loyalty", label: "Бонусы", motion: "wiggle" },
-  { to: "/game", label: "Три в ряд", motion: "bounce" },
-  { to: "/salary", label: "Зарплата", motion: "bounce" },
-  { to: "/crafts", label: "Ручная работа", motion: "peek" },
-  { to: "/about", label: "О компании", motion: "wiggle" },
-  { to: "/reviews", label: "Отзывы", motion: "bounce" },
-  { to: "/advertising", label: "Реклама", motion: "peek" },
-  { to: "/account", label: "Личный кабинет", motion: "wiggle" },
-  { to: "/support", label: "Поддержка", motion: "bounce" },
-] satisfies Array<{ to: string; label: string; motion: RaccoonMotion }>;
-
-const DnsConfiguratorLink = ({ mobile = false }: { mobile?: boolean }) => (
-  <a
-    href="https://www.dns-shop.ru/configurator/"
-    target="_blank"
-    rel="noopener noreferrer"
-    aria-label="Открыть конфигуратор ПК DNS в новой вкладке"
-    className={
-      mobile
-        ? "flex shrink-0 items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
-        : "flex min-h-11 items-center gap-3 rounded-xl border border-transparent px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"
-    }
-  >
-    <Cpu size={mobile ? 15 : 18} aria-hidden="true" />
-    <span>Конфигуратор ПК</span>
-    <ExternalLink size={mobile ? 13 : 14} aria-hidden="true" />
-  </a>
-);
+import { getNavigationGroupsForRole } from "@/features/navigation/navigation-model";
+import {
+  DesktopSectionNavigation,
+  DnsConfiguratorLink,
+  MobileSectionNavigation,
+} from "@/features/navigation/section-navigation";
 
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
   const { user, ready, logout } = useAuth();
@@ -92,27 +59,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
     );
   }
 
-  const nav = links.filter((link) => {
-    if (link.to === "/shop") return user.role === "CUSTOMER";
-    if (link.to === "/support") return user.role === "ADMIN" || user.role === "CUSTOMER";
-    if (link.to === "/advertising") return user.role === "ADMIN";
-    if (link.to === "/offers") return user.role === "CUSTOMER";
-    if (link.to === "/catalog" || link.to === "/salary")
-      return user.role === "TECHNICIAN" || user.role === "ADMIN";
-    if (link.to === "/loyalty" || link.to === "/game") return user.role === "CUSTOMER";
-    if (link.to === "/devices") return user.role === "CUSTOMER";
-    return true;
-  });
-  const showChatsTab = ["ADMIN", "CUSTOMER", "TECHNICIAN"].includes(user.role);
-  const chatsLink = (
-    <Link
-      to="/chats"
-      className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition ${active === "/chats" ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
-    >
-      <RaccoonIcon motion="bounce" className="size-[18px] text-base" />
-      Чаты
-    </Link>
-  );
+  const navigationGroups = getNavigationGroupsForRole(user.role);
   return (
     <div className="app-shell min-h-dvh bg-slate-50/45 text-slate-900 dark:bg-transparent dark:text-[#edf2ff]">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)]">
@@ -122,34 +69,8 @@ export const AppShell = ({ active, children }: { active: string; children: React
           </span>
           UTP Servise
         </Link>
-        <p className="mt-8 px-3 text-xs font-semibold tracking-[0.16em] text-slate-400 uppercase">
-          Меню
-        </p>
-        <nav className="mt-3 grid gap-1">
-          {nav.map(({ to, label, motion }) => (
-            <Link
-              key={to}
-              to={to}
-              className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium transition ${active === to ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
-            >
-              <RaccoonIcon motion={motion} className="size-[18px] text-base" />
-              {label}
-            </Link>
-          ))}
-          <DnsConfiguratorLink />
-          {showChatsTab && chatsLink}
-          {user.role === "ADMIN" && (
-            <>
-              <Link
-                to="/admin"
-                className={`flex min-h-11 items-center gap-3 rounded-xl border px-3 text-sm font-medium ${active === "/admin" ? "border-[#405cc0]/50 bg-[#17264b] text-[#92eaff] dark:shadow-[inset_0_0_18px_rgba(77,120,255,0.12)]" : "border-transparent text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:border-[#26365f] dark:hover:bg-[#101a34]"}`}
-              >
-                <RaccoonIcon motion="wiggle" className="size-[18px] text-base" />
-                Администрирование
-              </Link>
-            </>
-          )}
-        </nav>
+        <DesktopSectionNavigation active={active} groups={navigationGroups} />
+        <DnsConfiguratorLink />
         <div className="mt-auto border-t border-slate-100 pt-4 dark:border-[#26365f]">
           <p className="truncate px-3 text-sm font-semibold">{user.displayName}</p>
           <p className="truncate px-3 pt-1 text-xs text-slate-500">{user.email}</p>
@@ -189,41 +110,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </button>
           </div>
         </header>
-        <nav className="flex gap-1 overflow-x-auto border-b border-slate-200 bg-white px-3 py-2 lg:hidden dark:border-[#26365f] dark:bg-[#080e20]">
-          {nav.map(({ to, label, motion }) => (
-            <Link
-              key={to}
-              to={to}
-              className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${active === to ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff]" : "border-transparent text-slate-600 dark:text-[#a8b5d4]"}`}
-            >
-              <RaccoonIcon motion={motion} className="size-[15px] text-sm" />
-              {label}
-            </Link>
-          ))}
-          <DnsConfiguratorLink mobile />
-          {showChatsTab && (
-            <Link
-              to="/chats"
-              className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium ${active === "/chats" ? "border-blue-100 bg-blue-50 text-blue-700 dark:border-[#405cc0]/50 dark:bg-[#17264b] dark:text-[#92eaff]" : "border-transparent text-slate-600 dark:text-[#a8b5d4]"}`}
-            >
-              <RaccoonIcon motion="bounce" className="size-[15px] text-sm" />
-              Чаты
-            </Link>
-          )}
-          {user.role === "ADMIN" && (
-            <>
-              <Link
-                to="/admin"
-                className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-slate-300"
-              >
-                <span className="inline-flex items-center gap-2">
-                  <RaccoonIcon motion="wiggle" className="size-[15px] text-sm" />
-                  Админ
-                </span>
-              </Link>
-            </>
-          )}
-        </nav>
+        <MobileSectionNavigation active={active} groups={navigationGroups} role={user.role} />
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">
           <div className="mb-5 flex justify-end">
             <AppInstallButton />

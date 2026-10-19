@@ -3,12 +3,15 @@ package ru.utp.servise.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -35,6 +38,18 @@ import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.NewsArticle
 import java.time.Instant
 
+private data class ManagementAction(
+    val title: String,
+    val description: String,
+    val icon: String,
+    val onClick: () -> Unit,
+)
+
+private data class ManagementActionGroup(
+    val title: String,
+    val actions: List<ManagementAction>,
+)
+
 @Composable
 fun AdminManagementScreen(
     onOverview: () -> Unit,
@@ -50,26 +65,100 @@ fun AdminManagementScreen(
     onSupportChats: () -> Unit,
     onCustomers: () -> Unit,
     onShopOrders: () -> Unit,
+    onSalary: () -> Unit,
 ) {
-    Column(
-        Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+    val groups = listOf(
+        ManagementActionGroup(
+            "Работа сервиса",
+            listOf(
+                ManagementAction(
+                    "Обзор сервиса",
+                    "Просрочки, выручка и популярные работы",
+                    "▦",
+                    onOverview,
+                ),
+                ManagementAction(
+                    "Расписание мастеров",
+                    "Заявки по удобному времени и загрузка",
+                    "◷",
+                    onSchedule,
+                ),
+                ManagementAction(
+                    "Закупка запчастей",
+                    "Пороговые остатки и детали в ремонте",
+                    "▣",
+                    onProcurement,
+                ),
+                ManagementAction(
+                    "Подтверждение заказов магазина",
+                    "Проверка наличия и дальнейшая выдача",
+                    "🛍",
+                    onShopOrders,
+                ),
+            ),
+        ),
+        ManagementActionGroup(
+            "Каталог и публикации",
+            listOf(
+                ManagementAction("Новости", "Создание черновиков и публикаций", "▤", onNews),
+                ManagementAction(
+                    "Каталог услуг и запчастей",
+                    "Позиции прайса и цены",
+                    "▧",
+                    onCatalog,
+                ),
+                ManagementAction("Рукоделия", "Изделия, цены, фото и заявки", "✿", onCrafts),
+                ManagementAction(
+                    "О компании",
+                    "Описание, контакты, услуги и медиа",
+                    "ℹ",
+                    onAbout,
+                ),
+                ManagementAction("Отзывы", "Отзывы клиентов о ремонтах", "★", onReviews),
+            ),
+        ),
+        ManagementActionGroup(
+            "Люди и выплаты",
+            listOf(
+                ManagementAction(
+                    "Чаты с запросом помощи",
+                    "Подключение администратора к беседе",
+                    "✉",
+                    onChats,
+                ),
+                ManagementAction("Чаты клиентов", "Ответы клиентам напрямую", "✉", onSupportChats),
+                ManagementAction("База клиентов", "Поиск, контакты и удаление записей", "♙", onCustomers),
+                ManagementAction("Сотрудники", "Мастера и административные аккаунты", "♙", onStaff),
+                ManagementAction("Зарплата мастеров", "Начисления и индивидуальные ставки", "₽", onSalary),
+            ),
+        ),
+    )
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().background(UtpPale),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Управление сервисом", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Каталог, публикации и сотрудники", fontSize = 13.sp, color = UtpMuted)
-        ManagementCard("Обзор сервиса", "Просрочки, выручка и популярные работы", "▦", onOverview)
-        ManagementCard("Расписание мастеров", "Заявки по удобному времени и загрузка", "◷", onSchedule)
-        ManagementCard("Закупка запчастей", "Пороговые остатки и детали в ремонте", "▣", onProcurement)
-        ManagementCard("Подтверждение заказов магазина", "Проверка наличия и дальнейшая выдача", "🛍", onShopOrders)
-        ManagementCard("Новости", "Создание черновиков и публикаций", "▤", onNews)
-        ManagementCard("Каталог услуг и запчастей", "Позиции прайса и цены", "▧", onCatalog)
-        ManagementCard("Чаты с запросом помощи", "Подключение администратора к беседе", "✉", onChats)
-        ManagementCard("Чаты клиентов", "Ответы клиентам напрямую", "✉", onSupportChats)
-        ManagementCard("База клиентов", "Поиск, контакты и удаление записей", "♙", onCustomers)
-        ManagementCard("Сотрудники", "Мастера и административные аккаунты", "♙", onStaff)
-        ManagementCard("Отзывы", "Отзывы клиентов о ремонтах", "★", onReviews)
-        ManagementCard("Рукоделия", "Изделия, цены, фото и заявки", "✿", onCrafts)
-        ManagementCard("О компании", "Описание, контакты, услуги и медиа", "ℹ", onAbout)
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Управление сервисом", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text("Разделы сгруппированы по задачам", fontSize = 13.sp, color = UtpMuted)
+            }
+        }
+        groups.forEach { group ->
+            item(key = "management-heading-${group.title}") {
+                Text(
+                    group.title,
+                    modifier = Modifier.padding(top = 8.dp),
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = UtpInk,
+                )
+            }
+            items(group.actions, key = { it.title }) { action ->
+                ManagementCard(action.title, action.description, action.icon, action.onClick)
+            }
+        }
     }
 }
 
