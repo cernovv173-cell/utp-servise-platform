@@ -200,14 +200,18 @@ never switches the bot to `getUpdates` polling. The Telegram token is bound only
 
 MAX links use the bot's username from `GET /me` and the official `https://max.ru/<botName>?start=<payload>`
 deep-link format. The MAX webhook handles `bot_started` link confirmations and `bot_stopped` disconnects;
-it registers and validates the connected integration's `MAX_WEBHOOK_SECRET` using a constant-time comparison.
-Production startup registers the webhook at
-`MAX_WEBHOOK_URL` only when no different subscription exists. MAX API requests use the official
-`platform-api2.max.ru` host, send the token only in the `Authorization` header, and are paced to stay
-within the per-dialog message limit. Keep `MAX_BOT_TOKEN`, `MAX_WEBHOOK_SECRET`, and `MAX_WEBHOOK_URL`
-bound only to the API.
-Until MAX is connected and these server variables are available, MAX linking and live delivery remain
-disabled; Telegram remains operational independently.
+it validates the configured webhook secret using a constant-time comparison. Production startup registers
+the webhook at `MAX_WEBHOOK_URL` only when no different subscription exists. MAX API requests use the
+official `platform-api2.max.ru` host and a dedicated HTTPS agent that trusts the Russian Trusted Root CA
+only for MAX API calls; TLS verification remains enabled. The certificate is stored in
+`certificates/russian-trusted-root-ca.pem`, downloaded from
+`https://gu-st.ru/content/lending/russian_trusted_root_ca_pem.crt`, and checked against the MAX
+intermediate certificate chain. Requests send the token only in the `Authorization` header and are paced
+to stay within the per-dialog message limit. `MAX_WEBHOOK_SIGNING_SECRET` is the API-owned webhook secret
+and takes precedence over the optional integration-provided `MAX_WEBHOOK_SECRET`; both, along with
+`MAX_BOT_TOKEN` and `MAX_WEBHOOK_URL`, must be bound only to the API. Until a production release has
+registered the webhook and each customer links MAX in their profile, MAX notifications are not delivered;
+Telegram remains operational independently.
 
 Yandex ID login accepts an OAuth access token at `POST /auth/yandex`; the server verifies it with
 Yandex ID and checks the returned OAuth client ID against `YANDEX_CLIENT_ID`. The OAuth app needs

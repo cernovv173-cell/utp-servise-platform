@@ -11,6 +11,7 @@ import {
 import { createMaxRouter } from "../src/features/max/max.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
+import { mockMaxApiRequests } from "./helpers/mock-max-api.js";
 
 const restoreEnvironment = (name: string, value: string | undefined): void => {
   if (value === undefined) delete process.env[name];
@@ -20,19 +21,21 @@ const restoreEnvironment = (name: string, value: string | undefined): void => {
 test("MAX deep-link confirmation is one-time and updates only MAX account state", async (t) => {
   const previousEnvironment = {
     token: process.env.MAX_BOT_TOKEN,
-    webhookSecret: process.env.MAX_WEBHOOK_SECRET,
+    integrationSecret: process.env.MAX_WEBHOOK_SECRET,
+    signingSecret: process.env.MAX_WEBHOOK_SIGNING_SECRET,
     webhookUrl: process.env.MAX_WEBHOOK_URL,
-    proxyUrl: process.env.AMAZI_PROXY_URL,
-    proxyKey: process.env.AMAZI_PROXY_KEY,
   };
-  const previousFetch = globalThis.fetch;
   const botToken = "test-token-only-not-a-live-credential";
   const webhookSecret = "test-webhook-secret-only-not-a-live-secret";
   process.env.MAX_BOT_TOKEN = botToken;
-  process.env.MAX_WEBHOOK_SECRET = webhookSecret;
+  process.env.MAX_WEBHOOK_SIGNING_SECRET = webhookSecret;
+  delete process.env.MAX_WEBHOOK_SECRET;
   process.env.MAX_WEBHOOK_URL = "https://api.example.test/api/max/webhook";
-  delete process.env.AMAZI_PROXY_URL;
-  delete process.env.AMAZI_PROXY_KEY;
+  const maxApiMock = mockMaxApiRequests((request) =>
+    request.url.endsWith("/me")
+      ? { body: { username: "service_bot" } }
+      : { body: { message: {} } },
+  );
 
   const customerId = "22222222-2222-4222-8222-222222222222";
   const sessionToken = "S".repeat(48);
@@ -101,18 +104,8 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
         : Promise.all(operation as Promise<unknown>[]),
   };
 
-  globalThis.fetch = async (input, init) => {
-    const url = String(input);
-    if (new URL(url).hostname === "127.0.0.1") {
-      return previousFetch(input, init);
-    }
-    if (url.endsWith("/me")) return Response.json({ username: "service_bot" });
-    assert.equal(new URL(url).hostname, "platform-api2.max.ru");
-    assert.equal(init?.method, "POST");
-    return Response.json({ message: {} });
-  };
-
   try {
+    assert.equal(maxWebhookSecret(), webhookSecret);
     const app = express();
     app.use(express.json());
     app.use("/api", createMaxRouter(database as unknown as DatabaseClient));
@@ -120,17 +113,6 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
     const server = app.listen(0);
     await once(server, "listening");
     t.after(() => server.close());
-    t.after(() => {
-      globalThis.fetch = previousFetch;
-      restoreEnvironment("MAX_BOT_TOKEN", previousEnvironment.token);
-      restoreEnvironment(
-        "MAX_WEBHOOK_SECRET",
-        previousEnvironment.webhookSecret,
-      );
-      restoreEnvironment("MAX_WEBHOOK_URL", previousEnvironment.webhookUrl);
-      restoreEnvironment("AMAZI_PROXY_URL", previousEnvironment.proxyUrl);
-      restoreEnvironment("AMAZI_PROXY_KEY", previousEnvironment.proxyKey);
-    });
 
     const address = server.address();
     assert.ok(address && typeof address !== "string");
@@ -177,6 +159,12 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
     assert.equal(firstConfirmation.status, 200);
     assert.equal(linkedMaxUserId, "987654321");
     assert.equal(accountLinkWrites, 1);
+    assert.equal(
+      maxApiMock.requests[0]?.url,
+      "https://platform-api2.max.ru/me",
+    );
+    assert.equal(maxApiMock.requests[0]?.authorization, botToken);
+    assert.equal(maxApiMock.requests[1]?.method, "POST");
 
     const repeatedConfirmation = await fetch(`${baseUrl}/max/webhook`, {
       method: "POST",
@@ -192,11 +180,16 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
       connected: true,
     });
   } finally {
-    globalThis.fetch = previousFetch;
+    maxApiMock.restore();
     restoreEnvironment("MAX_BOT_TOKEN", previousEnvironment.token);
-    restoreEnvironment("MAX_WEBHOOK_SECRET", previousEnvironment.webhookSecret);
+    restoreEnvironment(
+      "MAX_WEBHOOK_SECRET",
+      previousEnvironment.integrationSecret,
+    );
+    restoreEnvironment(
+      "MAX_WEBHOOK_SIGNING_SECRET",
+      previousEnvironment.signingSecret,
+    );
     restoreEnvironment("MAX_WEBHOOK_URL", previousEnvironment.webhookUrl);
-    restoreEnvironment("AMAZI_PROXY_URL", previousEnvironment.proxyUrl);
-    restoreEnvironment("AMAZI_PROXY_KEY", previousEnvironment.proxyKey);
   }
 });

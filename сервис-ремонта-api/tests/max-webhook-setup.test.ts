@@ -3,6 +3,7 @@ import { test } from "node:test";
 import type { Logger } from "pino";
 
 import { setupMaxWebhookIfUnclaimed } from "../src/features/max/max-webhook-setup.js";
+import { mockMaxApiRequests } from "./helpers/mock-max-api.js";
 
 const restoreEnvironment = (name: string, value: string | undefined): void => {
   if (value === undefined) delete process.env[name];
@@ -16,40 +17,39 @@ const withMaxEnvironment = async (
   const previousEnvironment = {
     token: process.env.MAX_BOT_TOKEN,
     webhookSecret: process.env.MAX_WEBHOOK_SECRET,
+    signingSecret: process.env.MAX_WEBHOOK_SIGNING_SECRET,
     webhookUrl: process.env.MAX_WEBHOOK_URL,
-    proxyUrl: process.env.AMAZI_PROXY_URL,
-    proxyKey: process.env.AMAZI_PROXY_KEY,
   };
-  const previousFetch = globalThis.fetch;
   process.env.MAX_BOT_TOKEN = "test-token-only-not-a-live-credential";
-  process.env.MAX_WEBHOOK_SECRET = "test-webhook-secret-only-not-live";
+  process.env.MAX_WEBHOOK_SIGNING_SECRET = "test-signing-secret-only-not-live";
+  delete process.env.MAX_WEBHOOK_SECRET;
   process.env.MAX_WEBHOOK_URL = "https://api.example.test/api/max/webhook";
-  delete process.env.AMAZI_PROXY_URL;
-  delete process.env.AMAZI_PROXY_KEY;
   const calls: string[] = [];
-  globalThis.fetch = async (input, init) => {
-    const path = new URL(String(input)).pathname;
-    calls.push(`${init?.method ?? "GET"} ${path}`);
+  const mock = mockMaxApiRequests((request) => {
+    const path = new URL(request.url).pathname;
+    calls.push(`${request.method} ${path}`);
     if (path === "/me") {
       return meStatus === 200
-        ? Response.json({ username: "service_bot" })
-        : Response.json({ error: "unavailable" }, { status: meStatus });
+        ? { body: { username: "service_bot" } }
+        : { status: meStatus, body: { error: "unavailable" } };
     }
-    if (path === "/subscriptions" && init?.method !== "POST") {
-      return Response.json({ subscriptions: [] });
+    if (path === "/subscriptions" && request.method !== "POST") {
+      return { body: { subscriptions: [] } };
     }
-    return Response.json({ success: true });
-  };
+    return { body: { success: true } };
+  });
 
   try {
     await run(calls);
   } finally {
-    globalThis.fetch = previousFetch;
+    mock.restore();
     restoreEnvironment("MAX_BOT_TOKEN", previousEnvironment.token);
     restoreEnvironment("MAX_WEBHOOK_SECRET", previousEnvironment.webhookSecret);
+    restoreEnvironment(
+      "MAX_WEBHOOK_SIGNING_SECRET",
+      previousEnvironment.signingSecret,
+    );
     restoreEnvironment("MAX_WEBHOOK_URL", previousEnvironment.webhookUrl);
-    restoreEnvironment("AMAZI_PROXY_URL", previousEnvironment.proxyUrl);
-    restoreEnvironment("AMAZI_PROXY_KEY", previousEnvironment.proxyKey);
   }
 };
 

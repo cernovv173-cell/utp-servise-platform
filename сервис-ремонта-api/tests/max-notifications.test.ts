@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   getMaxBotProfile,
+  hasMaxWebhookSecret,
   isMaxWebhookSecretValid,
   maxWebhookSecret,
   sendMaxMessage,
@@ -11,6 +12,7 @@ import {
   formatMaxRepairNotification,
   maxRetryDelayMilliseconds,
 } from "../src/features/max/max-notifications.js";
+import { mockMaxApiRequests } from "./helpers/mock-max-api.js";
 
 const restoreEnvironment = (name: string, value: string | undefined): void => {
   if (value === undefined) delete process.env[name];
@@ -47,60 +49,73 @@ test("formats repair notifications and bounds MAX retry delays", () => {
   assert.equal(maxRetryDelayMilliseconds(20), 6 * 60 * 60 * 1_000);
 });
 
-test("derives a valid webhook secret without exposing the MAX token", () => {
-  const previous = process.env.MAX_WEBHOOK_SECRET;
-  const secret = "test-webhook-secret-only-not-a-live-secret";
-  process.env.MAX_WEBHOOK_SECRET = secret;
+test("prefers the API-owned webhook secret and validates its fallback", () => {
+  const previous = {
+    integrationSecret: process.env.MAX_WEBHOOK_SECRET,
+    signingSecret: process.env.MAX_WEBHOOK_SIGNING_SECRET,
+  };
+  const signingSecret = "test-signing-secret-only-not-a-live-secret";
+  const integrationSecret = "test-integration-secret-only-not-live";
+  process.env.MAX_WEBHOOK_SIGNING_SECRET = signingSecret;
+  process.env.MAX_WEBHOOK_SECRET = integrationSecret;
   try {
-    assert.equal(maxWebhookSecret(), secret);
-    assert.equal(isMaxWebhookSecretValid(secret), true);
+    assert.equal(hasMaxWebhookSecret(), true);
+    assert.equal(maxWebhookSecret(), signingSecret);
+    assert.equal(isMaxWebhookSecretValid(signingSecret), true);
     assert.equal(isMaxWebhookSecretValid("not-the-secret"), false);
     assert.equal(isMaxWebhookSecretValid(undefined), false);
+    delete process.env.MAX_WEBHOOK_SIGNING_SECRET;
+    assert.equal(maxWebhookSecret(), integrationSecret);
     process.env.MAX_WEBHOOK_SECRET = "invalid webhook secret";
-    assert.equal(isMaxWebhookSecretValid(secret), false);
+    assert.equal(hasMaxWebhookSecret(), false);
+    assert.equal(isMaxWebhookSecretValid(signingSecret), false);
   } finally {
-    restoreEnvironment("MAX_WEBHOOK_SECRET", previous);
+    restoreEnvironment("MAX_WEBHOOK_SECRET", previous.integrationSecret);
+    restoreEnvironment("MAX_WEBHOOK_SIGNING_SECRET", previous.signingSecret);
   }
 });
 
 test("uses the official MAX API host and keeps the bot token in the auth header", async () => {
   const previousEnvironment = {
     token: process.env.MAX_BOT_TOKEN,
-    proxyUrl: process.env.AMAZI_PROXY_URL,
-    proxyKey: process.env.AMAZI_PROXY_KEY,
+    integrationSecret: process.env.MAX_WEBHOOK_SECRET,
+    signingSecret: process.env.MAX_WEBHOOK_SIGNING_SECRET,
   };
-  const previousFetch = globalThis.fetch;
   const token = "test-token-only-not-a-live-credential";
   process.env.MAX_BOT_TOKEN = token;
-  delete process.env.AMAZI_PROXY_URL;
-  delete process.env.AMAZI_PROXY_KEY;
-  const calls: Array<{ url: string; method?: string; body?: string }> = [];
-  globalThis.fetch = async (input, init) => {
-    const url = String(input);
-    calls.push({ url, method: init?.method, body: init?.body?.toString() });
-    assert.equal(new Headers(init?.headers).get("authorization"), token);
-    if (url.endsWith("/me")) return Response.json({ username: "service_bot" });
-    return Response.json({ message: {} });
-  };
+  process.env.MAX_WEBHOOK_SECRET = "integration-secret-only-for-test";
+  delete process.env.MAX_WEBHOOK_SIGNING_SECRET;
+  const mock = mockMaxApiRequests((request) =>
+    request.url.endsWith("/me")
+      ? { body: { username: "service_bot" } }
+      : { body: { message: {} } },
+  );
 
   try {
     assert.deepEqual(await getMaxBotProfile(), { username: "service_bot" });
     await sendMaxMessage("123456789", "Устройство принято");
-    assert.equal(calls[0]?.url, "https://platform-api2.max.ru/me");
-    assert.equal(calls[1]?.method, "POST");
+    assert.equal(mock.requests[0]?.url, "https://platform-api2.max.ru/me");
+    assert.equal(mock.requests[0]?.authorization, token);
+    assert.equal(mock.requests[1]?.method, "POST");
     assert.equal(
-      calls[1]?.url,
+      mock.requests[1]?.url,
       "https://platform-api2.max.ru/messages?user_id=123456789",
     );
     assert.equal(
-      calls[1]?.body,
+      mock.requests[1]?.body,
       JSON.stringify({ text: "Устройство принято" }),
     );
-    assert.ok(calls.every((call) => !call.url.includes(token)));
+    assert.ok(mock.requests.every((request) => !request.url.includes(token)));
   } finally {
-    globalThis.fetch = previousFetch;
+    mock.restore();
     restoreEnvironment("MAX_BOT_TOKEN", previousEnvironment.token);
-    restoreEnvironment("AMAZI_PROXY_URL", previousEnvironment.proxyUrl);
-    restoreEnvironment("AMAZI_PROXY_KEY", previousEnvironment.proxyKey);
+    restoreEnvironment(
+      "MAX_WEBHOOK_SECRET",
+      previousEnvironment.integrationSecret,
+    );
+    restoreEnvironment(
+      "MAX_WEBHOOK_SIGNING_SECRET",
+      previousEnvironment.signingSecret,
+    );
   }
 });

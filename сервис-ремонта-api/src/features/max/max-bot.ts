@@ -1,4 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
+import https from "node:https";
 
 export type MaxBotProfile = {
   readonly username: string;
@@ -22,8 +24,16 @@ export class MaxApiError extends Error {
 export const hasMaxBotToken = (): boolean =>
   Boolean(process.env.MAX_BOT_TOKEN?.trim());
 
+const configuredWebhookSecrets = (): string[] =>
+  [process.env.MAX_WEBHOOK_SIGNING_SECRET, process.env.MAX_WEBHOOK_SECRET]
+    .map((secret) => secret?.trim())
+    .filter(
+      (secret): secret is string =>
+        typeof secret === "string" && /^[A-Za-z0-9_-]{5,256}$/u.test(secret),
+    );
+
 export const hasMaxWebhookSecret = (): boolean =>
-  /^[A-Za-z0-9_-]{5,256}$/u.test(process.env.MAX_WEBHOOK_SECRET?.trim() ?? "");
+  configuredWebhookSecrets().length > 0;
 
 const getBotToken = (): string => {
   const token = process.env.MAX_BOT_TOKEN?.trim();
@@ -32,10 +42,8 @@ const getBotToken = (): string => {
 };
 
 export const maxWebhookSecret = (): string => {
-  const secret = process.env.MAX_WEBHOOK_SECRET?.trim();
-  if (!secret || !hasMaxWebhookSecret()) {
-    throw new MaxApiError("NOT_CONFIGURED");
-  }
+  const secret = configuredWebhookSecrets()[0];
+  if (!secret) throw new MaxApiError("NOT_CONFIGURED");
   return secret;
 };
 
@@ -56,6 +64,14 @@ export const isMaxWebhookSecretValid = (value: string | undefined): boolean => {
 };
 
 const apiUrl = (path: string): string => `https://platform-api2.max.ru${path}`;
+const maxApiAgent = new https.Agent({
+  ca: readFileSync(
+    new URL(
+      "../../../certificates/russian-trusted-root-ca.pem",
+      import.meta.url,
+    ),
+  ),
+});
 
 const maxRequest = async <T>(
   path: string,
@@ -66,60 +82,52 @@ const maxRequest = async <T>(
   const method = options.method ?? "GET";
   const body =
     options.body === undefined ? undefined : JSON.stringify(options.body);
-  const proxyUrl = process.env.AMAZI_PROXY_URL?.trim();
-  const proxyKey = process.env.AMAZI_PROXY_KEY?.trim();
-  const proxyConfigured = Boolean(proxyUrl && proxyKey);
-  if (Boolean(proxyUrl) !== Boolean(proxyKey)) {
-    throw new MaxApiError("NOT_CONFIGURED");
-  }
+  return new Promise<T>((resolve, reject) => {
+    const request = https.request(
+      url,
+      {
+        method,
+        agent: maxApiAgent,
+        headers: {
+          authorization: token,
+          ...(body ? { "content-type": "application/json" } : {}),
+        },
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.once("error", () => reject(new MaxApiError("NETWORK")));
+        response.once("end", () => {
+          const statusCode = response.statusCode ?? 0;
+          if (statusCode < 200 || statusCode >= 300) {
+            const retryAfter = Number(response.headers["retry-after"]);
+            reject(
+              new MaxApiError(
+                "API_ERROR",
+                statusCode,
+                Number.isFinite(retryAfter) && retryAfter > 0
+                  ? retryAfter
+                  : undefined,
+              ),
+            );
+            return;
+          }
 
-  let response: Response;
-  try {
-    response = proxyConfigured
-      ? await fetch(proxyUrl!, {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${proxyKey}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            url,
-            method,
-            headers: {
-              authorization: token,
-              ...(body ? { "content-type": "application/json" } : {}),
-            },
-            ...(body ? { body, bodyEncoding: "utf8" } : {}),
-          }),
-          signal: AbortSignal.timeout(10_000),
-        })
-      : await fetch(url, {
-          method,
-          headers: {
-            authorization: token,
-            ...(body ? { "content-type": "application/json" } : {}),
-          },
-          ...(body ? { body } : {}),
-          signal: AbortSignal.timeout(10_000),
+          try {
+            resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")) as T);
+          } catch {
+            reject(new MaxApiError("API_ERROR", statusCode));
+          }
         });
-  } catch {
-    throw new MaxApiError("NETWORK");
-  }
-
-  if (!response.ok) {
-    const retryAfter = Number(response.headers.get("retry-after"));
-    throw new MaxApiError(
-      "API_ERROR",
-      response.status,
-      Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : undefined,
+      },
     );
-  }
-
-  try {
-    return (await response.json()) as T;
-  } catch {
-    throw new MaxApiError("API_ERROR", response.status);
-  }
+    request.setTimeout(10_000, () => {
+      request.destroy();
+    });
+    request.once("error", () => reject(new MaxApiError("NETWORK")));
+    if (body) request.write(body);
+    request.end();
+  });
 };
 
 export const getMaxBotProfile = async (): Promise<MaxBotProfile> => {
