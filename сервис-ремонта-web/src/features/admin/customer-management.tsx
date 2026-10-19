@@ -1,8 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
+import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/modal";
 
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -10,6 +19,7 @@ import {
   type AdminCustomer,
   type NewAdminCustomer,
   createAdminCustomer,
+  deleteAdminCustomer,
   getAdminCustomers,
   updateAdminCustomer,
 } from "@/lib/api";
@@ -98,6 +108,8 @@ export const CustomerManagement = () => {
   const [page, setPage] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [createdCustomer, setCreatedCustomer] = useState<NewAdminCustomer | null>(null);
+  const [deletingCustomer, setDeletingCustomer] = useState<AdminCustomer | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const customersQuery = useQuery({
     queryKey: ["admin-customers", token, search, page],
     queryFn: ({ signal }) => getAdminCustomers(token!, search, page, 20, signal),
@@ -131,6 +143,22 @@ export const CustomerManagement = () => {
       await invalidate();
     },
     onError: () => toast.error("Не удалось сохранить данные клиента."),
+  });
+  const remove = useMutation({
+    mutationFn: (customerId: string) => deleteAdminCustomer(token!, customerId),
+    onSuccess: async ({ customer }) => {
+      setDeletingCustomer(null);
+      setDeleteConfirmation("");
+      setEditingId(null);
+      toast.success(
+        `Клиент ${customer.displayName} и его история удалены без возможности восстановления.`,
+      );
+      await queryClient.invalidateQueries();
+    },
+    onError: () =>
+      toast.error(
+        "Не удалось завершить удаление. Учётная запись могла быть отключена — попробуйте удалить клиента ещё раз.",
+      ),
   });
   const customers = customersQuery.data?.customers ?? [];
   const pagination = customersQuery.data?.pagination;
@@ -237,7 +265,9 @@ export const CustomerManagement = () => {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-semibold">База клиентов</h2>
-            <p className="mt-1 text-sm text-slate-500">Поиск и редактирование контактных данных.</p>
+            <p className="mt-1 text-sm text-slate-500">
+              Поиск, редактирование и безвозвратное удаление клиента вместе со связанными записями.
+            </p>
           </div>
           <form
             className="flex w-full gap-2 sm:w-auto"
@@ -282,13 +312,27 @@ export const CustomerManagement = () => {
                       {customer.active ? "Активен" : "Отключён"}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(editingId === customer.id ? null : customer.id)}
-                    className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
-                  >
-                    {editingId === customer.id ? "Закрыть" : "Изменить"}
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(editingId === customer.id ? null : customer.id)}
+                      className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
+                    >
+                      {editingId === customer.id ? "Закрыть" : "Изменить"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingId(null);
+                        setDeleteConfirmation("");
+                        setDeletingCustomer(customer);
+                      }}
+                      disabled={remove.isPending}
+                      className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
+                    >
+                      <Trash2 size={16} /> Удалить навсегда
+                    </button>
+                  </div>
                 </div>
                 {editingId === customer.id && (
                   <CustomerEditor
@@ -326,6 +370,72 @@ export const CustomerManagement = () => {
           </div>
         )}
       </SectionCard>
+
+      <Modal
+        open={Boolean(deletingCustomer)}
+        onOpenChange={(open) => {
+          if (!open && !remove.isPending) {
+            setDeletingCustomer(null);
+            setDeleteConfirmation("");
+          }
+        }}
+      >
+        <ModalContent>
+          <ModalHeader>
+            <ModalTitle>Удалить клиента и всю историю?</ModalTitle>
+            <ModalDescription>
+              Это действие нельзя отменить. Будут удалены аккаунт и доступ клиента, заявки и
+              ремонты, чеки и связанные расчёты выплат, устройства, фотографии, переписки, отзывы,
+              бонусы, рефералы, участие в акциях и игровой прогресс. Остатки склада не
+              пересчитываются. Записи других клиентов и общие справочники останутся.
+            </ModalDescription>
+          </ModalHeader>
+          {deletingCustomer && (
+            <div className="mt-4 grid gap-2">
+              <p className="text-sm font-medium">
+                {deletingCustomer.displayName} · {deletingCustomer.email}
+              </p>
+              <label className="grid gap-1 text-sm font-medium">
+                Для подтверждения введите электронную почту клиента
+                <input
+                  autoComplete="off"
+                  autoFocus
+                  value={deleteConfirmation}
+                  onChange={(event) => setDeleteConfirmation(event.target.value)}
+                  className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
+                />
+              </label>
+            </div>
+          )}
+          <ModalFooter>
+            <button
+              type="button"
+              disabled={remove.isPending}
+              onClick={() => {
+                setDeletingCustomer(null);
+                setDeleteConfirmation("");
+              }}
+              className="min-h-10 rounded-lg border border-slate-200 px-4 text-sm font-medium disabled:opacity-50 dark:border-slate-700"
+            >
+              Отмена
+            </button>
+            <button
+              type="button"
+              disabled={
+                remove.isPending ||
+                !deletingCustomer ||
+                deleteConfirmation !== deletingCustomer.email
+              }
+              onClick={() => {
+                if (deletingCustomer) remove.mutate(deletingCustomer.id);
+              }}
+              className="min-h-10 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {remove.isPending ? "Удаляем…" : "Удалить навсегда"}
+            </button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </div>
   );
 };

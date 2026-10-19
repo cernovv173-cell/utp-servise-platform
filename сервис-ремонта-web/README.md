@@ -164,6 +164,13 @@ the generated temporary password is shown once after account creation, and the c
 it at first sign-in. If order creation fails after account registration, the client remains in the
 customer list and the order can be retried for that account.
 
+On `/admin/customers`, administrators can permanently delete a customer after entering the customer's
+email in a confirmation dialog. This removes the account and its linked repair/craft orders, receipts,
+related payroll entries, devices, chats, reviews, bonus and referral records, offer participation,
+game progress, and customer photos. The operation cannot be undone; stock balances are not restored.
+If a photo cannot be removed from storage, the customer's access is disabled and the administrator can
+retry the deletion.
+
 Orders are automatically archived after their creation day in the `Europe/Moscow` time zone. The
 active/archive tabs on `/orders` and `/admin/orders` load separate role-authorized lists; archiving
 preserves the order and its status. The dark interface uses the existing `repair-nebula-bg.png`

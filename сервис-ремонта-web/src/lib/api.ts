@@ -998,6 +998,11 @@ export const updateAdminCustomer = (
     body: JSON.stringify(input),
   });
 
+export const deleteAdminCustomer = (token: string, customerId: string) =>
+  apiRequest<{
+    customer: Pick<AdminCustomer, "id" | "email" | "displayName">;
+  }>(`/admin/customers/${customerId}`, token, { method: "DELETE" });
+
 export const createRepairCatalogItem = (
   token: string,
   input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
@@ -1340,20 +1345,13 @@ export const participateInCustomerOffer = (token: string, offerId: string) =>
 export const getAdminCustomerOffers = (token: string, signal?: AbortSignal) =>
   apiRequest<{ offers: AdminCustomerOffer[] }>("/admin/offers", token, { signal });
 
-export const createAdminCustomerOffer = (
-  token: string,
-  offer: CreateCustomerOfferInput,
-) =>
+export const createAdminCustomerOffer = (token: string, offer: CreateCustomerOfferInput) =>
   apiRequest<{ offer: AdminCustomerOffer }>("/admin/offers", token, {
     method: "POST",
     body: JSON.stringify(offer),
   });
 
-export const updateAdminCustomerOffer = (
-  token: string,
-  offerId: string,
-  isPublished: boolean,
-) =>
+export const updateAdminCustomerOffer = (token: string, offerId: string, isPublished: boolean) =>
   apiRequest<{ offer: AdminCustomerOffer }>(`/admin/offers/${offerId}`, token, {
     method: "PATCH",
     body: JSON.stringify({ isPublished }),
@@ -1364,15 +1362,10 @@ export const drawAdminCustomerOffer = (token: string, offerId: string) =>
     method: "POST",
   });
 
-export const publishAdminCustomerOfferResults = (
-  token: string,
-  offerId: string,
-) =>
-  apiRequest<{ offer: AdminCustomerOffer }>(
-    `/admin/offers/${offerId}/publish-results`,
-    token,
-    { method: "POST" },
-  );
+export const publishAdminCustomerOfferResults = (token: string, offerId: string) =>
+  apiRequest<{ offer: AdminCustomerOffer }>(`/admin/offers/${offerId}/publish-results`, token, {
+    method: "POST",
+  });
 
 export const createBanner = (token: string, banner: Omit<SiteBanner, "id" | "imageObjectId">) =>
   apiRequest<{ banner: SiteBanner }>("/banners", token, {

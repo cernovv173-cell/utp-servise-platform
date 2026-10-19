@@ -11,6 +11,11 @@ import {
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
 import { generateTemporaryPassword, hashPassword } from "../auth/passwords.js";
+import {
+  type MediaStorage,
+  projectMediaStorage,
+} from "../media/media-storage.js";
+import { deleteCustomerAndData } from "./customer-deletion.js";
 
 const customerQuery = paginationQuerySchema.extend({
   search: z.string().trim().max(120).default(""),
@@ -63,7 +68,16 @@ const isUniqueViolation = (error: unknown): boolean =>
   "code" in error &&
   error.code === "P2002";
 
-export const createCustomerAdminRouter = (database: DatabaseClient): Router => {
+const isForeignKeyViolation = (error: unknown): boolean =>
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  (error.code === "P2003" || error.code === "23503");
+
+export const createCustomerAdminRouter = (
+  database: DatabaseClient,
+  storage: MediaStorage = projectMediaStorage,
+): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
 
@@ -208,6 +222,37 @@ export const createCustomerAdminRouter = (database: DatabaseClient): Router => {
             ),
           );
         else next(error);
+      }
+    },
+  );
+
+  router.delete(
+    "/admin/customers/:customerId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: customerIdParams }),
+    async (_request, response, next) => {
+      const { customerId } =
+        paramsOf<z.infer<typeof customerIdParams>>(response);
+      try {
+        const customer = await deleteCustomerAndData(
+          database,
+          storage,
+          customerId,
+        );
+        response.json({ customer });
+      } catch (error) {
+        if (isForeignKeyViolation(error)) {
+          next(
+            new HttpError(
+              409,
+              "CUSTOMER_DELETE_BLOCKED",
+              "Не удалось удалить все записи клиента. Учётная запись отключена; повторите попытку позже.",
+            ),
+          );
+          return;
+        }
+        next(error);
       }
     },
   );
