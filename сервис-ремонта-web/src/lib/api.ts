@@ -1223,6 +1223,11 @@ export const changePassword = (token: string, currentPassword: string, newPasswo
     body: JSON.stringify({ currentPassword, newPassword }),
   });
 
+export const deleteOwnAccount = (token: string) =>
+  apiRequest<{ deleted: boolean }>("/customer/account", token, {
+    method: "DELETE",
+  });
+
 export const setExpectedCompletion = (
   token: string,
   orderId: string,

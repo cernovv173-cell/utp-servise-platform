@@ -4,11 +4,21 @@ import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
+import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/modal";
 
+import { clearCustomerLocalData } from "@/features/account/account-local-data";
 import { useAuth } from "@/features/auth/auth-context";
 
 import {
   changePassword,
+  deleteOwnAccount,
   disconnectMax,
   disconnectTelegram,
   getMaxStatus,
@@ -28,6 +38,7 @@ const AccountPage = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [telegramLink, setTelegramLink] = useState<{ url: string; expiresAt: string } | null>(null);
   const [maxLink, setMaxLink] = useState<{ url: string; expiresAt: string } | null>(null);
   const telegramStatus = useQuery({
@@ -99,6 +110,14 @@ const AccountPage = () => {
     },
     onError: () =>
       setPasswordError("Не удалось сменить пароль. Проверьте текущий пароль и повторите попытку."),
+  });
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => deleteOwnAccount(token!),
+    onSuccess: () => {
+      if (user?.role === "CUSTOMER") clearCustomerLocalData(user.id);
+      toast.success("Аккаунт и связанные данные удалены.");
+      logout();
+    },
   });
   const submitPassword = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -383,7 +402,77 @@ const AccountPage = () => {
             Выйти из аккаунта
           </button>
         </SectionCard>
+        {user?.role === "CUSTOMER" && (
+          <SectionCard className="border-rose-200 dark:border-rose-900">
+            <h2 className="font-semibold text-rose-700 dark:text-rose-300">Удаление аккаунта</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Вы можете удалить свой аккаунт прямо здесь. Это действие нельзя отменить.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                deleteAccountMutation.reset();
+                setDeleteDialogOpen(true);
+              }}
+              className="mt-4 min-h-10 rounded-xl border border-rose-300 px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/40"
+            >
+              Удалить аккаунт
+            </button>
+            {deleteAccountMutation.isError && !deleteDialogOpen && (
+              <p role="alert" className="mt-3 text-sm text-rose-600 dark:text-rose-300">
+                Не удалось завершить запрос. Проверьте соединение и попробуйте ещё раз.
+              </p>
+            )}
+          </SectionCard>
+        )}
       </div>
+      {user?.role === "CUSTOMER" && (
+        <Modal
+          open={deleteDialogOpen}
+          onOpenChange={(open) => {
+            if (!deleteAccountMutation.isPending) setDeleteDialogOpen(open);
+          }}
+        >
+          <ModalContent className="border-slate-200 bg-white text-slate-950 dark:border-slate-700 dark:bg-slate-900 dark:text-white">
+            <ModalHeader>
+              <ModalTitle>Удалить аккаунт безвозвратно?</ModalTitle>
+              <ModalDescription asChild>
+                <div className="mt-3 space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                  <p>
+                    Будут удалены аккаунт и связанные данные: заявки и история ремонтов, заказы
+                    магазина и изделий, переписки, отзывы, фотографии, бонусы и игровой прогресс.
+                    Незавершённые заявки тоже будут удалены.
+                  </p>
+                  <p>Восстановить аккаунт и данные после удаления нельзя.</p>
+                </div>
+              </ModalDescription>
+            </ModalHeader>
+            {deleteAccountMutation.isError && (
+              <p role="alert" className="mt-4 text-sm text-rose-600 dark:text-rose-300">
+                Не удалось завершить запрос. Проверьте соединение и попробуйте ещё раз позже.
+              </p>
+            )}
+            <ModalFooter>
+              <button
+                type="button"
+                onClick={() => setDeleteDialogOpen(false)}
+                disabled={deleteAccountMutation.isPending}
+                className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                disabled={deleteAccountMutation.isPending}
+                onClick={() => deleteAccountMutation.mutate()}
+                className="min-h-10 rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
+              >
+                {deleteAccountMutation.isPending ? "Удаляем…" : "Удалить навсегда"}
+              </button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
     </AppShell>
   );
 };

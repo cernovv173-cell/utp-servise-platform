@@ -178,6 +178,13 @@ On `/admin/customers`, administrators can permanently delete a customer after en
 email in a confirmation dialog. This removes the account and its linked repair/craft orders, receipts,
 related payroll entries, devices, chats, reviews, bonus and referral records, offer participation,
 game progress, and customer photos. The operation cannot be undone; stock balances are not restored.
+
+Customers can start deleting their own account from `/account`; no administrator approval or support
+request is required. Before final confirmation, the app explains that linked repair and shop orders
+(including unfinished repairs), chats, reviews, photos, bonuses, and game progress will be removed.
+On success it clears the session and that customer's local shop cart and game preferences. On error,
+the dialog stays open and the customer remains signed in to retry; local data is cleared only after a
+successful response.
 If a photo cannot be removed from storage, the customer's access is disabled and the administrator can
 retry the deletion.
 
