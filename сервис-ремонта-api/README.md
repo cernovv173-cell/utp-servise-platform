@@ -23,7 +23,8 @@ Password recovery is available through `POST /auth/password-reset/request` and
 whether an address is registered. The API stores only a hash of the random reset token; email links
 expire after 30 minutes and are single-use. Completing a reset sets an 8-character-minimum password,
 clears the temporary-password flag, and revokes every active session. Email delivery uses the
-server-bound Yandex Mail application credentials over implicit TLS on SMTP port 465. Reset links are
+server-bound Mail.ru application credentials (`MAIL_RU_EMAIL` and `MAIL_RU_APP_PASSWORD`) over
+implicit TLS on SMTP port 465. These credentials are assigned only to the API. Reset links are
 restricted to origins in `WEB_APP_ORIGIN` and lead to the web `/reset-password` screen.
 
 Customer registration accepts an optional referral code from Web, Android, or Yandex/VK signup.

@@ -11,8 +11,8 @@ export type PasswordResetEmailSender = (
 ) => Promise<void>;
 
 type MailEnvironment = {
-  readonly YANDEX_MAIL_EMAIL?: string;
-  readonly YANDEX_MAIL_APP_PASSWORD?: string;
+  readonly MAIL_RU_EMAIL?: string;
+  readonly MAIL_RU_APP_PASSWORD?: string;
 };
 
 const retryableCodes = new Set([
@@ -49,14 +49,14 @@ const escapeHtml = (value: string): string =>
 export const createPasswordResetEmailSender =
   (environment: MailEnvironment = process.env): PasswordResetEmailSender =>
   async ({ to, resetUrl, messageId }) => {
-    const email = environment.YANDEX_MAIL_EMAIL?.trim();
-    const password = environment.YANDEX_MAIL_APP_PASSWORD;
+    const email = environment.MAIL_RU_EMAIL?.trim();
+    const password = environment.MAIL_RU_APP_PASSWORD;
     if (!email || !password) {
       throw new Error("Password reset email is not configured.");
     }
 
     const transporter = nodemailer.createTransport({
-      host: "smtp.yandex.ru",
+      host: "smtp.mail.ru",
       port: 465,
       secure: true,
       auth: { user: email, pass: password },

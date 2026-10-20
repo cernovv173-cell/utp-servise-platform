@@ -151,8 +151,7 @@ export const createPasswordResetRouter = (
           configuredOrigins,
         );
         const mailboxDomain =
-          process.env.YANDEX_MAIL_EMAIL?.split("@").pop() ??
-          "utp-servise.invalid";
+          process.env.MAIL_RU_EMAIL?.split("@").pop() ?? "utp-servise.invalid";
         const messageId = `<password-reset-${tokenHash}@${mailboxDomain}>`;
         response.status(202).json(genericRequestResponse);
 
