@@ -23,13 +23,10 @@ const particlePositions = [
   { left: "94%", top: "74%", delay: 1.1, duration: 25 },
 ];
 
-export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoice }) => {
+const SeasonalRain = () => {
   const [isRaining, setIsRaining] = useState(false);
 
   useEffect(() => {
-    setIsRaining(false);
-    if (season !== "AUTUMN") return;
-
     let rainEndTimeout: number | undefined;
     const startRain = () => {
       setIsRaining(true);
@@ -41,8 +38,28 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
       window.clearInterval(rainInterval);
       if (rainEndTimeout !== undefined) window.clearTimeout(rainEndTimeout);
     };
-  }, [season]);
+  }, []);
 
+  if (!isRaining) return null;
+
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {Array.from({ length: 32 }, (_, index) => (
+        <span
+          key={`rain-${index}`}
+          className="seasonal-rain-drop absolute -top-7 block"
+          style={{
+            left: `${(index * 37 + 3) % 100}%`,
+            animationDuration: `${620 + (index % 7) * 55}ms`,
+            animationDelay: `${-(index % 9) * 70}ms`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoice }) => {
   if (season === "NONE") return null;
 
   const ParticleIcon = particleIcons[season];
@@ -70,21 +87,7 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
           }}
         />
       ))}
-      {season === "AUTUMN" && isRaining && (
-        <div className="absolute inset-0 overflow-hidden">
-          {Array.from({ length: 32 }, (_, index) => (
-            <span
-              key={`rain-${index}`}
-              className="seasonal-rain-drop absolute -top-7 block"
-              style={{
-                left: `${(index * 37 + 3) % 100}%`,
-                animationDuration: `${620 + (index % 7) * 55}ms`,
-                animationDelay: `${-(index % 9) * 70}ms`,
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {season === "AUTUMN" && <SeasonalRain />}
     </div>
   );
 };
