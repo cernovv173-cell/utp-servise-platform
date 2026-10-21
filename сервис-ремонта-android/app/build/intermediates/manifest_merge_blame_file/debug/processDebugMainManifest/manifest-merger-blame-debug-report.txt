@@ -1,8 +1,8 @@
 1<?xml version="1.0" encoding="utf-8"?>
 2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 3    package="ru.utp.servise"
-4    android:versionCode="40"
-5    android:versionName="1.5.6" >
+4    android:versionCode="41"
+5    android:versionName="1.5.7" >
 6
 7    <uses-sdk
 8        android:minSdkVersion="26"
@@ -209,13 +209,13 @@
 110-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:62:13-64:51
 111                android:name="VKIDClientID"
 111-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:63:17-44
-112                android:value="54808157" />
+112                android:value="" />
 112-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:64:17-48
 113            <meta-data
 113-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:65:13-67:55
 114                android:name="VKIDClientSecret"
 114-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:66:17-48
-115                android:value="6125b2246125b2246125b2246a6261fc7a661256125b2240be092f6df2b88c041ce00fa" />
+115                android:value="" />
 115-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:67:17-52
 116            <meta-data
 116-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:68:13-70:55
@@ -227,7 +227,7 @@
 119-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:71:13-73:57
 120                android:name="VKIDRedirectScheme"
 120-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:72:17-50
-121                android:value="vk54808157" />
+121                android:value="vk" />
 121-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:73:17-54
 122        </activity>
 123        <activity
@@ -252,7 +252,7 @@
 132                <data
 132-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:42:13-44
 133                    android:host="vk.ru"
-134                    android:scheme="vk54808157" />
+134                    android:scheme="vk" />
 134-->[com.vk.id:vkid:2.7.3] /var/cache/amazi-android/gradle/caches/8.11.1/transforms/9d5767bc6edb31b0e17d3e0fe87affb0/transformed/vkid-2.7.3/AndroidManifest.xml:42:19-41
 135            </intent-filter>
 136        </activity>

@@ -53,8 +53,8 @@ android {
         applicationId = "ru.utp.servise"
         minSdk = 26
         targetSdk = 35
-        versionCode = 40
-        versionName = "1.5.6"
+        versionCode = 41
+        versionName = "1.5.7"
     }
 
     buildFeatures {
@@ -83,6 +83,10 @@ android {
     buildTypes {
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
+            manifestPlaceholders["VKIDClientID"] = ""
+            manifestPlaceholders["VKIDClientSecret"] = ""
+            manifestPlaceholders["VKIDRedirectScheme"] = "vk"
+            buildConfigField("String", "VK_ID_APP_ID", "\"\"")
         }
     }
     compileOptions {
