@@ -250,6 +250,13 @@ test("only administrators write news and customer-facing reads exclude drafts", 
   });
   assert.equal(customerNews.status, 200);
   const customerNewsBody = await customerNews.json();
+  assert.ok(customerNewsBody.technologyFact.title);
+  assert.ok(customerNewsBody.technologyFact.sourceUrl.startsWith("https://"));
+  assert.equal(
+    Date.parse(customerNewsBody.technologyFact.nextUpdateAt) -
+      Date.parse(customerNewsBody.technologyFact.updatedAt),
+    2 * 60 * 60 * 1_000,
+  );
   assert.deepEqual(
     customerNewsBody.articles.map(
       (article: { title: string }) => article.title,

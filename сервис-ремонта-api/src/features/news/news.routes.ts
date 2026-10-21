@@ -14,6 +14,7 @@ import {
   getMoscowBirthdayDate,
   getMoscowBirthdayDayWindow,
 } from "../notifications/birthday-time.js";
+import { getCurrentTechnologyFact } from "./technology-facts.js";
 
 const scheduleNewsPush = async (
   database: Pick<DatabaseClient, "newsPushDelivery">,
@@ -136,7 +137,12 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
               };
             })()
           : null;
-      response.json({ articles, reviews, birthdayGreeting });
+      response.json({
+        articles,
+        reviews,
+        birthdayGreeting,
+        technologyFact: getCurrentTechnologyFact(now),
+      });
     },
   );
 

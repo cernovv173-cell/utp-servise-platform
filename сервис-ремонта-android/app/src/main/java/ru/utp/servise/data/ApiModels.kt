@@ -447,6 +447,21 @@ data class NewsArticle(
     val isFeatured: Boolean,
 )
 
+data class TechnologyFact(
+    val id: String,
+    val title: String,
+    val content: String,
+    val sourceName: String,
+    val sourceUrl: String,
+    val updatedAt: String,
+    val nextUpdateAt: String,
+)
+
+data class NewsFeed(
+    val articles: List<NewsArticle>,
+    val technologyFact: TechnologyFact?,
+)
+
 data class CustomerOfferParticipation(
     val id: String,
     val joinedAt: String,

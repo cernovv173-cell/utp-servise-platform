@@ -48,6 +48,7 @@ import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.ReferralProgram
 import ru.utp.servise.data.SeasonalThemeState
 import ru.utp.servise.data.NewsArticle
+import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.SiteBanner
@@ -103,6 +104,7 @@ internal fun AuthenticatedWorkspace(
     craftItems: List<CraftItem>,
     craftOrders: List<CraftOrder>,
     news: List<NewsArticle>,
+    technologyFact: TechnologyFact?,
     customerOffers: List<CustomerOffer>,
     banners: List<SiteBanner>,
     loyalty: LoyaltyAccount,
@@ -247,7 +249,9 @@ internal fun AuthenticatedWorkspace(
                             composable("customer/game/daily") {
                                 Match3DailyPuzzleScreen(user.id) { navController.popBackStack() }
                             }
-                            composable("customer/news") { NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate) }
+                            composable("customer/news") {
+                                NewsFeedScreen(token, news, technologyFact, reviews, banners, onCampaignNavigate)
+                            }
                             composable("customer/offers") {
                                 CustomerOffersScreen(
                                     offers = customerOffers,

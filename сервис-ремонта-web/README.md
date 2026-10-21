@@ -126,6 +126,10 @@ On the customer's birthday, `/news` shows a personalized greeting only to that s
 It expires at the next Moscow midnight (a 24-hour Moscow calendar day), matching the birthday push
 delivery window. Other users do not receive or see the customer's birthday card.
 
+The `/news` page also shows one source-linked computer-technology fact. The API rotates the curated
+fact list on shared UTC two-hour boundaries; Web refreshes at the returned `nextUpdateAt` and when
+the page regains focus. This is a rotating fact collection, not a live external-news feed.
+
 When `YANDEX_CLIENT_ID` is configured, `/login` also supports Yandex ID. The Yandex OAuth callback
 page is `/yandex-token`; add that exact path for both development and production Web origins in the
 Yandex OAuth app. If the Yandex email matches an existing account, its current password is required

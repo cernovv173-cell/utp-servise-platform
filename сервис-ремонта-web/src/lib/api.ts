@@ -367,6 +367,16 @@ export type PersonalBirthdayGreeting = {
   endsAt: string;
 };
 
+export type TechnologyFact = {
+  id: string;
+  title: string;
+  content: string;
+  sourceName: string;
+  sourceUrl: string;
+  updatedAt: string;
+  nextUpdateAt: string;
+};
+
 export type RepairCatalogItem = {
   id: string;
   type: RepairCatalogType;
@@ -971,6 +981,7 @@ export const getNews = (token: string, signal?: AbortSignal) =>
     articles: NewsArticle[];
     reviews: Review[];
     birthdayGreeting: PersonalBirthdayGreeting | null;
+    technologyFact: TechnologyFact;
   }>("/news", token, { signal });
 
 export const getRepairCatalog = (token: string, signal?: AbortSignal) =>

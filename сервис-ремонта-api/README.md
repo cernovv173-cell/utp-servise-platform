@@ -252,6 +252,13 @@ Android delivery TTL; the existing worker retries only while the birthday is
 still the current Moscow date. Neither the card nor the date is exposed to
 other users.
 
+Every authenticated `GET /news` response also includes a source-linked
+`technologyFact`. The API selects from a curated fact list in a shared UTC
+two-hour interval and returns `updatedAt` and `nextUpdateAt`, so Web and Android
+show the same fact and can refresh at its next boundary. This rotation is
+derived from the current time; it does not create database records, run a
+background job, send push notifications, or fetch live technology news.
+
 # Customer visit requests and service operations
 
 Customer repair requests can include optional device brand, model, serial number, one initial

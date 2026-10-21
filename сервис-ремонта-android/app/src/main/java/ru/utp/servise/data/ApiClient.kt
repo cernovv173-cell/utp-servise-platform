@@ -369,7 +369,7 @@ object ApiClient {
         MediaApiClient.binaryRequest("POST", "/craft-orders/$orderId/chat/image", token, image)
     }
 
-    fun news(token: String): List<NewsArticle> {
+    fun news(token: String): NewsFeed {
         val response = request("GET", "/news", token)
         val now = java.time.Instant.now()
         val birthdayGreeting = response.optJSONObject("birthdayGreeting")?.let { greeting ->
@@ -394,8 +394,20 @@ object ApiClient {
                 )
             } else null
         }
-        return listOfNotNull(birthdayGreeting) +
+        val technologyFact = response.optJSONObject("technologyFact")?.let { fact ->
+            TechnologyFact(
+                id = fact.getString("id"),
+                title = fact.getString("title"),
+                content = fact.getString("content"),
+                sourceName = fact.getString("sourceName"),
+                sourceUrl = fact.getString("sourceUrl"),
+                updatedAt = fact.getString("updatedAt"),
+                nextUpdateAt = fact.getString("nextUpdateAt"),
+            )
+        }
+        val articles = listOfNotNull(birthdayGreeting) +
             response.getJSONArray("articles").mapObjects { it.toNewsArticle() }
+        return NewsFeed(articles = articles, technologyFact = technologyFact)
     }
 
     fun customerOffers(token: String): List<CustomerOffer> = request(

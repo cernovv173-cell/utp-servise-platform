@@ -13,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,6 +28,7 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.NewsArticle
+import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.SiteBanner
 import java.time.Instant
 
@@ -33,10 +36,12 @@ import java.time.Instant
 fun NewsFeedScreen(
     token: String,
     articles: List<NewsArticle>,
+    technologyFact: TechnologyFact?,
     reviews: List<CustomerReview>,
     banners: List<SiteBanner>,
     onCampaignNavigate: (String) -> Unit,
 ) {
+    val uriHandler = LocalUriHandler.current
     val birthdayEndsAt = articles.firstOrNull { it.id.startsWith("personal-birthday-") }?.endsAt
     var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(birthdayEndsAt) {
@@ -78,6 +83,45 @@ fun NewsFeedScreen(
                 }
             }
         }
+        technologyFact?.let { fact ->
+            Card(
+                shape = RoundedCornerShape(17.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface,
+                ),
+            ) {
+                Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                    Text(
+                        "Факт о компьютерных технологиях",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = UtpBlue,
+                    )
+                    Text(
+                        fact.title,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = UtpInk,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
+                    Text(
+                        fact.content,
+                        fontSize = 13.sp,
+                        color = UtpMuted,
+                        lineHeight = 19.sp,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                    TextButton(onClick = { runCatching { uriHandler.openUri(fact.sourceUrl) } }) {
+                        Text("Источник: ${fact.sourceName}")
+                    }
+                    Text(
+                        "Следующий факт — около ${formatFactTime(fact.nextUpdateAt)} · обновление каждые 2 часа",
+                        fontSize = 11.sp,
+                        color = UtpMuted,
+                    )
+                }
+            }
+        }
         visibleReviews.forEach { review ->
             Card(shape = RoundedCornerShape(17.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
@@ -90,7 +134,7 @@ fun NewsFeedScreen(
                 }
             }
         }
-        if (visibleArticles.isEmpty() && visibleReviews.isEmpty()) {
+        if (visibleArticles.isEmpty() && visibleReviews.isEmpty() && technologyFact == null) {
             Text("Пока нет опубликованных новостей и отзывов.", color = UtpMuted)
         }
     }
@@ -99,3 +143,10 @@ fun NewsFeedScreen(
 private fun formatNewsDate(value: String): String =
     runCatching { Instant.parse(value).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString() }
         .getOrDefault(value.take(10))
+
+private fun formatFactTime(value: String): String =
+    runCatching {
+        Instant.parse(value)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+    }.getOrDefault(value)

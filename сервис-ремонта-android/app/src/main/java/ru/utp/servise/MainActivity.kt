@@ -35,6 +35,7 @@ import com.google.firebase.FirebaseApp
 import com.google.android.gms.tasks.Tasks
 import com.google.firebase.messaging.FirebaseMessaging
 import com.vk.id.VKID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -51,6 +52,7 @@ import ru.utp.servise.data.CustomerDevice
 import ru.utp.servise.data.CustomerOffer
 import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.NewsArticle
+import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.PushTokenManager
@@ -124,6 +126,7 @@ private fun UtpServiseApp(
     var craftItems by remember { mutableStateOf<List<CraftItem>>(emptyList()) }
     var craftOrders by remember { mutableStateOf<List<CraftOrder>>(emptyList()) }
     var news by remember { mutableStateOf<List<NewsArticle>>(emptyList()) }
+    var technologyFact by remember { mutableStateOf<TechnologyFact?>(null) }
     var banners by remember { mutableStateOf<List<SiteBanner>>(emptyList()) }
     var loyalty by remember { mutableStateOf(LoyaltyAccount(0, emptyList())) }
     var referralProgram by remember { mutableStateOf(ReferralProgram()) }
@@ -194,6 +197,7 @@ private fun UtpServiseApp(
         if (token.isNotBlank() && currentUser != null && !currentUser.mustChangePassword) {
             runCatching {
                 withContext(Dispatchers.IO) {
+                    val newsFeed = ApiClient.news(token)
                     WorkspaceData(
                         orders = ApiClient.orders(token, archived = false) +
                             ApiClient.orders(token, archived = true),
@@ -205,7 +209,8 @@ private fun UtpServiseApp(
                         catalogItems = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.catalog(token) else emptyList(),
                         craftItems = ApiClient.craftItems(token),
                         craftOrders = if (currentUser.role == "ADMIN" || currentUser.role == "CUSTOMER") ApiClient.craftOrders(token) else emptyList(),
-                        news = ApiClient.news(token),
+                        news = newsFeed.articles,
+                        technologyFact = newsFeed.technologyFact,
                         banners = ApiClient.banners(token),
                         loyalty = if (currentUser.role == "CUSTOMER") ApiClient.loyalty(token) else LoyaltyAccount(0, emptyList()),
                         referralProgram = if (currentUser.role == "CUSTOMER") {
@@ -227,6 +232,7 @@ private fun UtpServiseApp(
                 craftItems = data.craftItems
                 craftOrders = data.craftOrders
                 news = data.news
+                technologyFact = data.technologyFact
                 banners = data.banners
                 loyalty = data.loyalty
                 referralProgram = data.referralProgram
@@ -234,6 +240,35 @@ private fun UtpServiseApp(
                 adminChats = data.adminChats
                 supportChats = data.supportChats
             }.onFailure { errorMessage = it.message ?: "Не удалось загрузить данные." }
+        }
+    }
+
+    LaunchedEffect(token, user?.id, technologyFact?.nextUpdateAt) {
+        if (token.isBlank() || user == null) return@LaunchedEffect
+        val currentFact = technologyFact ?: return@LaunchedEffect
+        val delayUntilUpdate = runCatching {
+            java.time.Instant.parse(currentFact.nextUpdateAt).toEpochMilli() -
+                System.currentTimeMillis()
+        }.getOrElse { 60_000L }.coerceAtLeast(0L)
+        if (delayUntilUpdate > 0) delay(delayUntilUpdate)
+
+        while (true) {
+            try {
+                val feed = withContext(Dispatchers.IO) { ApiClient.news(token) }
+                val refreshedFact = feed.technologyFact
+                if (refreshedFact != null) {
+                    news = feed.articles
+                    if (refreshedFact.updatedAt != currentFact.updatedAt) {
+                        technologyFact = refreshedFact
+                        return@LaunchedEffect
+                    }
+                }
+                delay(60_000)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                delay(60_000)
+            }
         }
     }
 
@@ -277,6 +312,7 @@ private fun UtpServiseApp(
             craftItems = craftItems,
             craftOrders = craftOrders,
             news = news,
+            technologyFact = technologyFact,
             banners = banners,
             loyalty = loyalty,
             referralProgram = referralProgram,
@@ -346,6 +382,7 @@ private fun UtpServiseApp(
                 craftItems = emptyList()
                 craftOrders = emptyList()
                 news = emptyList()
+                technologyFact = null
                 banners = emptyList()
                 loyalty = LoyaltyAccount(0, emptyList())
                 referralProgram = ReferralProgram()
