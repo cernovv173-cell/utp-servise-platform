@@ -14,9 +14,10 @@ import {
 import { PublicSiteShell, repairRequestHref } from "@/components/public-site-shell";
 import { RaccoonIcon } from "@/components/raccoon-icon";
 
+import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 
-import { getCompany } from "@/lib/api";
+import { getCompany, getPublicTechnologyFact } from "@/lib/api";
 
 const defaultServices = [
   "Диагностика компьютеров и ноутбуков",
@@ -64,6 +65,16 @@ export const PublicHome = () => {
   const companyQuery = useQuery({
     queryKey: ["public-company"],
     queryFn: ({ signal }) => getCompany(signal),
+  });
+  const technologyFactQuery = useQuery({
+    queryKey: ["public-technology-fact"],
+    queryFn: ({ signal }) => getPublicTechnologyFact(signal),
+    refetchInterval: (currentQuery) => {
+      const nextUpdateAt = currentQuery.state.data?.technologyFact.nextUpdateAt;
+      if (!nextUpdateAt) return false;
+      return Math.max(1_000, Date.parse(nextUpdateAt) - Date.now());
+    },
+    refetchOnWindowFocus: true,
   });
   const company = companyQuery.data?.company;
   const services = company?.services.length ? company.services : defaultServices;
@@ -137,6 +148,12 @@ export const PublicHome = () => {
           </div>
         </div>
       </section>
+
+      {technologyFactQuery.data?.technologyFact && (
+        <section className="mx-auto max-w-7xl px-4 pt-8 md:px-8">
+          <TechnologyFactCard fact={technologyFactQuery.data.technologyFact} />
+        </section>
+      )}
 
       <section id="services" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16 md:px-8">
         <div className="max-w-2xl">

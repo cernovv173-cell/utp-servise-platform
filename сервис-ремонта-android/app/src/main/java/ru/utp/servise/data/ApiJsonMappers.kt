@@ -435,6 +435,16 @@ internal fun JSONObject.toNewsArticle() = NewsArticle(
     isFeatured = optBoolean("isFeatured"),
 )
 
+internal fun JSONObject.toTechnologyFact() = TechnologyFact(
+    id = getString("id"),
+    title = getString("title"),
+    content = getString("content"),
+    sourceName = getString("sourceName"),
+    sourceUrl = getString("sourceUrl"),
+    updatedAt = getString("updatedAt"),
+    nextUpdateAt = getString("nextUpdateAt"),
+)
+
 internal fun JSONObject.toCustomerOffer(): CustomerOffer {
     val participation = optJSONObject("myParticipation")?.let { value ->
         CustomerOfferParticipation(

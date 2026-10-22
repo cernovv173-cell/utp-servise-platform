@@ -33,10 +33,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import ru.utp.servise.R
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CompanyInfo
+import ru.utp.servise.data.TechnologyFact
 
 @Composable
 fun PublicHomeScreen(
@@ -46,8 +48,22 @@ fun PublicHomeScreen(
     onAdminLogin: () -> Unit,
 ) {
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
+    var technologyFact by remember { mutableStateOf<TechnologyFact?>(null) }
     LaunchedEffect(Unit) {
         company = runCatching { withContext(Dispatchers.IO) { ApiClient.companyInfo() } }.getOrNull()
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            technologyFact = runCatching {
+                withContext(Dispatchers.IO) { ApiClient.publicTechnologyFact() }
+            }.getOrNull()
+            val delayUntilUpdate = runCatching {
+                technologyFact?.nextUpdateAt?.let {
+                    java.time.Instant.parse(it).toEpochMilli() - System.currentTimeMillis()
+                } ?: 60_000L
+            }.getOrDefault(60_000L).coerceAtLeast(1_000L)
+            delay(delayUntilUpdate)
+        }
     }
 
     val services = company?.services?.takeIf { it.isNotEmpty() } ?: listOf(
@@ -108,6 +124,8 @@ fun PublicHomeScreen(
                 )
             }
         }
+
+        technologyFact?.let { TechnologyFactCard(it) }
 
         OutlinedButton(
             onClick = onCustomerLogin,

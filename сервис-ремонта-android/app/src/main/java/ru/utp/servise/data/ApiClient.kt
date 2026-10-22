@@ -394,21 +394,15 @@ object ApiClient {
                 )
             } else null
         }
-        val technologyFact = response.optJSONObject("technologyFact")?.let { fact ->
-            TechnologyFact(
-                id = fact.getString("id"),
-                title = fact.getString("title"),
-                content = fact.getString("content"),
-                sourceName = fact.getString("sourceName"),
-                sourceUrl = fact.getString("sourceUrl"),
-                updatedAt = fact.getString("updatedAt"),
-                nextUpdateAt = fact.getString("nextUpdateAt"),
-            )
-        }
+        val technologyFact = response.optJSONObject("technologyFact")?.toTechnologyFact()
         val articles = listOfNotNull(birthdayGreeting) +
             response.getJSONArray("articles").mapObjects { it.toNewsArticle() }
         return NewsFeed(articles = articles, technologyFact = technologyFact)
     }
+
+    fun publicTechnologyFact(): TechnologyFact = request(
+        "GET", "/public/technology-fact",
+    ).getJSONObject("technologyFact").toTechnologyFact()
 
     fun customerOffers(token: String): List<CustomerOffer> = request(
         "GET", "/offers", token,

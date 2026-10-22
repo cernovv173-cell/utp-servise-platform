@@ -8,7 +8,6 @@ import { NewsAdmin } from "@/features/admin/news-admin";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { BirthdayGreetingCard } from "@/features/news/birthday-greeting-card";
-import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 
 import { getNews } from "@/lib/api";
 
@@ -44,7 +43,6 @@ const NewsPage = () => {
       {query.data?.birthdayGreeting && (
         <BirthdayGreetingCard greeting={query.data.birthdayGreeting} />
       )}
-      {query.data?.technologyFact && <TechnologyFactCard fact={query.data.technologyFact} />}
       <div className="grid gap-4 md:grid-cols-2">
         {(query.data?.articles ?? [])
           .filter((item) => item.isPublished)
@@ -99,8 +97,7 @@ const NewsPage = () => {
           !query.isError &&
           (query.data?.articles ?? []).filter((item) => item.isPublished).length === 0 &&
           publishedReviews.length === 0 &&
-          !query.data?.birthdayGreeting &&
-          !query.data?.technologyFact && (
+          !query.data?.birthdayGreeting && (
             <SectionCard className="md:col-span-2">
               <p className="text-sm text-slate-500">
                 Сейчас нет опубликованных новостей и отзывов.

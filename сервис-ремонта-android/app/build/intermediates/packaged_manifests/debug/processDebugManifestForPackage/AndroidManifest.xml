@@ -109,16 +109,16 @@
             android:theme="@style/VKID.Light.Transparent" >
             <meta-data
                 android:name="VKIDClientID"
-                android:value="" />
+                android:value="54808157" />
             <meta-data
                 android:name="VKIDClientSecret"
-                android:value="" />
+                android:value="6125b2246125b2246125b2246a6261fc7a661256125b2240be092f6df2b88c041ce00fa" />
             <meta-data
                 android:name="VKIDRedirectHost"
                 android:value="vk.ru" />
             <meta-data
                 android:name="VKIDRedirectScheme"
-                android:value="vk" />
+                android:value="vk54808157" />
         </activity>
         <activity
             android:name="com.vk.id.internal.auth.RedirectUriReceiverActivity"
@@ -131,7 +131,7 @@
 
                 <data
                     android:host="vk.ru"
-                    android:scheme="vk" />
+                    android:scheme="vk54808157" />
             </intent-filter>
         </activity>
         <activity

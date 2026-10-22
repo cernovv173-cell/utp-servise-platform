@@ -10,6 +10,7 @@ import { RaccoonIcon } from "@/components/raccoon-icon";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
+import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { PublicHome } from "@/features/public/public-home";
 import { SeasonalThemeControl } from "@/features/seasonal/seasonal-theme-control";
@@ -27,6 +28,12 @@ const HomePage = () => {
     queryKey: ["news", token],
     queryFn: ({ signal }) => getNews(token!, signal),
     enabled: Boolean(token),
+    refetchInterval: (currentQuery) => {
+      const nextUpdateAt = currentQuery.state.data?.technologyFact?.nextUpdateAt;
+      if (!nextUpdateAt) return false;
+      return Math.max(1_000, Date.parse(nextUpdateAt) - Date.now());
+    },
+    refetchOnWindowFocus: true,
   });
   const banners = useQuery({
     queryKey: ["banners", token],
@@ -69,6 +76,7 @@ const HomePage = () => {
           </Link>
         </div>
       </SectionCard>
+      {news.data?.technologyFact && <TechnologyFactCard fact={news.data.technologyFact} />}
       <FeaturedNewsCarousel articles={featured} isLoading={news.isLoading} isError={news.isError} />
       <CampaignCarousel
         banners={banners.data?.banners ?? []}

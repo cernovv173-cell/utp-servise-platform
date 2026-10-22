@@ -217,7 +217,7 @@ internal fun AuthenticatedWorkspace(
                         "CUSTOMER" -> {
                             composable("customer/home") {
                                 CustomerHomeScreen(
-                                    user, token, news, banners,
+                                    user, token, news, technologyFact, banners,
                                     { navController.navigate("customer/new-order") },
                                     { navController.navigate("customer/orders") },
                                     { navController.navigate("customer/shop") },
@@ -250,7 +250,7 @@ internal fun AuthenticatedWorkspace(
                                 Match3DailyPuzzleScreen(user.id) { navController.popBackStack() }
                             }
                             composable("customer/news") {
-                                NewsFeedScreen(token, news, technologyFact, reviews, banners, onCampaignNavigate)
+                                NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate)
                             }
                             composable("customer/offers") {
                                 CustomerOffersScreen(

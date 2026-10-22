@@ -51,6 +51,7 @@ import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.SiteBanner
+import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.clearShopCart
 import ru.utp.servise.data.clearDailyChallengeCompletion
 import ru.utp.servise.data.deviceLabel
@@ -64,6 +65,7 @@ fun CustomerHomeScreen(
     user: AppUser,
     token: String,
     news: List<NewsArticle>,
+    technologyFact: TechnologyFact?,
     banners: List<SiteBanner>,
     onCreateRequest: () -> Unit,
     onOrders: () -> Unit,
@@ -87,12 +89,16 @@ fun CustomerHomeScreen(
             Text("Привет, ${user.displayName.substringBefore(' ')}", color = UtpBlue, fontSize = 12.sp)
         }
         Spacer(Modifier.height(18.dp))
-            Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
+        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
             Column(Modifier.fillMaxWidth().padding(20.dp)) {
                 Text("Ремонт компьютеров и гаджетов", fontSize = 23.sp, lineHeight = 29.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("Опишите неисправность — мастер свяжется с вами и согласует стоимость.", fontSize = 13.sp, lineHeight = 19.sp, color = UtpMuted, modifier = Modifier.padding(top = 8.dp))
                 Button(onClick = onCreateRequest, modifier = Modifier.padding(top = 14.dp), shape = RoundedCornerShape(18.dp)) { Text("Оставить заявку  →") }
             }
+        }
+        technologyFact?.let { fact ->
+            Spacer(Modifier.height(12.dp))
+            TechnologyFactCard(fact)
         }
         Spacer(Modifier.height(23.dp))
         Card(onClick = onMatch3Game, shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {

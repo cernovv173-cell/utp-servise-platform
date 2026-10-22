@@ -245,6 +245,21 @@ test("only administrators write news and customer-facing reads exclude drafts", 
     "content-type": "application/json",
   });
 
+  const publicFactResponse = await fetch(
+    `${baseUrl.replace(/\/news$/u, "")}/public/technology-fact`,
+  );
+  assert.equal(publicFactResponse.status, 200);
+  const publicFactBody = await publicFactResponse.json();
+  assert.ok(publicFactBody.technologyFact.title);
+  assert.ok(publicFactBody.technologyFact.sourceUrl.startsWith("https://"));
+  assert.equal(
+    Date.parse(publicFactBody.technologyFact.nextUpdateAt) -
+      Date.parse(publicFactBody.technologyFact.updatedAt),
+    2 * 60 * 60 * 1_000,
+  );
+  assert.equal("articles" in publicFactBody, false);
+  assert.equal("reviews" in publicFactBody, false);
+
   const customerNews = await fetch(baseUrl, {
     headers: headers(customerToken),
   });

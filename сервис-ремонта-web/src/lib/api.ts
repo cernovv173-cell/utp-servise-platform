@@ -984,6 +984,9 @@ export const getNews = (token: string, signal?: AbortSignal) =>
     technologyFact: TechnologyFact;
   }>("/news", token, { signal });
 
+export const getPublicTechnologyFact = (signal?: AbortSignal) =>
+  apiRequest<{ technologyFact: TechnologyFact }>("/public/technology-fact", null, { signal });
+
 export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
   apiRequest<{ catalogItems: RepairCatalogItem[] }>("/catalog", token, { signal });
 

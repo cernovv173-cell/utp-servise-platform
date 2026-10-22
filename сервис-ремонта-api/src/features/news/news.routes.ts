@@ -87,6 +87,10 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
 
+  router.get("/public/technology-fact", (_request, response) => {
+    response.json({ technologyFact: getCurrentTechnologyFact() });
+  });
+
   router.get(
     "/news",
     requireAuth,

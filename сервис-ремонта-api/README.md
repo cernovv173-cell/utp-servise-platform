@@ -27,6 +27,12 @@ server-bound Mail.ru application credentials (`MAIL_RU_EMAIL` and `MAIL_RU_APP_P
 implicit TLS on SMTP port 465. These credentials are assigned only to the API. Reset links are
 restricted to origins in `WEB_APP_ORIGIN` and lead to the web `/reset-password` screen.
 
+The public landing pages on Web and Android load only the curated technology fact from
+`GET /public/technology-fact`; it includes a source link and the next UTC update time. The
+endpoint does not expose news articles, reviews, or user data. The authenticated `GET /news`
+response also contains the same fact for signed-in home screens. The shared fact rotates every
+two hours without a background job or database writes.
+
 Customer registration accepts an optional referral code from Web, Android, or Yandex/VK signup.
 After the invited customer's first repair is completed and an administrator confirms its receipt as
 paid, the same transaction records 100 personal bonus points for both customers and marks the
