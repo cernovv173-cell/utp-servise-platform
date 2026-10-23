@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { RaccoonBoard } from "./raccoon-board";
+import { Raccoon3DStage } from "./raccoon-3d-stage";
 import { didRaccoonClearCombo } from "./raccoon-combo";
 import {
   type RaccoonBooster,
@@ -30,7 +30,6 @@ import {
   RaccoonStartLevelPanel,
   panelClass,
 } from "./raccoon-game-panels";
-import { getRaccoonChapter } from "./raccoon-game-theme";
 
 const adjacent = (first: RaccoonPosition, second: RaccoonPosition) =>
   Math.abs(first.row - second.row) + Math.abs(first.column - second.column) === 1;
@@ -269,17 +268,8 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
   const data = progress.data;
   const currentLevel = data.currentLevel;
   const displayLevel = session?.level ?? currentLevel ?? 100;
-  const chapter = getRaccoonChapter(displayLevel);
-
   return (
-    <main
-      className="relative isolate overflow-hidden rounded-3xl border border-amber-100/25 bg-[#1a120e] text-white shadow-[0_20px_65px_rgba(28,15,8,.38)]"
-      style={{
-        backgroundImage: `linear-gradient(100deg, rgba(29,17,11,.9), rgba(17,22,27,.74)), url('${chapter.background}')`,
-        backgroundPosition: "center",
-        backgroundSize: "cover",
-      }}
-    >
+    <main className="relative isolate overflow-hidden rounded-3xl border border-amber-100/25 bg-[#17100d] text-white shadow-[0_20px_65px_rgba(28,15,8,.38)]">
       <div className="grid gap-5 p-4 sm:p-7 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           <RaccoonGameHero embedded={embedded} level={displayLevel} celebrating={celebrating} />
@@ -313,7 +303,7 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
             <section className="space-y-4" aria-label={`Уровень ${session.level}`}>
               <RaccoonSessionStats session={session} />
 
-              <RaccoonBoard
+              <Raccoon3DStage
                 board={session.board}
                 obstacles={session.obstacles}
                 level={session.level}
@@ -322,6 +312,7 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
                 hint={hint}
                 activeBooster={activeBooster}
                 disabled={session.status !== "ACTIVE" || processing}
+                celebrating={celebrating}
                 onTileClick={selectTile}
                 onSwipe={swipeTile}
               />

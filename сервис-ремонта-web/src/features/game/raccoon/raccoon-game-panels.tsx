@@ -34,12 +34,7 @@ export const RaccoonGameHero = ({
   const mascot = getRaccoonMascot(level);
 
   return (
-    <header className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-100/20 bg-[#241710]/85 p-3 shadow-[inset_0_1px_0_rgba(255,244,215,.08)] sm:gap-4 sm:p-4">
-      <img
-        src={mascot.image}
-        alt={`Расти — енот-инженер: ${mascot.outfit}`}
-        className={`h-20 w-20 shrink-0 object-contain drop-shadow-[0_8px_12px_rgba(0,0,0,.45)] sm:h-28 sm:w-28 ${celebrating ? "animate-bounce" : ""}`}
-      />
+    <header className="mb-5 rounded-2xl border border-amber-100/20 bg-[#241710]/85 p-3 shadow-[inset_0_1px_0_rgba(255,244,215,.08)] sm:p-4">
       <div className="min-w-0">
         <p className="text-[11px] font-extrabold tracking-[.17em] text-amber-200 uppercase">
           Глава {chapter.number} · {chapter.name}
@@ -51,7 +46,7 @@ export const RaccoonGameHero = ({
         <p className="mt-2 max-w-2xl text-sm leading-5 text-slate-100">
           {chapter.description} Меняйте соседние детали, чтобы собирать их в ряд.
         </p>
-        <p className="mt-1 text-xs font-medium text-amber-100/75">Расти · {mascot.outfit}</p>
+        <p className="mt-1 text-xs font-medium text-amber-100/75">Расти в 3D · {mascot.outfit}</p>
         {celebrating && (
           <p
             className="mt-2 inline-flex rounded-full border border-amber-200/30 bg-amber-300/15 px-3 py-1 text-xs font-bold text-amber-100"

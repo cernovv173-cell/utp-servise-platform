@@ -271,11 +271,15 @@ temporary passwords that must be changed on first sign-in; customer self-registr
 Customers play the 100-level computer-repair match-three campaign, **Ремонтные работы**, at `/game`.
 The route uses the service customer account and API; no separate game login or source-project
 progress database is used. The API owns the board, legal moves, boosters, saved sessions, and level
-rewards. Its five 20-level zones are the workbench, spare-parts warehouse, electrical panel,
-ventilation system, and main server. Rasti's artwork evolves from his classic suit to goggles and a
-tool belt, then a neon-accented helmet; a clear of four or more component tiles triggers a short
-celebration. Regular boards are 7×6; level 100 uses a toothed 7×7 gear-shaped field and asks the
-player to collect 100 gold crystals. Four electric blocks move around the perimeter after each
+rewards. The interactive board, component pieces, workshop props, and evolving Rasti mascot render
+as a real-time 3D WebGL scene using React Three Fiber and Three.js. The scene uses procedural
+low-poly geometry; readable game controls and progress panels remain an accessible HTML overlay.
+The 3D renderer is lazy-loaded when a campaign level opens, and the existing 2D board is used as a
+fallback if WebGL is unavailable. Its five 20-level zones are the workbench, spare-parts warehouse,
+electrical panel, ventilation system, and main server. Rasti evolves from his classic suit to goggles
+and a tool belt, then a neon-accented helmet; a clear of four or more component tiles triggers a
+short celebration. Regular boards are 7×6; level 100 uses a toothed 7×7 gear-shaped field and asks
+the player to collect 100 gold crystals. Four electric blocks move around the perimeter after each
 successful move. Every 20 blue processors charge a magnetic pulse that draws the gold crystals
 toward the center. Android opens the same page inside a restricted WebView at
 `/game?embedded=android` and passes the existing customer session only to the active service-web
