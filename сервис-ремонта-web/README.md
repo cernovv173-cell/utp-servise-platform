@@ -268,38 +268,23 @@ lifecycle safeguards. The staff section of `/admin` can create technician accoun
 temporary passwords that must be changed on first sign-in; customer self-registration remains on
 `/login` and cannot create staff or administrator accounts.
 
-Customers can play the match-three computer-building game at `/game`. The menu entry is limited to
-customer accounts. The page resumes the current server-backed session, accepts adjacent tile swaps,
-shows the target and remaining moves, and offers another attempt or the next level after a finished
-session. A completed level can be replayed with **Начать заново**; it does not reset other levels,
-and each replay earns another 10 pending loyalty points and one booster gift. The API owns level
-progression, rewards, and the board; this page does not award points locally. At a chapter boundary,
-a short scene with the existing raccoon mascot appears after the
-prior chapter is complete and before the next level is started. Confirming the scene only dismisses
-that card for the current page visit; the game API and the customer's saved level, session, and rewards
-remain unchanged. The four chapter-transition scenes can speak the raccoon's dialogue in Russian
-using browser/device speech synthesis. The preference is stored locally, playback starts when enabled,
-each line can be replayed, and disabling speech stops it. Available Russian voices depend on the
-browser and device. The scenes follow the existing five-part story: case, motherboard, processor,
-cooling, and first boot. After the server reports all 100 levels complete, the page shows a short
-final epilogue with the same raccoon artwork; this is display-only and does not alter saved progress,
-rewards, or game mechanics. A first-run tutorial guides the player through a real opening-level move,
-then explains frozen cells, junk, and anomalies; it can be skipped and its completion is stored
-locally per customer. The computer blueprint lights up its existing part milestones as chapters
-progress. `/game/garage` unlocks cosmetic raccoon visors at chapter completion; equipment choice is
-saved in the signed-in customer's account and syncs across devices. A previously selected local
-visor is transferred to that account the first time the garage loads. The server checks chapter
-unlock progress, and the choice does not affect play, points, rewards, or campaign progress.
-Accepted combinations add collected computer parts to the account inventory. Players can combine
-recipe parts into a row rocket or 3×3 pulse bomb, and receive one booster gift each time a level is
-completed, including a replay of the current level. The `?` hint button asks the API for a valid target-focused move and highlights the
-two cells without spending a move. Ten non-cash bonus points per completed level remain pending until the player
-presses **Забрать баллы**; that credits the general loyalty balance at any point in the campaign.
-Only completed levels count, and the player does not need to finish all 100 levels. Inventory,
-completion rewards, and claims are server-backed; Web does not award them locally.
-`/game/daily` offers a reproducible one-match
-puzzle that resets on the Moscow calendar date; only its completion marker is stored separately in
-the browser and it does not call campaign move or reward endpoints.
+Customers play the 100-level computer-building match-three campaign at `/game`. The route uses the
+engine and artwork from the customer's separate raccoon-game project, but it uses this service's
+customer account and API; no separate game login or source-project progress database is used. The
+API owns the board, legal moves, boosters, saved sessions, and level rewards. Regular boards are
+7×6 and the final boss uses a shaped 7×7 field; the campaign includes chapter obstacles, conveyor
+mechanics, and a final magnet. Android opens the same page inside a restricted WebView at
+`/game?embedded=android` and passes the existing customer session only to the active service-web
+origin. The native header keeps Back and Daily Challenge navigation available.
+
+Existing completed-level records determine each customer's next level and remain unchanged. New
+sessions are stored separately in `raccoon_match3_sessions`; earlier `match3_sessions` records are
+kept but an unfinished old board is not transformed into the new board format. The game reads
+existing first-completion and replay rewards and leaves the current loyalty balance untouched. Ten
+points per eligible completion stay pending until the customer presses **Получить баллы**; the
+existing claim API credits the shared loyalty ledger once, and the UI never awards points locally.
+Already-credited rewards cannot be issued again. The separate `/game/daily` puzzle remains
+independent of campaign progress and awards no loyalty points.
 
 ## Seasonal themes
 

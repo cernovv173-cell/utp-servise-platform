@@ -71,7 +71,7 @@ import ru.utp.servise.ui.CustomerDevicesScreen
 import ru.utp.servise.ui.CustomerManagementScreen
 import ru.utp.servise.ui.LoyaltyScreen
 import ru.utp.servise.ui.Match3DailyPuzzleScreen
-import ru.utp.servise.ui.Match3GameScreen
+import ru.utp.servise.ui.RaccoonGameWebViewScreen
 import ru.utp.servise.ui.NewsFeedScreen
 import ru.utp.servise.ui.NewsManagementScreen
 import ru.utp.servise.ui.ProfileScreen
@@ -240,7 +240,7 @@ internal fun AuthenticatedWorkspace(
                                 )
                             }
                             composable("customer/game") {
-                                Match3GameScreen(
+                                RaccoonGameWebViewScreen(
                                     token = token,
                                     onBack = { navController.popBackStack() },
                                     onDailyPuzzle = { navController.navigate("customer/game/daily") },

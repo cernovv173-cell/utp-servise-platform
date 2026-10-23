@@ -188,6 +188,7 @@ model User {
   gameEpisodesCreated     GameEpisode[]                  @relation("GameEpisodeCreator")
   gameCompletions         GameEpisodeCompletion[]        @relation("GameEpisodeCompletionCustomer")
   match3GameSessions      Match3GameSession[]            @relation("Match3SessionCustomer")
+  raccoonMatch3Sessions   RaccoonMatch3Session[]
   match3LevelCompletions  Match3LevelCompletion[]        @relation("Match3CompletionCustomer")
   match3LevelRewards      Match3LevelReward[]            @relation("Match3RewardCustomer")
   match3Inventory         Match3Inventory[]
@@ -1019,18 +1020,19 @@ model GameEpisodeCompletion {
 }
 
 model Match3Level {
-  id          String                  @id @default(uuid()) @db.Uuid
-  number      Int                     @unique @db.SmallInt
-  title       String                  @db.VarChar(120)
-  targetPart  String                  @map("target_part") @db.VarChar(32)
-  targetCount Int                     @map("target_count") @db.SmallInt
-  moveLimit   Int                     @map("move_limit") @db.SmallInt
-  isActive    Boolean                 @default(true) @map("is_active")
-  createdAt   DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions    Match3GameSession[]
-  completions Match3LevelCompletion[]
-  rewards     Match3LevelReward[]
+  id              String                  @id @default(uuid()) @db.Uuid
+  number          Int                     @unique @db.SmallInt
+  title           String                  @db.VarChar(120)
+  targetPart      String                  @map("target_part") @db.VarChar(32)
+  targetCount     Int                     @map("target_count") @db.SmallInt
+  moveLimit       Int                     @map("move_limit") @db.SmallInt
+  isActive        Boolean                 @default(true) @map("is_active")
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions        Match3GameSession[]
+  raccoonSessions RaccoonMatch3Session[]
+  completions     Match3LevelCompletion[]
+  rewards         Match3LevelReward[]
 
   @@index([isActive, number])
   @@map("match3_levels")
@@ -1053,6 +1055,23 @@ model Match3GameSession {
   @@index([customerId, status])
   @@index([levelId, createdAt])
   @@map("match3_game_sessions")
+}
+
+model RaccoonMatch3Session {
+  id          String      @id @default(uuid()) @db.Uuid
+  customerId  String      @map("customer_id") @db.Uuid
+  levelId     String      @map("level_id") @db.Uuid
+  state       Json
+  status      String      @default("ACTIVE") @db.VarChar(16)
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  completedAt DateTime?   @map("completed_at") @db.Timestamptz(3)
+  customer    User        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  level       Match3Level @relation(fields: [levelId], references: [id], onDelete: Restrict)
+
+  @@index([customerId, status])
+  @@index([levelId, createdAt])
+  @@map("raccoon_match3_sessions")
 }
 
 model Match3LevelCompletion {

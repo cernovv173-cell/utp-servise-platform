@@ -296,7 +296,21 @@ and are never added again to the suggested purchase. Dashboard averages use the 
 creation to its `COMPLETED` status event; collected revenue uses paid receipts after bonus discounts.
 The Web admin navigation and Android **Управление** area expose all three views.
 
-# Match-three cosmetic preference
+# Current raccoon computer-building game
+
+The current Web and Android game uses authenticated `/game/raccoon/*` endpoints. The API owns
+the board, moves, boosters, campaign progression, and saved sessions; Android opens the Web game
+inside a restricted WebView using the existing service customer session. The additive
+`20261023100000_raccoon_match3_sessions` migration stores only new-engine session snapshots in
+`raccoon_match3_sessions`; it does not rewrite customer accounts, loyalty transactions, completed
+levels, or older `match3_sessions` rows. Completed levels continue to use the existing
+`match3_level_completions` and `match3_level_rewards` records, and claims still go through
+`POST /game/match3/rewards/claim`, which credits the existing loyalty ledger atomically and
+idempotently. The new game never credits points in the browser or Android client. Existing
+completion records determine each customer's next unlocked level; an unfinished session from the
+older game is retained as history but is not converted into a new-engine board state.
+
+# Legacy match-three client endpoints
 
 Each signed-in customer can save a raccoon visor through the authenticated `GET` and `PUT`
 `/game/match3/cosmetic` endpoints. The first-use `POST /game/match3/cosmetic/initialize` stores a

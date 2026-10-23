@@ -12,6 +12,7 @@ import { createCustomerOffersRouter } from "./features/customer-offers/customer-
 import { createCustomerAdminRouter } from "./features/customers/customer.routes.js";
 import { createCustomerDevicesRouter } from "./features/customers/devices.routes.js";
 import { createMatch3Router } from "./features/game/match3/match3.routes.js";
+import { createRaccoonMatch3Router } from "./features/game/raccoon-match3.routes.js";
 import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
 import { createMaxRouter } from "./features/max/max.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
@@ -87,6 +88,7 @@ export const createApiRouter = ({
     router.use(createCraftsRouter(database.client));
     router.use(createCustomerOffersRouter(database.client));
     router.use(createBannersRouter(database.client));
+    router.use(createRaccoonMatch3Router(database.client));
     router.use(createMatch3Router(database.client));
     router.use(createLoyaltyRouter(database.client));
     router.use(createReferralRouter(database.client));
@@ -119,6 +121,7 @@ export const createApiRouter = ({
         request.path.startsWith("/admin/customers") ||
         request.path.startsWith("/customer/devices") ||
         request.path.startsWith("/media") ||
+        request.path.startsWith("/game/raccoon") ||
         request.path.startsWith("/craft-items") ||
         request.path.startsWith("/craft-orders") ||
         request.path.startsWith("/loyalty") ||
