@@ -12,8 +12,6 @@ public final class BuildConfig {
   // Field from default config.
   public static final String API_BASE_URL = "https://merge.app.amazi.pro";
   // Field from default config.
-  public static final String SERVICE_WEB_BASE_URL = "https://task.app.amazi.pro";
-  // Field from default config.
   public static final String VK_ID_APP_ID = "54808157";
   // Field from default config.
   public static final String YANDEX_CLIENT_ID = "56804bcf740246719e298a10063f457f";
