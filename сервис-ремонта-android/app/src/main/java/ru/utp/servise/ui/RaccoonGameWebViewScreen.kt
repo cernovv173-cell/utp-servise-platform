@@ -31,6 +31,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +66,7 @@ fun RaccoonGameWebViewScreen(
 ) {
     val context = LocalContext.current
     val activity = remember(context) { context.findActivity() }
+    val orientationBeforeGame = rememberSaveable { mutableStateOf<Int?>(null) }
     val baseUri = remember {
         Uri.parse(BuildConfig.SERVICE_WEB_BASE_URL)
     }
@@ -79,11 +81,15 @@ fun RaccoonGameWebViewScreen(
     var loadError by remember(token) { mutableStateOf<String?>(null) }
 
     DisposableEffect(activity) {
-        val previousOrientation = activity?.requestedOrientation
-        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        val gameActivity = activity
+        if (gameActivity != null && orientationBeforeGame.value == null) {
+            orientationBeforeGame.value = gameActivity.requestedOrientation
+        }
+        gameActivity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
         onDispose {
-            if (previousOrientation != null) {
-                activity?.requestedOrientation = previousOrientation
+            if (gameActivity != null && !gameActivity.isChangingConfigurations) {
+                orientationBeforeGame.value?.let { gameActivity.requestedOrientation = it }
+                orientationBeforeGame.value = null
             }
         }
     }
