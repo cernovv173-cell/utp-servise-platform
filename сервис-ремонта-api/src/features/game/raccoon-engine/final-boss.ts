@@ -1,4 +1,9 @@
-import type { GameBoard, PartKind, Position } from "./match-three.js";
+import type {
+  BoardObstacle,
+  GameBoard,
+  PartKind,
+  Position,
+} from "./match-three.js";
 
 export const MAGNET_CHARGE_SIZE = 20;
 
@@ -44,3 +49,42 @@ export const countParts = (board: GameBoard, part: PartKind): number =>
 
 export const getElectricBlockSlots = (turn: number): number[] =>
   Array.from({ length: 4 }, (_, index) => (turn + index * 2) % 8);
+
+const electricBlockPath: readonly Position[] = [
+  { row: 0, column: 2 },
+  { row: 1, column: 5 },
+  { row: 3, column: 6 },
+  { row: 5, column: 5 },
+  { row: 6, column: 4 },
+  { row: 5, column: 1 },
+  { row: 3, column: 0 },
+  { row: 1, column: 1 },
+];
+
+export const getElectricBlockPositions = (
+  turn: number,
+  count = 4,
+): Position[] =>
+  getElectricBlockSlots(turn)
+    .slice(0, count)
+    .flatMap((slot) => {
+      const position = electricBlockPath[slot];
+      return position ? [position] : [];
+    });
+
+export const moveElectricBlockObstacles = (
+  obstacles: readonly BoardObstacle[],
+  turn: number,
+): BoardObstacle[] => {
+  const circuitCount = obstacles.filter(
+    ({ kind }) => kind === "circuit",
+  ).length;
+  const positions = getElectricBlockPositions(turn, circuitCount);
+  let circuitIndex = 0;
+  return obstacles.map((obstacle) => {
+    if (obstacle.kind !== "circuit") return obstacle;
+    const position = positions[circuitIndex];
+    circuitIndex += 1;
+    return position ? { ...obstacle, position } : obstacle;
+  });
+};

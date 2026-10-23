@@ -7,7 +7,7 @@ export const raccoonObjectiveNames: Record<RaccoonObjective, string> = {
   ssd: "SSD",
   board: "Материнская плата",
   fan: "Кулер",
-  gold: "Золотой чип",
+  gold: "Золотой кристалл",
   crate: "Ящик",
   circuit: "Цепь",
 };

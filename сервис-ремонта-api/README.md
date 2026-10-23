@@ -310,6 +310,13 @@ idempotently. The new game never credits points in the browser or Android client
 completion records determine each customer's next unlocked level; an unfinished session from the
 older game is retained as history but is not converted into a new-engine board state.
 
+The campaign's five 20-level chapters map to the workbench, spare-parts warehouse, electrical panel,
+ventilation system, and main server. The final level's sole completion goal is 100 gold crystals on a
+toothed 7×7 board; four electric circuit obstacles rotate around the perimeter after each accepted
+move. In that level, every 20 collected blue processors grants one magnetic pulse, which moves gold
+crystals toward the center. These mechanics do not rewrite customer balances, reward claims, or
+legacy board snapshots.
+
 # Legacy match-three client endpoints
 
 Each signed-in customer can save a raccoon visor through the authenticated `GET` and `PUT`

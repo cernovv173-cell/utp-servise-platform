@@ -5,6 +5,7 @@ import {
 import {
   MAGNET_CHARGE_SIZE,
   magnetizeGoldToCenter,
+  moveElectricBlockObstacles,
 } from "./raccoon-engine/final-boss.js";
 import {
   type BoosterCounts,
@@ -150,14 +151,25 @@ const resolveClear = (
       ({ kind, position }) => `${kind}:${position.row}:${position.column}`,
     ),
   );
-  const obstacles = state.obstacles.filter(
+  const remainingObstacles = state.obstacles.filter(
     ({ kind, position }) =>
       !destroyed.has(`${kind}:${position.row}:${position.column}`),
   );
+  const electricShift =
+    state.electricShift + (spendsMove && level === FINAL_BOSS_LEVEL ? 1 : 0);
+  const obstacles =
+    spendsMove && level === FINAL_BOSS_LEVEL
+      ? moveElectricBlockObstacles(remainingObstacles, electricShift)
+      : remainingObstacles;
   const rules = raccoonRulesForLevel(level, obstacles);
   const conveyorTurn = state.conveyorTurn + (spendsMove ? 1 : 0);
   let board = spendsMove
-    ? moveConveyor(result.board, state.conveyorRow, state.conveyorTurn, rules)
+    ? moveConveyor(
+        result.board,
+        state.conveyorRow,
+        state.conveyorTurn,
+        raccoonRulesForLevel(level, remainingObstacles),
+      )
     : result.board;
   if (!hasPossibleMoves(board, rules))
     board = shuffleBoard(board, Math.random, rules);
@@ -172,8 +184,7 @@ const resolveClear = (
     conveyorTurn,
     movesLeft,
     score,
-    electricShift:
-      state.electricShift + (spendsMove && level === FINAL_BOSS_LEVEL ? 1 : 0),
+    electricShift,
   };
   const status = isGoalComplete(level, collected)
     ? "COMPLETE"

@@ -2,12 +2,13 @@ import { Link as RouterLink } from "@tanstack/react-router";
 import { Bomb, ChevronRight, Hammer, Lightbulb, Rocket, Sparkles, Trophy } from "lucide-react";
 
 import type { RaccoonBooster, RaccoonProgress, RaccoonSession } from "./raccoon-game-api";
+import { getRaccoonChapter, getRaccoonMascot } from "./raccoon-game-theme";
 import { RaccoonLevelMap } from "./raccoon-level-map";
 import { raccoonObjectiveNames } from "./raccoon-objectives";
 import { RaccoonPartIcon } from "./raccoon-part-icon";
 
 export const panelClass =
-  "rounded-2xl border border-white/10 bg-slate-950/55 shadow-[inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur";
+  "rounded-2xl border border-amber-100/15 bg-[#261913]/75 shadow-[inset_0_1px_0_rgba(255,232,190,.08),0_8px_24px_rgba(13,8,5,.22)] backdrop-blur";
 
 const boosterOptions: {
   id: RaccoonBooster;
@@ -20,38 +21,57 @@ const boosterOptions: {
   { id: "bomb", name: "Бомба", description: "Очистите область 3×3", Icon: Bomb },
 ];
 
-const chapterName = (level: number) =>
-  ["Верстак", "Склад деталей", "Электрощитовая", "Вентиляция", "Главный сервер"][
-    Math.min(4, Math.floor((level - 1) / 20))
-  ];
+export const RaccoonGameHero = ({
+  embedded,
+  level,
+  celebrating,
+}: {
+  embedded: boolean;
+  level: number;
+  celebrating: boolean;
+}) => {
+  const chapter = getRaccoonChapter(level);
+  const mascot = getRaccoonMascot(level);
 
-export const RaccoonGameHero = ({ embedded }: { embedded: boolean }) => (
-  <header className="mb-5 flex items-center gap-4 rounded-2xl border border-cyan-100/15 bg-slate-950/50 p-3 sm:p-4">
-    <img
-      src="/assets/raccoon-engineer-elite.png"
-      alt="Енот-инженер Расти"
-      className="h-20 w-20 shrink-0 object-contain sm:h-28 sm:w-28"
-    />
-    <div className="min-w-0">
-      <p className="text-xs font-extrabold tracking-[.18em] text-cyan-200 uppercase">
-        Помоги еноту собрать компьютер
-      </p>
-      <h1 className="mt-1 text-2xl font-black sm:text-3xl">Три в ряд</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-5 text-slate-200">
-        Меняйте соседние детали местами, собирайте три в ряд и помогите Расти пройти пять глав
-        мастерской.
-      </p>
-      {!embedded && (
-        <RouterLink
-          to="/game/daily"
-          className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cyan-200 hover:text-white"
-        >
-          Ежедневное испытание <ChevronRight size={16} aria-hidden="true" />
-        </RouterLink>
-      )}
-    </div>
-  </header>
-);
+  return (
+    <header className="mb-5 flex items-center gap-3 rounded-2xl border border-amber-100/20 bg-[#241710]/85 p-3 shadow-[inset_0_1px_0_rgba(255,244,215,.08)] sm:gap-4 sm:p-4">
+      <img
+        src={mascot.image}
+        alt={`Расти — енот-инженер: ${mascot.outfit}`}
+        className={`h-20 w-20 shrink-0 object-contain drop-shadow-[0_8px_12px_rgba(0,0,0,.45)] sm:h-28 sm:w-28 ${celebrating ? "animate-bounce" : ""}`}
+      />
+      <div className="min-w-0">
+        <p className="text-[11px] font-extrabold tracking-[.17em] text-amber-200 uppercase">
+          Глава {chapter.number} · {chapter.name}
+        </p>
+        <h1 className="mt-1 text-2xl font-black text-amber-50 sm:text-3xl">Ремонтные работы</h1>
+        <p className="mt-1 text-sm font-semibold text-cyan-100">
+          {level === 100 ? "Финал: запуск системы" : chapter.range}
+        </p>
+        <p className="mt-2 max-w-2xl text-sm leading-5 text-slate-100">
+          {chapter.description} Меняйте соседние детали, чтобы собирать их в ряд.
+        </p>
+        <p className="mt-1 text-xs font-medium text-amber-100/75">Расти · {mascot.outfit}</p>
+        {celebrating && (
+          <p
+            className="mt-2 inline-flex rounded-full border border-amber-200/30 bg-amber-300/15 px-3 py-1 text-xs font-bold text-amber-100"
+            role="status"
+          >
+            Комбо 4+! Расти празднует удачную сборку!
+          </p>
+        )}
+        {!embedded && (
+          <RouterLink
+            to="/game/daily"
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cyan-200 hover:text-white"
+          >
+            Ежедневное испытание <ChevronRight size={16} aria-hidden="true" />
+          </RouterLink>
+        )}
+      </div>
+    </header>
+  );
+};
 
 export const RaccoonGamePointsPanel = ({
   progress,
@@ -83,7 +103,7 @@ export const RaccoonGamePointsPanel = ({
         type="button"
         onClick={onClaim}
         disabled={!canClaim || claiming}
-        className="min-h-11 rounded-xl bg-amber-300 px-4 py-2 font-extrabold text-amber-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-50"
+        className="min-h-11 rounded-xl border border-amber-100/70 bg-gradient-to-b from-amber-200 via-amber-400 to-orange-600 px-4 py-2 font-extrabold text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,.75),0_3px_0_rgba(100,45,16,.8)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {claiming ? "Зачисляем…" : canClaim ? "Получить баллы" : "Нет баллов к получению"}
       </button>
@@ -113,7 +133,7 @@ export const RaccoonStartLevelPanel = ({
       type="button"
       onClick={onStart}
       disabled={disabled}
-      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-cyan-300 px-4 py-2 font-extrabold text-slate-950 hover:bg-cyan-200 disabled:opacity-50"
+      className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-amber-100/70 bg-gradient-to-b from-amber-200 via-amber-400 to-orange-600 px-4 py-2 font-extrabold text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,.75),0_3px_0_rgba(100,45,16,.8)] hover:brightness-110 disabled:opacity-50"
     >
       Начать уровень {level} <ChevronRight size={18} aria-hidden="true" />
     </button>
@@ -123,7 +143,7 @@ export const RaccoonStartLevelPanel = ({
 export const RaccoonCampaignComplete = () => (
   <section className={`${panelClass} mb-5 flex items-center gap-3 p-4 text-emerald-100`}>
     <Trophy aria-hidden="true" />
-    <p className="font-bold">Кампания из 100 уровней пройдена!</p>
+    <p className="font-bold">Расти запустил мастерскую! Все 100 уровней пройдены.</p>
   </section>
 );
 
@@ -147,11 +167,13 @@ export const RaccoonSessionStats = ({ session }: { session: RaccoonSession }) =>
       </div>
       <div className={`${panelClass} min-w-0 p-3 sm:p-4`}>
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[10px] font-bold tracking-widest text-cyan-100 uppercase">
-            Цели · уровень {session.level}
+          <span className="text-[10px] font-bold tracking-widest text-amber-100 uppercase">
+            {session.level === 100
+              ? "Финал · золотые кристаллы"
+              : `Цели · уровень ${session.level}`}
           </span>
           <span className="hidden text-xs text-slate-400 sm:inline">
-            {chapterName(session.level)}
+            {getRaccoonChapter(session.level).name}
           </span>
         </div>
         <div className="mt-2 flex flex-wrap justify-around gap-x-2 gap-y-1">
@@ -229,7 +251,7 @@ export const RaccoonActiveControls = ({
           title={description}
           disabled={processing || session.boosters[id] <= 0}
           onClick={() => onBoosterToggle(id)}
-          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold transition disabled:opacity-45 ${activeBooster === id ? "border-amber-200 bg-amber-300/20 text-amber-100" : "border-white/10 bg-white/5 text-white hover:bg-white/10"}`}
+          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition disabled:opacity-45 ${activeBooster === id ? "border-amber-200 bg-gradient-to-b from-amber-300/35 to-orange-950/60 text-amber-100" : "border-amber-100/20 bg-gradient-to-b from-[#59402d]/90 to-[#241710]/95 text-amber-50 hover:brightness-125"}`}
         >
           <Icon size={17} aria-hidden="true" /> {name}
           <span className="rounded-full bg-black/30 px-2 py-0.5 text-xs tabular-nums">
@@ -238,17 +260,23 @@ export const RaccoonActiveControls = ({
         </button>
       ))}
       {session.level === 100 && (
-        <button
-          type="button"
-          disabled={processing || session.magnetCharges <= 0}
-          onClick={onMagnet}
-          className="flex min-h-11 items-center gap-2 rounded-xl border border-amber-200/20 bg-amber-300/10 px-3 py-2 text-sm font-bold text-amber-100 disabled:opacity-45"
-        >
-          <Sparkles size={17} aria-hidden="true" /> Магнит
-          <span className="rounded-full bg-black/30 px-2 py-0.5 text-xs">
-            {session.magnetCharges}
+        <div className="flex min-h-11 flex-wrap items-center justify-center gap-2 rounded-xl border border-amber-200/30 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+          <button
+            type="button"
+            title="Каждые 20 синих процессоров дают один импульс для золотых кристаллов"
+            disabled={processing || session.magnetCharges <= 0}
+            onClick={onMagnet}
+            className="flex min-h-8 items-center gap-2 rounded-lg border border-amber-100/50 bg-gradient-to-b from-amber-200 via-amber-400 to-orange-600 px-3 font-extrabold text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,.65),0_2px_0_rgba(100,45,16,.75)] hover:brightness-110 disabled:opacity-45"
+          >
+            <Sparkles size={17} aria-hidden="true" /> Магнитный импульс
+            <span className="rounded-full bg-amber-950/20 px-2 py-0.5 text-xs">
+              {session.magnetCharges}
+            </span>
+          </button>
+          <span className="text-xs text-amber-50/85">
+            Синие процессоры: {(session.collected.cpu ?? 0) % 20}/20 до следующего заряда
           </span>
-        </button>
+        </div>
       )}
     </div>
     <button
@@ -284,11 +312,17 @@ export const RaccoonSessionOutcome = ({
       className={session.status === "COMPLETE" ? "text-amber-200" : "text-rose-200"}
     />
     <h2 className="text-xl font-black">
-      {session.status === "COMPLETE" ? "Уровень пройден!" : "Ходы закончились"}
+      {session.status === "COMPLETE"
+        ? session.level === 100
+          ? "Система запущена!"
+          : "Уровень пройден!"
+        : "Ходы закончились"}
     </h2>
     <p className="max-w-lg text-sm text-slate-300">
       {session.status === "COMPLETE"
-        ? `Получите ${pointsPerLevel} игровых баллов в бонусный счёт. Уже начисленные баллы не будут выданы повторно.`
+        ? session.level === 100
+          ? `Расти запустил мастерскую! Получите ${pointsPerLevel} игровых баллов в бонусный счёт. Уже начисленные баллы не будут выданы повторно.`
+          : `Получите ${pointsPerLevel} игровых баллов в бонусный счёт. Уже начисленные баллы не будут выданы повторно.`
         : "Попробуйте ещё раз: соберите все комплектующие, пока не закончились ходы."}
     </p>
     <div className="flex flex-wrap justify-center gap-2">
@@ -305,7 +339,7 @@ export const RaccoonSessionOutcome = ({
           type="button"
           onClick={onNextLevel}
           disabled={processing}
-          className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-cyan-300 px-4 py-2 font-extrabold text-slate-950 hover:bg-cyan-200 disabled:opacity-50"
+          className="inline-flex min-h-11 items-center gap-1 rounded-xl border border-amber-100/70 bg-gradient-to-b from-amber-200 via-amber-400 to-orange-600 px-4 py-2 font-extrabold text-amber-950 shadow-[inset_0_1px_0_rgba(255,255,255,.75),0_3px_0_rgba(100,45,16,.8)] hover:brightness-110 disabled:opacity-50"
         >
           Следующий уровень <ChevronRight size={17} aria-hidden="true" />
         </button>
@@ -319,8 +353,9 @@ export const RaccoonGameAside = ({ pointsPerLevel }: { pointsPerLevel: number })
     <h2 className="font-extrabold text-white">Как играть</h2>
     <ul className="mt-3 space-y-2 text-sm leading-5 text-slate-300">
       <li>Выбирайте соседние детали или меняйте их свайпом.</li>
-      <li>Три одинаковые детали в ряд собирают комплектующие.</li>
+      <li>Три одинаковые детали в ряд собирают комплектующие; комбинация 4+ радует Расти.</li>
       <li>Бустеры помогают пройти сложные уровни и не тратят ход.</li>
+      <li>В финале синие процессоры заряжают магнитный импульс для золотых кристаллов.</li>
       <li>{pointsPerLevel} баллов за прохождение можно получить в любое время.</li>
     </ul>
   </section>

@@ -4,7 +4,7 @@
 
 На главной странице размещены рекламные места MyTarget (в отдельной AMP-странице) и Mail.ru (`ad-2087473`, асинхронная загрузка). Фактический показ зависит от доступности рекламной сети, её настроек и блокировщиков; перед публикацией проверьте, что использование сторонней рекламы отражено в уведомлении о конфиденциальности/согласии сайта.
 
-На главной приоритетные новости стоят выше рекламных блоков и при наличии нескольких публикаций сменяются раз в 10 секунд; карусель приостанавливается при наведении, фокусе или вручную. Внутренние рекламные баннеры показываются компактной каруселью: активные публикации обновляются с сервера раз в 10 секунд, и текущий слайд меняется каждые 10 секунд. Новости и баннеры плавно перемещаются при смене; анимация перехода отключается при системной настройке уменьшения движения. В меню, логотипе и карточках главной используются еноты, которые двигаются только при наведении мышью; анимации отключаются при системной настройке уменьшения движения. Енот в игре «Три в ряд» реагирует коротким движением после принятого хода.
+На главной приоритетные новости стоят выше рекламных блоков и при наличии нескольких публикаций сменяются раз в 10 секунд; карусель приостанавливается при наведении, фокусе или вручную. Внутренние рекламные баннеры показываются компактной каруселью: активные публикации обновляются с сервера раз в 10 секунд, и текущий слайд меняется каждые 10 секунд. Новости и баннеры плавно перемещаются при смене; анимация перехода отключается при системной настройке уменьшения движения. В меню, логотипе и карточках главной используются еноты, которые двигаются только при наведении мышью; анимации отключаются при системной настройке уменьшения движения. В игре «Ремонтные работы» Расти меняет экипировку по главам и празднует комбинации из четырёх и более деталей.
 
 На главной карточка факта о технологиях показывается гостям и вошедшим пользователям, содержит ссылку на источник и обновляется раз в два часа по времени сервера. В ленте новостей остаются объявления и отзывы; карточка факта оттуда вынесена.
 
@@ -268,12 +268,16 @@ lifecycle safeguards. The staff section of `/admin` can create technician accoun
 temporary passwords that must be changed on first sign-in; customer self-registration remains on
 `/login` and cannot create staff or administrator accounts.
 
-Customers play the 100-level computer-building match-three campaign at `/game`. The route uses the
-engine and artwork from the customer's separate raccoon-game project, but it uses this service's
-customer account and API; no separate game login or source-project progress database is used. The
-API owns the board, legal moves, boosters, saved sessions, and level rewards. Regular boards are
-7×6 and the final boss uses a shaped 7×7 field; the campaign includes chapter obstacles, conveyor
-mechanics, and a final magnet. Android opens the same page inside a restricted WebView at
+Customers play the 100-level computer-repair match-three campaign, **Ремонтные работы**, at `/game`.
+The route uses the service customer account and API; no separate game login or source-project
+progress database is used. The API owns the board, legal moves, boosters, saved sessions, and level
+rewards. Its five 20-level zones are the workbench, spare-parts warehouse, electrical panel,
+ventilation system, and main server. Rasti's artwork evolves from his classic suit to goggles and a
+tool belt, then a neon-accented helmet; a clear of four or more component tiles triggers a short
+celebration. Regular boards are 7×6; level 100 uses a toothed 7×7 gear-shaped field and asks the
+player to collect 100 gold crystals. Four electric blocks move around the perimeter after each
+successful move. Every 20 blue processors charge a magnetic pulse that draws the gold crystals
+toward the center. Android opens the same page inside a restricted WebView at
 `/game?embedded=android` and passes the existing customer session only to the active service-web
 origin. The native header keeps Back and Daily Challenge navigation available.
 

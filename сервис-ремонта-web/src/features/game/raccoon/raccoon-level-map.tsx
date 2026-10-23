@@ -1,8 +1,7 @@
 import { Check, LockKeyhole } from "lucide-react";
 
 import type { RaccoonProgress } from "./raccoon-game-api";
-
-const chapters = ["Верстак", "Склад деталей", "Электрощитовая", "Вентиляция", "Главный сервер"];
+import { raccoonChapters } from "./raccoon-game-theme";
 
 export const RaccoonLevelMap = ({
   levels,
@@ -12,18 +11,18 @@ export const RaccoonLevelMap = ({
   onChoose: (level: number) => void;
 }) => (
   <div className="space-y-4">
-    {chapters.map((chapter, chapterIndex) => {
+    {raccoonChapters.map((chapter, chapterIndex) => {
       const chapterLevels = levels.filter(
         ({ number }) => Math.ceil(number / 20) === chapterIndex + 1,
       );
       if (chapterLevels.length === 0) return null;
       return (
-        <section key={chapter} aria-label={`Глава ${chapterIndex + 1}: ${chapter}`}>
+        <section key={chapter.name} aria-label={`Глава ${chapter.number}: ${chapter.name}`}>
           <div className="mb-2 flex items-center gap-2 text-sm font-bold text-cyan-100">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-cyan-300/15 text-xs text-cyan-200">
-              {chapterIndex + 1}
+              {chapter.number}
             </span>
-            <h3>{chapter}</h3>
+            <h3>{chapter.name}</h3>
             <span className="text-xs font-medium text-slate-400">
               уровни {chapterIndex * 20 + 1}–{chapterIndex * 20 + 20}
             </span>

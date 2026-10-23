@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/features/auth/auth-context";
 
 import { RaccoonBoard } from "./raccoon-board";
+import { didRaccoonClearCombo } from "./raccoon-combo";
 import {
   type RaccoonBooster,
   type RaccoonPosition,
@@ -29,6 +30,7 @@ import {
   RaccoonStartLevelPanel,
   panelClass,
 } from "./raccoon-game-panels";
+import { getRaccoonChapter } from "./raccoon-game-theme";
 
 const adjacent = (first: RaccoonPosition, second: RaccoonPosition) =>
   Math.abs(first.row - second.row) + Math.abs(first.column - second.column) === 1;
@@ -40,6 +42,8 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
   const [activeBooster, setActiveBooster] = useState<RaccoonBooster | null>(null);
   const [hint, setHint] = useState<{ from: RaccoonPosition; to: RaccoonPosition } | null>(null);
   const [notice, setNotice] = useState("");
+  const [celebrating, setCelebrating] = useState(false);
+  const comboTimer = useRef<number | null>(null);
   const progressKey = ["raccoon-match3", token, user?.id];
   const progress = useQuery({
     queryKey: progressKey,
@@ -51,6 +55,21 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
   const refresh = () => void queryClient.invalidateQueries({ queryKey: progressKey });
   const showError = (error: Error) =>
     setNotice(error.message || "Не удалось связаться с сервером.");
+  const triggerComboReaction = () => {
+    setCelebrating(true);
+    if (comboTimer.current !== null) window.clearTimeout(comboTimer.current);
+    comboTimer.current = window.setTimeout(() => {
+      setCelebrating(false);
+      comboTimer.current = null;
+    }, 1400);
+  };
+
+  useEffect(
+    () => () => {
+      if (comboTimer.current !== null) window.clearTimeout(comboTimer.current);
+    },
+    [],
+  );
 
   const start = useMutation({
     mutationFn: (level?: number) => startRaccoonSession(token!, level),
@@ -85,6 +104,11 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
     onSuccess: (result) => {
       setSelected(null);
       setHint(null);
+      const combo =
+        result.accepted &&
+        session !== null &&
+        didRaccoonClearCombo(session.collected, result.session.collected);
+      if (combo) triggerComboReaction();
       setNotice(
         !result.accepted
           ? "Этот обмен не собирает ряд. Попробуйте другую пару."
@@ -92,7 +116,9 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
             ? "Уровень пройден! Баллы готовы к получению."
             : result.session.status === "FAILED"
               ? "Ходы закончились. Попробуйте ещё раз."
-              : "Комбинация собрана!",
+              : combo
+                ? "Комбо 4+! Расти помогает восстановить мастерскую."
+                : "Комбинация собрана!",
       );
       refresh();
     },
@@ -130,7 +156,7 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
     onSuccess: (result) => {
       setNotice(
         result.accepted
-          ? "Магнитный импульс притянул золотые чипы."
+          ? "Магнитный импульс притянул золотые кристаллы."
           : "Пока нет заряда для магнита.",
       );
       refresh();
@@ -198,7 +224,7 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
   if (!token || user?.role !== "CUSTOMER") {
     return (
       <section className={`${panelClass} mx-auto max-w-3xl p-6 text-white sm:p-8`}>
-        <h1 className="text-2xl font-black">Игра «Помоги еноту собрать компьютер»</h1>
+        <h1 className="text-2xl font-black">Игра «Ремонтные работы»</h1>
         <p className="mt-3 leading-6 text-slate-300">
           Войдите в аккаунт клиента, чтобы продолжить прохождение и сохранить игровые баллы.
         </p>
@@ -242,20 +268,21 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
 
   const data = progress.data;
   const currentLevel = data.currentLevel;
+  const displayLevel = session?.level ?? currentLevel ?? 100;
+  const chapter = getRaccoonChapter(displayLevel);
 
   return (
     <main
-      className="relative isolate overflow-hidden rounded-3xl border border-cyan-200/20 bg-[#071022] text-white"
+      className="relative isolate overflow-hidden rounded-3xl border border-amber-100/25 bg-[#1a120e] text-white shadow-[0_20px_65px_rgba(28,15,8,.38)]"
       style={{
-        backgroundImage:
-          "linear-gradient(100deg, rgba(4,12,29,.93), rgba(4,12,29,.78)), url('/assets/workshop-background.png')",
+        backgroundImage: `linear-gradient(100deg, rgba(29,17,11,.9), rgba(17,22,27,.74)), url('${chapter.background}')`,
         backgroundPosition: "center",
         backgroundSize: "cover",
       }}
     >
       <div className="grid gap-5 p-4 sm:p-7 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
-          <RaccoonGameHero embedded={embedded} />
+          <RaccoonGameHero embedded={embedded} level={displayLevel} celebrating={celebrating} />
           <RaccoonGamePointsPanel
             progress={data}
             claiming={claim.isPending}
@@ -289,6 +316,8 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
               <RaccoonBoard
                 board={session.board}
                 obstacles={session.obstacles}
+                level={session.level}
+                electricShift={session.electricShift}
                 selected={selected}
                 hint={hint}
                 activeBooster={activeBooster}

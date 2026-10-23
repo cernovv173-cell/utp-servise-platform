@@ -40,13 +40,13 @@ export const FINAL_BOSS_PARTS: readonly PartKind[] = [
 export const FINAL_BOSS_BOARD_RULES: BoardRules = {
   parts: FINAL_BOSS_PARTS,
   shape: [
-    [false, false, true, true, true, false, false],
+    [false, false, true, false, true, false, false],
     [false, true, true, true, true, true, false],
     [true, true, true, true, true, true, true],
     [true, true, true, true, true, true, true],
     [true, true, true, true, true, true, true],
     [false, true, true, true, true, true, false],
-    [false, false, true, true, true, false, false],
+    [false, false, true, false, true, false, false],
   ],
 };
 
@@ -73,7 +73,7 @@ export const PART_INFO: Record<ObjectiveKind, { readonly name: string }> = {
   ssd: { name: "SSD" },
   board: { name: "Материнская плата" },
   fan: { name: "Кулер" },
-  gold: { name: "Золотой чип" },
+  gold: { name: "Золотой кристалл" },
   crate: { name: "Ящик" },
   circuit: { name: "Электрическая цепь" },
 };
@@ -509,7 +509,7 @@ export const getLevelConfig = (level: number): LevelConfig => {
   }
   if (safeLevel === FINAL_BOSS_LEVEL) {
     return {
-      goals: { gold: 100, crate: 2, circuit: 2 },
+      goals: { gold: 100 },
       moves: 70,
       workshopPart: "gold",
       finalBoss: true,

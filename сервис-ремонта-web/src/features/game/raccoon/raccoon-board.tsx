@@ -1,3 +1,4 @@
+import { Cog } from "lucide-react";
 import { useRef } from "react";
 
 import type {
@@ -22,6 +23,8 @@ const tileTone = {
 type RaccoonBoardProps = {
   board: RaccoonBoardData;
   obstacles: readonly RaccoonObstacle[];
+  level: number;
+  electricShift: number;
   selected: RaccoonPosition | null;
   hint: { from: RaccoonPosition; to: RaccoonPosition } | null;
   activeBooster: RaccoonBooster | null;
@@ -33,6 +36,8 @@ type RaccoonBoardProps = {
 export const RaccoonBoard = ({
   board,
   obstacles,
+  level,
+  electricShift,
   selected,
   hint,
   activeBooster,
@@ -41,15 +46,30 @@ export const RaccoonBoard = ({
   onSwipe,
 }: RaccoonBoardProps) => {
   const columns = board[0]?.length ?? 6;
+  const finalBoss = level === 100;
   const pointerStart = useRef<{ position: RaccoonPosition; x: number; y: number } | null>(null);
   const skipClick = useRef(false);
 
   return (
-    <div className="mx-auto w-full max-w-[34rem] rounded-[1.65rem] border border-cyan-200/70 bg-gradient-to-br from-cyan-300 via-blue-700 to-blue-950 p-2 shadow-[0_18px_44px_rgba(1,9,32,.65)] sm:p-3">
+    <div
+      className={`relative mx-auto w-full max-w-[34rem] rounded-[1.65rem] border p-2 shadow-[0_18px_44px_rgba(1,9,32,.65)] sm:p-3 ${finalBoss ? "border-amber-200/80 bg-gradient-to-br from-amber-200 via-orange-700 to-amber-950 shadow-[0_0_34px_rgba(255,183,74,.28)]" : "border-amber-100/45 bg-gradient-to-br from-amber-300 via-orange-800 to-[#28160f]"}`}
+    >
+      {finalBoss && (
+        <Cog
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-4 -right-3 z-20 h-10 w-10 text-amber-100 drop-shadow-[0_0_12px_rgba(255,198,87,.8)]"
+          style={{ transform: `rotate(${electricShift * 45}deg)` }}
+        />
+      )}
       <div
-        className="grid gap-1 rounded-[1.2rem] border border-white/15 bg-[#071c42]/95 p-1.5 shadow-[inset_0_0_22px_rgba(0,7,29,.75)] sm:gap-1.5 sm:p-2"
+        className="grid gap-1 rounded-[1.2rem] border border-amber-50/20 bg-[#211711]/95 p-1.5 shadow-[inset_0_0_22px_rgba(0,7,29,.75)] sm:gap-1.5 sm:p-2"
         role="grid"
-        aria-label="Игровое поле: соберите компьютерные комплектующие"
+        aria-label={
+          finalBoss
+            ? "Поле-шестерня финального уровня: соберите 100 золотых кристаллов"
+            : "Игровое поле: соберите компьютерные комплектующие"
+        }
+        data-electric-shift={finalBoss ? electricShift : undefined}
         style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
         onPointerDown={(event) => {
           if (disabled || !event.isPrimary || (event.pointerType === "mouse" && event.button !== 0))
@@ -133,7 +153,10 @@ export const RaccoonBoard = ({
                 />
                 {obstacle && (
                   <span className="absolute -top-1 -right-1 grid h-5 w-5 place-items-center rounded-full border border-white/70 bg-slate-950 text-white shadow-md sm:h-6 sm:w-6">
-                    <RaccoonPartIcon part={obstacle.kind} className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <RaccoonPartIcon
+                      part={obstacle.kind}
+                      className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${finalBoss && obstacle.kind === "circuit" ? "animate-pulse text-cyan-200" : ""}`}
+                    />
                   </span>
                 )}
               </button>

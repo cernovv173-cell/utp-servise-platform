@@ -1,3 +1,4 @@
+import { getElectricBlockPositions } from "./final-boss.js";
 import {
   BOARD_COLUMNS,
   type BoardObstacle,
@@ -49,7 +50,7 @@ export const createChapterMechanics = (level: number): ChapterMechanics => {
       : level >= 81 && level < FINAL_BOSS_LEVEL
         ? 2 + Math.floor((level - 81) / 10)
         : level === FINAL_BOSS_LEVEL
-          ? 2
+          ? 4
           : 0;
   const finalBoss = level === FINAL_BOSS_LEVEL;
   const columns = finalBoss
@@ -62,10 +63,15 @@ export const createChapterMechanics = (level: number): ChapterMechanics => {
     .filter(({ row, column }) => isPlayable(row, column))
     .slice(0, crateCount)
     .map((position) => ({ kind: "crate", position }));
-  const circuits: BoardObstacle[] = circuitSpots
-    .filter(({ row, column }) => isPlayable(row, column))
-    .slice(0, circuitCount)
-    .map((position) => ({ kind: "circuit", position }));
+  const circuits: BoardObstacle[] = finalBoss
+    ? getElectricBlockPositions(0, circuitCount).map((position) => ({
+        kind: "circuit",
+        position,
+      }))
+    : circuitSpots
+        .filter(({ row, column }) => isPlayable(row, column))
+        .slice(0, circuitCount)
+        .map((position) => ({ kind: "circuit", position }));
   const conveyorRow =
     level >= 61 && level <= 80
       ? 2 + (level % 3)
