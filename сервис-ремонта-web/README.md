@@ -272,8 +272,13 @@ Customers play the 100-level computer-repair match-three campaign, **Ремон�
 The route uses the service customer account and API; no separate game login or source-project
 progress database is used. The API owns the board, legal moves, boosters, saved sessions, and level
 rewards. The interactive board, component pieces, workshop props, and evolving Rasti mascot render
-as a real-time 3D WebGL scene using React Three Fiber and Three.js. The scene uses procedural
-low-poly geometry; readable game controls and progress panels remain an accessible HTML overlay.
+as a real-time 3D WebGL scene using React Three Fiber and Three.js. The workshop includes locally
+bundled Poly Haven CC0 glTF props (a 14,228-triangle metal toolbox and a 2,864-triangle bench vice,
+both with 1K textures); their attribution and license details are in
+`public/assets/game-models/ATTRIBUTION.md`. The room shell and chapter-specific set dressing still
+use procedural geometry, and Rasti remains the existing procedural character until a suitable
+licensed rigged character model is available. Readable game controls and progress panels remain an
+accessible HTML overlay.
 The 3D renderer is lazy-loaded when a campaign level opens, and the existing 2D board is used as a
 fallback if WebGL is unavailable. Its five 20-level zones are the workbench, spare-parts warehouse,
 electrical panel, ventilation system, and main server. Rasti evolves from his classic suit to goggles

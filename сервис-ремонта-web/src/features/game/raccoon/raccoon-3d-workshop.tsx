@@ -3,6 +3,7 @@ import { useRef } from "react";
 import type { Group, Mesh } from "three";
 
 import { raccoonChapterLighting } from "./raccoon-3d-geometry";
+import { Raccoon3DWorkshopModels } from "./raccoon-3d-workshop-models";
 
 const Shelf = ({ x, color }: { x: number; color: string }) => (
   <group position={[x, 0, -4.15]}>
@@ -269,6 +270,7 @@ export const RaccoonWorkshop = ({ chapter }: { chapter: number }) => {
         />
       </mesh>
       <Workbench />
+      <Raccoon3DWorkshopModels />
       {chapter === 1 && <ChapterOneProps glow={palette.glow} />}
       {chapter === 2 && <ChapterTwoProps accent={palette.accent} />}
       {chapter === 3 && <ChapterThreeProps glow={palette.glow} />}
