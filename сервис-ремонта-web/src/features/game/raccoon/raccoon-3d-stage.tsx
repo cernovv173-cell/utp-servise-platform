@@ -23,6 +23,7 @@ export type Raccoon3DStageProps = {
   activeBooster: RaccoonBooster | null;
   disabled?: boolean;
   celebrating?: boolean;
+  force2d?: boolean;
   onTileClick: (position: RaccoonPosition) => void;
   onSwipe: (from: RaccoonPosition, to: RaccoonPosition) => void;
 };
@@ -46,23 +47,37 @@ class RaccoonSceneErrorBoundary extends Component<BoundaryProps, BoundaryState> 
   }
 }
 
-export const Raccoon3DStage = (props: Raccoon3DStageProps) => (
+export const Raccoon3DStage = ({ force2d = false, ...props }: Raccoon3DStageProps) => (
   <div className="relative mx-auto h-[min(76vh,34rem)] min-h-[25rem] w-full max-w-4xl touch-none overflow-hidden rounded-[1.55rem] border border-amber-200/35 bg-[#1a120e] shadow-[0_22px_56px_rgba(0,0,0,.4)] landscape:h-[min(65dvh,31rem)] landscape:min-h-[12rem] landscape:max-w-none">
-    <RaccoonSceneErrorBoundary
-      fallback={
-        <Raccoon3DFallback
-          {...props}
-          message="3D-сцена недоступна на этом устройстве. Уровень открыт в облегченном режиме."
-        />
+    {force2d ? (
+      <div className="grid h-full w-full place-items-center">
+        <div className="aspect-square h-full max-w-full">
+          <Raccoon3DFallback {...props} />
+        </div>
+      </div>
+    ) : (
+      <RaccoonSceneErrorBoundary
+        fallback={
+          <Raccoon3DFallback
+            {...props}
+            message="3D-сцена недоступна на этом устройстве. Уровень открыт в облегченном режиме."
+          />
+        }
+      >
+        <Suspense
+          fallback={<Raccoon3DFallback {...props} message="Загружаем 3D-сцену мастерской…" />}
+        >
+          <Raccoon3DCanvas {...props} />
+        </Suspense>
+      </RaccoonSceneErrorBoundary>
+    )}
+    <div
+      className="sr-only"
+      role="grid"
+      aria-label={
+        force2d ? "Игровое поле, выбор комплектующих" : "Игровое поле 3D, выбор комплектующих"
       }
     >
-      <Suspense
-        fallback={<Raccoon3DFallback {...props} message="Загружаем 3D-сцену мастерской…" />}
-      >
-        <Raccoon3DCanvas {...props} />
-      </Suspense>
-    </RaccoonSceneErrorBoundary>
-    <div className="sr-only" role="grid" aria-label="Игровое поле 3D, выбор комплектующих">
       {props.board.map((row, rowIndex) => (
         <div key={rowIndex} role="row">
           {row.map((part, columnIndex) => {

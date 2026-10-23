@@ -49,7 +49,7 @@ export const RaccoonGameHero = ({
           {chapter.description} Меняйте соседние детали, чтобы собирать их в ряд.
         </p>
         <p className="mt-1 text-xs font-medium text-amber-100/75 landscape:hidden">
-          Расти в 3D · {mascot.outfit}
+          {embedded ? "Расти" : "Расти в 3D"} · {mascot.outfit}
         </p>
         {celebrating && (
           <p

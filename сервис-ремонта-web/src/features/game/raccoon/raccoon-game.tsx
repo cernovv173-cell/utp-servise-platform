@@ -316,6 +316,7 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
                 activeBooster={activeBooster}
                 disabled={session.status !== "ACTIVE" || processing}
                 celebrating={celebrating}
+                force2d={embedded}
                 onTileClick={selectTile}
                 onSwipe={swipeTile}
               />
