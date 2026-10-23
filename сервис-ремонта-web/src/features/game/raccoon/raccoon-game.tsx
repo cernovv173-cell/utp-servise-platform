@@ -270,16 +270,21 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
   const displayLevel = session?.level ?? currentLevel ?? 100;
   return (
     <main className="relative isolate overflow-hidden rounded-3xl border border-amber-100/25 bg-[#17100d] text-white shadow-[0_20px_65px_rgba(28,15,8,.38)]">
-      <div className="grid gap-5 p-4 sm:p-7 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0">
+      <div className="grid gap-5 p-4 sm:p-7 xl:grid-cols-[minmax(0,1fr)_20rem] landscape:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)] landscape:gap-3 landscape:p-3">
+        <div className="landscape:col-span-2">
           <RaccoonGameHero embedded={embedded} level={displayLevel} celebrating={celebrating} />
-          <RaccoonGamePointsPanel
-            progress={data}
-            claiming={claim.isPending}
-            onClaim={() => claim.mutate()}
-          />
+        </div>
 
-          {notice && (
+        <div className="min-w-0">
+          <div className={session?.status === "ACTIVE" ? "landscape:hidden" : ""}>
+            <RaccoonGamePointsPanel
+              progress={data}
+              claiming={claim.isPending}
+              onClaim={() => claim.mutate()}
+            />
+          </div>
+
+          {!session && notice && (
             <p
               className="mb-4 rounded-xl border border-cyan-200/20 bg-cyan-950/55 px-4 py-3 text-sm text-cyan-50"
               role="status"
@@ -301,8 +306,6 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
 
           {session && (
             <section className="space-y-4" aria-label={`Уровень ${session.level}`}>
-              <RaccoonSessionStats session={session} />
-
               <Raccoon3DStage
                 board={session.board}
                 obstacles={session.obstacles}
@@ -316,7 +319,19 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
                 onTileClick={selectTile}
                 onSwipe={swipeTile}
               />
+            </section>
+          )}
+        </div>
 
+        <aside className="space-y-3 landscape:min-w-0">
+          {session && (
+            <>
+              {notice && (
+                <p className={`${panelClass} px-3 py-2 text-sm text-cyan-50`} role="status">
+                  {notice}
+                </p>
+              )}
+              <RaccoonSessionStats session={session} />
               {session.status === "ACTIVE" ? (
                 <RaccoonActiveControls
                   session={session}
@@ -338,18 +353,19 @@ export const RaccoonGame = ({ embedded = false }: { embedded?: boolean }) => {
                   onNextLevel={() => start.mutate(session.level + 1)}
                 />
               )}
-            </section>
+            </>
           )}
-        </div>
-
-        <aside className="space-y-4">
-          <RaccoonGameAside pointsPerLevel={data.pointsPerLevel} />
-          <RaccoonCampaignPanel
-            progress={data}
-            embedded={embedded}
-            session={session}
-            onChooseLevel={(level) => start.mutate(level)}
-          />
+          <div className={session?.status === "ACTIVE" ? "landscape:hidden" : ""}>
+            <RaccoonGameAside pointsPerLevel={data.pointsPerLevel} />
+          </div>
+          <div className={session?.status === "ACTIVE" ? "landscape:hidden" : ""}>
+            <RaccoonCampaignPanel
+              progress={data}
+              embedded={embedded}
+              session={session}
+              onChooseLevel={(level) => start.mutate(level)}
+            />
+          </div>
         </aside>
       </div>
     </main>

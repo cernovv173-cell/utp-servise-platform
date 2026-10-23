@@ -47,7 +47,7 @@ class RaccoonSceneErrorBoundary extends Component<BoundaryProps, BoundaryState> 
 }
 
 export const Raccoon3DStage = (props: Raccoon3DStageProps) => (
-  <div className="relative mx-auto h-[min(76vh,34rem)] min-h-[25rem] w-full max-w-4xl touch-none overflow-hidden rounded-[1.55rem] border border-amber-200/35 bg-[#1a120e] shadow-[0_22px_56px_rgba(0,0,0,.4)]">
+  <div className="relative mx-auto h-[min(76vh,34rem)] min-h-[25rem] w-full max-w-4xl touch-none overflow-hidden rounded-[1.55rem] border border-amber-200/35 bg-[#1a120e] shadow-[0_22px_56px_rgba(0,0,0,.4)] landscape:h-[min(65dvh,31rem)] landscape:min-h-[12rem] landscape:max-w-none">
     <RaccoonSceneErrorBoundary
       fallback={
         <Raccoon3DFallback

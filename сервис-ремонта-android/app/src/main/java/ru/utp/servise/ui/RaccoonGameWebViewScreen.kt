@@ -1,5 +1,9 @@
 package ru.utp.servise.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.net.Uri
 import android.webkit.WebResourceError
@@ -40,6 +44,13 @@ import ru.utp.servise.BuildConfig
 
 private const val SERVICE_SESSION_TOKEN_KEY = "utp-web-token"
 
+private tailrec fun Context.findActivity(): Activity? =
+    when (this) {
+        is Activity -> this
+        is ContextWrapper -> baseContext.findActivity()
+        else -> null
+    }
+
 private fun Uri.isAllowedServiceOrigin(base: Uri): Boolean =
     scheme.equals("https", ignoreCase = true) &&
         host.equals(base.host, ignoreCase = true) &&
@@ -53,6 +64,7 @@ fun RaccoonGameWebViewScreen(
     onDailyPuzzle: () -> Unit,
 ) {
     val context = LocalContext.current
+    val activity = remember(context) { context.findActivity() }
     val baseUri = remember {
         Uri.parse(BuildConfig.SERVICE_WEB_BASE_URL)
     }
@@ -65,6 +77,16 @@ fun RaccoonGameWebViewScreen(
     }
     var isLoading by remember(token) { mutableStateOf(true) }
     var loadError by remember(token) { mutableStateOf<String?>(null) }
+
+    DisposableEffect(activity) {
+        val previousOrientation = activity?.requestedOrientation
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        onDispose {
+            if (previousOrientation != null) {
+                activity?.requestedOrientation = previousOrientation
+            }
+        }
+    }
 
     val webView = remember(context, token, gameUrl) {
         WebView(context).apply {

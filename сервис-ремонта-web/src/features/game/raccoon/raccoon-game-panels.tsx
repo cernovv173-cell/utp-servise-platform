@@ -34,22 +34,26 @@ export const RaccoonGameHero = ({
   const mascot = getRaccoonMascot(level);
 
   return (
-    <header className="mb-5 rounded-2xl border border-amber-100/20 bg-[#241710]/85 p-3 shadow-[inset_0_1px_0_rgba(255,244,215,.08)] sm:p-4">
+    <header className="mb-5 rounded-2xl border border-amber-100/20 bg-[#241710]/85 p-3 shadow-[inset_0_1px_0_rgba(255,244,215,.08)] sm:p-4 landscape:mb-2 landscape:flex landscape:items-center landscape:gap-4 landscape:p-2.5">
       <div className="min-w-0">
-        <p className="text-[11px] font-extrabold tracking-[.17em] text-amber-200 uppercase">
+        <p className="text-[11px] font-extrabold tracking-[.17em] text-amber-200 uppercase landscape:text-[10px]">
           Глава {chapter.number} · {chapter.name}
         </p>
-        <h1 className="mt-1 text-2xl font-black text-amber-50 sm:text-3xl">Ремонтные работы</h1>
-        <p className="mt-1 text-sm font-semibold text-cyan-100">
+        <h1 className="mt-1 text-2xl font-black text-amber-50 sm:text-3xl landscape:mt-0 landscape:text-xl">
+          Ремонтные работы
+        </h1>
+        <p className="mt-1 text-sm font-semibold text-cyan-100 landscape:hidden">
           {level === 100 ? "Финал: запуск системы" : chapter.range}
         </p>
-        <p className="mt-2 max-w-2xl text-sm leading-5 text-slate-100">
+        <p className="mt-2 max-w-2xl text-sm leading-5 text-slate-100 landscape:hidden">
           {chapter.description} Меняйте соседние детали, чтобы собирать их в ряд.
         </p>
-        <p className="mt-1 text-xs font-medium text-amber-100/75">Расти в 3D · {mascot.outfit}</p>
+        <p className="mt-1 text-xs font-medium text-amber-100/75 landscape:hidden">
+          Расти в 3D · {mascot.outfit}
+        </p>
         {celebrating && (
           <p
-            className="mt-2 inline-flex rounded-full border border-amber-200/30 bg-amber-300/15 px-3 py-1 text-xs font-bold text-amber-100"
+            className="mt-2 inline-flex rounded-full border border-amber-200/30 bg-amber-300/15 px-3 py-1 text-xs font-bold text-amber-100 landscape:mt-1"
             role="status"
           >
             Комбо 4+! Расти празднует удачную сборку!
@@ -58,7 +62,7 @@ export const RaccoonGameHero = ({
         {!embedded && (
           <RouterLink
             to="/game/daily"
-            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cyan-200 hover:text-white"
+            className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cyan-200 hover:text-white landscape:hidden"
           >
             Ежедневное испытание <ChevronRight size={16} aria-hidden="true" />
           </RouterLink>
@@ -150,8 +154,10 @@ export const RaccoonSessionStats = ({ session }: { session: RaccoonSession }) =>
   ).length;
 
   return (
-    <div className="grid grid-cols-[.75fr_1.8fr_1fr] gap-2 sm:gap-3">
-      <div className={`${panelClass} flex flex-col items-center justify-center p-3 text-center`}>
+    <div className="grid grid-cols-[.75fr_1.8fr_1fr] gap-2 sm:gap-3 landscape:grid-cols-2 landscape:gap-1.5">
+      <div
+        className={`${panelClass} flex flex-col items-center justify-center p-3 text-center landscape:order-1 landscape:py-1`}
+      >
         <span className="text-[10px] font-bold tracking-widest text-cyan-100 uppercase">Ходы</span>
         <strong
           className={`mt-1 text-3xl font-black tabular-nums ${session.movesLeft <= 5 ? "text-amber-200" : "text-white"}`}
@@ -160,18 +166,20 @@ export const RaccoonSessionStats = ({ session }: { session: RaccoonSession }) =>
         </strong>
         <span className="text-xs text-slate-400">из {session.movesTotal}</span>
       </div>
-      <div className={`${panelClass} min-w-0 p-3 sm:p-4`}>
+      <div
+        className={`${panelClass} min-w-0 p-3 sm:p-4 landscape:order-3 landscape:col-span-2 landscape:p-2`}
+      >
         <div className="flex items-center justify-between gap-2">
           <span className="text-[10px] font-bold tracking-widest text-amber-100 uppercase">
             {session.level === 100
               ? "Финал · золотые кристаллы"
               : `Цели · уровень ${session.level}`}
           </span>
-          <span className="hidden text-xs text-slate-400 sm:inline">
+          <span className="hidden text-xs text-slate-400 sm:inline landscape:hidden">
             {getRaccoonChapter(session.level).name}
           </span>
         </div>
-        <div className="mt-2 flex flex-wrap justify-around gap-x-2 gap-y-1">
+        <div className="mt-2 flex flex-wrap justify-around gap-x-2 gap-y-1 landscape:mt-1">
           {Object.entries(goals).map(([rawKind, amount]) => {
             const kind = rawKind as keyof typeof raccoonObjectiveNames;
             const count = Math.min(session.collected[kind] ?? 0, amount ?? 0);
@@ -195,7 +203,9 @@ export const RaccoonSessionStats = ({ session }: { session: RaccoonSession }) =>
           Выполнено целей: {completedGoals} из {Object.keys(goals).length}
         </p>
       </div>
-      <div className={`${panelClass} flex flex-col items-center justify-center p-3 text-center`}>
+      <div
+        className={`${panelClass} flex flex-col items-center justify-center p-3 text-center landscape:order-2 landscape:py-1`}
+      >
         <span className="text-[10px] font-bold tracking-widest text-cyan-100 uppercase">Очки</span>
         <strong className="mt-1 text-2xl font-black tabular-nums">
           {session.score.toLocaleString("ru-RU")}
@@ -233,9 +243,9 @@ export const RaccoonActiveControls = ({
   onMagnet: () => void;
   onHint: () => void;
 }) => (
-  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+  <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] landscape:grid-cols-1 landscape:gap-1.5">
     <div
-      className={`${panelClass} flex flex-wrap items-center justify-center gap-2 p-3`}
+      className={`${panelClass} flex flex-wrap items-center justify-center gap-2 p-3 landscape:gap-1.5 landscape:p-2`}
       aria-label="Бустеры уровня"
     >
       {boosterOptions.map(({ id, name, description, Icon }) => (
@@ -246,7 +256,7 @@ export const RaccoonActiveControls = ({
           title={description}
           disabled={processing || session.boosters[id] <= 0}
           onClick={() => onBoosterToggle(id)}
-          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition disabled:opacity-45 ${activeBooster === id ? "border-amber-200 bg-gradient-to-b from-amber-300/35 to-orange-950/60 text-amber-100" : "border-amber-100/20 bg-gradient-to-b from-[#59402d]/90 to-[#241710]/95 text-amber-50 hover:brightness-125"}`}
+          className={`flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-bold shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition disabled:opacity-45 landscape:min-h-9 landscape:gap-1 landscape:px-2 landscape:py-1 landscape:text-xs ${activeBooster === id ? "border-amber-200 bg-gradient-to-b from-amber-300/35 to-orange-950/60 text-amber-100" : "border-amber-100/20 bg-gradient-to-b from-[#59402d]/90 to-[#241710]/95 text-amber-50 hover:brightness-125"}`}
         >
           <Icon size={17} aria-hidden="true" /> {name}
           <span className="rounded-full bg-black/30 px-2 py-0.5 text-xs tabular-nums">
@@ -278,7 +288,7 @@ export const RaccoonActiveControls = ({
       type="button"
       disabled={processing}
       onClick={onHint}
-      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-cyan-200/20 bg-cyan-300/10 px-4 py-2 font-semibold text-cyan-100 hover:bg-cyan-300/20 disabled:opacity-50"
+      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-cyan-200/20 bg-cyan-300/10 px-4 py-2 font-semibold text-cyan-100 hover:bg-cyan-300/20 disabled:opacity-50 landscape:min-h-9 landscape:px-2 landscape:py-1"
     >
       <Lightbulb size={18} aria-hidden="true" /> Подсказка
     </button>
