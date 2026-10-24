@@ -28,6 +28,7 @@ class WorkspaceNavigationTest {
 
         assertTrue(customerRoutes.contains("customer/shop"))
         assertTrue(customerRoutes.contains("customer/support-chat"))
+        assertFalse(customerRoutes.any { it.startsWith("customer/game") })
         assertFalse(customerRoutes.contains("technician/profile"))
         assertTrue(technicianRoutes.contains("technician/profile"))
         assertFalse(technicianRoutes.contains("customer/shop"))
@@ -39,7 +40,7 @@ class WorkspaceNavigationTest {
         val technician = workspaceNavigationForRole("TECHNICIAN")
         val administrator = workspaceNavigationForRole("ADMIN")
 
-        assertEquals("sections", customer.selectedTabRoute("customer/game"))
+        assertEquals("sections", customer.selectedTabRoute("customer/loyalty"))
         assertEquals("sections", technician.selectedTabRoute("technician/reviews"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/schedule"))
         assertEquals(null, customer.selectedTabRoute("customer/new-order"))

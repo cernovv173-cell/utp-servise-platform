@@ -70,8 +70,6 @@ import ru.utp.servise.ui.CustomerOffersScreen
 import ru.utp.servise.ui.CustomerDevicesScreen
 import ru.utp.servise.ui.CustomerManagementScreen
 import ru.utp.servise.ui.LoyaltyScreen
-import ru.utp.servise.ui.Match3DailyPuzzleScreen
-import ru.utp.servise.ui.RaccoonGameWebViewScreen
 import ru.utp.servise.ui.NewsFeedScreen
 import ru.utp.servise.ui.NewsManagementScreen
 import ru.utp.servise.ui.ProfileScreen
@@ -227,8 +225,6 @@ internal fun AuthenticatedWorkspace(
                                     { navController.navigate("customer/loyalty") },
                                     onCampaignNavigate,
                                     { navController.navigate("customer/support-chat") },
-                                    { navController.navigate("customer/game") },
-                                    { navController.navigate("customer/game/daily") },
                                 )
                             }
                             composable("customer/shop") {
@@ -238,16 +234,6 @@ internal fun AuthenticatedWorkspace(
                                     runAction = runAction,
                                     onBack = { navController.popBackStack() },
                                 )
-                            }
-                            composable("customer/game") {
-                                RaccoonGameWebViewScreen(
-                                    token = token,
-                                    onBack = { navController.popBackStack() },
-                                    onDailyPuzzle = { navController.navigate("customer/game/daily") },
-                                )
-                            }
-                            composable("customer/game/daily") {
-                                Match3DailyPuzzleScreen(user.id) { navController.popBackStack() }
                             }
                             composable("customer/news") {
                                 NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate)

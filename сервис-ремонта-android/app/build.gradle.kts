@@ -5,7 +5,6 @@ plugins {
 }
 
 val firebaseConfigJson = providers.environmentVariable("UTP_FIREBASE_ANDROID_CONFIG_JSON").orNull?.trim()
-val serviceWebBaseUrl = providers.environmentVariable("UTP_WEB_BASE_URL").orNull.orEmpty().trimEnd('/')
 val yandexClientId = providers.environmentVariable("YANDEX_CLIENT_ID").orNull?.trim().orEmpty()
 val vkIdAppId = providers.environmentVariable("VK_ID_APP_ID").orNull?.trim().orEmpty()
 val vkIdClientSecret = providers.environmentVariable("VK_ID_CLIENT_SECRET").orNull?.trim().orEmpty()
@@ -37,10 +36,6 @@ if (!firebaseConfigJson.isNullOrBlank()) {
 if (!firebaseConfigJson.isNullOrBlank() || googleServicesFile.isFile) {
     pluginManager.apply("com.google.gms.google-services")
 }
-if (!serviceWebBaseUrl.startsWith("https://")) {
-    throw GradleException("UTP_WEB_BASE_URL must be the active HTTPS address of the service website.")
-}
-
 android {
     namespace = "ru.utp.servise"
     compileSdk = 36
@@ -57,8 +52,8 @@ android {
         applicationId = "ru.utp.servise"
         minSdk = 26
         targetSdk = 35
-        versionCode = 47
-        versionName = "1.5.13"
+        versionCode = 48
+        versionName = "1.5.14"
     }
 
     buildFeatures {
@@ -71,7 +66,6 @@ android {
             "API_BASE_URL",
             "\"${providers.environmentVariable("UTP_API_BASE_URL").orNull.orEmpty().trimEnd('/')}\""
         )
-        buildConfigField("String", "SERVICE_WEB_BASE_URL", "\"$serviceWebBaseUrl\"")
         buildConfigField("String", "YANDEX_CLIENT_ID", "\"$yandexClientId\"")
         buildConfigField("String", "VK_ID_APP_ID", "\"$vkIdAppId\"")
     }

@@ -72,7 +72,7 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                 ),
             ),
             WorkspaceSectionGroup(
-                "Бонусы и игры",
+                "Акции и бонусы",
                 listOf(
                     WorkspaceDestination(
                         "customer/offers",
@@ -85,18 +85,6 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                         "Бонусы и приглашения",
                         "★",
                         "Баланс бонусов и статусы приглашённых клиентов.",
-                    ),
-                    WorkspaceDestination(
-                        "customer/game",
-                        "Игра «Три в ряд»",
-                        "🎮",
-                        "Продолжить кампанию и открыть испытание дня.",
-                    ),
-                    WorkspaceDestination(
-                        "customer/game/daily",
-                        "Испытание дня",
-                        "◷",
-                        "Ежедневная головоломка без игровых наград.",
                     ),
                 ),
             ),
