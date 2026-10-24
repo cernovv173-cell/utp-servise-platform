@@ -17,6 +17,7 @@ describe("role-aware section navigation", () => {
 
     expect(customerRoutes).toContain("/shop");
     expect(customerRoutes).toContain("/support");
+    expect(customerRoutes).not.toContain("/game");
     expect(customerRoutes).not.toContain("/salary");
     expect(customerRoutes).not.toContain("/admin/customers");
 

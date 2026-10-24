@@ -134,21 +134,6 @@ const HomePage = () => {
             </SectionCard>
           </Link>
         )}
-        {user?.role === "CUSTOMER" && (
-          <Link to="/game">
-            <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
-              <RaccoonIcon
-                motion="bounce"
-                className="grid size-11 place-items-center rounded-2xl bg-indigo-50 text-2xl dark:bg-indigo-950/60"
-              />
-              <p className="mt-4 text-xs font-semibold tracking-wide text-indigo-600 uppercase dark:text-indigo-300">
-                Игра для клиентов
-              </p>
-              <h3 className="mt-1 font-semibold">Помоги еноту собрать компьютер</h3>
-              <p className="mt-1 text-sm text-slate-500">Кампания «Три в ряд»</p>
-            </SectionCard>
-          </Link>
-        )}
         <Link to="/orders">
           <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
             <RaccoonIcon

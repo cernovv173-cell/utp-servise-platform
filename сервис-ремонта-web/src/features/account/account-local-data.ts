@@ -1,9 +1,4 @@
-const customerLocalDataKeys = (userId: string) => [
-  `utp-shop-cart:${userId}`,
-  `match3:daily-challenge-completion:v1:${userId}`,
-  `match3:raccoon-cosmetic:v1:${userId}`,
-  `match3:first-tutorial-seen:v1:${userId}`,
-];
+const customerLocalDataKeys = (userId: string) => [`utp-shop-cart:${userId}`];
 
 export const clearCustomerLocalData = (userId: string, storage?: Pick<Storage, "removeItem">) => {
   let localStorage: Pick<Storage, "removeItem">;

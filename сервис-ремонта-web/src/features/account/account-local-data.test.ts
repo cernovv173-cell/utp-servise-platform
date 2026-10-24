@@ -8,12 +8,7 @@ describe("clearCustomerLocalData", () => {
 
     clearCustomerLocalData("customer-1", { removeItem });
 
-    expect(removeItem.mock.calls).toEqual([
-      ["utp-shop-cart:customer-1"],
-      ["match3:daily-challenge-completion:v1:customer-1"],
-      ["match3:raccoon-cosmetic:v1:customer-1"],
-      ["match3:first-tutorial-seen:v1:customer-1"],
-    ]);
+    expect(removeItem.mock.calls).toEqual([["utp-shop-cart:customer-1"]]);
   });
 
   it("does not interrupt logout when browser storage is unavailable", () => {
@@ -22,6 +17,6 @@ describe("clearCustomerLocalData", () => {
     });
 
     expect(() => clearCustomerLocalData("customer-1", { removeItem })).not.toThrow();
-    expect(removeItem).toHaveBeenCalledTimes(4);
+    expect(removeItem).toHaveBeenCalledTimes(1);
   });
 });

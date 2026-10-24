@@ -42,8 +42,10 @@ ENV SERVER_FALLBACK_PAGE=/app/dist/index.html
 ENV SERVER_HEALTH=true
 ENV SERVER_HOST=0.0.0.0
 ENV SERVER_ROOT=/app/dist
+ENV SERVER_CONFIG_FILE=/app/sws.toml
 
 COPY --from=build --chown=65532:65532 /app/dist /app/dist
+COPY --from=build --chown=65532:65532 /app/sws.toml /app/sws.toml
 
 USER 65532:65532
 

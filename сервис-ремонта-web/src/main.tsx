@@ -8,6 +8,7 @@ import "@/index.css";
 import { AppToaster } from "@/components/app-toaster";
 
 import { queryClient } from "@/lib/query-client";
+import { clearRetiredGameCache } from "@/lib/retired-game-cache";
 
 import { routeTree } from "@/routeTree.gen";
 
@@ -20,6 +21,8 @@ const router = createRouter({
   defaultPreload: "intent",
   scrollRestoration: true,
 });
+
+clearRetiredGameCache();
 
 declare module "@tanstack/react-router" {
   interface Register {

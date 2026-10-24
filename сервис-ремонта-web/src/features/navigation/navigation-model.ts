@@ -12,7 +12,6 @@ export type NavigationRoute =
   | "/news"
   | "/offers"
   | "/loyalty"
-  | "/game"
   | "/salary"
   | "/crafts"
   | "/about"
@@ -102,13 +101,6 @@ const navigationGroups: Array<{ label: string; links: NavigationLink[] }> = [
         label: "Бонусы",
         compactLabel: "Бонусы",
         motion: "wiggle",
-        roles: ["CUSTOMER"],
-      },
-      {
-        to: "/game",
-        label: "Три в ряд",
-        compactLabel: "Игра",
-        motion: "bounce",
         roles: ["CUSTOMER"],
       },
       { to: "/crafts", label: "Ручная работа", compactLabel: "Изделия", motion: "peek" },

@@ -59,6 +59,7 @@ import ru.utp.servise.data.PushTokenManager
 import ru.utp.servise.data.ReferralProgram
 import ru.utp.servise.data.SeasonalThemeState
 import ru.utp.servise.data.RepairOrder
+import ru.utp.servise.data.clearRetiredGameCache
 import ru.utp.servise.data.SessionStore
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.SalarySummary
@@ -77,6 +78,7 @@ import ru.utp.servise.ui.WelcomeGifIntro
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        clearRetiredGameCache(this)
         if (BuildConfig.VK_ID_APP_ID.isNotBlank()) VKID.init(this)
         NotificationChannels.ensureCreated(this)
         setContent { SeasonalThemeHost() }

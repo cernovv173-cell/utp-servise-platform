@@ -1,0 +1,23 @@
+[advanced]
+
+[[advanced.headers]]
+source = "/retired-game-cache.json"
+headers = { "Clear-Site-Data" = '"cache"', "Cache-Control" = "no-store" }
+
+[[advanced.headers]]
+source = "/"
+headers = { "Cache-Control" = "no-cache" }
+
+[[advanced.headers]]
+source = "/index.html"
+headers = { "Cache-Control" = "no-cache" }
+
+[[advanced.redirects]]
+source = "/game"
+destination = "/"
+kind = 301
+
+[[advanced.redirects]]
+source = "/game/**"
+destination = "/"
+kind = 301

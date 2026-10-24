@@ -4,7 +4,7 @@
 
 На главной странице размещены рекламные места MyTarget (в отдельной AMP-странице) и Mail.ru (`ad-2087473`, асинхронная загрузка). Фактический показ зависит от доступности рекламной сети, её настроек и блокировщиков; перед публикацией проверьте, что использование сторонней рекламы отражено в уведомлении о конфиденциальности/согласии сайта.
 
-На главной приоритетные новости стоят выше рекламных блоков и при наличии нескольких публикаций сменяются раз в 10 секунд; карусель приостанавливается при наведении, фокусе или вручную. Внутренние рекламные баннеры показываются компактной каруселью: активные публикации обновляются с сервера раз в 10 секунд, и текущий слайд меняется каждые 10 секунд. Новости и баннеры плавно перемещаются при смене; анимация перехода отключается при системной настройке уменьшения движения. В меню, логотипе и карточках главной используются еноты, которые двигаются только при наведении мышью; анимации отключаются при системной настройке уменьшения движения. В игре «Ремонтные работы» Расти меняет экипировку по главам и празднует комбинации из четырёх и более деталей.
+На главной приоритетные новости стоят выше рекламных блоков и при наличии нескольких публикаций сменяются раз в 10 секунд; карусель приостанавливается при наведении, фокусе или вручную. Внутренние рекламные баннеры показываются компактной каруселью: активные публикации обновляются с сервера раз в 10 секунд, и текущий слайд меняется каждые 10 секунд. Новости и баннеры плавно перемещаются при смене; анимация перехода отключается при системной настройке уменьшения движения. В меню, логотипе и карточках главной используются еноты, которые двигаются только при наведении мышью; анимации отключаются при системной настройке уменьшения движения.
 
 На главной карточка факта о технологиях показывается гостям и вошедшим пользователям, содержит ссылку на источник и обновляется раз в два часа по времени сервера. В ленте новостей остаются объявления и отзывы; карточка факта оттуда вынесена.
 
@@ -168,9 +168,9 @@ The server caps redemption at 30% of service lines only; spare parts and craft-p
 not eligible. The receipt identifies the redeemed amount on its own “Оплата бонусами” line, and
 customers can view it without being able to initiate redemption. One point equals one ruble of
 discount, but points are not cash and cannot be withdrawn or transferred. Repair receipts earn 10%
-of the amount paid in cash, craft orders earn 5% after payment, and the game awards 10 points per
-claimed level. Preventive work qualifies only when included in a repair order as a service line and
-uses the same 30% limit.
+of the amount paid in cash, and craft orders earn 5% after payment. Previously credited game points
+remain in customer loyalty balances; game rewards are no longer issued. Preventive work qualifies
+only when included in a repair order as a service line and uses the same 30% limit.
 
 On `/loyalty`, customers can copy a personal referral link and see invitation statuses. The link opens
 registration with the referral code filled in; a code can also be entered manually. After the referred
@@ -268,36 +268,11 @@ lifecycle safeguards. The staff section of `/admin` can create technician accoun
 temporary passwords that must be changed on first sign-in; customer self-registration remains on
 `/login` and cannot create staff or administrator accounts.
 
-Customers play the 100-level computer-repair match-three campaign, **Ремонтные работы**, at `/game`.
-The route uses the service customer account and API; no separate game login or source-project
-progress database is used. The API owns the board, legal moves, boosters, saved sessions, and level
-rewards. The interactive board, component pieces, workshop props, and evolving Rasti mascot render
-as a real-time 3D WebGL scene using React Three Fiber and Three.js. The workshop includes locally
-bundled Poly Haven CC0 glTF props (a 14,228-triangle metal toolbox and a 2,864-triangle bench vice,
-both with 1K textures); their attribution and license details are in
-`public/assets/game-models/ATTRIBUTION.md`. The room shell and chapter-specific set dressing still
-use procedural geometry, and Rasti remains the existing procedural character until a suitable
-licensed rigged character model is available. Readable game controls and progress panels remain an
-accessible HTML overlay.
-The 3D renderer is lazy-loaded when a campaign level opens, and the existing 2D board is used as a
-fallback if WebGL is unavailable. Its five 20-level zones are the workbench, spare-parts warehouse,
-electrical panel, ventilation system, and main server. Rasti evolves from his classic suit to goggles
-and a tool belt, then a neon-accented helmet; a clear of four or more component tiles triggers a
-short celebration. Regular boards are 7×6; level 100 uses a toothed 7×7 gear-shaped field and asks
-the player to collect 100 gold crystals. Four electric blocks move around the perimeter after each
-successful move. Every 20 blue processors charge a magnetic pulse that draws the gold crystals
-toward the center. Android opens the same page inside a restricted WebView at
-`/game?embedded=android` and passes the existing customer session only to the active service-web
-origin. The native header keeps Back and Daily Challenge navigation available.
-
-Existing completed-level records determine each customer's next level and remain unchanged. New
-sessions are stored separately in `raccoon_match3_sessions`; earlier `match3_sessions` records are
-kept but an unfinished old board is not transformed into the new board format. The game reads
-existing first-completion and replay rewards and leaves the current loyalty balance untouched. Ten
-points per eligible completion stay pending until the customer presses **Получить баллы**; the
-existing claim API credits the shared loyalty ledger once, and the UI never awards points locally.
-Already-credited rewards cannot be issued again. The separate `/game/daily` puzzle remains
-independent of campaign progress and awards no loyalty points.
+The match-three campaign, daily puzzle, garage, and their Web resources have been removed from the
+customer site and Android app. Old `/game` URLs redirect to the home page. At the next website visit,
+the browser clears its HTTP and Cache Storage caches plus obsolete game preferences; customer login,
+shopping carts, and other site data are retained. Previously credited bonus points remain unchanged.
+Historical game progress and reward records in the API database are retained and were not modified.
 
 ## Seasonal themes
 
