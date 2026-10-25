@@ -80,6 +80,16 @@ fun AdminShopOrdersScreen(
         }
     }
 
+    fun offerDelivery(order: ShopOrder, feeRub: Int, window: String) {
+        runAction({ ApiClient.offerShopDelivery(token, order.id, feeRub, window) }) { result ->
+            (result as? ShopOrder)?.let { updated ->
+                orders = orders.map { if (it.id == updated.id) updated else it }
+                onRefresh()
+                scope.launch { reloadOrders() }
+            }
+        }
+    }
+
     LaunchedEffect(token) { reloadOrders() }
 
     val pendingCount = orders.count { it.status == "PENDING" }
@@ -145,6 +155,7 @@ fun AdminShopOrdersScreen(
                 onConfirm = { changeStatus(order, "CONFIRMED") },
                 onComplete = { changeStatus(order, "COMPLETED") },
                 onCancel = { changeStatus(order, "CANCELLED") },
+                onOfferDelivery = { fee, window -> offerDelivery(order, fee, window) },
             )
         }
     }
@@ -157,6 +168,7 @@ private fun AdminShopOrderCard(
     onConfirm: () -> Unit,
     onComplete: () -> Unit,
     onCancel: () -> Unit,
+    onOfferDelivery: (Int, String) -> Unit,
 ) {
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -167,6 +179,19 @@ private fun AdminShopOrderCard(
             Text(order.customer?.displayName ?: "Клиент", fontWeight = FontWeight.Medium, color = UtpInk)
             order.customer?.phoneNumber?.let { Text("Телефон: $it", fontSize = 12.sp, color = UtpMuted) }
             order.customer?.email?.let { Text(it, fontSize = 12.sp, color = UtpMuted) }
+            if (order.deliveryMethod == "COURIER") {
+                Text("Курьерская доставка · ${deliveryAreaLabel(order.deliveryArea)}", fontWeight = FontWeight.Medium, color = UtpInk)
+                Text("${order.deliveryCity.orEmpty()}, ${order.deliveryAddress.orEmpty()}", fontSize = 12.sp, color = UtpMuted)
+                order.deliveryRequestNote?.takeIf { it.isNotBlank() }?.let {
+                    Text("Комментарий курьеру: $it", fontSize = 12.sp, color = UtpMuted)
+                }
+                order.deliveryOfferAcceptedAt?.let {
+                    Text("Клиент согласился с ценой и сроком доставки.", fontSize = 12.sp, color = UtpBlue)
+                }
+                if (order.status == "PENDING") {
+                    AdminShopDeliveryOfferEditor(order = order, busy = busy, onOffer = onOfferDelivery)
+                }
+            }
             Spacer(Modifier.height(2.dp))
             order.items.forEach { item ->
                 Text("${item.name} × ${item.quantity} — ${shopPrice(item.quantity * item.unitPriceRub)}", fontSize = 12.sp, color = UtpMuted)
@@ -178,7 +203,8 @@ private fun AdminShopOrderCard(
             if (order.status == "PENDING" || order.status == "CONFIRMED") {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     if (order.status == "PENDING") {
-                        Button(onClick = onConfirm, enabled = !busy, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
+                        val canConfirm = order.deliveryMethod != "COURIER" || order.deliveryOfferAcceptedAt != null
+                        Button(onClick = onConfirm, enabled = !busy && canConfirm, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
                             Text("Подтвердить наличие")
                         }
                     } else {
@@ -189,6 +215,9 @@ private fun AdminShopOrderCard(
                     OutlinedButton(onClick = onCancel, enabled = !busy, shape = RoundedCornerShape(12.dp)) {
                         Text("Отменить")
                     }
+                }
+                if (order.status == "PENDING" && order.deliveryMethod == "COURIER" && order.deliveryOfferAcceptedAt == null) {
+                    Text("Подтвердить заказ можно после согласия клиента с ценой и сроком доставки.", fontSize = 11.sp, color = UtpMuted)
                 }
             }
         }

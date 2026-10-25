@@ -363,6 +363,14 @@ data class ShopOrder(
     val cancelledAt: String?,
     val items: List<ShopOrderItem>,
     val customer: ShopOrderCustomer? = null,
+    val deliveryMethod: String = "PICKUP",
+    val deliveryArea: String? = null,
+    val deliveryCity: String? = null,
+    val deliveryAddress: String? = null,
+    val deliveryRequestNote: String? = null,
+    val deliveryFeeRub: Int? = null,
+    val deliveryWindow: String? = null,
+    val deliveryOfferAcceptedAt: String? = null,
 )
 
 data class CustomerServicePrice(

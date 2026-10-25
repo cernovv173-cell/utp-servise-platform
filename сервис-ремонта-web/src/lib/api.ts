@@ -415,6 +415,14 @@ export type ShopOrder = {
   id: string;
   status: ShopOrderStatus;
   customerNote: string | null;
+  deliveryMethod: "PICKUP" | "COURIER";
+  deliveryArea: "MOSCOW" | "MOSCOW_REGION" | null;
+  deliveryCity: string | null;
+  deliveryAddress: string | null;
+  deliveryRequestNote: string | null;
+  deliveryFeeRub: number | null;
+  deliveryWindow: string | null;
+  deliveryOfferAcceptedAt: string | null;
   totalRub: number;
   confirmedAt: string | null;
   completedAt: string | null;
@@ -1004,12 +1012,36 @@ export const getAdminShopOrders = (token: string, signal?: AbortSignal) =>
 
 export const createShopOrder = (
   token: string,
-  items: { catalogItemId: string; quantity: number }[],
-  customerNote: string,
+  input: {
+    items: { catalogItemId: string; quantity: number }[];
+    customerNote: string;
+    deliveryMethod: "PICKUP" | "COURIER";
+    deliveryArea?: "MOSCOW" | "MOSCOW_REGION";
+    deliveryCity?: string;
+    deliveryAddress?: string;
+    deliveryRequestNote?: string;
+  },
 ) =>
   apiRequest<{ order: ShopOrder }>("/shop/orders", token, {
     method: "POST",
-    body: JSON.stringify({ items, customerNote }),
+    body: JSON.stringify(input),
+  });
+
+export const offerShopDelivery = (
+  token: string,
+  orderId: string,
+  deliveryFeeRub: number,
+  deliveryWindow: string,
+) =>
+  apiRequest<{ order: ShopOrder }>(`/admin/shop/orders/${orderId}/delivery-offer`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ deliveryFeeRub, deliveryWindow }),
+  });
+
+export const respondToShopDeliveryOffer = (token: string, orderId: string, accept: boolean) =>
+  apiRequest<{ order: ShopOrder }>(`/shop/orders/${orderId}/delivery-response`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ accept }),
   });
 
 export const updateShopOrderStatus = (

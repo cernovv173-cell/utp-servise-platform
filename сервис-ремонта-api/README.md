@@ -63,6 +63,15 @@ or partially deducting its lines. Cancelling a confirmed order restores its trac
 it records the handoff after payment and receiving have been arranged outside the app. There is no
 online payment integration. Permanently deleting a customer releases any still-confirmed shop-order
 stock before removing that customer's shop order history.
+
+The shop's optional courier pilot covers Moscow and the Moscow Region. Existing orders and new orders
+without a delivery choice use pickup. Customers requesting a courier select the region and enter a
+locality and address; the administrator checks the exact address and manually offers a delivery fee
+and time window. The customer must accept the current offer before an administrator can confirm the
+order and reserve stock. Revising an offer clears the prior acceptance; declining cancels the
+still-unconfirmed order without reserving stock. The delivery fee is stored separately from the goods
+subtotal, and no courier API or online payment provider is connected for this pilot.
+
 Adding a tracked spare part or product to an open order decrements inventory atomically with the new
 order line. Removing that line returns its quantity. In an unpaid completed-order receipt, an
 administrator can set an existing line quantity to zero to remove it; linked stock is restored in the

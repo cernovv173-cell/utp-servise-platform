@@ -13,6 +13,7 @@ import {
   type MediaStorage,
   projectMediaStorage,
 } from "../media/media-storage.js";
+import { createShopDeliveryRouter } from "./shop-delivery.routes.js";
 
 const orderItemsBody = z
   .array(
@@ -31,12 +32,51 @@ const orderItemsBody = z
     "Каждый товар можно добавить в заказ только один раз.",
   );
 
+const deliveryAreas = ["MOSCOW", "MOSCOW_REGION"] as const;
+
 const createOrderBody = z
   .object({
     items: orderItemsBody,
     customerNote: z.string().trim().max(1000).optional().nullable(),
+    deliveryMethod: z.enum(["PICKUP", "COURIER"]).default("PICKUP"),
+    deliveryArea: z.enum(deliveryAreas).optional(),
+    deliveryCity: z.string().trim().min(2).max(120).optional(),
+    deliveryAddress: z.string().trim().min(1).max(500).optional(),
+    deliveryRequestNote: z.string().trim().max(500).optional().nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((order, context) => {
+    if (order.deliveryMethod === "COURIER") {
+      if (!order.deliveryArea) {
+        context.addIssue({
+          code: "custom",
+          path: ["deliveryArea"],
+          message: "Выберите регион доставки.",
+        });
+      }
+      if (!order.deliveryCity) {
+        context.addIssue({
+          code: "custom",
+          path: ["deliveryCity"],
+          message: "Укажите населённый пункт.",
+        });
+      }
+      if (!order.deliveryAddress) {
+        context.addIssue({
+          code: "custom",
+          path: ["deliveryAddress"],
+          message: "Укажите адрес доставки.",
+        });
+      }
+    } else if (order.deliveryArea || order.deliveryCity || order.deliveryAddress) {
+      context.addIssue({
+        code: "custom",
+        path: ["deliveryMethod"],
+        message:
+          "Адрес доставки можно указывать только для курьерского заказа.",
+      });
+    }
+  });
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
 const orderStatusBody = z
@@ -72,6 +112,7 @@ export const createShopRouter = (
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
+  router.use(createShopDeliveryRouter(database));
 
   router.get("/shop/products", async (_request, response) => {
     const products = await database.repairCatalogItem.findMany({
@@ -141,8 +182,15 @@ export const createShopRouter = (
     validateRequest({ body: createOrderBody }),
     async (_request, response) => {
       const customer = getAuthenticatedUser(response);
-      const { items, customerNote } =
-        bodyOf<z.infer<typeof createOrderBody>>(response);
+      const {
+        items,
+        customerNote,
+        deliveryMethod,
+        deliveryArea,
+        deliveryCity,
+        deliveryAddress,
+        deliveryRequestNote,
+      } = bodyOf<z.infer<typeof createOrderBody>>(response);
 
       const order = await database.$transaction(async (transaction) => {
         const requestedIds = items.map((item) => item.catalogItemId);
@@ -191,6 +239,11 @@ export const createShopRouter = (
           data: {
             customerId: customer.id,
             customerNote: customerNote?.trim() || null,
+            deliveryMethod,
+            deliveryArea: deliveryArea ?? null,
+            deliveryCity: deliveryCity ?? null,
+            deliveryAddress: deliveryAddress?.trim() || null,
+            deliveryRequestNote: deliveryRequestNote?.trim() || null,
             totalRub,
             items: { create: orderItems },
           },
@@ -263,6 +316,16 @@ export const createShopRouter = (
               409,
               "SHOP_ORDER_STATUS_CONFLICT",
               "Подтвердить можно только ожидающий заказ.",
+            );
+          }
+          if (
+            current.deliveryMethod === "COURIER" &&
+            !current.deliveryOfferAcceptedAt
+          ) {
+            throw new HttpError(
+              409,
+              "SHOP_DELIVERY_NOT_ACCEPTED",
+              "Сначала получите согласие клиента с ценой и сроком доставки.",
             );
           }
           for (const item of current.items) {

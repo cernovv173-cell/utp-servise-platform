@@ -72,6 +72,11 @@ fun CustomerShopScreen(
     var orders by remember { mutableStateOf<List<ShopOrder>>(emptyList()) }
     var cart by remember(user.id) { mutableStateOf(readShopCart(context, user.id)) }
     var customerNote by remember(user.id) { mutableStateOf("") }
+    var deliveryMethod by remember(user.id) { mutableStateOf("PICKUP") }
+    var deliveryArea by remember(user.id) { mutableStateOf("MOSCOW") }
+    var deliveryCity by remember(user.id) { mutableStateOf("Москва") }
+    var deliveryAddress by remember(user.id) { mutableStateOf("") }
+    var deliveryRequestNote by remember(user.id) { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
@@ -184,30 +189,67 @@ fun CustomerShopScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                     )
+                    CustomerShopDeliveryForm(
+                        deliveryMethod = deliveryMethod,
+                        onDeliveryMethodChange = { deliveryMethod = it },
+                        deliveryArea = deliveryArea,
+                        onDeliveryAreaChange = { area ->
+                            deliveryArea = area
+                            deliveryCity = if (area == "MOSCOW") "Москва" else ""
+                        },
+                        deliveryCity = deliveryCity,
+                        onDeliveryCityChange = { deliveryCity = it },
+                        deliveryAddress = deliveryAddress,
+                        onDeliveryAddressChange = { deliveryAddress = it },
+                        deliveryRequestNote = deliveryRequestNote,
+                        onDeliveryRequestNoteChange = { deliveryRequestNote = it },
+                    )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Итого", fontWeight = FontWeight.SemiBold, color = UtpInk)
                         Text(shopPrice(totalRub), fontWeight = FontWeight.Bold, color = UtpInk)
                     }
                     Button(
                         onClick = {
-                            runAction({ ApiClient.createShopOrder(token, cart, customerNote) }) { result ->
-                                (result as? ShopOrder)?.let {
+                            runAction({
+                                ApiClient.createShopOrder(
+                                    token = token,
+                                    items = cart,
+                                    customerNote = customerNote,
+                                    deliveryMethod = deliveryMethod,
+                                    deliveryArea = deliveryArea,
+                                    deliveryCity = deliveryCity,
+                                    deliveryAddress = deliveryAddress,
+                                    deliveryRequestNote = deliveryRequestNote,
+                                )
+                            }) { result ->
+                                (result as? ShopOrder)?.let { createdOrder ->
                                     cart = emptyMap()
                                     customerNote = ""
+                                    deliveryMethod = "PICKUP"
+                                    deliveryArea = "MOSCOW"
+                                    deliveryCity = "Москва"
+                                    deliveryAddress = ""
+                                    deliveryRequestNote = ""
                                     saveShopCart(context, user.id, emptyMap())
-                                    successMessage = "Заказ отправлен. Администратор проверит наличие и свяжется с вами для согласования оплаты и получения."
+                                    successMessage = if (createdOrder.deliveryMethod == "COURIER") {
+                                        "Заказ доставки отправлен. Администратор проверит адрес и сообщит стоимость и срок."
+                                    } else {
+                                        "Заказ отправлен. Администратор проверит наличие и свяжется с вами для согласования оплаты и получения."
+                                    }
                                     scope.launch { reload() }
                                 }
                             }
                         },
-                        enabled = cartItems.isNotEmpty() && !hasOutOfStock && !isLoading,
+                        enabled = cartItems.isNotEmpty() && !hasOutOfStock && !isLoading &&
+                            (deliveryMethod == "PICKUP" ||
+                                (deliveryCity.isNotBlank() && deliveryAddress.isNotBlank())),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Text("Отправить заказ · ${shopPrice(totalRub)}")
                     }
                     Text(
-                        "Остаток резервируется после проверки администратором. Оплата и получение согласуются отдельно, онлайн-оплаты нет.",
+                        "Наличие проверит администратор. Для доставки он сначала предложит цену и срок; заказ будет подтверждён после вашего согласия. Онлайн-оплаты нет.",
                         fontSize = 11.sp,
                         color = UtpMuted,
                     )
@@ -220,18 +262,27 @@ fun CustomerShopScreen(
             Text("Пока нет заказов.", fontSize = 12.sp, color = UtpMuted)
         }
         orders.forEach { order ->
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Заказ #${order.id.take(8)}", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                        Text(shopOrderStatus(order.status), color = UtpBlue, fontSize = 12.sp)
+            CustomerShopOrderCard(
+                order = order,
+                onAcceptDelivery = {
+                    runAction({ ApiClient.respondToShopDeliveryOffer(token, order.id, accept = true) }) { result ->
+                        (result as? ShopOrder)?.let { updated ->
+                            orders = orders.map { if (it.id == updated.id) updated else it }
+                            successMessage = "Вы согласились с условиями доставки. Администратор подтвердит наличие товара."
+                            scope.launch { reload() }
+                        }
                     }
-                    order.items.forEach { item ->
-                        Text("${item.name} × ${item.quantity} — ${shopPrice(item.quantity * item.unitPriceRub)}", fontSize = 12.sp, color = UtpMuted)
+                },
+                onDeclineDelivery = {
+                    runAction({ ApiClient.respondToShopDeliveryOffer(token, order.id, accept = false) }) { result ->
+                        (result as? ShopOrder)?.let { updated ->
+                            orders = orders.map { if (it.id == updated.id) updated else it }
+                            successMessage = "Предложение отклонено, заказ отменён."
+                            scope.launch { reload() }
+                        }
                     }
-                    Text("Итого: ${shopPrice(order.totalRub)}", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                }
-            }
+                },
+            )
         }
         Spacer(Modifier.height(16.dp))
     }

@@ -11,6 +11,7 @@ import {
   type ShopOrder,
   type ShopOrderStatus,
   getAdminShopOrders,
+  offerShopDelivery,
   updateShopOrderStatus,
 } from "@/lib/api";
 
@@ -23,6 +24,11 @@ const statusLabel: Record<ShopOrderStatus, string> = {
   COMPLETED: "Выдан",
   CANCELLED: "Отменён",
 };
+
+const deliveryAreaLabel = {
+  MOSCOW: "Москва",
+  MOSCOW_REGION: "Московская область",
+} as const;
 
 const statusStyle: Record<ShopOrderStatus, string> = {
   PENDING: "bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
@@ -39,98 +45,203 @@ const formatDate = (value: string) =>
 const ShopOrderCard = ({
   order,
   onStatusChange,
+  onDeliveryOffer,
   isUpdating,
+  isOffering,
 }: {
   order: ShopOrder;
   onStatusChange: (orderId: string, status: "CONFIRMED" | "COMPLETED" | "CANCELLED") => void;
+  onDeliveryOffer: (orderId: string, fee: number, window: string) => void;
   isUpdating: boolean;
-}) => (
-  <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p className="font-semibold">Заказ #{order.id.slice(0, 8)}</p>
-        <p className="mt-1 text-xs text-slate-500">Поступил {formatDate(order.createdAt)}</p>
+  isOffering: boolean;
+}) => {
+  const [feeInput, setFeeInput] = useState(order.deliveryFeeRub?.toString() ?? "");
+  const [windowInput, setWindowInput] = useState(order.deliveryWindow ?? "");
+  const deliveryAccepted = Boolean(order.deliveryOfferAcceptedAt);
+  const areaName = order.deliveryArea ? deliveryAreaLabel[order.deliveryArea] : "Регион не указан";
+
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold">Заказ #{order.id.slice(0, 8)}</p>
+          <p className="mt-1 text-xs text-slate-500">Поступил {formatDate(order.createdAt)}</p>
+        </div>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle[order.status]}`}
+        >
+          {statusLabel[order.status]}
+        </span>
       </div>
-      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle[order.status]}`}>
-        {statusLabel[order.status]}
-      </span>
-    </div>
 
-    <div className="mt-4 grid gap-1 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900/70">
-      <p className="font-medium">{order.customer?.displayName ?? "Клиент"}</p>
-      {order.customer?.phoneNumber && (
-        <a
-          className="text-blue-700 hover:underline dark:text-cyan-300"
-          href={`tel:${order.customer.phoneNumber}`}
-        >
-          {order.customer.phoneNumber}
-        </a>
-      )}
-      {order.customer?.email && (
-        <a
-          className="text-blue-700 hover:underline dark:text-cyan-300"
-          href={`mailto:${order.customer.email}`}
-        >
-          {order.customer.email}
-        </a>
-      )}
-    </div>
-
-    <ul className="mt-4 grid gap-2 text-sm">
-      {order.items.map((item) => (
-        <li key={item.id} className="flex justify-between gap-3">
-          <span className="min-w-0">
-            {item.name} × {item.quantity}
-          </span>
-          <span className="shrink-0 tabular-nums">
-            {formatRub(item.unitPriceRub * item.quantity)}
-          </span>
-        </li>
-      ))}
-    </ul>
-    {order.customerNote && (
-      <p className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-sm leading-5 text-slate-600 dark:border-slate-700 dark:text-slate-300">
-        <span className="font-semibold">Комментарий: </span>
-        {order.customerNote}
-      </p>
-    )}
-    <p className="mt-4 border-t border-slate-100 pt-3 text-right font-semibold dark:border-slate-800">
-      Итого: {formatRub(order.totalRub)}
-    </p>
-
-    {(order.status === "PENDING" || order.status === "CONFIRMED") && (
-      <div className="mt-4 flex flex-wrap gap-2">
-        {order.status === "PENDING" ? (
-          <button
-            type="button"
-            disabled={isUpdating}
-            onClick={() => onStatusChange(order.id, "CONFIRMED")}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+      <div className="mt-4 grid gap-1 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900/70">
+        <p className="font-medium">{order.customer?.displayName ?? "Клиент"}</p>
+        {order.customer?.phoneNumber && (
+          <a
+            className="text-blue-700 hover:underline dark:text-cyan-300"
+            href={`tel:${order.customer.phoneNumber}`}
           >
-            <Check size={16} aria-hidden="true" /> Подтвердить наличие
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={isUpdating}
-            onClick={() => onStatusChange(order.id, "COMPLETED")}
-            className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-          >
-            <PackageCheck size={16} aria-hidden="true" /> Отметить выданным
-          </button>
+            {order.customer.phoneNumber}
+          </a>
         )}
-        <button
-          type="button"
-          disabled={isUpdating}
-          onClick={() => onStatusChange(order.id, "CANCELLED")}
-          className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
-        >
-          <X size={16} aria-hidden="true" /> Отменить
-        </button>
+        {order.customer?.email && (
+          <a
+            className="text-blue-700 hover:underline dark:text-cyan-300"
+            href={`mailto:${order.customer.email}`}
+          >
+            {order.customer.email}
+          </a>
+        )}
       </div>
-    )}
-  </article>
-);
+
+      <ul className="mt-4 grid gap-2 text-sm">
+        {order.items.map((item) => (
+          <li key={item.id} className="flex justify-between gap-3">
+            <span className="min-w-0">
+              {item.name} × {item.quantity}
+            </span>
+            <span className="shrink-0 tabular-nums">
+              {formatRub(item.unitPriceRub * item.quantity)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {order.deliveryMethod === "COURIER" && (
+        <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50/60 p-3 text-sm dark:border-blue-900 dark:bg-blue-950/20">
+          <p className="font-semibold">Курьерская доставка · {areaName}</p>
+          <p className="mt-1">Населённый пункт: {order.deliveryCity ?? "не указан"}</p>
+          <p className="mt-1">Адрес: {order.deliveryAddress}</p>
+          {order.deliveryRequestNote && (
+            <p className="mt-1">Пожелания: {order.deliveryRequestNote}</p>
+          )}
+          {order.deliveryFeeRub !== null && order.deliveryWindow && (
+            <p className="mt-2">
+              Предложение: {formatRub(order.deliveryFeeRub)} · {order.deliveryWindow}
+            </p>
+          )}
+          {deliveryAccepted ? (
+            <p className="mt-2 font-medium text-emerald-700 dark:text-emerald-300">
+              Клиент согласился. Теперь можно подтвердить наличие и зарезервировать товар.
+            </p>
+          ) : order.deliveryFeeRub !== null ? (
+            <p className="mt-2 text-amber-800 dark:text-amber-200">
+              Ожидаем согласия клиента. Свяжитесь с ним по телефону, если нужно сообщить условия.
+            </p>
+          ) : (
+            <p className="mt-2 text-slate-600 dark:text-slate-300">
+              Уточните цену и срок у курьера, затем отправьте предложение клиенту.
+            </p>
+          )}
+          {order.status === "PENDING" && (
+            <form
+              className="mt-3 grid gap-3 border-t border-blue-200 pt-3 sm:grid-cols-[0.7fr_1.3fr_auto] sm:items-end dark:border-blue-900"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const fee = Number(feeInput);
+                if (!Number.isSafeInteger(fee) || fee < 0 || !windowInput.trim()) return;
+                onDeliveryOffer(order.id, fee, windowInput.trim());
+              }}
+            >
+              <label
+                className="grid gap-1 text-xs font-semibold"
+                htmlFor={`delivery-fee-${order.id}`}
+              >
+                Цена доставки, ₽
+                <input
+                  id={`delivery-fee-${order.id}`}
+                  type="number"
+                  min="0"
+                  max="1000000"
+                  step="1"
+                  required
+                  value={feeInput}
+                  onChange={(event) => setFeeInput(event.target.value)}
+                  className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-950"
+                />
+              </label>
+              <label
+                className="grid gap-1 text-xs font-semibold"
+                htmlFor={`delivery-window-${order.id}`}
+              >
+                Предлагаемый срок или интервал
+                <input
+                  id={`delivery-window-${order.id}`}
+                  type="text"
+                  maxLength={160}
+                  required
+                  value={windowInput}
+                  onChange={(event) => setWindowInput(event.target.value)}
+                  placeholder="Например, завтра с 14:00 до 18:00"
+                  className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-600 dark:bg-slate-950"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={isOffering || !windowInput.trim() || feeInput === ""}
+                className="min-h-10 rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {isOffering
+                  ? "Сохраняем…"
+                  : deliveryAccepted
+                    ? "Изменить предложение"
+                    : "Предложить клиенту"}
+              </button>
+            </form>
+          )}
+        </div>
+      )}
+      {order.customerNote && (
+        <p className="mt-3 rounded-xl border border-slate-200 px-3 py-2 text-sm leading-5 text-slate-600 dark:border-slate-700 dark:text-slate-300">
+          <span className="font-semibold">Комментарий: </span>
+          {order.customerNote}
+        </p>
+      )}
+      <p className="mt-4 border-t border-slate-100 pt-3 text-right font-semibold dark:border-slate-800">
+        Товары: {formatRub(order.totalRub)}
+        {order.deliveryFeeRub !== null && (
+          <span className="ml-3">Всего: {formatRub(order.totalRub + order.deliveryFeeRub)}</span>
+        )}
+      </p>
+
+      {(order.status === "PENDING" || order.status === "CONFIRMED") && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {order.status === "PENDING" &&
+          (order.deliveryMethod !== "COURIER" || deliveryAccepted) ? (
+            <button
+              type="button"
+              disabled={isUpdating}
+              onClick={() => onStatusChange(order.id, "CONFIRMED")}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              <Check size={16} aria-hidden="true" /> Подтвердить наличие
+            </button>
+          ) : order.status === "PENDING" ? (
+            <p className="self-center text-sm text-amber-800 dark:text-amber-200">
+              Подтверждение и резерв товара доступны после согласия клиента.
+            </p>
+          ) : (
+            <button
+              type="button"
+              disabled={isUpdating}
+              onClick={() => onStatusChange(order.id, "COMPLETED")}
+              className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <PackageCheck size={16} aria-hidden="true" /> Отметить выданным
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={isUpdating}
+            onClick={() => onStatusChange(order.id, "CANCELLED")}
+            className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+          >
+            <X size={16} aria-hidden="true" /> Отменить
+          </button>
+        </div>
+      )}
+    </article>
+  );
+};
 
 export const ShopOrdersManagement = () => {
   const { token } = useAuth();
@@ -162,6 +273,15 @@ export const ShopOrdersManagement = () => {
     onError: () =>
       toast.error("Не удалось изменить заказ. Проверьте остаток товара и попробуйте снова."),
   });
+  const deliveryOfferMutation = useMutation({
+    mutationFn: ({ orderId, fee, window }: { orderId: string; fee: number; window: string }) =>
+      offerShopDelivery(token!, orderId, fee, window),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["admin-shop-orders", token] });
+      toast.success("Предложение сохранено. Клиент увидит цену и срок и сможет ответить.");
+    },
+    onError: () => toast.error("Не удалось сохранить предложение доставки. Проверьте поля."),
+  });
 
   const orders = ordersQuery.data?.orders ?? [];
   const pendingCount = orders.filter((order) => order.status === "PENDING").length;
@@ -173,8 +293,8 @@ export const ShopOrdersManagement = () => {
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500">
-          Наличие проверьте до подтверждения: тогда резервируется складской остаток. Оплата и
-          получение согласуются с клиентом вне сайта.
+          Для курьерских заказов сначала сообщите клиенту цену и срок. Склад резервируется только
+          после согласия клиента и подтверждения наличия.
         </p>
         <button
           type="button"
@@ -236,7 +356,11 @@ export const ShopOrdersManagement = () => {
               key={order.id}
               order={order}
               onStatusChange={(orderId, status) => updateMutation.mutate({ orderId, status })}
+              onDeliveryOffer={(orderId, fee, window) =>
+                deliveryOfferMutation.mutate({ orderId, fee, window })
+              }
               isUpdating={updateMutation.isPending}
+              isOffering={deliveryOfferMutation.isPending}
             />
           ))}
         </div>

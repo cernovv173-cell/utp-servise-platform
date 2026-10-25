@@ -571,18 +571,26 @@ model RepairCatalogItem {
 }
 
 model ShopOrder {
-  id           String          @id @default(uuid()) @db.Uuid
-  customerId   String          @map("customer_id") @db.Uuid
-  status       ShopOrderStatus @default(PENDING)
-  customerNote String?         @map("customer_note") @db.VarChar(1000)
-  totalRub     Int             @map("total_rub")
-  confirmedAt  DateTime?       @map("confirmed_at") @db.Timestamptz(3)
-  completedAt  DateTime?       @map("completed_at") @db.Timestamptz(3)
-  cancelledAt  DateTime?       @map("cancelled_at") @db.Timestamptz(3)
-  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
-  customer     User            @relation("ShopOrderCustomer", fields: [customerId], references: [id], onDelete: Cascade)
-  items        ShopOrderItem[]
+  id                      String          @id @default(uuid()) @db.Uuid
+  customerId              String          @map("customer_id") @db.Uuid
+  status                  ShopOrderStatus @default(PENDING)
+  customerNote            String?         @map("customer_note") @db.VarChar(1000)
+  deliveryMethod          String          @default("PICKUP") @map("delivery_method") @db.VarChar(16)
+  deliveryArea            String?         @map("delivery_area") @db.VarChar(20)
+  deliveryCity            String?         @map("delivery_city") @db.VarChar(120)
+  deliveryAddress         String?         @map("delivery_address") @db.VarChar(500)
+  deliveryRequestNote     String?         @map("delivery_request_note") @db.VarChar(500)
+  deliveryFeeRub          Int?            @map("delivery_fee_rub")
+  deliveryWindow          String?         @map("delivery_window") @db.VarChar(160)
+  deliveryOfferAcceptedAt DateTime?       @map("delivery_offer_accepted_at") @db.Timestamptz(3)
+  totalRub                Int             @map("total_rub")
+  confirmedAt             DateTime?       @map("confirmed_at") @db.Timestamptz(3)
+  completedAt             DateTime?       @map("completed_at") @db.Timestamptz(3)
+  cancelledAt             DateTime?       @map("cancelled_at") @db.Timestamptz(3)
+  createdAt               DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer                User            @relation("ShopOrderCustomer", fields: [customerId], references: [id], onDelete: Cascade)
+  items                   ShopOrderItem[]
 
   @@index([customerId, createdAt])
   @@index([status, createdAt])

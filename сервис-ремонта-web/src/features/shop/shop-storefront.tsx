@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Minus, PackageOpen, Plus, ShoppingBag, ShoppingCart } from "lucide-react";
+import { MapPin, Minus, PackageOpen, Plus, ShoppingBag, ShoppingCart } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -17,6 +17,7 @@ import {
   getMyShopOrders,
   getShopProductImageUrl,
   getShopProducts,
+  respondToShopDeliveryOffer,
 } from "@/lib/api";
 
 import { type ShopCart, getShopCartCount, loadShopCart, setShopCartQuantity } from "./shop-cart";
@@ -25,10 +26,20 @@ const rubles = new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 0 });
 const formatRub = (amount: number) => `${rubles.format(amount)} ₽`;
 
 const orderStatusLabel: Record<ShopOrderStatus, string> = {
-  PENDING: "Ожидает подтверждения",
+  PENDING: "Ожидает проверки",
   CONFIRMED: "Наличие подтверждено",
   COMPLETED: "Выдан",
   CANCELLED: "Отменён",
+};
+
+const deliveryAreas = [
+  { value: "MOSCOW", label: "Москва" },
+  { value: "MOSCOW_REGION", label: "Московская область" },
+] as const;
+type DeliveryAreaCode = (typeof deliveryAreas)[number]["value"];
+const deliveryAreaLabel: Record<DeliveryAreaCode, string> = {
+  MOSCOW: "Москва",
+  MOSCOW_REGION: "Московская область",
 };
 
 const availabilityLabel = (availability: ShopProduct["availability"]) => {
@@ -104,34 +115,108 @@ const ProductCard = ({
   </article>
 );
 
-const CustomerOrderCard = ({ order }: { order: ShopOrder }) => (
-  <article className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <p className="font-semibold">Заказ #{order.id.slice(0, 8)}</p>
-        <p className="mt-1 text-xs text-slate-500">{orderDate(order.createdAt)}</p>
+const CustomerOrderCard = ({
+  order,
+  onDeliveryResponse,
+  isResponding,
+}: {
+  order: ShopOrder;
+  onDeliveryResponse: (orderId: string, accept: boolean) => void;
+  isResponding: boolean;
+}) => {
+  const deliveryStatus =
+    order.status === "PENDING" && order.deliveryMethod === "COURIER"
+      ? order.deliveryOfferAcceptedAt
+        ? "Условия доставки приняты"
+        : order.deliveryFeeRub !== null
+          ? "Нужно согласовать доставку"
+          : "Уточняем доставку"
+      : orderStatusLabel[order.status];
+  const areaName = order.deliveryArea ? deliveryAreaLabel[order.deliveryArea] : null;
+
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="font-semibold">Заказ #{order.id.slice(0, 8)}</p>
+          <p className="mt-1 text-xs text-slate-500">{orderDate(order.createdAt)}</p>
+        </div>
+        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-cyan-200">
+          {deliveryStatus}
+        </span>
       </div>
-      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950/60 dark:text-cyan-200">
-        {orderStatusLabel[order.status]}
-      </span>
-    </div>
-    <ul className="mt-3 grid gap-1 text-sm text-slate-600 dark:text-slate-300">
-      {order.items.map((item) => (
-        <li key={item.id} className="flex justify-between gap-3">
-          <span>
-            {item.name} × {item.quantity}
-          </span>
-          <span className="shrink-0 tabular-nums">
-            {formatRub(item.quantity * item.unitPriceRub)}
-          </span>
-        </li>
-      ))}
-    </ul>
-    <p className="mt-3 border-t border-slate-100 pt-3 text-right font-semibold dark:border-slate-800">
-      Итого: {formatRub(order.totalRub)}
-    </p>
-  </article>
-);
+      <ul className="mt-3 grid gap-1 text-sm text-slate-600 dark:text-slate-300">
+        {order.items.map((item) => (
+          <li key={item.id} className="flex justify-between gap-3">
+            <span>
+              {item.name} × {item.quantity}
+            </span>
+            <span className="shrink-0 tabular-nums">
+              {formatRub(item.quantity * item.unitPriceRub)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {order.deliveryMethod === "COURIER" && (
+        <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900/70">
+          <p className="flex items-start gap-2 font-medium">
+            <MapPin size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+            <span>
+              {areaName}, {order.deliveryCity}, {order.deliveryAddress}
+            </span>
+          </p>
+          {order.deliveryRequestNote && (
+            <p className="mt-2 text-slate-600 dark:text-slate-300">
+              Пожелание: {order.deliveryRequestNote}
+            </p>
+          )}
+          {order.deliveryFeeRub !== null && order.deliveryWindow ? (
+            <div className="mt-3 border-t border-slate-200 pt-3 dark:border-slate-700">
+              <p>Доставка: {formatRub(order.deliveryFeeRub)}</p>
+              <p className="mt-1">Предлагаемое время: {order.deliveryWindow}</p>
+              {order.status === "PENDING" && !order.deliveryOfferAcceptedAt && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={isResponding}
+                    onClick={() => onDeliveryResponse(order.id, true)}
+                    className="min-h-10 rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    Согласен, продолжить
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isResponding}
+                    onClick={() => onDeliveryResponse(order.id, false)}
+                    className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold hover:bg-white disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-800"
+                  >
+                    Отказаться от заказа
+                  </button>
+                </div>
+              )}
+              {order.deliveryOfferAcceptedAt && order.status === "PENDING" && (
+                <p className="mt-3 text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                  Вы согласились. Администратор проверит наличие и подтвердит заказ.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p className="mt-2 text-slate-600 dark:text-slate-300">
+              Администратор уточнит цену и срок, затем предложит условия доставки. Заказ будет
+              подтверждён только после вашего согласия.
+            </p>
+          )}
+        </div>
+      )}
+      <p className="mt-3 border-t border-slate-100 pt-3 text-right font-semibold dark:border-slate-800">
+        Товары: {formatRub(order.totalRub)}
+        {order.deliveryFeeRub !== null && (
+          <span className="ml-3">Всего: {formatRub(order.totalRub + order.deliveryFeeRub)}</span>
+        )}
+      </p>
+    </article>
+  );
+};
 
 export const ShopStorefront = () => {
   const { ready, token, user } = useAuth();
@@ -155,6 +240,11 @@ export const ShopStorefront = () => {
     ) as ShopCart;
   }, [cartState, cartStorageKey, productsQuery.data]);
   const [customerNote, setCustomerNote] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState<"PICKUP" | "COURIER">("PICKUP");
+  const [deliveryArea, setDeliveryArea] = useState<DeliveryAreaCode>("MOSCOW");
+  const [deliveryCity, setDeliveryCity] = useState("Москва");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryRequestNote, setDeliveryRequestNote] = useState("");
   const customerOrdersQuery = useQuery({
     queryKey: ["shop-orders", token],
     queryFn: ({ signal }) => getMyShopOrders(token!, signal),
@@ -181,18 +271,45 @@ export const ShopStorefront = () => {
 
   const orderMutation = useMutation({
     mutationFn: () =>
-      createShopOrder(
-        token!,
-        cartLines.map(({ id }) => ({ catalogItemId: id, quantity: cart[id]! })),
-        customerNote.trim(),
-      ),
+      createShopOrder(token!, {
+        items: cartLines.map(({ id }) => ({ catalogItemId: id, quantity: cart[id]! })),
+        customerNote: customerNote.trim(),
+        deliveryMethod,
+        ...(deliveryMethod === "COURIER"
+          ? {
+              deliveryArea,
+              deliveryCity: deliveryCity.trim(),
+              deliveryAddress: deliveryAddress.trim(),
+              deliveryRequestNote: deliveryRequestNote.trim(),
+            }
+          : {}),
+      }),
     onSuccess: () => {
       setCartState({ storageKey: cartStorageKey, cart: {} });
       setCustomerNote("");
+      setDeliveryMethod("PICKUP");
+      setDeliveryArea("MOSCOW");
+      setDeliveryCity("Москва");
+      setDeliveryAddress("");
+      setDeliveryRequestNote("");
       void queryClient.invalidateQueries({ queryKey: ["shop-orders", token] });
-      toast.success("Заказ отправлен. Администратор проверит наличие.");
+      toast.success(
+        deliveryMethod === "COURIER"
+          ? "Заявка на доставку отправлена. Администратор уточнит стоимость и срок."
+          : "Заказ отправлен. Администратор проверит наличие.",
+      );
     },
     onError: () => toast.error("Не удалось отправить заказ. Обновите товары и попробуйте ещё раз."),
+  });
+
+  const deliveryResponseMutation = useMutation({
+    mutationFn: ({ orderId, accept }: { orderId: string; accept: boolean }) =>
+      respondToShopDeliveryOffer(token!, orderId, accept),
+    onSuccess: (_result, { accept }) => {
+      void queryClient.invalidateQueries({ queryKey: ["shop-orders", token] });
+      toast.success(accept ? "Согласие отправлено администратору." : "Заказ отменён.");
+    },
+    onError: () => toast.error("Не удалось отправить ответ. Обновите список заказов."),
   });
 
   const canOrder = user?.role === "CUSTOMER" && Boolean(token);
@@ -363,6 +480,126 @@ export const ShopStorefront = () => {
                     </li>
                   ))}
                 </ul>
+                {canOrder && (
+                  <fieldset className="mt-4 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                    <legend className="px-1 text-sm font-semibold">Получение заказа</legend>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(
+                        [
+                          ["PICKUP", "Самовывоз"],
+                          ["COURIER", "Доставка"],
+                        ] as const
+                      ).map(([method, label]) => (
+                        <label
+                          key={method}
+                          className={`flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm font-medium ${deliveryMethod === method ? "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-cyan-200" : "border-slate-200 dark:border-slate-700"}`}
+                        >
+                          <input
+                            type="radio"
+                            name="shop-delivery-method"
+                            value={method}
+                            checked={deliveryMethod === method}
+                            onChange={() => setDeliveryMethod(method)}
+                            className="accent-blue-600"
+                          />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                    {deliveryMethod === "COURIER" && (
+                      <div className="mt-4 grid gap-3">
+                        <p className="text-xs leading-5 text-slate-600 dark:text-slate-300">
+                          Доставка доступна по Москве и Московской области. Администратор проверит
+                          адрес, сообщит цену и срок; заказ подтвердится только после вашего
+                          согласия.
+                        </p>
+                        <fieldset>
+                          <legend className="mb-2 text-sm font-medium">
+                            Регион доставки&nbsp;<span aria-hidden="true">*</span>
+                          </legend>
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            {deliveryAreas.map((area) => (
+                              <label
+                                key={area.value}
+                                className={`flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border px-3 text-sm ${deliveryArea === area.value ? "border-blue-500 bg-blue-50 text-blue-800 dark:bg-blue-950/40 dark:text-cyan-200" : "border-slate-200 dark:border-slate-700"}`}
+                              >
+                                <input
+                                  type="radio"
+                                  name="shop-delivery-area"
+                                  value={area.value}
+                                  checked={deliveryArea === area.value}
+                                  required
+                                  onChange={() => {
+                                    setDeliveryArea(area.value);
+                                    setDeliveryCity(area.value === "MOSCOW" ? "Москва" : "");
+                                  }}
+                                  className="accent-blue-600"
+                                />
+                                {area.label}
+                              </label>
+                            ))}
+                          </div>
+                        </fieldset>
+                        <label
+                          className="grid gap-1 text-sm font-medium"
+                          htmlFor="shop-delivery-city"
+                        >
+                          <span>
+                            Город или населённый пункт&nbsp;<span aria-hidden="true">*</span>
+                          </span>
+                          <input
+                            id="shop-delivery-city"
+                            value={deliveryCity}
+                            onChange={(event) => setDeliveryCity(event.target.value.slice(0, 120))}
+                            autoComplete="address-level2"
+                            maxLength={120}
+                            required
+                            placeholder="Например, Мытищи или Пушкино"
+                            className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950"
+                          />
+                        </label>
+                        <label
+                          className="grid gap-1 text-sm font-medium"
+                          htmlFor="shop-delivery-address"
+                        >
+                          <span>
+                            Улица, дом и квартира&nbsp;<span aria-hidden="true">*</span>
+                          </span>
+                          <input
+                            id="shop-delivery-address"
+                            value={deliveryAddress}
+                            onChange={(event) =>
+                              setDeliveryAddress(event.target.value.slice(0, 500))
+                            }
+                            autoComplete="street-address"
+                            maxLength={500}
+                            required
+                            placeholder="Улица, дом, квартира"
+                            className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950"
+                          />
+                        </label>
+                        <label
+                          className="grid gap-1 text-sm font-medium"
+                          htmlFor="shop-delivery-request-note"
+                        >
+                          Пожелания по доставке{" "}
+                          <span className="font-normal text-slate-500">(необязательно)</span>
+                          <textarea
+                            id="shop-delivery-request-note"
+                            value={deliveryRequestNote}
+                            onChange={(event) =>
+                              setDeliveryRequestNote(event.target.value.slice(0, 500))
+                            }
+                            maxLength={500}
+                            rows={2}
+                            placeholder="Например, домофон или удобный интервал"
+                            className="resize-y rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-normal outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-950"
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </fieldset>
+                )}
                 <label className="mt-4 block text-sm font-medium" htmlFor="shop-customer-note">
                   Комментарий администратору{" "}
                   <span className="font-normal text-slate-500">(необязательно)</span>
@@ -391,7 +628,11 @@ export const ShopStorefront = () => {
                   <button
                     type="button"
                     disabled={
-                      orderMutation.isPending || cartLines.length === 0 || hasUnavailableItem
+                      orderMutation.isPending ||
+                      cartLines.length === 0 ||
+                      hasUnavailableItem ||
+                      (deliveryMethod === "COURIER" &&
+                        (!deliveryCity.trim() || !deliveryAddress.trim()))
                     }
                     onClick={() => orderMutation.mutate()}
                     className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -401,8 +642,9 @@ export const ShopStorefront = () => {
                   </button>
                 )}
                 <p className="mt-3 text-xs leading-5 text-slate-500">
-                  Заказ ожидает подтверждения администратора. Склад резервируется только после
-                  проверки; оплату и получение согласуем отдельно, онлайн-оплаты нет.
+                  {deliveryMethod === "COURIER"
+                    ? "Сейчас показана стоимость товаров. Администратор отдельно предложит цену и срок доставки; до вашего согласия заказ не будет подтверждён. Онлайн-оплаты нет."
+                    : "Заказ ожидает подтверждения администратора. Склад резервируется только после проверки; оплату и получение согласуем отдельно, онлайн-оплаты нет."}
                 </p>
               </>
             )}
@@ -446,7 +688,14 @@ export const ShopStorefront = () => {
           {customerOrdersQuery.data?.orders.length ? (
             <div className="grid gap-3 md:grid-cols-2">
               {customerOrdersQuery.data.orders.map((order) => (
-                <CustomerOrderCard key={order.id} order={order} />
+                <CustomerOrderCard
+                  key={order.id}
+                  order={order}
+                  onDeliveryResponse={(orderId, accept) =>
+                    deliveryResponseMutation.mutate({ orderId, accept })
+                  }
+                  isResponding={deliveryResponseMutation.isPending}
+                />
               ))}
             </div>
           ) : null}

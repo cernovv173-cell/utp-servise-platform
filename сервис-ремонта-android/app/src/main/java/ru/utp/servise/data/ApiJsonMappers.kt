@@ -342,6 +342,14 @@ internal fun JSONObject.toShopOrder(): ShopOrder {
         cancelledAt = nullableString("cancelledAt"),
         items = optJSONArray("items").mapObjects { it.toShopOrderItem() },
         customer = customer,
+        deliveryMethod = optString("deliveryMethod", "PICKUP"),
+        deliveryArea = nullableString("deliveryArea"),
+        deliveryCity = nullableString("deliveryCity"),
+        deliveryAddress = nullableString("deliveryAddress"),
+        deliveryRequestNote = nullableString("deliveryRequestNote"),
+        deliveryFeeRub = if (isNull("deliveryFeeRub")) null else optInt("deliveryFeeRub"),
+        deliveryWindow = nullableString("deliveryWindow"),
+        deliveryOfferAcceptedAt = nullableString("deliveryOfferAcceptedAt"),
     )
 }
 

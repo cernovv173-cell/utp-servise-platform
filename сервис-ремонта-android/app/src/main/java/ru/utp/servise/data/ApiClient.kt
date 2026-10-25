@@ -187,21 +187,61 @@ object ApiClient {
         token: String,
         items: Map<String, Int>,
         customerNote: String,
+        deliveryMethod: String = "PICKUP",
+        deliveryArea: String? = null,
+        deliveryCity: String? = null,
+        deliveryAddress: String? = null,
+        deliveryRequestNote: String? = null,
     ): ShopOrder {
+        require(deliveryMethod in setOf("PICKUP", "COURIER"))
         val bodyItems = JSONArray().apply {
             items.forEach { (catalogItemId, quantity) ->
                 put(JSONObject().put("catalogItemId", catalogItemId).put("quantity", quantity))
+            }
+        }
+        val body = JSONObject()
+            .put("items", bodyItems)
+            .put("customerNote", customerNote.trim().take(1000))
+        if (deliveryMethod == "COURIER") {
+            require(deliveryArea in setOf("MOSCOW", "MOSCOW_REGION"))
+            require(!deliveryCity.isNullOrBlank())
+            require(!deliveryAddress.isNullOrBlank())
+            body.put("deliveryMethod", deliveryMethod)
+                .put("deliveryArea", deliveryArea)
+                .put("deliveryCity", deliveryCity.trim().take(120))
+                .put("deliveryAddress", deliveryAddress.trim().take(500))
+            deliveryRequestNote?.trim()?.takeIf { it.isNotEmpty() }?.let {
+                body.put("deliveryRequestNote", it.take(500))
             }
         }
         return request(
             "POST",
             "/shop/orders",
             token,
-            JSONObject()
-                .put("items", bodyItems)
-                .put("customerNote", customerNote.trim().take(1000)),
+            body,
         ).getJSONObject("order").toShopOrder()
     }
+
+    fun offerShopDelivery(
+        token: String,
+        orderId: String,
+        deliveryFeeRub: Int,
+        deliveryWindow: String,
+    ): ShopOrder = request(
+        "PATCH",
+        "/admin/shop/orders/$orderId/delivery-offer",
+        token,
+        JSONObject()
+            .put("deliveryFeeRub", deliveryFeeRub)
+            .put("deliveryWindow", deliveryWindow.trim().take(160)),
+    ).getJSONObject("order").toShopOrder()
+
+    fun respondToShopDeliveryOffer(token: String, orderId: String, accept: Boolean): ShopOrder = request(
+        "PATCH",
+        "/shop/orders/$orderId/delivery-response",
+        token,
+        JSONObject().put("accept", accept),
+    ).getJSONObject("order").toShopOrder()
 
     fun updateShopOrderStatus(token: String, orderId: String, status: String): ShopOrder {
         require(status in setOf("CONFIRMED", "COMPLETED", "CANCELLED"))
