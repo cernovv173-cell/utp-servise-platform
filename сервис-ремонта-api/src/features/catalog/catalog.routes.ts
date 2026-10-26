@@ -73,6 +73,13 @@ const catalogUpdateBody = z
       path: ["minimumStockQuantity"],
     },
   );
+const inventoryUpdateBody = z
+  .object({
+    stockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
+    minimumStockQuantity: z.number().int().min(0).max(2_147_483_647).optional(),
+  })
+  .strict()
+  .refine((body) => Object.keys(body).length > 0);
 
 const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly body: T }).body;
@@ -100,15 +107,61 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
   router.get(
     "/catalog",
     requireAuth,
-    requireRoles("ADMIN", "TECHNICIAN"),
+    requireRoles("ADMIN", "TECHNICIAN", "PROCUREMENT"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const catalogItems = await database.repairCatalogItem.findMany({
-        where: user.role === "TECHNICIAN" ? { active: true } : {},
+        where:
+          user.role === "PROCUREMENT"
+            ? { active: true, type: { in: ["SPARE_PART", "PRODUCT"] } }
+            : user.role === "TECHNICIAN"
+              ? { active: true }
+              : {},
         orderBy: [{ type: "asc" }, { name: "asc" }],
         take: 250,
       });
       response.json({ catalogItems });
+    },
+  );
+
+  router.patch(
+    "/catalog/:catalogItemId/inventory",
+    requireAuth,
+    requireRoles("ADMIN", "PROCUREMENT"),
+    validateRequest({
+      params: catalogItemIdParams,
+      body: inventoryUpdateBody,
+    }),
+    async (_request, response) => {
+      const actor = getAuthenticatedUser(response);
+      const { catalogItemId } =
+        paramsOf<z.infer<typeof catalogItemIdParams>>(response);
+      const input = bodyOf<z.infer<typeof inventoryUpdateBody>>(response);
+      const catalogItem = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw`
+          SELECT "id" FROM "repair_catalog_items" WHERE "id" = ${catalogItemId}::uuid FOR UPDATE
+        `;
+        const existing = await transaction.repairCatalogItem.findUnique({
+          where: { id: catalogItemId },
+          select: { id: true, type: true, active: true },
+        });
+        if (
+          !existing ||
+          !isInventoryCatalogItem(existing.type) ||
+          (actor.role === "PROCUREMENT" && !existing.active)
+        ) {
+          throw new HttpError(
+            404,
+            "INVENTORY_ITEM_NOT_FOUND",
+            "Активная запчасть или товар не найдены.",
+          );
+        }
+        return transaction.repairCatalogItem.update({
+          where: { id: catalogItemId },
+          data: input,
+        });
+      });
+      response.json({ catalogItem });
     },
   );
 

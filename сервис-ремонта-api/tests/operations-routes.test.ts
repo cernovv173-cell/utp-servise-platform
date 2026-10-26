@@ -10,6 +10,7 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 
 const adminToken = "A".repeat(48);
 const customerToken = "C".repeat(48);
+const procurementToken = "P".repeat(48);
 const orderId = "33333333-3333-4333-8333-333333333334";
 const partId = "33333333-3333-4333-8333-333333333335";
 
@@ -32,6 +33,15 @@ test("admin operations expose schedule, procurement and a bounded dashboard", as
       active: true,
       mustChangePassword: false,
       token: customerToken,
+    },
+    {
+      id: "buyer-1",
+      email: "buyer@test.invalid",
+      displayName: "Buyer",
+      role: "PROCUREMENT" as const,
+      active: true,
+      mustChangePassword: false,
+      token: procurementToken,
     },
   ];
   const updates: Array<{ id: string; data: Record<string, unknown> }> = [];
@@ -143,6 +153,22 @@ test("admin operations expose schedule, procurement and a bounded dashboard", as
   assert.equal(procurementBody.items.length, 1);
   assert.equal(procurementBody.items[0].recommendedPurchase, 2);
   assert.equal(procurementBody.items[0].activeEstimateQuantity, 2);
+
+  const buyerProcurement = await fetch(`${baseUrl}/procurement`, {
+    headers: headers(procurementToken),
+  });
+  assert.equal(buyerProcurement.status, 200);
+
+  const buyerSchedule = await fetch(
+    `${baseUrl}/calendar?from=2026-10-19T00%3A00%3A00.000Z&to=2026-10-21T00%3A00%3A00.000Z`,
+    { headers: headers(procurementToken) },
+  );
+  assert.equal(buyerSchedule.status, 403);
+
+  const buyerDashboard = await fetch(`${baseUrl}/dashboard`, {
+    headers: headers(procurementToken),
+  });
+  assert.equal(buyerDashboard.status, 403);
 
   const dashboard = await fetch(`${baseUrl}/dashboard`, {
     headers: headers(adminToken),

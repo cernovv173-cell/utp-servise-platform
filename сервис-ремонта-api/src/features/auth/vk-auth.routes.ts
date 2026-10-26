@@ -16,7 +16,7 @@ const vkLoginSchema = z
   .object({
     accessToken: z.string().trim().min(20).max(4096),
     password: z.string().min(1).max(128).optional(),
-    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN"]),
+    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"]),
     referralCode: referralCodeSchema,
   })
   .strict();

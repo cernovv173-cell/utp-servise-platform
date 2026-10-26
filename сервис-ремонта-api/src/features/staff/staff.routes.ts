@@ -35,7 +35,7 @@ const staffSchema = z
     email: emailSchema,
     displayName: z.string().trim().min(2).max(120),
     phoneNumber: phoneNumberSchema,
-    role: z.enum(["TECHNICIAN", "ADMIN"]).default("TECHNICIAN"),
+    role: z.enum(["TECHNICIAN", "ADMIN", "PROCUREMENT"]).default("TECHNICIAN"),
   })
   .strict();
 const updateTechnicianSchema = z
@@ -76,7 +76,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
     requireRoles("ADMIN"),
     async (_request, response) => {
       const staff = await database.user.findMany({
-        where: { role: { in: ["TECHNICIAN", "ADMIN"] } },
+        where: { role: { in: ["TECHNICIAN", "ADMIN", "PROCUREMENT"] } },
         select: {
           id: true,
           email: true,
@@ -196,7 +196,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
       const target = await database.user.findUnique({ where: { id: userId } });
       if (
         !target ||
-        (target.role !== "TECHNICIAN" && target.role !== "ADMIN")
+        !["TECHNICIAN", "ADMIN", "PROCUREMENT"].includes(target.role)
       ) {
         next(new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден."));
         return;

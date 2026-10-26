@@ -57,14 +57,14 @@ const loginSchema = z
   .object({
     email: emailSchema,
     password: z.string().min(1).max(128),
-    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN"]),
+    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"]),
   })
   .strict();
 const yandexLoginSchema = z
   .object({
     accessToken: z.string().trim().min(20).max(4096),
     password: z.string().min(1).max(128).optional(),
-    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN"]),
+    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"]),
     referralCode: referralCodeSchema,
   })
   .strict();

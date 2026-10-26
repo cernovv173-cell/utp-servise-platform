@@ -72,7 +72,7 @@ export const createOperationsRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/operations/procurement",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("ADMIN", "PROCUREMENT"),
     async (_request, response) => {
       const [catalogItems, activeEstimateParts] = await Promise.all([
         database.repairCatalogItem.findMany({

@@ -11,6 +11,7 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 const adminToken = "A".repeat(48);
 const technicianToken = "T".repeat(48);
 const customerToken = "C".repeat(48);
+const procurementToken = "P".repeat(48);
 
 test("only administrators manage the shared catalog and technicians see active prices", async (t) => {
   const users = [
@@ -41,6 +42,15 @@ test("only administrators manage the shared catalog and technicians see active p
       mustChangePassword: false,
       token: customerToken,
     },
+    {
+      id: "buyer-1",
+      email: "buyer@test.invalid",
+      displayName: "Buyer",
+      role: "PROCUREMENT" as const,
+      active: true,
+      mustChangePassword: false,
+      token: procurementToken,
+    },
   ];
   const items = [
     {
@@ -70,6 +80,16 @@ test("only administrators manage the shared catalog and technicians see active p
       active: true,
       createdById: "admin-1",
     },
+    {
+      id: "33333333-3333-4333-8333-333333333337",
+      type: "PRODUCT",
+      name: "Кабель USB-C",
+      unitPriceRub: 900,
+      stockQuantity: 8,
+      minimumStockQuantity: 3,
+      active: true,
+      createdById: "admin-1",
+    },
   ];
   const client = {
     session: {
@@ -85,13 +105,19 @@ test("only administrators manage the shared catalog and technicians see active p
         where,
         select,
       }: {
-        where: { active?: boolean; type?: string };
+        where: {
+          active?: boolean;
+          type?: string | { in: string[] };
+        };
         select?: { id?: boolean; name?: boolean; unitPriceRub?: boolean };
       }) => {
         const matches = items.filter(
           (item) =>
             (where.active === undefined || item.active === where.active) &&
-            (where.type === undefined || item.type === where.type),
+            (where.type === undefined ||
+              (typeof where.type === "string"
+                ? item.type === where.type
+                : where.type.in.includes(item.type))),
         );
         return select
           ? matches.map(({ id, name, unitPriceRub }) => ({
@@ -159,13 +185,78 @@ test("only administrators manage the shared catalog and technicians see active p
     (await technicianList.json()).catalogItems.map(
       (entry: { name: string }) => entry.name,
     ),
-    ["Диагностика", "Активный аккумулятор"],
+    ["Диагностика", "Активный аккумулятор", "Кабель USB-C"],
+  );
+
+  const procurementList = await fetch(baseUrl, {
+    headers: headers(procurementToken),
+  });
+  assert.equal(procurementList.status, 200);
+  assert.deepEqual(
+    (await procurementList.json()).catalogItems.map(
+      (entry: { name: string }) => entry.name,
+    ),
+    ["Активный аккумулятор", "Кабель USB-C"],
   );
 
   const customerList = await fetch(baseUrl, {
     headers: headers(customerToken),
   });
   assert.equal(customerList.status, 403);
+
+  const procurementServiceUpdate = await fetch(
+    `${baseUrl}/33333333-3333-4333-8333-333333333334/inventory`,
+    {
+      method: "PATCH",
+      headers: headers(procurementToken),
+      body: JSON.stringify({ stockQuantity: 3 }),
+    },
+  );
+  assert.equal(procurementServiceUpdate.status, 404);
+
+  const procurementStockUpdate = await fetch(
+    `${baseUrl}/33333333-3333-4333-8333-333333333336/inventory`,
+    {
+      method: "PATCH",
+      headers: headers(procurementToken),
+      body: JSON.stringify({ stockQuantity: 12, minimumStockQuantity: 6 }),
+    },
+  );
+  assert.equal(procurementStockUpdate.status, 200);
+  const updatedStock = (await procurementStockUpdate.json()).catalogItem;
+  assert.equal(updatedStock.stockQuantity, 12);
+  assert.equal(updatedStock.minimumStockQuantity, 6);
+  assert.equal(updatedStock.unitPriceRub, 4500);
+
+  const procurementPriceUpdate = await fetch(
+    `${baseUrl}/33333333-3333-4333-8333-333333333336/inventory`,
+    {
+      method: "PATCH",
+      headers: headers(procurementToken),
+      body: JSON.stringify({ unitPriceRub: 1 }),
+    },
+  );
+  assert.equal(procurementPriceUpdate.status, 400);
+
+  const procurementInactiveUpdate = await fetch(
+    `${baseUrl}/33333333-3333-4333-8333-333333333335/inventory`,
+    {
+      method: "PATCH",
+      headers: headers(procurementToken),
+      body: JSON.stringify({ stockQuantity: 1 }),
+    },
+  );
+  assert.equal(procurementInactiveUpdate.status, 404);
+
+  const technicianInventoryUpdate = await fetch(
+    `${baseUrl}/33333333-3333-4333-8333-333333333336/inventory`,
+    {
+      method: "PATCH",
+      headers: headers(technicianToken),
+      body: JSON.stringify({ stockQuantity: 3 }),
+    },
+  );
+  assert.equal(technicianInventoryUpdate.status, 403);
 
   const customerPrices = await fetch(
     "http://127.0.0.1:" + address.port + "/api/customer/service-prices",
