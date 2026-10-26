@@ -62,6 +62,7 @@ fun AuthNavigation(onAuthenticated: (String, AppUser) -> Unit, onBusy: (Boolean)
                 onRequest = { controller.navigate("register") },
                 onCustomerLogin = { controller.navigate("login/CUSTOMER") },
                 onTechnicianLogin = { controller.navigate("login/TECHNICIAN") },
+                onProcurementLogin = { controller.navigate("login/PROCUREMENT") },
                 onAdminLogin = { controller.navigate("login/ADMIN") },
             )
         }
@@ -407,6 +408,7 @@ private fun RegisterScreen(
 private fun String.roleLabel(): String = when (this) {
     "CUSTOMER" -> "клиента"
     "TECHNICIAN" -> "мастера"
+    "PROCUREMENT" -> "мастера закупки"
     "ADMIN" -> "администратора"
     else -> "пользователя"
 }

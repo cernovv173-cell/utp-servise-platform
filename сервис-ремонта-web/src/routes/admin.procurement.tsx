@@ -9,18 +9,32 @@ import { useAuth } from "@/features/auth/auth-context";
 import { getProcurementList } from "@/lib/api";
 
 const ProcurementPage = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const canView = user?.role === "ADMIN" || user?.role === "PROCUREMENT";
   const list = useQuery({
     queryKey: ["procurement-list", token],
     queryFn: ({ signal }) => getProcurementList(token!, signal),
-    enabled: Boolean(token),
+    enabled: Boolean(token && canView),
   });
   const items = list.data?.items ?? [];
+
+  if (!canView) {
+    return (
+      <AppShell active="/admin/procurement">
+        <PageTitle eyebrow="ЗАКУПКИ" title="Доступ ограничен" />
+        <SectionCard>
+          <p className="text-sm text-slate-500">
+            Этот раздел доступен администраторам и мастерам закупки.
+          </p>
+        </SectionCard>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell active="/admin/procurement">
       <PageTitle
-        eyebrow="АДМИНИСТРИРОВАНИЕ"
+        eyebrow={user?.role === "PROCUREMENT" ? "ЗАКУПКИ" : "АДМИНИСТРИРОВАНИЕ"}
         title="Закупка запчастей"
         description="Рекомендации по пополнению склада и детали, задействованные в текущих ремонтах с согласованными сметами."
         action={

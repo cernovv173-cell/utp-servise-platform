@@ -6,7 +6,9 @@ import {
   isNavigationItemActive,
 } from "@/features/navigation/navigation-model";
 
-const routesFor = (role: "CUSTOMER" | "TECHNICIAN" | "ADMIN") =>
+import type { Role } from "@/lib/api";
+
+const routesFor = (role: Role) =>
   getNavigationGroupsForRole(role).flatMap((group) => group.links.map((link) => link.to));
 
 describe("role-aware section navigation", () => {
@@ -41,6 +43,17 @@ describe("role-aware section navigation", () => {
       expect(new Set(primary.map((link) => link.to)).size).toBe(primary.length);
       expect(primary.every((link) => allRoutes.includes(link.to))).toBe(true);
     }
+  });
+
+  it("limits procurement navigation to purchasing, inventory, and profile", () => {
+    const routes = routesFor("PROCUREMENT");
+    const primary = getPrimaryNavigationLinksForRole("PROCUREMENT");
+
+    expect(routes).toEqual(["/admin/procurement", "/catalog", "/account"]);
+    expect(primary.map((link) => link.to)).toEqual(["/admin/procurement", "/catalog", "/account"]);
+    expect(routes).not.toContain("/admin/customers");
+    expect(routes).not.toContain("/orders");
+    expect(routes).not.toContain("/salary");
   });
 
   it("marks a nested page active without confusing the home or admin root routes", () => {

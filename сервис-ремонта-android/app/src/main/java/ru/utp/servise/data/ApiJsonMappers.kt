@@ -622,6 +622,7 @@ fun String.orderItemTypeLabel(): String = when (this) {
 fun String.roleLabel(): String = when (this) {
     "CUSTOMER" -> "Клиент"
     "TECHNICIAN" -> "Мастер"
+    "PROCUREMENT" -> "Мастер закупки"
     "ADMIN" -> "Администратор"
     else -> this
 }

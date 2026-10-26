@@ -105,9 +105,17 @@ return the corresponding role-scoped list. Omitting `archive` retains the unfilt
 
 Administrators can load an individual repair record through `GET /admin/orders/:orderId`; this
 endpoint is restricted to the administrator role. `POST /staff` also requires an administrator and
-creates a technician login with a generated temporary password and mandatory password change on
-first sign-in. Customer self-registration remains separate at `POST /auth/register` and always
-creates a customer account; the public registration flow cannot assign staff or administrator roles.
+creates a staff login with a generated temporary password and mandatory password change on first
+sign-in. Supported staff roles are `TECHNICIAN`, `ADMIN`, and `PROCUREMENT`; customer self-registration
+remains separate at `POST /auth/register` and always creates a customer account. Public registration
+cannot assign staff roles.
+
+The procurement role is managed by an administrator and signs in through the `PROCUREMENT` portal.
+It can view the purchase-replenishment summary and active products and spare parts, then update only
+their stock and minimum-stock quantities through `PATCH /catalog/:catalogItemId/inventory`. It cannot
+create catalog entries or change names, prices, item types, or activation state. The role does not
+receive administrator staff-management, customer-management, or repair-workspace navigation in Web
+or Android; authorization is enforced by the API, not only by those interfaces.
 Administrators can correct request details through `PATCH /orders/:orderId` in any order status;
 customers can edit only their own not-yet-assigned orders. Status transitions, service lines, stock,
 and paid receipts keep their independent authorization and lifecycle checks.

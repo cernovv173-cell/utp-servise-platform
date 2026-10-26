@@ -45,6 +45,7 @@ fun PublicHomeScreen(
     onRequest: () -> Unit,
     onCustomerLogin: () -> Unit,
     onTechnicianLogin: () -> Unit,
+    onProcurementLogin: () -> Unit,
     onAdminLogin: () -> Unit,
 ) {
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
@@ -165,13 +166,16 @@ fun PublicHomeScreen(
         ) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Вход для сотрудников", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Text("Роли мастера и администратора выдаёт сервис.", color = UtpMuted, fontSize = 12.sp)
+                Text("Роли сотрудников выдаёт сервис.", color = UtpMuted, fontSize = 12.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(onClick = onTechnicianLogin, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp)) {
                         Text("Мастер", fontSize = 12.sp)
                     }
+                    OutlinedButton(onClick = onProcurementLogin, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp)) {
+                        Text("Мастер закупки", fontSize = 11.sp, lineHeight = 13.sp)
+                    }
                     OutlinedButton(onClick = onAdminLogin, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp)) {
-                        Text("Администратор", fontSize = 12.sp)
+                        Text("Администратор", fontSize = 11.sp, lineHeight = 13.sp)
                     }
                 }
             }

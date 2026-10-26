@@ -165,6 +165,14 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
         ),
     )
 
+    "PROCUREMENT" -> WorkspaceNavigation(
+        primaryDestinations = listOf(
+            WorkspaceDestination("procurement/home", "Закупки", "▤"),
+            WorkspaceDestination("procurement/catalog", "Товары и запчасти", "▣"),
+            WorkspaceDestination("procurement/profile", "Профиль", "♙"),
+        ),
+    )
+
     else -> WorkspaceNavigation(
         primaryDestinations = listOf(
             WorkspaceDestination("admin/orders", "Заявки", "▤"),

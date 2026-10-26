@@ -3,7 +3,8 @@ import { requestJson } from "@/lib/request-json";
 const apiBase =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/u, "") ?? "";
 
-export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN";
+export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
+export type StaffRole = Exclude<Role, "CUSTOMER">;
 export type OrderArchiveView = "active" | "archived";
 export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
 export type RepairEstimate = {
@@ -1177,6 +1178,16 @@ export const updateRepairCatalogItem = (
     body: JSON.stringify(input),
   });
 
+export const updateCatalogInventory = (
+  token: string,
+  id: string,
+  input: Pick<RepairCatalogItem, "stockQuantity" | "minimumStockQuantity">,
+) =>
+  apiRequest<{ catalogItem: RepairCatalogItem }>(`/catalog/${id}/inventory`, token, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
 export const uploadCatalogProductImage = (token: string, catalogItemId: string, file: File) =>
   uploadAdminImage(`/catalog/${catalogItemId}/images`, token, file);
 
@@ -1319,16 +1330,21 @@ export const searchOrders = (token: string, serviceNumber: string, signal?: Abor
 export const getStaff = (token: string, signal?: AbortSignal) =>
   apiRequest<{ staff: StaffMember[] }>("/staff", token, { signal });
 
-export const createTechnician = (
+export const createStaff = (
   token: string,
-  input: { email: string; displayName: string; phoneNumber?: string },
+  input: {
+    email: string;
+    displayName: string;
+    phoneNumber?: string;
+    role: Extract<StaffRole, "TECHNICIAN" | "PROCUREMENT">;
+  },
 ) =>
   apiRequest<{
     staff: Pick<StaffMember, "id" | "displayName" | "email" | "role">;
     temporaryPassword: string;
   }>("/staff", token, {
     method: "POST",
-    body: JSON.stringify({ ...input, role: "TECHNICIAN" }),
+    body: JSON.stringify(input),
   });
 
 export const updateTechnician = (

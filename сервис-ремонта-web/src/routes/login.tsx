@@ -281,11 +281,12 @@ const LoginPage = () => {
             {!registering && !recovering && (
               <fieldset className="grid gap-2">
                 <legend className="mb-1 text-sm font-medium">Войти как</legend>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {(
                     [
                       ["CUSTOMER", "Клиент"],
                       ["TECHNICIAN", "Мастер"],
+                      ["PROCUREMENT", "Мастер закупки"],
                       ["ADMIN", "Администратор"],
                     ] as const
                   ).map(([value, label]) => (

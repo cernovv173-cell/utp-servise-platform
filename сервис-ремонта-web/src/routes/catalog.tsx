@@ -8,6 +8,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { ProcurementInventoryEditor } from "@/features/procurement/procurement-inventory-editor";
 
 import {
   type RepairCatalogItem,
@@ -25,7 +26,8 @@ const defaultMinimumStockQuantity = 3;
 const CatalogPage = () => {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
-  const canView = user?.role === "ADMIN" || user?.role === "TECHNICIAN";
+  const canView =
+    user?.role === "ADMIN" || user?.role === "TECHNICIAN" || user?.role === "PROCUREMENT";
   const items = useQuery({
     queryKey: ["repair-catalog", token],
     queryFn: ({ signal }) => getRepairCatalog(token!, signal),
@@ -132,6 +134,26 @@ const CatalogPage = () => {
       (item.stockQuantity === 0 ||
         item.stockQuantity <= (item.minimumStockQuantity ?? defaultMinimumStockQuantity)),
   );
+
+  if (user?.role === "PROCUREMENT") {
+    return (
+      <AppShell active="/catalog">
+        <PageTitle
+          eyebrow="СКЛАД"
+          title="Товары и запчасти"
+          description="Проверяйте остатки и обновляйте количество на складе и минимальный запас."
+        />
+        <ProcurementInventoryEditor
+          items={catalogItems}
+          token={token!}
+          isLoading={items.isLoading}
+          isError={items.isError}
+          onSaved={refresh}
+        />
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell active="/catalog">
       <PageTitle
@@ -142,7 +164,7 @@ const CatalogPage = () => {
       {!canView ? (
         <SectionCard>
           <p className="text-sm text-slate-500">
-            Каталог доступен администраторам и мастерам после входа в аккаунт.
+            Каталог доступен администраторам, мастерам и мастерам закупки после входа в аккаунт.
           </p>
         </SectionCard>
       ) : (

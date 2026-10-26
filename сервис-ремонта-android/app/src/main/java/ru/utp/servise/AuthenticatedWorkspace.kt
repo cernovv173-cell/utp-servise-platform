@@ -78,6 +78,7 @@ import ru.utp.servise.ui.RepairOrdersScreen
 import ru.utp.servise.ui.RepairRequestForm
 import ru.utp.servise.ui.RepairScheduleScreen
 import ru.utp.servise.ui.PartsProcurementScreen
+import ru.utp.servise.ui.ProcurementInventoryScreen
 import ru.utp.servise.ui.ServiceDashboardScreen
 import ru.utp.servise.ui.compressSelectedImage
 import ru.utp.servise.ui.ReviewFormScreen
@@ -341,6 +342,24 @@ internal fun AuthenticatedWorkspace(
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh, token = token) }
                             composable("technician/about") { CompanyScreen(token, false, busy, runAction, onBack = null, banners = banners, onCampaignNavigate = onCampaignNavigate) }
                             composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
+                        }
+                        "PROCUREMENT" -> {
+                            composable("procurement/home") {
+                                PartsProcurementScreen(token, onError)
+                            }
+                            composable("procurement/catalog") {
+                                ProcurementInventoryScreen(
+                                    catalogItems = catalogItems,
+                                    token = token,
+                                    busy = busy,
+                                    runAction = runAction,
+                                    onRefresh = refresh,
+                                    onError = onError,
+                                )
+                            }
+                            composable("procurement/profile") {
+                                ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout)
+                            }
                         }
                         else -> {
                             composable("admin/orders") {

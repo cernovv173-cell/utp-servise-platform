@@ -199,29 +199,51 @@ private fun UtpServiseApp(
         if (token.isNotBlank() && currentUser != null && !currentUser.mustChangePassword) {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    val newsFeed = ApiClient.news(token)
-                    WorkspaceData(
-                        orders = ApiClient.orders(token, archived = false) +
-                            ApiClient.orders(token, archived = true),
-                        reviews = ApiClient.reviews(token),
-                        customerDevices = if (currentUser.role == "CUSTOMER") ApiClient.customerDevices(token) else emptyList(),
-                        customerOffers = if (currentUser.role == "CUSTOMER") ApiClient.customerOffers(token) else emptyList(),
-                        customerServicePrices = if (currentUser.role == "CUSTOMER") ApiClient.customerServicePrices(token) else emptyList(),
-                        staff = if (currentUser.role == "ADMIN") ApiClient.staff(token) else emptyList(),
-                        catalogItems = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.catalog(token) else emptyList(),
-                        craftItems = ApiClient.craftItems(token),
-                        craftOrders = if (currentUser.role == "ADMIN" || currentUser.role == "CUSTOMER") ApiClient.craftOrders(token) else emptyList(),
-                        news = newsFeed.articles,
-                        technologyFact = newsFeed.technologyFact,
-                        banners = ApiClient.banners(token),
-                        loyalty = if (currentUser.role == "CUSTOMER") ApiClient.loyalty(token) else LoyaltyAccount(0, emptyList()),
-                        referralProgram = if (currentUser.role == "CUSTOMER") {
-                            runCatching { ApiClient.referralProgram(token) }.getOrDefault(ReferralProgram())
-                        } else ReferralProgram(),
-                        salary = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.salary(token) else SalarySummary(),
-                        adminChats = if (currentUser.role == "ADMIN") ApiClient.administratorChatInbox(token) else emptyList(),
-                        supportChats = if (currentUser.role == "ADMIN") ApiClient.administratorSupportChats(token) else emptyList(),
-                    )
+                    if (currentUser.role == "PROCUREMENT") {
+                        WorkspaceData(
+                            orders = emptyList(),
+                            reviews = emptyList(),
+                            customerDevices = emptyList(),
+                            customerOffers = emptyList(),
+                            customerServicePrices = emptyList(),
+                            staff = emptyList(),
+                            catalogItems = ApiClient.catalog(token),
+                            craftItems = emptyList(),
+                            craftOrders = emptyList(),
+                            news = emptyList(),
+                            technologyFact = null,
+                            banners = emptyList(),
+                            loyalty = LoyaltyAccount(0, emptyList()),
+                            referralProgram = ReferralProgram(),
+                            salary = SalarySummary(),
+                            adminChats = emptyList(),
+                            supportChats = emptyList(),
+                        )
+                    } else {
+                        val newsFeed = ApiClient.news(token)
+                        WorkspaceData(
+                            orders = ApiClient.orders(token, archived = false) +
+                                ApiClient.orders(token, archived = true),
+                            reviews = ApiClient.reviews(token),
+                            customerDevices = if (currentUser.role == "CUSTOMER") ApiClient.customerDevices(token) else emptyList(),
+                            customerOffers = if (currentUser.role == "CUSTOMER") ApiClient.customerOffers(token) else emptyList(),
+                            customerServicePrices = if (currentUser.role == "CUSTOMER") ApiClient.customerServicePrices(token) else emptyList(),
+                            staff = if (currentUser.role == "ADMIN") ApiClient.staff(token) else emptyList(),
+                            catalogItems = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.catalog(token) else emptyList(),
+                            craftItems = ApiClient.craftItems(token),
+                            craftOrders = if (currentUser.role == "ADMIN" || currentUser.role == "CUSTOMER") ApiClient.craftOrders(token) else emptyList(),
+                            news = newsFeed.articles,
+                            technologyFact = newsFeed.technologyFact,
+                            banners = ApiClient.banners(token),
+                            loyalty = if (currentUser.role == "CUSTOMER") ApiClient.loyalty(token) else LoyaltyAccount(0, emptyList()),
+                            referralProgram = if (currentUser.role == "CUSTOMER") {
+                                runCatching { ApiClient.referralProgram(token) }.getOrDefault(ReferralProgram())
+                            } else ReferralProgram(),
+                            salary = if (currentUser.role == "ADMIN" || currentUser.role == "TECHNICIAN") ApiClient.salary(token) else SalarySummary(),
+                            adminChats = if (currentUser.role == "ADMIN") ApiClient.administratorChatInbox(token) else emptyList(),
+                            supportChats = if (currentUser.role == "ADMIN") ApiClient.administratorSupportChats(token) else emptyList(),
+                        )
+                    }
                 }
             }.onSuccess { data ->
                 orders = data.orders
@@ -246,7 +268,10 @@ private fun UtpServiseApp(
     }
 
     LaunchedEffect(token, user?.id, technologyFact?.nextUpdateAt) {
-        if (token.isBlank() || user == null) return@LaunchedEffect
+        val currentUser = user
+        if (token.isBlank() || currentUser == null || currentUser.role == "PROCUREMENT") {
+            return@LaunchedEffect
+        }
         val currentFact = technologyFact ?: return@LaunchedEffect
         val delayUntilUpdate = runCatching {
             java.time.Instant.parse(currentFact.nextUpdateAt).toEpochMilli() -

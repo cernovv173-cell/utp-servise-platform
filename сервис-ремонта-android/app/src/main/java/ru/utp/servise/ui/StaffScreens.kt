@@ -83,6 +83,7 @@ fun StaffManagementScreen(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                     FilterChip(selected = role == "TECHNICIAN", onClick = { role = "TECHNICIAN" }, label = { Text("Мастер") })
+                    FilterChip(selected = role == "PROCUREMENT", onClick = { role = "PROCUREMENT" }, label = { Text("Мастер закупки") })
                     FilterChip(selected = role == "ADMIN", onClick = { role = "ADMIN" }, label = { Text("Администратор") })
                 }
                 Text("Роль нельзя выбрать при обычной регистрации. Новый сотрудник получит временный пароль и сменит его при первом входе.", fontSize = 11.sp, lineHeight = 16.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))

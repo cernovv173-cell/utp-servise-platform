@@ -11,12 +11,26 @@ class WorkspaceNavigationTest {
         val customer = workspaceNavigationForRole("CUSTOMER")
         val technician = workspaceNavigationForRole("TECHNICIAN")
         val administrator = workspaceNavigationForRole("ADMIN")
+        val procurement = workspaceNavigationForRole("PROCUREMENT")
 
         assertEquals(5, customer.primaryDestinations.size)
         assertEquals(4, technician.primaryDestinations.size)
         assertEquals(4, administrator.primaryDestinations.size)
+        assertEquals(3, procurement.primaryDestinations.size)
         assertTrue(customer.primaryDestinations.any { it.route == "sections" })
         assertTrue(technician.primaryDestinations.any { it.route == "sections" })
+    }
+
+    @Test
+    fun `procurement navigation exposes only inventory and profile screens`() {
+        val procurement = workspaceNavigationForRole("PROCUREMENT")
+        val routes = procurement.primaryDestinations.map { it.route }
+
+        assertEquals(
+            listOf("procurement/home", "procurement/catalog", "procurement/profile"),
+            routes,
+        )
+        assertFalse(routes.any { it.startsWith("admin/") || it.startsWith("technician/") })
     }
 
     @Test

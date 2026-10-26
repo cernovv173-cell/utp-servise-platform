@@ -175,7 +175,7 @@ test("only administrators manage the shared catalog and technicians see active p
 
   const adminList = await fetch(baseUrl, { headers: headers(adminToken) });
   assert.equal(adminList.status, 200);
-  assert.equal((await adminList.json()).catalogItems.length, 3);
+  assert.equal((await adminList.json()).catalogItems.length, 4);
 
   const technicianList = await fetch(baseUrl, {
     headers: headers(technicianToken),

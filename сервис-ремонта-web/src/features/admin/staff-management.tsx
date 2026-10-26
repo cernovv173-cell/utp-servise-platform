@@ -89,7 +89,7 @@ export const StaffManagement = () => {
               <div>
                 <p className="font-medium">{member.displayName}</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {member.email} · {member.role === "ADMIN" ? "Администратор" : "Мастер"} ·{" "}
+                  {member.email} · {roleLabel(member.role)} ·{" "}
                   {member.active ? "Активен" : "Отключён"}
                 </p>
               </div>
@@ -197,3 +197,6 @@ export const StaffManagement = () => {
     </SectionCard>
   );
 };
+
+const roleLabel = (role: string) =>
+  role === "ADMIN" ? "Администратор" : role === "PROCUREMENT" ? "Мастер закупки" : "Мастер";

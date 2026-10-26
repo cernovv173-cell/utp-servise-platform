@@ -116,6 +116,25 @@ const navigationGroups: Array<{ label: string; links: NavigationLink[] }> = [
     ],
   },
   {
+    label: "Закупки",
+    links: [
+      {
+        to: "/admin/procurement",
+        label: "Список пополнения",
+        compactLabel: "Закупки",
+        motion: "peek",
+        roles: ["PROCUREMENT"],
+      },
+      {
+        to: "/catalog",
+        label: "Товары и запчасти",
+        compactLabel: "Склад",
+        motion: "wiggle",
+        roles: ["PROCUREMENT"],
+      },
+    ],
+  },
+  {
     label: "Профиль",
     links: [{ to: "/account", label: "Личный кабинет", compactLabel: "Профиль", motion: "wiggle" }],
   },
@@ -193,13 +212,21 @@ const primaryRoutes: Record<Role, readonly NavigationRoute[]> = {
   CUSTOMER: ["/", "/orders", "/devices", "/shop"],
   TECHNICIAN: ["/orders", "/catalog", "/salary", "/chats"],
   ADMIN: ["/orders", "/catalog", "/salary", "/admin"],
+  PROCUREMENT: ["/admin/procurement", "/catalog", "/account"],
 };
 
 export const getNavigationGroupsForRole = (role: Role): NavigationGroup[] =>
   navigationGroups
     .map((group) => ({
       label: group.label,
-      links: group.links.filter((link) => !link.roles || link.roles.includes(role)),
+      links: group.links.filter(
+        (link) =>
+          (role !== "PROCUREMENT" ||
+            link.to === "/admin/procurement" ||
+            link.to === "/catalog" ||
+            link.to === "/account") &&
+          (!link.roles || link.roles.includes(role)),
+      ),
     }))
     .filter((group) => group.links.length > 0);
 

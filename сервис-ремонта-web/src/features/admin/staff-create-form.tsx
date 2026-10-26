@@ -4,28 +4,42 @@ import { toast } from "sonner";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { createTechnician } from "@/lib/api";
+import { type StaffRole, createStaff } from "@/lib/api";
+
+type StaffCreationRole = Extract<StaffRole, "TECHNICIAN" | "PROCUREMENT">;
+
+const roleLabels: Record<StaffCreationRole, string> = {
+  TECHNICIAN: "Мастер",
+  PROCUREMENT: "Мастер закупки",
+};
 
 type CreatedAccount = {
   email: string;
   displayName: string;
+  role: StaffCreationRole;
   temporaryPassword: string;
 };
 
 export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknown> | unknown }) => {
   const { token } = useAuth();
   const [createdAccount, setCreatedAccount] = useState<CreatedAccount | null>(null);
+  const [role, setRole] = useState<StaffCreationRole>("TECHNICIAN");
   const create = useMutation({
-    mutationFn: (input: { email: string; displayName: string; phoneNumber?: string }) =>
-      createTechnician(token!, input),
+    mutationFn: (input: {
+      email: string;
+      displayName: string;
+      phoneNumber?: string;
+      role: StaffCreationRole;
+    }) => createStaff(token!, input),
     onSuccess: async ({ staff, temporaryPassword }) => {
       setCreatedAccount({
         email: staff.email,
         displayName: staff.displayName,
+        role: staff.role === "PROCUREMENT" ? "PROCUREMENT" : "TECHNICIAN",
         temporaryPassword,
       });
       await onCreated();
-      toast.success("Учётная запись мастера создана. Передайте ему данные для первого входа.");
+      toast.success("Учётная запись сотрудника создана. Передайте ему данные для первого входа.");
     },
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Не удалось создать сотрудника."),
@@ -35,8 +49,7 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
     <section className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
       <h3 className="font-semibold">Добавить сотрудника</h3>
       <p className="mt-1 text-sm text-slate-500">
-        Будет создана учётная запись мастера с временным паролем. При первом входе сотрудник задаст
-        новый пароль.
+        Выберите роль сотрудника. При первом входе ему потребуется задать новый пароль.
       </p>
       <form
         className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
@@ -49,12 +62,30 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
             {
               displayName: String(data.get("displayName")).trim(),
               email: String(data.get("email")).trim(),
+              role,
               ...(phoneNumber ? { phoneNumber } : {}),
             },
             { onSuccess: () => form.reset() },
           );
         }}
       >
+        <fieldset className="grid gap-2 sm:col-span-2 lg:col-span-3">
+          <legend className="text-sm font-medium">Должность</legend>
+          <div className="flex flex-wrap gap-2">
+            {(Object.keys(roleLabels) as StaffCreationRole[]).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={role === option}
+                disabled={create.isPending}
+                onClick={() => setRole(option)}
+                className={`min-h-10 rounded-lg border px-4 text-sm font-medium ${role === option ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "border-slate-200 dark:border-slate-700"}`}
+              >
+                {roleLabels[option]}
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <label className="grid gap-1 text-sm font-medium">
           <span>
             Имя сотрудника{"\u00a0"}
@@ -98,7 +129,7 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
           disabled={create.isPending}
           className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-span-2 lg:col-span-3 lg:justify-self-start"
         >
-          {create.isPending ? "Создаём учётную запись…" : "Добавить мастера"}
+          {create.isPending ? "Создаём учётную запись…" : "Добавить сотрудника"}
         </button>
       </form>
       {createdAccount && (
@@ -106,7 +137,8 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <h4 className="font-semibold">
-                Данные для первого входа · {createdAccount.displayName}
+                Данные для первого входа · {createdAccount.displayName} ·{" "}
+                {roleLabels[createdAccount.role]}
               </h4>
               <p className="mt-2">Логин: {createdAccount.email}</p>
               <p className="mt-1">
