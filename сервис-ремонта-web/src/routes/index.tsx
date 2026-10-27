@@ -3,8 +3,6 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { ArrowRight, ShoppingBag, Sparkles, UsersRound } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
-import { MailRuAd } from "@/components/mailru-ad";
-import { MyTargetAd } from "@/components/mytarget-ad";
 import { RaccoonIcon } from "@/components/raccoon-icon";
 
 import { useAuth } from "@/features/auth/auth-context";
@@ -178,8 +176,6 @@ const HomePage = () => {
         </Link>
       </div>
       <HomeReviewShowcase />
-      <MyTargetAd />
-      <MailRuAd />
     </AppShell>
   );
 };
