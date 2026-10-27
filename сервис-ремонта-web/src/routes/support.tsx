@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
@@ -9,8 +9,11 @@ import { SupportChatConversation } from "@/features/support/support-chat-convers
 
 const SupportPage = () => {
   const { token, user } = useAuth();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isAdmin = user?.role === "ADMIN";
   const isCustomer = user?.role === "CUSTOMER";
+
+  if (pathname !== "/support") return <Outlet />;
 
   return (
     <AppShell active="/support">

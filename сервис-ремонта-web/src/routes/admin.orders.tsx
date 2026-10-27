@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
@@ -7,6 +7,9 @@ import { useAuth } from "@/features/auth/auth-context";
 
 const AdminOrdersPage = () => {
   const { user } = useAuth();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  if (pathname !== "/admin/orders") return <Outlet />;
 
   return (
     <AppShell active="/admin/orders">

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
@@ -12,6 +12,10 @@ import { useAuth } from "@/features/auth/auth-context";
 
 const AdminPage = () => {
   const { user } = useAuth();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+
+  if (pathname !== "/admin") return <Outlet />;
+
   return (
     <AppShell active="/admin">
       <PageTitle
