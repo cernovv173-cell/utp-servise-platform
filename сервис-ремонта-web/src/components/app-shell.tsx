@@ -11,7 +11,10 @@ import { IncomingOrderNotifications } from "@/features/admin/incoming-order-noti
 import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
-import { getNavigationGroupsForRole } from "@/features/navigation/navigation-model";
+import {
+  getHelpNavigationLinksForRole,
+  getNavigationGroupsForRole,
+} from "@/features/navigation/navigation-model";
 import {
   DesktopSectionNavigation,
   DnsConfiguratorLink,
@@ -60,6 +63,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
   }
 
   const navigationGroups = getNavigationGroupsForRole(user.role);
+  const helpNavigationLinks = getHelpNavigationLinksForRole(user.role);
   return (
     <div className="app-shell min-h-dvh bg-slate-50/45 text-slate-900 dark:bg-transparent dark:text-[#edf2ff]">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)]">
@@ -69,7 +73,11 @@ export const AppShell = ({ active, children }: { active: string; children: React
           </span>
           UTP Servise
         </Link>
-        <DesktopSectionNavigation active={active} groups={navigationGroups} />
+        <DesktopSectionNavigation
+          active={active}
+          groups={navigationGroups}
+          helpLinks={helpNavigationLinks}
+        />
         <DnsConfiguratorLink />
         <div className="mt-auto border-t border-slate-100 pt-4 dark:border-[#26365f]">
           <p className="truncate px-3 text-sm font-semibold">{user.displayName}</p>
@@ -110,7 +118,11 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </button>
           </div>
         </header>
-        <MobileSectionNavigation active={active} groups={navigationGroups} />
+        <MobileSectionNavigation
+          active={active}
+          groups={navigationGroups}
+          helpLinks={helpNavigationLinks}
+        />
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">
           <div className="mb-5 flex justify-end">
             <AppInstallButton />

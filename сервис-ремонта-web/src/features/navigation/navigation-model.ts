@@ -1,7 +1,9 @@
 import {
   ClipboardList,
   Home,
+  LifeBuoy,
   type LucideIcon,
+  MessageSquareText,
   Package,
   Settings,
   ShoppingBag,
@@ -25,8 +27,17 @@ export type NavigationRoute =
   | "/admin/orders"
   | "/admin/procurement";
 
+export type HelpRoute = "/chats" | "/support";
+
 export type NavigationLink = {
   to: NavigationRoute;
+  label: string;
+  compactLabel: string;
+  icon: LucideIcon;
+};
+
+export type HelpNavigationLink = {
+  to: HelpRoute;
   label: string;
   compactLabel: string;
   icon: LucideIcon;
@@ -76,6 +87,36 @@ const navigationByRole: Record<Role, NavigationGroup> = {
   },
 };
 
+const helpLinksByRole: Record<Role, HelpNavigationLink[]> = {
+  CUSTOMER: [
+    {
+      to: "/chats",
+      label: "Сообщения по заявкам",
+      compactLabel: "Сообщения",
+      icon: MessageSquareText,
+    },
+    { to: "/support", label: "Поддержка клиентов", compactLabel: "Поддержка", icon: LifeBuoy },
+  ],
+  TECHNICIAN: [
+    {
+      to: "/chats",
+      label: "Сообщения по заявкам",
+      compactLabel: "Сообщения",
+      icon: MessageSquareText,
+    },
+  ],
+  ADMIN: [
+    {
+      to: "/chats",
+      label: "Сообщения по заявкам",
+      compactLabel: "Сообщения",
+      icon: MessageSquareText,
+    },
+    { to: "/support", label: "Поддержка клиентов", compactLabel: "Поддержка", icon: LifeBuoy },
+  ],
+  PROCUREMENT: [],
+};
+
 export const getNavigationGroupsForRole = (role: Role): NavigationGroup[] => [
   navigationByRole[role],
 ];
@@ -83,7 +124,13 @@ export const getNavigationGroupsForRole = (role: Role): NavigationGroup[] => [
 export const getPrimaryNavigationLinksForRole = (role: Role): NavigationLink[] =>
   navigationByRole[role].links;
 
-export const isNavigationItemActive = (active: string, route: NavigationRoute): boolean => {
+export const getHelpNavigationLinksForRole = (role: Role): HelpNavigationLink[] =>
+  helpLinksByRole[role];
+
+export const isNavigationItemActive = (
+  active: string,
+  route: NavigationRoute | HelpRoute,
+): boolean => {
   if (active === route) return true;
   if (route === "/" || route === "/admin") return false;
   return active.startsWith(`${route}/`);

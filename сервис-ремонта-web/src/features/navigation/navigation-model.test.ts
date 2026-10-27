@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  getHelpNavigationLinksForRole,
   getNavigationGroupsForRole,
   getPrimaryNavigationLinksForRole,
   isNavigationItemActive,
@@ -43,5 +44,34 @@ describe("role-aware primary navigation", () => {
     expect(isNavigationItemActive("/admin/orders/123", "/admin/orders")).toBe(true);
     expect(isNavigationItemActive("/admin/schedule", "/admin")).toBe(false);
     expect(isNavigationItemActive("/orders", "/")).toBe(false);
+  });
+});
+
+describe("help navigation", () => {
+  it("collects messages and customer support in one help section", () => {
+    expect(getHelpNavigationLinksForRole("ADMIN").map((link) => link.to)).toEqual([
+      "/chats",
+      "/support",
+    ]);
+    expect(getHelpNavigationLinksForRole("ADMIN").map((link) => link.label)).toEqual([
+      "Сообщения по заявкам",
+      "Поддержка клиентов",
+    ]);
+    expect(getHelpNavigationLinksForRole("CUSTOMER").map((link) => link.to)).toEqual([
+      "/chats",
+      "/support",
+    ]);
+  });
+
+  it("keeps help sections separate from the primary role menu", () => {
+    expect(primaryRoutesFor("ADMIN")).not.toContain("/chats");
+    expect(primaryRoutesFor("ADMIN")).not.toContain("/support");
+    expect(getHelpNavigationLinksForRole("TECHNICIAN").map((link) => link.to)).toEqual(["/chats"]);
+    expect(getHelpNavigationLinksForRole("PROCUREMENT")).toEqual([]);
+  });
+
+  it("marks a customer support conversation as part of the help section", () => {
+    expect(isNavigationItemActive("/support/123", "/support")).toBe(true);
+    expect(isNavigationItemActive("/chats", "/support")).toBe(false);
   });
 });
