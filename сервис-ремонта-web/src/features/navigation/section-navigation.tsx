@@ -1,8 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { Cpu, ExternalLink } from "lucide-react";
 
-import { RaccoonIcon } from "@/components/raccoon-icon";
-
 import {
   type NavigationGroup,
   isNavigationItemActive,
