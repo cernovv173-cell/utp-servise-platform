@@ -4,14 +4,15 @@ import { useState } from "react";
 
 import { pickHomeServicePrices } from "@/features/public/service-price-selection";
 
-import { getPublicServicePrices } from "@/lib/api";
+import { getCustomerServicePrices, getPublicServicePrices } from "@/lib/api";
 
 const formatRub = (value: number) => `${value.toLocaleString("ru-RU")} ₽`;
 
-export const ServicePriceTicker = () => {
+export const ServicePriceTicker = ({ token }: { token?: string | null }) => {
   const pricesQuery = useQuery({
-    queryKey: ["public-service-prices"],
-    queryFn: ({ signal }) => getPublicServicePrices(signal),
+    queryKey: token ? ["customer-service-prices", token] : ["public-service-prices"],
+    queryFn: ({ signal }) =>
+      token ? getCustomerServicePrices(token, signal) : getPublicServicePrices(signal),
   });
   const [paused, setPaused] = useState<boolean | null>(null);
   const prices = pickHomeServicePrices(pricesQuery.data?.prices ?? []);

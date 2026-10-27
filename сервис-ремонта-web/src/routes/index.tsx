@@ -11,6 +11,7 @@ import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
 import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { PublicHome } from "@/features/public/public-home";
+import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 import { SeasonalThemeControl } from "@/features/seasonal/seasonal-theme-control";
 
 import { getBanners, getNews, getOrders } from "@/lib/api";
@@ -74,6 +75,7 @@ const HomePage = () => {
           </Link>
         </div>
       </SectionCard>
+      {user?.role === "CUSTOMER" && token && <ServicePriceTicker token={token} />}
       {news.data?.technologyFact && <TechnologyFactCard fact={news.data.technologyFact} />}
       <FeaturedNewsCarousel articles={featured} isLoading={news.isLoading} isError={news.isError} />
       <CampaignCarousel
