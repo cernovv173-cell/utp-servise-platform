@@ -224,6 +224,7 @@ fun ProfileScreen(
     onLogout: () -> Unit,
     onAccountDeleted: (() -> Unit)? = null,
     onOpenSections: (() -> Unit)? = null,
+    onOpenVersion: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
@@ -253,6 +254,18 @@ fun ProfileScreen(
                 shape = RoundedCornerShape(14.dp),
             ) {
                 Text("Все разделы аккаунта")
+            }
+        }
+        onOpenVersion?.let { openVersion ->
+            OutlinedButton(
+                onClick = openVersion,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    Text("О версии программы")
+                    Text("Версия приложения и номер сборки", fontSize = 12.sp, color = UtpMuted)
+                }
             }
         }
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {

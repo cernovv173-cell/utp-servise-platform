@@ -62,6 +62,7 @@ import ru.utp.servise.ui.AdminChatInboxScreen
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminOrderCreationScreen
 import ru.utp.servise.ui.AdminShopOrdersScreen
+import ru.utp.servise.ui.AppVersionScreen
 import ru.utp.servise.ui.CatalogManagementScreen
 import ru.utp.servise.ui.TechnicianCatalogScreen
 import ru.utp.servise.ui.CompanyScreen
@@ -301,6 +302,7 @@ internal fun AuthenticatedWorkspace(
                                     onLogout,
                                     onAccountDeleted = onLogout,
                                     onOpenSections = { navController.navigate("sections") { launchSingleTop = true } },
+                                    onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
                                 )
                             }
                             composable("customer/new-order") {
@@ -354,6 +356,7 @@ internal fun AuthenticatedWorkspace(
                                     onPasswordChanged,
                                     onLogout,
                                     onOpenSections = { navController.navigate("sections") { launchSingleTop = true } },
+                                    onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
                                 )
                             }
                         }
@@ -372,7 +375,15 @@ internal fun AuthenticatedWorkspace(
                                 )
                             }
                             composable("procurement/profile") {
-                                ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout)
+                                ProfileScreen(
+                                    user,
+                                    token,
+                                    runAction,
+                                    onUserUpdated,
+                                    onPasswordChanged,
+                                    onLogout,
+                                    onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
+                                )
                             }
                         }
                         else -> {
@@ -465,8 +476,21 @@ internal fun AuthenticatedWorkspace(
                                 )
                             }
                             composable("admin/reviews") { ReviewsScreen("Все отзывы", reviews, refresh, token = token, canModerate = true, runAction = runAction) }
-                            composable("admin/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
+                            composable("admin/profile") {
+                                ProfileScreen(
+                                    user,
+                                    token,
+                                    runAction,
+                                    onUserUpdated,
+                                    onPasswordChanged,
+                                    onLogout,
+                                    onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
+                                )
+                            }
                         }
+                    }
+                    composable("app/version") {
+                        AppVersionScreen(onBack = { navController.popBackStack() })
                     }
                     workspaceNavigation.sectionHubRoute?.let { route ->
                         composable(route) {
