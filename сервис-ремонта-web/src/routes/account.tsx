@@ -15,6 +15,7 @@ import {
 
 import { clearCustomerLocalData } from "@/features/account/account-local-data";
 import { useAuth } from "@/features/auth/auth-context";
+import { AccountQuickLinks } from "@/features/navigation/account-quick-links";
 
 import {
   changePassword,
@@ -139,6 +140,7 @@ const AccountPage = () => {
         title="Личный кабинет"
         description="Ваши контактные данные и настройки доступа."
       />
+      <AccountQuickLinks role={user?.role} />
       <div className="grid gap-5 lg:grid-cols-2">
         <SectionCard>
           <h2 className="font-semibold">Профиль</h2>
@@ -440,8 +442,8 @@ const AccountPage = () => {
                 <div className="mt-3 space-y-3 text-sm leading-6 text-slate-600 dark:text-slate-300">
                   <p>
                     Будут удалены аккаунт и связанные данные: заявки и история ремонтов, заказы
-                    магазина и изделий, переписки, отзывы, фотографии, бонусы и игровой прогресс.
-                    Незавершённые заявки тоже будут удалены.
+                    магазина и изделий, переписки, отзывы, фотографии, бонусы. Незавершённые заявки
+                    тоже будут удалены.
                   </p>
                   <p>Восстановить аккаунт и данные после удаления нельзя.</p>
                 </div>

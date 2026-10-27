@@ -110,7 +110,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </button>
           </div>
         </header>
-        <MobileSectionNavigation active={active} groups={navigationGroups} role={user.role} />
+        <MobileSectionNavigation active={active} groups={navigationGroups} />
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">
           <div className="mb-5 flex justify-end">
             <AppInstallButton />

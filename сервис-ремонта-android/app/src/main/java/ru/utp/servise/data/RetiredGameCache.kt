@@ -28,10 +28,3 @@ fun clearRetiredGameCache(context: Context) {
     if (cleared) migration.edit().putBoolean(RETIRED_GAME_CACHE_CLEARED, true).apply()
 }
 
-// Retained only to clear a completion marker stored by older app versions on account deletion.
-fun clearDailyChallengeCompletion(context: Context, customerId: String) {
-    context.getSharedPreferences(LEGACY_GAME_PREFERENCES, Context.MODE_PRIVATE)
-        .edit()
-        .remove(customerId)
-        .apply()
-}

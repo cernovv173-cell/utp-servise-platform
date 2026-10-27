@@ -400,6 +400,21 @@ object ApiClient {
         "GET", "/public/technology-fact",
     ).getJSONObject("technologyFact").toTechnologyFact()
 
+    fun publicReviews(): List<PublicReview> = request("GET", "/public/reviews")
+        .getJSONArray("reviews")
+        .mapObjects { review ->
+            val customer = review.optJSONObject("customer")
+            val order = review.optJSONObject("order")
+            PublicReview(
+                id = review.getString("id"),
+                rating = review.getInt("rating"),
+                comment = review.optString("comment"),
+                createdAt = review.optString("createdAt"),
+                customerName = customer?.optString("displayName")?.takeIf(String::isNotBlank) ?: "Клиент",
+                deviceType = order?.optString("deviceType").orEmpty(),
+            )
+        }
+
     fun customerOffers(token: String): List<CustomerOffer> = request(
         "GET", "/offers", token,
     ).getJSONArray("offers").mapObjects { it.toCustomerOffer() }

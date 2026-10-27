@@ -15,10 +15,18 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalContext
@@ -41,7 +50,7 @@ import java.time.Instant
 private data class ManagementAction(
     val title: String,
     val description: String,
-    val icon: String,
+    val icon: ImageVector,
     val onClick: () -> Unit,
 )
 
@@ -69,67 +78,47 @@ fun AdminManagementScreen(
 ) {
     val groups = listOf(
         ManagementActionGroup(
-            "Работа сервиса",
+            "Обзор",
             listOf(
-                ManagementAction(
-                    "Обзор сервиса",
-                    "Просрочки, выручка и популярные работы",
-                    "▦",
-                    onOverview,
-                ),
-                ManagementAction(
-                    "Расписание мастеров",
-                    "Заявки по удобному времени и загрузка",
-                    "◷",
-                    onSchedule,
-                ),
-                ManagementAction(
-                    "Закупка запчастей",
-                    "Пороговые остатки и детали в ремонте",
-                    "▣",
-                    onProcurement,
-                ),
-                ManagementAction(
-                    "Подтверждение заказов магазина",
-                    "Проверка наличия и дальнейшая выдача",
-                    "🛍",
-                    onShopOrders,
-                ),
+                ManagementAction("Обзор сервиса", "Просрочки, выручка и популярные работы", Icons.Filled.Info, onOverview),
             ),
         ),
         ManagementActionGroup(
-            "Каталог и публикации",
+            "Расписание",
             listOf(
-                ManagementAction("Новости", "Создание черновиков и публикаций", "▤", onNews),
-                ManagementAction(
-                    "Каталог услуг и запчастей",
-                    "Позиции прайса и цены",
-                    "▧",
-                    onCatalog,
-                ),
-                ManagementAction("Рукоделия", "Изделия, цены, фото и заявки", "✿", onCrafts),
-                ManagementAction(
-                    "О компании",
-                    "Описание, контакты, услуги и медиа",
-                    "ℹ",
-                    onAbout,
-                ),
-                ManagementAction("Отзывы", "Отзывы клиентов о ремонтах", "★", onReviews),
+                ManagementAction("Расписание мастеров", "Заявки по удобному времени и загрузка", Icons.AutoMirrored.Filled.List, onSchedule),
             ),
         ),
         ManagementActionGroup(
-            "Люди и выплаты",
+            "Клиенты",
             listOf(
-                ManagementAction(
-                    "Чаты с запросом помощи",
-                    "Подключение администратора к беседе",
-                    "✉",
-                    onChats,
-                ),
-                ManagementAction("Чаты клиентов", "Ответы клиентам напрямую", "✉", onSupportChats),
-                ManagementAction("База клиентов", "Поиск, контакты и удаление записей", "♙", onCustomers),
-                ManagementAction("Сотрудники", "Мастера и административные аккаунты", "♙", onStaff),
-                ManagementAction("Зарплата мастеров", "Начисления и индивидуальные ставки", "₽", onSalary),
+                ManagementAction("База клиентов", "Поиск, контакты и удаление записей", Icons.Filled.Person, onCustomers),
+                ManagementAction("Сотрудники", "Мастера и административные аккаунты", Icons.Filled.Person, onStaff),
+                ManagementAction("Чаты с запросом помощи", "Подключение администратора к беседе", Icons.Filled.Info, onChats),
+                ManagementAction("Чаты клиентов", "Ответы клиентам напрямую", Icons.Filled.Info, onSupportChats),
+                ManagementAction("Отзывы", "Отзывы клиентов о ремонтах", Icons.Filled.Star, onReviews),
+                ManagementAction("Зарплата мастеров", "Начисления и индивидуальные ставки", Icons.Filled.Star, onSalary),
+            ),
+        ),
+        ManagementActionGroup(
+            "Закупки",
+            listOf(
+                ManagementAction("Закупка запчастей", "Пороговые остатки и детали в ремонте", Icons.Filled.ShoppingCart, onProcurement),
+                ManagementAction("Каталог услуг и запчастей", "Позиции прайса и цены", Icons.Filled.Search, onCatalog),
+            ),
+        ),
+        ManagementActionGroup(
+            "Магазин",
+            listOf(
+                ManagementAction("Заказы магазина", "Проверка наличия и дальнейшая выдача", Icons.Filled.ShoppingCart, onShopOrders),
+                ManagementAction("Рукоделия", "Изделия, цены, фото и заявки", Icons.Filled.Star, onCrafts),
+            ),
+        ),
+        ManagementActionGroup(
+            "Реклама",
+            listOf(
+                ManagementAction("Новости", "Создание черновиков и публикаций", Icons.Filled.Info, onNews),
+                ManagementAction("О компании", "Описание, контакты, услуги и медиа", Icons.Filled.Info, onAbout),
             ),
         ),
     )
@@ -163,7 +152,7 @@ fun AdminManagementScreen(
 }
 
 @Composable
-private fun ManagementCard(title: String, description: String, icon: String, onClick: () -> Unit) {
+private fun ManagementCard(title: String, description: String, icon: ImageVector, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -171,7 +160,7 @@ private fun ManagementCard(title: String, description: String, icon: String, onC
         colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
     ) {
         Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(icon, fontSize = 23.sp, color = UtpBlue, modifier = Modifier.padding(end = 12.dp))
+            Icon(icon, contentDescription = null, tint = UtpBlue, modifier = Modifier.padding(end = 12.dp))
             Column(Modifier.weight(1f)) {
                 Text(title, fontWeight = FontWeight.SemiBold, color = UtpInk)
                 Text(description, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 3.dp))

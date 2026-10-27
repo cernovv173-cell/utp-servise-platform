@@ -156,11 +156,6 @@ const createHarness = (failOnceFor?: string) => {
     "loyaltyTransaction",
     "customerReferral",
     "customerOfferParticipation",
-    "gameEpisodeCompletion",
-    "match3GameSession",
-    "match3LevelCompletion",
-    "match3LevelReward",
-    "match3Inventory",
   ]) {
     client[model] = {
       deleteMany: async (args: unknown) => {
@@ -277,11 +272,6 @@ test("admins can delete a customer and all of their linked records and media", a
     "loyaltyTransaction",
     "customerReferral",
     "customerOfferParticipation",
-    "gameEpisodeCompletion",
-    "match3GameSession",
-    "match3LevelCompletion",
-    "match3LevelReward",
-    "match3Inventory",
   ]) {
     assert.ok(deletedTables.includes(model), `${model} should be cleaned up`);
   }

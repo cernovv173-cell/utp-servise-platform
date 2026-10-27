@@ -216,7 +216,7 @@ private fun DeleteCustomerDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Аккаунт и связанные заявки, чеки, устройства, фото, переписки, отзывы, бонусы, рефералы, участия в акциях и игровой прогресс будут удалены безвозвратно.",
+                    "Аккаунт и связанные заявки, чеки, устройства, фото, переписки, отзывы, бонусы, рефералы и участия в акциях будут удалены безвозвратно.",
                     fontSize = 12.sp,
                 )
                 Text("${customer.displayName} · ${customer.email}", fontWeight = FontWeight.SemiBold)

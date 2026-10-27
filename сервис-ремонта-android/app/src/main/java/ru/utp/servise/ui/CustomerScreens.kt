@@ -53,7 +53,6 @@ import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.clearShopCart
-import ru.utp.servise.data.clearDailyChallengeCompletion
 import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.roleLabel
 import java.time.LocalDate
@@ -224,6 +223,7 @@ fun ProfileScreen(
     onPasswordChanged: (AuthResult) -> Unit,
     onLogout: () -> Unit,
     onAccountDeleted: (() -> Unit)? = null,
+    onOpenSections: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
@@ -246,6 +246,15 @@ fun ProfileScreen(
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Text("Профиль", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Spacer(Modifier.height(15.dp))
+        onOpenSections?.let { openSections ->
+            OutlinedButton(
+                onClick = openSections,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                shape = RoundedCornerShape(14.dp),
+            ) {
+                Text("Все разделы аккаунта")
+            }
+        }
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -571,7 +580,7 @@ fun ProfileScreen(
             text = {
                 Text(
                     "Будут удалены аккаунт, заявки и история ремонтов, заказы магазина и изделий, " +
-                        "переписки, отзывы, фотографии, бонусные и игровые данные. Незавершённые " +
+                        "переписки, отзывы, фотографии и бонусные данные. Незавершённые " +
                         "заявки тоже будут удалены. Восстановить данные после удаления нельзя.",
                 )
             },
@@ -581,7 +590,6 @@ fun ProfileScreen(
                         showAccountDeletionDialog = false
                         runAction({ ru.utp.servise.data.ApiClient.deleteOwnAccount(token) }) {
                             clearShopCart(context, user.id)
-                            clearDailyChallengeCompletion(context, user.id)
                             onAccountDeleted?.invoke()
                         }
                     },

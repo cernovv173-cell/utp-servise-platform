@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 
 import { getPublicReviewImageUrl, getPublicReviews } from "@/lib/api";
@@ -32,7 +33,7 @@ export const HomeReviewShowcase = () => {
       </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {reviews.map((review) => (
+        {reviews.slice(0, 1).map((review) => (
           <article
             key={review.id}
             className="overflow-hidden rounded-2xl border border-slate-200 bg-white/85 shadow-sm dark:border-[#405b9c]/40 dark:bg-[#0c142b]/85"
@@ -80,6 +81,12 @@ export const HomeReviewShowcase = () => {
           </article>
         ))}
       </div>
+      <Link
+        to="/reviews"
+        className="mt-5 inline-flex min-h-11 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-[#304373] dark:text-[#d5def6] dark:hover:bg-[#152449]"
+      >
+        Все отзывы
+      </Link>
     </section>
   );
 };

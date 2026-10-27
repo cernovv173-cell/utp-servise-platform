@@ -4,6 +4,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { AdminSupportInbox } from "@/features/admin/admin-support-inbox";
 import { useAuth } from "@/features/auth/auth-context";
+import { MessageSectionNavigation } from "@/features/navigation/message-section-navigation";
 import { SupportChatConversation } from "@/features/support/support-chat-conversation";
 
 const SupportPage = () => {
@@ -13,6 +14,7 @@ const SupportPage = () => {
 
   return (
     <AppShell active="/support">
+      {(isAdmin || isCustomer) && <MessageSectionNavigation />}
       <PageTitle
         eyebrow="ПОМОЩЬ"
         title={isAdmin ? "Поддержка клиентов" : "Поддержка"}

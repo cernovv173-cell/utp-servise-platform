@@ -88,8 +88,8 @@ Customers can permanently delete their own account from the signed-in app throug
 `DELETE /customer/account`; the endpoint uses the authenticated customer's ID and accepts no target
 account ID. Only administrators can delete another customer through
 `DELETE /admin/customers/:customerId`. Both paths remove the customer's repair and craft orders,
-receipts, related payroll entries, device records, chats, reviews, bonuses, referral links, offer
-participation, and game progress in a database transaction. Customer-specific photos are removed
+receipts, related payroll entries, device records, chats, reviews, bonuses, referral links, and
+offer participation in a database transaction. Customer-specific photos are removed
 from project storage first; objects still referenced by another account or shared content are
 preserved. The administrator path disables the account and revokes its sessions before cleanup. The
 self-service path keeps the current session available until cleanup succeeds, so the customer can
@@ -313,54 +313,13 @@ and are never added again to the suggested purchase. Dashboard averages use the 
 creation to its `COMPLETED` status event; collected revenue uses paid receipts after bonus discounts.
 The Web admin navigation and Android **Управление** area expose all three views.
 
-# Current raccoon computer-building game
+# Retired game feature
 
-The current Web and Android game uses authenticated `/game/raccoon/*` endpoints. The API owns
-the board, moves, boosters, campaign progression, and saved sessions; Android opens the Web game
-inside a restricted WebView using the existing service customer session. The additive
-`20261023100000_raccoon_match3_sessions` migration stores only new-engine session snapshots in
-`raccoon_match3_sessions`; it does not rewrite customer accounts, loyalty transactions, completed
-levels, or older `match3_sessions` rows. Completed levels continue to use the existing
-`match3_level_completions` and `match3_level_rewards` records, and claims still go through
-`POST /game/match3/rewards/claim`, which credits the existing loyalty ledger atomically and
-idempotently. The new game never credits points in the browser or Android client. Existing
-completion records determine each customer's next unlocked level; an unfinished session from the
-older game is retained as history but is not converted into a new-engine board state.
-
-The campaign's five 20-level chapters map to the workbench, spare-parts warehouse, electrical panel,
-ventilation system, and main server. The final level's sole completion goal is 100 gold crystals on a
-toothed 7×7 board; four electric circuit obstacles rotate around the perimeter after each accepted
-move. In that level, every 20 collected blue processors grants one magnetic pulse, which moves gold
-crystals toward the center. These mechanics do not rewrite customer balances, reward claims, or
-legacy board snapshots.
-
-# Legacy match-three client endpoints
-
-Each signed-in customer can save a raccoon visor through the authenticated `GET` and `PUT`
-`/game/match3/cosmetic` endpoints. The first-use `POST /game/match3/cosmetic/initialize` stores a
-legacy browser selection only when the account has no saved choice, so another device cannot
-overwrite an existing preference. The server validates visor unlocks against that customer's
-completed levels. `users.match3_cosmetic_id` is nullable and independent of game sessions, level
-completions, loyalty points, and rewards; the additive migration leaves existing accounts unchanged.
-
-# Match-three boosters and reward claims
-
-Accepted matches add the cleared computer parts to the signed-in customer's `match3_inventory`.
-The player can spend recipe parts to craft a row rocket or a 3×3 pulse bomb; applying a booster
-consumes one item and one move. Each completed level grants one booster gift (alternating rocket
-and pulse bomb by level number); replaying the current completed level grants another gift without
-resetting campaign progress. The authenticated `POST /game/match3/hint`
-returns a legal adjacent swap that prioritizes the level target without changing the board or using
-a move.
-
-Ten loyalty points per level completion are recorded as pending until the customer presses the
-claim button. `POST /game/match3/rewards/claim` atomically marks pending first-completion and replay
-rewards and creates one loyalty-ledger entry in the same transaction. The customer can claim after
-any number of completed levels; unfinished levels are not claimable and the entire campaign need
-not be completed. The original completion row remains the progression record, while replay rewards
-have their own claimable events; already-credited points are never issued again by a replay. The
-additive `20261015190000_match3_repeat_rewards` migration adds an event table without rewriting
-existing completions or loyalty transactions.
+The game endpoints and active game models have been removed. The retirement migration drops the ten
+progress tables and the user's saved game cosmetic preference. Existing `GAME_REWARD` entries in
+`loyalty_transactions` remain part of customer bonus balances and history; this cleanup does not
+change earned points. Earlier game migrations remain in the repository so existing database migration
+history stays intact.
 
 ## Seasonal themes
 

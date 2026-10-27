@@ -11,6 +11,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -62,6 +63,7 @@ import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminOrderCreationScreen
 import ru.utp.servise.ui.AdminShopOrdersScreen
 import ru.utp.servise.ui.CatalogManagementScreen
+import ru.utp.servise.ui.TechnicianCatalogScreen
 import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
@@ -191,7 +193,7 @@ internal fun AuthenticatedWorkspace(
                                     restoreState = true
                                 }
                             },
-                            icon = { Text(destination.icon) },
+                            icon = { Icon(destination.icon, contentDescription = null) },
                             label = { Text(destination.label, maxLines = 1) },
                         )
                     }
@@ -258,7 +260,7 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("customer/crafts") { CraftsScreen(token, false, craftItems, craftOrders, staff, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
                             composable("customer/orders") {
-                                RepairOrdersScreen("Мои заявки", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
+                                RepairOrdersScreen("Мои ремонты", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
                             }
                             composable("customer/history") {
                                 RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
@@ -298,6 +300,7 @@ internal fun AuthenticatedWorkspace(
                                     onPasswordChanged,
                                     onLogout,
                                     onAccountDeleted = onLogout,
+                                    onOpenSections = { navController.navigate("sections") { launchSingleTop = true } },
                                 )
                             }
                             composable("customer/new-order") {
@@ -338,10 +341,21 @@ internal fun AuthenticatedWorkspace(
                         "TECHNICIAN" -> {
                             composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}) }
                             composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}) }
+                            composable("technician/catalog") { TechnicianCatalogScreen(catalogItems) }
                             composable("technician/salary") { SalaryScreen(salary, isAdmin = false, onRefresh = refresh) }
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh, token = token) }
                             composable("technician/about") { CompanyScreen(token, false, busy, runAction, onBack = null, banners = banners, onCampaignNavigate = onCampaignNavigate) }
-                            composable("technician/profile") { ProfileScreen(user, token, runAction, onUserUpdated, onPasswordChanged, onLogout) }
+                            composable("technician/profile") {
+                                ProfileScreen(
+                                    user,
+                                    token,
+                                    runAction,
+                                    onUserUpdated,
+                                    onPasswordChanged,
+                                    onLogout,
+                                    onOpenSections = { navController.navigate("sections") { launchSingleTop = true } },
+                                )
+                            }
                         }
                         "PROCUREMENT" -> {
                             composable("procurement/home") {

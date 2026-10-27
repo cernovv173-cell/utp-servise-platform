@@ -149,7 +149,6 @@ model User {
   vkId                    String?                        @unique @map("vk_id") @db.VarChar(128)
   telegramChatId          String?                        @unique @map("telegram_chat_id") @db.VarChar(64)
   maxUserId               String?                        @unique @map("max_user_id") @db.VarChar(64)
-  match3CosmeticId        String?                        @map("match3_cosmetic_id") @db.VarChar(32)
   referralCode            String?                        @unique @map("referral_code") @db.VarChar(16)
   role                    UserRole                       @default(CUSTOMER)
   salaryRatePercent       Int                            @default(75) @map("salary_rate_percent") @db.SmallInt
@@ -186,13 +185,6 @@ model User {
   craftSalaryEntries      CraftOrderSalaryEntry[]        @relation("CraftTechnicianSalaryEntries")
   bonusTransactions       LoyaltyTransaction[]           @relation("BonusCustomer")
   bonusActions            LoyaltyTransaction[]           @relation("BonusActor")
-  gameEpisodesCreated     GameEpisode[]                  @relation("GameEpisodeCreator")
-  gameCompletions         GameEpisodeCompletion[]        @relation("GameEpisodeCompletionCustomer")
-  match3GameSessions      Match3GameSession[]            @relation("Match3SessionCustomer")
-  raccoonMatch3Sessions   RaccoonMatch3Session[]
-  match3LevelCompletions  Match3LevelCompletion[]        @relation("Match3CompletionCustomer")
-  match3LevelRewards      Match3LevelReward[]            @relation("Match3RewardCustomer")
-  match3Inventory         Match3Inventory[]
   createdBanners          SiteBanner[]                   @relation("BannerCreator")
   issuedReceipts          RepairReceipt[]                @relation("ReceiptIssuer")
   issuedCraftReceipts     CraftOrderReceipt[]            @relation("CraftReceiptIssuer")
@@ -968,163 +960,6 @@ model CustomerReferral {
 
   @@index([referrerId, status, createdAt])
   @@map("customer_referrals")
-}
-
-model GameEpisode {
-  id           String                  @id @default(uuid()) @db.Uuid
-  title        String                  @db.VarChar(120)
-  introduction String                  @db.VarChar(1000)
-  isActive     Boolean                 @default(true) @map("is_active")
-  createdById  String?                 @map("created_by_id") @db.Uuid
-  createdAt    DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy    User?                   @relation("GameEpisodeCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  questions    GameQuestion[]
-  completions  GameEpisodeCompletion[]
-
-  @@index([isActive, createdAt])
-  @@map("game_episodes")
-}
-
-model GameQuestion {
-  id                String             @id @default(uuid()) @db.Uuid
-  episodeId         String             @map("episode_id") @db.Uuid
-  position          Int                @db.SmallInt
-  prompt            String             @db.VarChar(500)
-  correctFeedback   String             @map("correct_feedback") @db.VarChar(500)
-  incorrectFeedback String             @map("incorrect_feedback") @db.VarChar(500)
-  episode           GameEpisode        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  options           GameAnswerOption[]
-
-  @@unique([episodeId, position])
-  @@index([episodeId])
-  @@map("game_questions")
-}
-
-model GameAnswerOption {
-  id         String       @id @default(uuid()) @db.Uuid
-  questionId String       @map("question_id") @db.Uuid
-  text       String       @db.VarChar(300)
-  isCorrect  Boolean      @default(false) @map("is_correct")
-  position   Int          @db.SmallInt
-  question   GameQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-
-  @@unique([questionId, position])
-  @@index([questionId])
-  @@map("game_answer_options")
-}
-
-model GameEpisodeCompletion {
-  id            String      @id @default(uuid()) @db.Uuid
-  customerId    String      @map("customer_id") @db.Uuid
-  episodeId     String      @map("episode_id") @db.Uuid
-  pointsAwarded Int         @default(0) @map("points_awarded") @db.SmallInt
-  completedAt   DateTime    @default(now()) @map("completed_at") @db.Timestamptz(3)
-  customer      User        @relation("GameEpisodeCompletionCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  episode       GameEpisode @relation(fields: [episodeId], references: [id], onDelete: Restrict)
-
-  @@unique([customerId, episodeId])
-  @@index([customerId, completedAt])
-  @@map("game_episode_completions")
-}
-
-model Match3Level {
-  id              String                  @id @default(uuid()) @db.Uuid
-  number          Int                     @unique @db.SmallInt
-  title           String                  @db.VarChar(120)
-  targetPart      String                  @map("target_part") @db.VarChar(32)
-  targetCount     Int                     @map("target_count") @db.SmallInt
-  moveLimit       Int                     @map("move_limit") @db.SmallInt
-  isActive        Boolean                 @default(true) @map("is_active")
-  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions        Match3GameSession[]
-  raccoonSessions RaccoonMatch3Session[]
-  completions     Match3LevelCompletion[]
-  rewards         Match3LevelReward[]
-
-  @@index([isActive, number])
-  @@map("match3_levels")
-}
-
-model Match3GameSession {
-  id              String      @id @default(uuid()) @db.Uuid
-  customerId      String      @map("customer_id") @db.Uuid
-  levelId         String      @map("level_id") @db.Uuid
-  board           Json
-  targetCollected Int         @default(0) @map("target_collected") @db.SmallInt
-  movesUsed       Int         @default(0) @map("moves_used") @db.SmallInt
-  status          String      @default("ACTIVE") @db.VarChar(16)
-  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
-  completedAt     DateTime?   @map("completed_at") @db.Timestamptz(3)
-  customer        User        @relation("Match3SessionCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  level           Match3Level @relation(fields: [levelId], references: [id], onDelete: Restrict)
-
-  @@index([customerId, status])
-  @@index([levelId, createdAt])
-  @@map("match3_game_sessions")
-}
-
-model RaccoonMatch3Session {
-  id          String      @id @default(uuid()) @db.Uuid
-  customerId  String      @map("customer_id") @db.Uuid
-  levelId     String      @map("level_id") @db.Uuid
-  state       Json
-  status      String      @default("ACTIVE") @db.VarChar(16)
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
-  completedAt DateTime?   @map("completed_at") @db.Timestamptz(3)
-  customer    User        @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  level       Match3Level @relation(fields: [levelId], references: [id], onDelete: Restrict)
-
-  @@index([customerId, status])
-  @@index([levelId, createdAt])
-  @@map("raccoon_match3_sessions")
-}
-
-model Match3LevelCompletion {
-  id              String      @id @default(uuid()) @db.Uuid
-  customerId      String      @map("customer_id") @db.Uuid
-  levelId         String      @map("level_id") @db.Uuid
-  targetCollected Int         @map("target_collected") @db.SmallInt
-  pointsAwarded   Int         @default(0) @map("points_awarded") @db.SmallInt
-  rewardClaimedAt DateTime?   @map("reward_claimed_at") @db.Timestamptz(3)
-  completedAt     DateTime    @default(now()) @map("completed_at") @db.Timestamptz(3)
-  customer        User        @relation("Match3CompletionCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  level           Match3Level @relation(fields: [levelId], references: [id], onDelete: Restrict)
-
-  @@unique([customerId, levelId])
-  @@index([customerId, rewardClaimedAt, completedAt])
-  @@map("match3_level_completions")
-}
-
-model Match3LevelReward {
-  id              String      @id @default(uuid()) @db.Uuid
-  customerId      String      @map("customer_id") @db.Uuid
-  levelId         String      @map("level_id") @db.Uuid
-  pointsAwarded   Int         @default(10) @map("points_awarded") @db.SmallInt
-  rewardClaimedAt DateTime?   @map("reward_claimed_at") @db.Timestamptz(3)
-  completedAt     DateTime    @default(now()) @map("completed_at") @db.Timestamptz(3)
-  customer        User        @relation("Match3RewardCustomer", fields: [customerId], references: [id], onDelete: Restrict)
-  level           Match3Level @relation(fields: [levelId], references: [id], onDelete: Restrict)
-
-  @@unique([customerId, levelId, completedAt], map: "match3_level_rewards_customer_id_level_id_completed_at_key")
-  @@index([customerId, rewardClaimedAt, completedAt])
-  @@map("match3_level_rewards")
-}
-
-model Match3Inventory {
-  id         String   @id @default(uuid()) @db.Uuid
-  customerId String   @map("customer_id") @db.Uuid
-  itemKey    String   @map("item_key") @db.VarChar(32)
-  quantity   Int      @default(0)
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-  customer   User     @relation(fields: [customerId], references: [id], onDelete: Restrict)
-
-  @@unique([customerId, itemKey])
-  @@map("match3_inventory")
 }
 
 model SiteBanner {

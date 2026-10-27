@@ -14,9 +14,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,17 +31,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import ru.utp.servise.R
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CompanyInfo
-import ru.utp.servise.data.TechnologyFact
+import ru.utp.servise.data.PublicReview
 
 @Composable
 fun PublicHomeScreen(
@@ -49,35 +52,27 @@ fun PublicHomeScreen(
     onAdminLogin: () -> Unit,
 ) {
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
-    var technologyFact by remember { mutableStateOf<TechnologyFact?>(null) }
+    var review by remember { mutableStateOf<PublicReview?>(null) }
+
     LaunchedEffect(Unit) {
-        company = runCatching { withContext(Dispatchers.IO) { ApiClient.companyInfo() } }.getOrNull()
-    }
-    LaunchedEffect(Unit) {
-        while (true) {
-            technologyFact = runCatching {
-                withContext(Dispatchers.IO) { ApiClient.publicTechnologyFact() }
-            }.getOrNull()
-            val delayUntilUpdate = runCatching {
-                technologyFact?.nextUpdateAt?.let {
-                    java.time.Instant.parse(it).toEpochMilli() - System.currentTimeMillis()
-                } ?: 60_000L
-            }.getOrDefault(60_000L).coerceAtLeast(1_000L)
-            delay(delayUntilUpdate)
+        val publicContent = withContext(Dispatchers.IO) {
+            runCatching { ApiClient.companyInfo() }.getOrNull() to
+                runCatching { ApiClient.publicReviews().firstOrNull() }.getOrNull()
         }
+        company = publicContent.first
+        review = publicContent.second
     }
 
-    val services = company?.services?.takeIf { it.isNotEmpty() } ?: listOf(
-        "Диагностика компьютеров и ноутбуков",
-        "Ремонт компьютеров, ноутбуков, телефонов и планшетов",
-        "Настройка, профилактика и замена комплектующих",
-    )
+    val services = company?.services?.filter(String::isNotBlank)?.take(4).orEmpty().ifEmpty {
+        listOf(
+            "Диагностика компьютеров и ноутбуков",
+            "Ремонт компьютеров, ноутбуков, телефонов и планшетов",
+            "Настройка и профилактика техники",
+        )
+    }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(UtpPale)
-            .verticalScroll(rememberScrollState())
+        modifier = Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 22.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
@@ -88,95 +83,109 @@ fun PublicHomeScreen(
                 modifier = Modifier.size(54.dp).clip(RoundedCornerShape(16.dp)),
             )
             Column(modifier = Modifier.padding(start = 12.dp)) {
-                Text("UTP Servise", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text(company?.name?.takeIf(String::isNotBlank) ?: "UTP Servise", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("Сервис ремонта техники", color = UtpMuted, fontSize = 13.sp)
             }
         }
 
-        Card(
-            colors = CardDefaults.cardColors(containerColor = UtpBlue),
-            shape = RoundedCornerShape(26.dp),
-        ) {
+        Card(colors = CardDefaults.cardColors(containerColor = UtpBlue), shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     "Ремонт техники — понятно и без лишних шагов.",
-                    color = androidx.compose.ui.graphics.Color.White,
-                    fontSize = 28.sp,
-                    lineHeight = 34.sp,
+                    color = Color.White,
+                    fontSize = 27.sp,
+                    lineHeight = 33.sp,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    company?.description?.takeIf { it.isNotBlank() }
-                        ?: "Помогаем вернуть технику к работе, объясняем этапы ремонта и остаёмся на связи.",
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.88f),
+                    company?.description?.takeIf(String::isNotBlank)
+                        ?: "Помогаем вернуть технику к работе и остаёмся на связи на каждом этапе.",
+                    color = Color.White.copy(alpha = 0.9f),
                     lineHeight = 22.sp,
                 )
-                Button(
-                    onClick = onRequest,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                ) {
+                Button(onClick = onRequest, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp)) {
                     Text("Оформить заявку")
                 }
-                Text(
-                    "Регистрация понадобится только при оформлении заявки.",
-                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.82f),
-                    fontSize = 12.sp,
-                )
+                Text("Регистрация понадобится только при оформлении заявки.", color = Color.White.copy(alpha = 0.82f), fontSize = 12.sp)
             }
         }
 
-        technologyFact?.let { TechnologyFactCard(it) }
-
-        OutlinedButton(
-            onClick = onCustomerLogin,
-            modifier = Modifier.fillMaxWidth().height(50.dp),
-            shape = RoundedCornerShape(15.dp),
-        ) {
-            Text("Уже есть аккаунт? Войти")
-        }
-
-        PublicSectionTitle("Услуги сервиса")
-        services.take(6).forEach { service ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text(service, modifier = Modifier.padding(16.dp), fontWeight = FontWeight.Medium, color = UtpInk)
+        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            PublicSectionTitle("Услуги сервиса")
+            services.forEach { service ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(service, modifier = Modifier.fillMaxWidth().padding(16.dp), fontWeight = FontWeight.Medium, color = UtpInk)
+                }
             }
         }
 
-        PublicSectionTitle("Как всё проходит")
-        listOf(
-            "01  Оставьте заявку — опишите устройство и неисправность.",
-            "02  Получите диагностику и согласуйте дальнейшие работы.",
-            "03  Следите за статусом ремонта и перепиской в аккаунте.",
-        ).forEach { step ->
-            Card(
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(18.dp),
-            ) {
-                Text(step, modifier = Modifier.padding(16.dp), color = UtpInk, lineHeight = 21.sp)
+        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+            PublicSectionTitle("Как проходит ремонт")
+            listOf(
+                "01  Оставьте заявку и опишите устройство.",
+                "02  Получите диагностику и согласуйте работы.",
+                "03  Следите за статусом и перепиской в аккаунте.",
+            ).forEach { step ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(16.dp),
+                ) {
+                    Text(step, modifier = Modifier.fillMaxWidth().padding(16.dp), color = UtpInk, lineHeight = 21.sp)
+                }
+            }
+        }
+
+        review?.let { item ->
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                PublicSectionTitle("Отзыв клиента")
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+                    shape = RoundedCornerShape(18.dp),
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                            repeat(item.rating.coerceIn(0, 5)) {
+                                Icon(Icons.Filled.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(18.dp))
+                            }
+                            Text("${item.rating}/5", color = UtpMuted, fontSize = 12.sp, modifier = Modifier.padding(start = 5.dp))
+                        }
+                        Text(item.comment, color = UtpInk, lineHeight = 21.sp)
+                        Text(
+                            listOf(item.customerName, item.deviceType.takeIf(String::isNotBlank), item.createdAt.take(10))
+                                .filterNotNull().filter(String::isNotBlank).joinToString(" · "),
+                            color = UtpMuted,
+                            fontSize = 12.sp,
+                        )
+                    }
+                }
             }
         }
 
         Card(
-            colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface.copy(alpha = 0.86f)),
+            colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
             shape = RoundedCornerShape(18.dp),
         ) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Вход для сотрудников", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Text("Роли сотрудников выдаёт сервис.", color = UtpMuted, fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = onTechnicianLogin, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp)) {
-                        Text("Мастер", fontSize = 12.sp)
-                    }
-                    OutlinedButton(onClick = onProcurementLogin, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp)) {
-                        Text("Мастер закупки", fontSize = 11.sp, lineHeight = 13.sp)
-                    }
-                    OutlinedButton(onClick = onAdminLogin, modifier = Modifier.weight(1f), shape = RoundedCornerShape(13.dp)) {
-                        Text("Администратор", fontSize = 11.sp, lineHeight = 13.sp)
-                    }
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                PublicSectionTitle("Контакты и вход")
+                company?.phone?.takeIf(String::isNotBlank)?.let { Text("Телефон: $it", color = UtpInk) }
+                company?.email?.takeIf(String::isNotBlank)?.let { Text("Почта: $it", color = UtpInk) }
+                company?.address?.takeIf(String::isNotBlank)?.let { Text("Адрес: $it", color = UtpInk) }
+                company?.hours?.takeIf(String::isNotBlank)?.let { Text("График: $it", color = UtpMuted, fontSize = 13.sp) }
+                OutlinedButton(onClick = onCustomerLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
+                    Text("Войти в аккаунт клиента")
+                }
+                Text("Вход для сотрудников", fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.padding(top = 4.dp))
+                OutlinedButton(onClick = onTechnicianLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
+                    Text("Вход для мастера")
+                }
+                OutlinedButton(onClick = onProcurementLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
+                    Text("Вход для закупки")
+                }
+                OutlinedButton(onClick = onAdminLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
+                    Text("Вход администратора")
                 }
             }
         }
@@ -186,5 +195,5 @@ fun PublicHomeScreen(
 
 @Composable
 private fun PublicSectionTitle(title: String) {
-    Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+    Text(title, fontSize = 21.sp, fontWeight = FontWeight.Bold, color = UtpInk)
 }

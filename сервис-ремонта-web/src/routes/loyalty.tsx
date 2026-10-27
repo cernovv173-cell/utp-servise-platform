@@ -7,6 +7,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { ReferralCard } from "@/features/loyalty/referral-card";
+import { BenefitsNavigation } from "@/features/navigation/benefits-navigation";
 
 import { getLoyalty } from "@/lib/api";
 
@@ -19,6 +20,7 @@ const LoyaltyPage = () => {
   });
   return (
     <AppShell active="/loyalty">
+      {user?.role === "CUSTOMER" && <BenefitsNavigation />}
       <PageTitle
         eyebrow="БОНУСЫ"
         title="Программа лояльности"

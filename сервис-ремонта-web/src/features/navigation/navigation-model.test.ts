@@ -11,55 +11,37 @@ import type { Role } from "@/lib/api";
 const routesFor = (role: Role) =>
   getNavigationGroupsForRole(role).flatMap((group) => group.links.map((link) => link.to));
 
-describe("role-aware section navigation", () => {
-  it("keeps customer, technician, and administrator sections within their roles", () => {
+const primaryRoutesFor = (role: Role) =>
+  getPrimaryNavigationLinksForRole(role).map((link) => link.to);
+
+describe("role-aware primary navigation", () => {
+  it("keeps the customer workspace to five consistent sections", () => {
+    expect(primaryRoutesFor("CUSTOMER")).toEqual(["/", "/orders", "/shop", "/loyalty", "/account"]);
+  });
+
+  it("gives each employee role only its working sections and profile", () => {
+    expect(primaryRoutesFor("TECHNICIAN")).toEqual(["/orders", "/catalog", "/salary", "/account"]);
+    expect(primaryRoutesFor("ADMIN")).toEqual(["/admin/orders", "/admin", "/catalog", "/account"]);
+    expect(primaryRoutesFor("PROCUREMENT")).toEqual(["/admin/procurement", "/catalog", "/account"]);
+  });
+
+  it("keeps secondary screens out of the main menu without removing their routes", () => {
     const customerRoutes = routesFor("CUSTOMER");
     const technicianRoutes = routesFor("TECHNICIAN");
     const adminRoutes = routesFor("ADMIN");
 
-    expect(customerRoutes).toContain("/shop");
-    expect(customerRoutes).toContain("/support");
+    expect(customerRoutes).not.toContain("/offers");
+    expect(customerRoutes).not.toContain("/reviews");
+    expect(customerRoutes).not.toContain("/support");
+    expect(technicianRoutes).not.toContain("/chats");
+    expect(adminRoutes).not.toContain("/admin/schedule");
+    expect(adminRoutes).not.toContain("/admin/customers");
     expect(customerRoutes).not.toContain("/game");
-    expect(customerRoutes).not.toContain("/salary");
-    expect(customerRoutes).not.toContain("/admin/customers");
-
-    expect(technicianRoutes).toContain("/catalog");
-    expect(technicianRoutes).toContain("/salary");
-    expect(technicianRoutes).not.toContain("/shop");
-    expect(technicianRoutes).not.toContain("/admin/orders");
-
-    expect(adminRoutes).toContain("/admin/overview");
-    expect(adminRoutes).toContain("/admin/shop-orders");
-    expect(adminRoutes).toContain("/advertising");
-    expect(adminRoutes).not.toContain("/shop");
   });
 
-  it("keeps the mobile navigation compact without hiding links from the section list", () => {
-    for (const role of ["CUSTOMER", "TECHNICIAN", "ADMIN"] as const) {
-      const allRoutes = routesFor(role);
-      const primary = getPrimaryNavigationLinksForRole(role);
-
-      expect(primary).toHaveLength(4);
-      expect(new Set(primary.map((link) => link.to)).size).toBe(primary.length);
-      expect(primary.every((link) => allRoutes.includes(link.to))).toBe(true);
-    }
-  });
-
-  it("limits procurement navigation to purchasing, inventory, and profile", () => {
-    const routes = routesFor("PROCUREMENT");
-    const primary = getPrimaryNavigationLinksForRole("PROCUREMENT");
-
-    expect(routes).toEqual(["/admin/procurement", "/catalog", "/account"]);
-    expect(primary.map((link) => link.to)).toEqual(["/admin/procurement", "/catalog", "/account"]);
-    expect(routes).not.toContain("/admin/customers");
-    expect(routes).not.toContain("/orders");
-    expect(routes).not.toContain("/salary");
-  });
-
-  it("marks a nested page active without confusing the home or admin root routes", () => {
-    expect(isNavigationItemActive("/admin/schedule", "/admin/schedule")).toBe(true);
+  it("marks nested routes active without matching root destinations", () => {
     expect(isNavigationItemActive("/admin/orders/123", "/admin/orders")).toBe(true);
-    expect(isNavigationItemActive("/admin/orders", "/admin")).toBe(false);
+    expect(isNavigationItemActive("/admin/schedule", "/admin")).toBe(false);
     expect(isNavigationItemActive("/orders", "/")).toBe(false);
   });
 });

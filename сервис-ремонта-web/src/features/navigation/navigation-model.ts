@@ -1,4 +1,15 @@
-import type { RaccoonMotion } from "@/components/raccoon-icon";
+import {
+  ClipboardList,
+  Home,
+  type LucideIcon,
+  Package,
+  Settings,
+  ShoppingBag,
+  Star,
+  UserRound,
+  Wallet,
+  Wrench,
+} from "lucide-react";
 
 import type { Role } from "@/lib/api";
 
@@ -6,35 +17,19 @@ export type NavigationRoute =
   | "/"
   | "/orders"
   | "/shop"
-  | "/devices"
-  | "/catalog"
-  | "/checks"
-  | "/news"
-  | "/offers"
   | "/loyalty"
-  | "/salary"
-  | "/crafts"
-  | "/about"
-  | "/reviews"
-  | "/advertising"
   | "/account"
-  | "/support"
-  | "/chats"
+  | "/catalog"
+  | "/salary"
   | "/admin"
-  | "/admin/overview"
   | "/admin/orders"
-  | "/admin/customers"
-  | "/admin/order-editing"
-  | "/admin/procurement"
-  | "/admin/schedule"
-  | "/admin/shop-orders";
+  | "/admin/procurement";
 
 export type NavigationLink = {
   to: NavigationRoute;
   label: string;
   compactLabel: string;
-  motion: RaccoonMotion;
-  roles?: readonly Role[];
+  icon: LucideIcon;
 };
 
 export type NavigationGroup = {
@@ -42,201 +37,51 @@ export type NavigationGroup = {
   links: NavigationLink[];
 };
 
-const navigationGroups: Array<{ label: string; links: NavigationLink[] }> = [
-  {
-    label: "Основное",
+const navigationByRole: Record<Role, NavigationGroup> = {
+  CUSTOMER: {
+    label: "Клиент",
     links: [
-      { to: "/", label: "Главная", compactLabel: "Главная", motion: "peek" },
-      { to: "/orders", label: "Заявки", compactLabel: "Заявки", motion: "bounce" },
-      { to: "/chats", label: "Чаты", compactLabel: "Чаты", motion: "bounce" },
-      { to: "/checks", label: "Чеки и номера", compactLabel: "Чеки", motion: "bounce" },
+      { to: "/", label: "Главная", compactLabel: "Главная", icon: Home },
+      { to: "/orders", label: "Ремонты", compactLabel: "Ремонты", icon: Wrench },
+      { to: "/shop", label: "Магазин", compactLabel: "Магазин", icon: ShoppingBag },
+      { to: "/loyalty", label: "Бонусы", compactLabel: "Бонусы", icon: Star },
+      { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
     ],
   },
-  {
-    label: "Сервис",
+  TECHNICIAN: {
+    label: "Мастер",
     links: [
-      {
-        to: "/catalog",
-        label: "Каталог ремонта",
-        compactLabel: "Каталог",
-        motion: "wiggle",
-        roles: ["TECHNICIAN", "ADMIN"],
-      },
-      {
-        to: "/salary",
-        label: "Зарплата",
-        compactLabel: "Зарплата",
-        motion: "bounce",
-        roles: ["TECHNICIAN", "ADMIN"],
-      },
+      { to: "/orders", label: "Заявки", compactLabel: "Заявки", icon: ClipboardList },
+      { to: "/catalog", label: "Каталог", compactLabel: "Каталог", icon: Package },
+      { to: "/salary", label: "Зарплата", compactLabel: "Зарплата", icon: Wallet },
+      { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
     ],
   },
-  {
-    label: "Для клиентов",
+  PROCUREMENT: {
+    label: "Закупка",
     links: [
-      {
-        to: "/shop",
-        label: "Магазин товаров",
-        compactLabel: "Магазин",
-        motion: "peek",
-        roles: ["CUSTOMER"],
-      },
-      {
-        to: "/devices",
-        label: "Моя техника",
-        compactLabel: "Техника",
-        motion: "peek",
-        roles: ["CUSTOMER"],
-      },
-      { to: "/news", label: "Новости", compactLabel: "Новости", motion: "peek" },
-      {
-        to: "/offers",
-        label: "Акции и розыгрыши",
-        compactLabel: "Акции",
-        motion: "bounce",
-        roles: ["CUSTOMER"],
-      },
-      {
-        to: "/loyalty",
-        label: "Бонусы",
-        compactLabel: "Бонусы",
-        motion: "wiggle",
-        roles: ["CUSTOMER"],
-      },
-      { to: "/crafts", label: "Ручная работа", compactLabel: "Изделия", motion: "peek" },
-      { to: "/about", label: "О компании", compactLabel: "Компания", motion: "wiggle" },
-      { to: "/reviews", label: "Отзывы", compactLabel: "Отзывы", motion: "bounce" },
-      {
-        to: "/support",
-        label: "Поддержка",
-        compactLabel: "Помощь",
-        motion: "bounce",
-        roles: ["CUSTOMER", "ADMIN"],
-      },
+      { to: "/admin/procurement", label: "Закупки", compactLabel: "Закупки", icon: ClipboardList },
+      { to: "/catalog", label: "Товары", compactLabel: "Товары", icon: Package },
+      { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
     ],
   },
-  {
-    label: "Закупки",
+  ADMIN: {
+    label: "Администратор",
     links: [
-      {
-        to: "/admin/procurement",
-        label: "Список пополнения",
-        compactLabel: "Закупки",
-        motion: "peek",
-        roles: ["PROCUREMENT"],
-      },
-      {
-        to: "/catalog",
-        label: "Товары и запчасти",
-        compactLabel: "Склад",
-        motion: "wiggle",
-        roles: ["PROCUREMENT"],
-      },
+      { to: "/admin/orders", label: "Заявки", compactLabel: "Заявки", icon: ClipboardList },
+      { to: "/admin", label: "Управление", compactLabel: "Управление", icon: Settings },
+      { to: "/catalog", label: "Каталог", compactLabel: "Каталог", icon: Package },
+      { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
     ],
   },
-  {
-    label: "Профиль",
-    links: [{ to: "/account", label: "Личный кабинет", compactLabel: "Профиль", motion: "wiggle" }],
-  },
-  {
-    label: "Администрирование",
-    links: [
-      {
-        to: "/admin",
-        label: "Панель администратора",
-        compactLabel: "Админ",
-        motion: "wiggle",
-        roles: ["ADMIN"],
-      },
-      {
-        to: "/admin/overview",
-        label: "Обзор сервиса",
-        compactLabel: "Обзор",
-        motion: "peek",
-        roles: ["ADMIN"],
-      },
-      {
-        to: "/admin/orders",
-        label: "Заявки на ремонт",
-        compactLabel: "Заявки сервиса",
-        motion: "bounce",
-        roles: ["ADMIN"],
-      },
-      {
-        to: "/admin/schedule",
-        label: "Расписание мастеров",
-        compactLabel: "Расписание",
-        motion: "peek",
-        roles: ["ADMIN"],
-      },
-      {
-        to: "/admin/procurement",
-        label: "Закупка запчастей",
-        compactLabel: "Закупка",
-        motion: "peek",
-        roles: ["ADMIN"],
-      },
-      {
-        to: "/admin/customers",
-        label: "База клиентов",
-        compactLabel: "Клиенты",
-        motion: "peek",
-        roles: ["ADMIN"],
-      },
-      {
-        to: "/admin/order-editing",
-        label: "Редактирование заявок",
-        compactLabel: "Правка заявок",
-        motion: "wiggle",
-        roles: ["ADMIN"],
-      },
-      {
-        to: "/admin/shop-orders",
-        label: "Подтверждение заказов магазина",
-        compactLabel: "Заказы магазина",
-        motion: "peek",
-        roles: ["ADMIN"],
-      },
-      {
-        to: "/advertising",
-        label: "Реклама",
-        compactLabel: "Реклама",
-        motion: "peek",
-        roles: ["ADMIN"],
-      },
-    ],
-  },
+};
+
+export const getNavigationGroupsForRole = (role: Role): NavigationGroup[] => [
+  navigationByRole[role],
 ];
 
-const primaryRoutes: Record<Role, readonly NavigationRoute[]> = {
-  CUSTOMER: ["/", "/orders", "/devices", "/shop"],
-  TECHNICIAN: ["/orders", "/catalog", "/salary", "/chats"],
-  ADMIN: ["/orders", "/catalog", "/salary", "/admin"],
-  PROCUREMENT: ["/admin/procurement", "/catalog", "/account"],
-};
-
-export const getNavigationGroupsForRole = (role: Role): NavigationGroup[] =>
-  navigationGroups
-    .map((group) => ({
-      label: group.label,
-      links: group.links.filter(
-        (link) =>
-          (role !== "PROCUREMENT" ||
-            link.to === "/admin/procurement" ||
-            link.to === "/catalog" ||
-            link.to === "/account") &&
-          (!link.roles || link.roles.includes(role)),
-      ),
-    }))
-    .filter((group) => group.links.length > 0);
-
-export const getPrimaryNavigationLinksForRole = (role: Role): NavigationLink[] => {
-  const links = getNavigationGroupsForRole(role).flatMap((group) => group.links);
-  return primaryRoutes[role].flatMap((route) => {
-    const link = links.find((item) => item.to === route);
-    return link ? [link] : [];
-  });
-};
+export const getPrimaryNavigationLinksForRole = (role: Role): NavigationLink[] =>
+  navigationByRole[role].links;
 
 export const isNavigationItemActive = (active: string, route: NavigationRoute): boolean => {
   if (active === route) return true;

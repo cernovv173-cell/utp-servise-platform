@@ -6,7 +6,9 @@
 
 На главной приоритетные новости стоят выше рекламных блоков и при наличии нескольких публикаций сменяются раз в 10 секунд; карусель приостанавливается при наведении, фокусе или вручную. Внутренние рекламные баннеры показываются компактной каруселью: активные публикации обновляются с сервера раз в 10 секунд, и текущий слайд меняется каждые 10 секунд. Новости и баннеры плавно перемещаются при смене; анимация перехода отключается при системной настройке уменьшения движения. В меню, логотипе и карточках главной используются еноты, которые двигаются только при наведении мышью; анимации отключаются при системной настройке уменьшения движения.
 
-На главной карточка факта о технологиях показывается гостям и вошедшим пользователям, содержит ссылку на источник и обновляется раз в два часа по времени сервера. В ленте новостей остаются объявления и отзывы; карточка факта оттуда вынесена.
+Публичная гостевая главная сокращена до заявки, услуг, трёх шагов ремонта, одного опубликованного отзыва и контактов; стоимость не выдумывается и показывается только при наличии подтверждённых данных. Полный список опубликованных отзывов доступен по `/reviews` и использует публичную выдачу завершённых ремонтов. Карточка факта о технологиях остаётся только на авторизованном главном экране и обновляется раз в два часа по серверному времени.
+
+Основная навигация короткая и зависит от роли: клиент — главная, ремонты, магазин, бонусы и профиль; мастер — заявки, каталог, зарплата и профиль; закупки — закупки, товары и профиль; администратор — заявки, управление, каталог и профиль. Вспомогательные клиентские и мастерские экраны собраны в быстрых ссылках профиля; администраторские операции сгруппированы в шесть направлений управления. Прямые адреса дополнительных страниц остаются доступны.
 
 Install dependencies and start the development server:
 
@@ -193,12 +195,12 @@ continues to be maintained independently in “About the company.”
 On `/admin/customers`, administrators can permanently delete a customer after entering the customer's
 email in a confirmation dialog. This removes the account and its linked repair/craft orders, receipts,
 related payroll entries, devices, chats, reviews, bonus and referral records, offer participation,
-game progress, and customer photos. The operation cannot be undone; stock balances are not restored.
+and customer photos. The operation cannot be undone; stock balances are not restored.
 
 Customers can start deleting their own account from `/account`; no administrator approval or support
 request is required. Before final confirmation, the app explains that linked repair and shop orders
-(including unfinished repairs), chats, reviews, photos, bonuses, and game progress will be removed.
-On success it clears the session and that customer's local shop cart and game preferences. On error,
+(including unfinished repairs), chats, reviews, photos, and bonuses will be removed.
+On success it clears the session and that customer's local shop cart. On error,
 the dialog stays open and the customer remains signed in to retry; local data is cleared only after a
 successful response.
 If a photo cannot be removed from storage, the customer's access is disabled and the administrator can
@@ -268,11 +270,12 @@ lifecycle safeguards. The staff section of `/admin` can create technician accoun
 temporary passwords that must be changed on first sign-in; customer self-registration remains on
 `/login` and cannot create staff or administrator accounts.
 
-The match-three campaign, daily puzzle, garage, and their Web resources have been removed from the
-customer site and Android app. Old `/game` URLs redirect to the home page. At the next website visit,
-the browser clears its HTTP and Cache Storage caches plus obsolete game preferences; customer login,
-shopping carts, and other site data are retained. Previously credited bonus points remain unchanged.
-Historical game progress and reward records in the API database are retained and were not modified.
+The game feature, screens, API endpoints, and active game models have been removed from the Web and
+Android applications. Old game endpoints are no longer supported. The first visit clears obsolete
+browser caches and local game preferences while retaining customer logins, shopping carts, and other
+site data. The retirement migration removes the ten game-progress tables and saved game cosmetics.
+Previously credited `GAME_REWARD` bonus ledger entries remain unchanged; historical game progress is
+deleted.
 
 ## Seasonal themes
 

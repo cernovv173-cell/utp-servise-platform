@@ -1,9 +1,21 @@
 package ru.utp.servise.navigation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.ui.graphics.vector.ImageVector
+
 internal data class WorkspaceDestination(
     val route: String,
     val label: String,
-    val icon: String,
+    val icon: ImageVector,
     val description: String = "",
 )
 
@@ -16,6 +28,7 @@ internal data class WorkspaceNavigation(
     val primaryDestinations: List<WorkspaceDestination>,
     val sectionGroups: List<WorkspaceSectionGroup> = emptyList(),
     val sectionHubRoute: String? = null,
+    val sectionParentRoute: String? = null,
     val managementRoutes: Set<String> = emptySet(),
 ) {
     private val primaryRoutes = primaryDestinations.mapTo(mutableSetOf()) { it.route }
@@ -26,7 +39,9 @@ internal data class WorkspaceNavigation(
     fun selectedTabRoute(currentRoute: String?): String? {
         if (currentRoute == null) return null
         if (currentRoute in primaryRoutes) return currentRoute
-        if (sectionHubRoute != null && currentRoute in sectionRoutes) return sectionHubRoute
+        if (sectionParentRoute != null && (currentRoute == sectionHubRoute || currentRoute in sectionRoutes)) {
+            return sectionParentRoute
+        }
         if ("admin/manage" in primaryRoutes && currentRoute in managementRoutes) return "admin/manage"
         return null
     }
@@ -35,56 +50,40 @@ internal data class WorkspaceNavigation(
 internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = when (role) {
     "CUSTOMER" -> WorkspaceNavigation(
         primaryDestinations = listOf(
-            WorkspaceDestination("customer/home", "Главная", "⌂"),
-            WorkspaceDestination("customer/orders", "Заявки", "▤"),
-            WorkspaceDestination("customer/devices", "Техника", "▣"),
-            WorkspaceDestination("customer/news", "Новости", "▧"),
-            WorkspaceDestination("sections", "Разделы", "⋯"),
+            WorkspaceDestination("customer/home", "Главная", Icons.Filled.Home),
+            WorkspaceDestination("customer/orders", "Ремонты", Icons.AutoMirrored.Filled.List),
+            WorkspaceDestination("customer/shop", "Магазин", Icons.Filled.ShoppingCart),
+            WorkspaceDestination("customer/loyalty", "Бонусы", Icons.Filled.Star),
+            WorkspaceDestination("customer/profile", "Профиль", Icons.Filled.Person),
         ),
         sectionHubRoute = "sections",
+        sectionParentRoute = "customer/profile",
         sectionGroups = listOf(
             WorkspaceSectionGroup(
-                "Мои ремонты",
+                "Ремонты и техника",
                 listOf(
                     WorkspaceDestination(
                         "customer/history",
                         "История ремонтов",
-                        "◷",
+                        Icons.AutoMirrored.Filled.List,
                         "Завершённые и архивные заявки.",
                     ),
-                ),
-            ),
-            WorkspaceSectionGroup(
-                "Магазин и изделия",
-                listOf(
                     WorkspaceDestination(
-                        "customer/shop",
-                        "Магазин товаров",
-                        "🛍",
-                        "Товары и статус отдельного заказа.",
-                    ),
-                    WorkspaceDestination(
-                        "customer/crafts",
-                        "Ручная работа",
-                        "✿",
-                        "Готовые изделия и заявки на заказ.",
+                        "customer/devices",
+                        "Моя техника",
+                        Icons.Filled.Build,
+                        "Сохранённые устройства, напоминания и гарантийные обращения.",
                     ),
                 ),
             ),
             WorkspaceSectionGroup(
-                "Акции и бонусы",
+                "Предложения",
                 listOf(
                     WorkspaceDestination(
                         "customer/offers",
                         "Акции и розыгрыши",
-                        "🎁",
+                        Icons.Filled.Star,
                         "Участие в доступных предложениях сервиса.",
-                    ),
-                    WorkspaceDestination(
-                        "customer/loyalty",
-                        "Бонусы и приглашения",
-                        "★",
-                        "Баланс бонусов и статусы приглашённых клиентов.",
                     ),
                 ),
             ),
@@ -92,33 +91,39 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                 "Информация и помощь",
                 listOf(
                     WorkspaceDestination(
+                        "customer/news",
+                        "Новости",
+                        Icons.Filled.Info,
+                        "Объявления сервиса и публикации.",
+                    ),
+                    WorkspaceDestination(
                         "customer/about",
                         "О компании",
-                        "ℹ",
+                        Icons.Filled.Info,
                         "Контакты, услуги и график работы.",
                     ),
                     WorkspaceDestination(
                         "customer/reviews",
                         "Мои отзывы",
-                        "★",
+                        Icons.Filled.Star,
                         "Отзывы, оставленные после завершения ремонта.",
                     ),
                     WorkspaceDestination(
                         "customer/support-chat",
                         "Чат с поддержкой",
-                        "✉",
+                        Icons.Filled.Info,
                         "Написать администратору сервиса.",
                     ),
                 ),
             ),
             WorkspaceSectionGroup(
-                "Аккаунт",
+                "Изделия",
                 listOf(
                     WorkspaceDestination(
-                        "customer/profile",
-                        "Личный кабинет",
-                        "♙",
-                        "Контакты, пароль и настройки уведомлений.",
+                        "customer/crafts",
+                        "Ручная работа",
+                        Icons.Filled.Star,
+                        "Готовые изделия и заявки на заказ.",
                     ),
                 ),
             ),
@@ -127,12 +132,13 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
 
     "TECHNICIAN" -> WorkspaceNavigation(
         primaryDestinations = listOf(
-            WorkspaceDestination("technician/jobs", "Заказы", "▤"),
-            WorkspaceDestination("technician/history", "История", "◷"),
-            WorkspaceDestination("technician/salary", "Зарплата", "₽"),
-            WorkspaceDestination("sections", "Разделы", "⋯"),
+            WorkspaceDestination("technician/jobs", "Заказы", Icons.AutoMirrored.Filled.List),
+            WorkspaceDestination("technician/catalog", "Каталог", Icons.Filled.Search),
+            WorkspaceDestination("technician/salary", "Зарплата", Icons.Filled.Star),
+            WorkspaceDestination("technician/profile", "Профиль", Icons.Filled.Person),
         ),
         sectionHubRoute = "sections",
+        sectionParentRoute = "technician/profile",
         sectionGroups = listOf(
             WorkspaceSectionGroup(
                 "Дополнительно",
@@ -140,25 +146,14 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                     WorkspaceDestination(
                         "technician/reviews",
                         "Отзывы о работе",
-                        "★",
+                        Icons.Filled.Star,
                         "Отзывы клиентов о завершённых ремонтах.",
                     ),
                     WorkspaceDestination(
                         "technician/about",
                         "О компании",
-                        "ℹ",
+                        Icons.Filled.Info,
                         "Контакты и график сервиса.",
-                    ),
-                ),
-            ),
-            WorkspaceSectionGroup(
-                "Аккаунт",
-                listOf(
-                    WorkspaceDestination(
-                        "technician/profile",
-                        "Профиль",
-                        "♙",
-                        "Личные данные и настройки входа.",
                     ),
                 ),
             ),
@@ -167,18 +162,18 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
 
     "PROCUREMENT" -> WorkspaceNavigation(
         primaryDestinations = listOf(
-            WorkspaceDestination("procurement/home", "Закупки", "▤"),
-            WorkspaceDestination("procurement/catalog", "Товары и запчасти", "▣"),
-            WorkspaceDestination("procurement/profile", "Профиль", "♙"),
+            WorkspaceDestination("procurement/home", "Закупки", Icons.Filled.ShoppingCart),
+            WorkspaceDestination("procurement/catalog", "Товары", Icons.Filled.Search),
+            WorkspaceDestination("procurement/profile", "Профиль", Icons.Filled.Person),
         ),
     )
 
     else -> WorkspaceNavigation(
         primaryDestinations = listOf(
-            WorkspaceDestination("admin/orders", "Заявки", "▤"),
-            WorkspaceDestination("admin/history", "История", "◷"),
-            WorkspaceDestination("admin/manage", "Управление", "⚙"),
-            WorkspaceDestination("admin/profile", "Профиль", "♙"),
+            WorkspaceDestination("admin/orders", "Заявки", Icons.AutoMirrored.Filled.List),
+            WorkspaceDestination("admin/manage", "Управление", Icons.Filled.Settings),
+            WorkspaceDestination("admin/catalog", "Каталог", Icons.Filled.Search),
+            WorkspaceDestination("admin/profile", "Профиль", Icons.Filled.Person),
         ),
         managementRoutes = setOf(
             "admin/salary",

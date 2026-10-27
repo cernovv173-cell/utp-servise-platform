@@ -249,16 +249,6 @@ const deleteCustomerRecords = async (
   await transaction.customerOfferParticipation.deleteMany({
     where: { customerId },
   });
-  await transaction.gameEpisodeCompletion.deleteMany({
-    where: { customerId },
-  });
-  await transaction.match3GameSession.deleteMany({ where: { customerId } });
-  await transaction.match3LevelCompletion.deleteMany({
-    where: { customerId },
-  });
-  await transaction.match3LevelReward.deleteMany({ where: { customerId } });
-  await transaction.match3Inventory.deleteMany({ where: { customerId } });
-
   await transaction.user.delete({ where: { id: customerId } });
 };
 

@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { BenefitsNavigation } from "@/features/navigation/benefits-navigation";
 
-import { getCustomerOffers, participateInCustomerOffer, type CustomerOffer } from "@/lib/api";
+import { type CustomerOffer, getCustomerOffers, participateInCustomerOffer } from "@/lib/api";
 import { useCurrentTime } from "@/lib/current-time";
 
 const formatDate = (value: string) => new Date(value).toLocaleString("ru-RU");
@@ -40,7 +41,11 @@ const OfferCard = ({
     <SectionCard className="grid content-start gap-4">
       <div className="flex items-start gap-3">
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-cyan-200">
-          {isGiveaway ? <Trophy size={21} aria-hidden="true" /> : <Gift size={21} aria-hidden="true" />}
+          {isGiveaway ? (
+            <Trophy size={21} aria-hidden="true" />
+          ) : (
+            <Gift size={21} aria-hidden="true" />
+          )}
         </span>
         <div className="min-w-0">
           <p className="text-xs font-semibold tracking-wide text-blue-600 uppercase dark:text-cyan-300">
@@ -93,7 +98,9 @@ const OfferCard = ({
       ) : null}
 
       {isGiveaway && endsAt <= now && !offer.resultsPublishedAt && (
-        <p className="text-sm text-slate-500">Приём завершён. Результаты опубликует администратор.</p>
+        <p className="text-sm text-slate-500">
+          Приём завершён. Результаты опубликует администратор.
+        </p>
       )}
       {!isGiveaway && (
         <p className="text-xs text-slate-500">
@@ -120,7 +127,7 @@ const OfferCard = ({
 };
 
 const OffersPage = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const now = useCurrentTime();
   const query = useQuery({
@@ -134,11 +141,13 @@ const OffersPage = () => {
       toast.success(result.alreadyParticipating ? "Вы уже участвуете." : "Вы записаны на участие.");
       await queryClient.invalidateQueries({ queryKey: ["customer-offers", token] });
     },
-    onError: () => toast.error("Не удалось записать участие. Обновите страницу и попробуйте снова."),
+    onError: () =>
+      toast.error("Не удалось записать участие. Обновите страницу и попробуйте снова."),
   });
 
   return (
     <AppShell active="/offers">
+      {user?.role === "CUSTOMER" && <BenefitsNavigation />}
       <PageTitle
         eyebrow="ДЛЯ КЛИЕНТОВ"
         title="Акции и розыгрыши"
@@ -147,7 +156,9 @@ const OffersPage = () => {
       {query.isLoading ? (
         <p className="text-sm text-slate-500">Загружаем предложения…</p>
       ) : query.isError ? (
-        <p role="alert" className="text-sm text-rose-600">Не удалось загрузить акции и розыгрыши.</p>
+        <p role="alert" className="text-sm text-rose-600">
+          Не удалось загрузить акции и розыгрыши.
+        </p>
       ) : (query.data?.offers.length ?? 0) === 0 ? (
         <SectionCard>
           <p className="text-sm text-slate-500">Сейчас нет опубликованных предложений.</p>

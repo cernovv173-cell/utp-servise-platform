@@ -602,5 +602,14 @@ data class CustomerReview(
     val createdAt: String = "",
 )
 
+data class PublicReview(
+    val id: String,
+    val rating: Int,
+    val comment: String,
+    val createdAt: String,
+    val customerName: String,
+    val deviceType: String,
+)
+
 data class AuthResult(val accessToken: String, val user: AppUser)
 data class NewStaffResult(val staff: StaffMember, val temporaryPassword: String)

@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -64,10 +65,10 @@ private fun WorkspaceSectionGroupContent(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        destination.icon,
-                        fontSize = 22.sp,
-                        color = UtpBlue,
+                    Icon(
+                        imageVector = destination.icon,
+                        contentDescription = null,
+                        tint = UtpBlue,
                         modifier = Modifier.padding(end = 12.dp),
                     )
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {

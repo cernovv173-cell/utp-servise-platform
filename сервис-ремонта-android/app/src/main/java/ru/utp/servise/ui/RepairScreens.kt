@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -60,24 +61,22 @@ fun RepairOrdersScreen(
     var searchText by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<RepairOrder>?>(null) }
     var showArchive by remember { mutableStateOf(false) }
+    var showCompleted by remember { mutableStateOf(historyOnly) }
     val visibleOrders = orders.filter { order ->
-        if (showArchive) {
-            order.archivedAt != null
-        } else {
-            order.archivedAt == null && if (historyOnly) {
-                order.status == "COMPLETED" || order.status == "CANCELLED"
-            } else {
-                order.status != "COMPLETED" && order.status != "CANCELLED"
-            }
+        when {
+            showArchive -> order.archivedAt != null
+            order.archivedAt != null -> false
+            showCompleted -> order.status == "COMPLETED" || order.status == "CANCELLED"
+            else -> order.status != "COMPLETED" && order.status != "CANCELLED"
         }
     }
     val displayedOrders = searchResults
-        ?.filter { (it.archivedAt != null) == showArchive }
-        ?.filter {
-            showArchive || if (historyOnly) {
-                it.status == "COMPLETED" || it.status == "CANCELLED"
-            } else {
-                it.status != "COMPLETED" && it.status != "CANCELLED"
+        ?.filter { order ->
+            when {
+                showArchive -> order.archivedAt != null
+                order.archivedAt != null -> false
+                showCompleted -> order.status == "COMPLETED" || order.status == "CANCELLED"
+                else -> order.status != "COMPLETED" && order.status != "CANCELLED"
             }
         }
         ?: visibleOrders
@@ -88,10 +87,10 @@ fun RepairOrdersScreen(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.weight(1f)) {
                 Text(title, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("${visibleOrders.size} заявок", fontSize = 12.sp, color = UtpMuted)
+                Text("${displayedOrders.size} заявок", fontSize = 12.sp, color = UtpMuted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (role == "ADMIN" && !historyOnly && !showArchive && onCreateOrder != null) {
+                if (role == "ADMIN" && !showCompleted && !showArchive && onCreateOrder != null) {
                     Button(onClick = onCreateOrder, shape = RoundedCornerShape(11.dp)) { Text("Создать") }
                 }
                 TextButton(onClick = refresh) { Text("Обновить") }
@@ -99,21 +98,30 @@ fun RepairOrdersScreen(
         }
         headerContent?.invoke()
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             FilterChip(
-                selected = !showArchive,
-                onClick = { showArchive = false; searchResults = null },
-                label = { Text("Активные · ${orders.count { it.archivedAt == null }}") },
+                selected = !showArchive && !showCompleted,
+                onClick = { showArchive = false; showCompleted = false; searchResults = null },
+                label = { Text("Активные · ${orders.count { it.archivedAt == null && it.status != "COMPLETED" && it.status != "CANCELLED" }}") },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
                     selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer,
                 ),
             )
             FilterChip(
+                selected = !showArchive && showCompleted,
+                onClick = { showArchive = false; showCompleted = true; searchResults = null },
+                label = { Text("Завершённые · ${orders.count { it.archivedAt == null && (it.status == "COMPLETED" || it.status == "CANCELLED") }}") },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
+                    selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
+                ),
+            )
+            FilterChip(
                 selected = showArchive,
-                onClick = { showArchive = true; searchResults = null },
+                onClick = { showArchive = true; showCompleted = false; searchResults = null },
                 label = { Text("Архив · ${orders.count { it.archivedAt != null }}") },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
@@ -152,7 +160,7 @@ fun RepairOrdersScreen(
                 Text(
                     when {
                         showArchive -> "В архиве пока нет заявок. Они переносятся автоматически после полуночи по времени Москвы."
-                        historyOnly -> "Завершённых ремонтов пока нет."
+                        showCompleted -> "Завершённых ремонтов пока нет."
                         else -> "Сейчас здесь нет заявок."
                     },
                     Modifier.padding(18.dp),

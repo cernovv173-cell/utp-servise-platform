@@ -6,6 +6,7 @@ import { z } from "zod";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { MessageSectionNavigation } from "@/features/navigation/message-section-navigation";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 
@@ -45,6 +46,7 @@ const ChatsPage = () => {
 
   return (
     <AppShell active="/chats">
+      {canViewChats && <MessageSectionNavigation canOpenSupport={user?.role !== "TECHNICIAN"} />}
       <PageTitle
         eyebrow="СООБЩЕНИЯ ПО ЗАЯВКАМ"
         title="Чаты"
