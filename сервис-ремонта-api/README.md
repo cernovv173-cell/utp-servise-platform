@@ -51,6 +51,15 @@ older tracked rows keep that threshold until an administrator changes it. A thre
 when the balance reaches zero; zero-stock items are always highlighted. The additive migration leaves
 untracked legacy balances and service rows untracked.
 
+## Public service prices
+
+The guest web landing page reads the active service price list from
+`GET /public/service-prices`. The public response contains only `id`, `name`, and
+`unitPriceRub` for active `SERVICE` catalog entries (up to 100) and never exposes stock,
+spare parts, products, or user data. The site shows these catalog prices as a price guide and
+keeps the final-estimate wording; it does not substitute invented or approximate amounts when
+the list is empty.
+
 ## Product shop
 
 The standalone shop sells only active `PRODUCT` catalog entries; repair services and spare parts stay

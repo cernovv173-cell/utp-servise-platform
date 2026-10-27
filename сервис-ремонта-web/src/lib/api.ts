@@ -1060,6 +1060,11 @@ export const getCustomerServicePrices = (token: string, signal?: AbortSignal) =>
     signal,
   });
 
+export const getPublicServicePrices = (signal?: AbortSignal) =>
+  apiRequest<{ prices: CustomerServicePrice[] }>("/public/service-prices", null, {
+    signal,
+  });
+
 export const getAdminCustomers = (
   token: string,
   search = "",

@@ -276,6 +276,18 @@ test("only administrators manage the shared catalog and technicians see active p
   );
   assert.equal(technicianPrices.status, 403);
 
+  const publicPrices = await fetch(
+    "http://127.0.0.1:" + address.port + "/api/public/service-prices",
+  );
+  assert.equal(publicPrices.status, 200);
+  assert.deepEqual((await publicPrices.json()).prices, [
+    {
+      id: "33333333-3333-4333-8333-333333333334",
+      name: "Диагностика",
+      unitPriceRub: 1800,
+    },
+  ]);
+
   const createItem = await fetch(baseUrl, {
     method: "POST",
     headers: headers(adminToken),

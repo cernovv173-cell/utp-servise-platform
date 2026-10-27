@@ -104,6 +104,16 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.get("/public/service-prices", async (_request, response) => {
+    const prices = await database.repairCatalogItem.findMany({
+      where: { type: "SERVICE", active: true },
+      select: { id: true, name: true, unitPriceRub: true },
+      orderBy: { name: "asc" },
+      take: 100,
+    });
+    response.json({ prices });
+  });
+
   router.get(
     "/catalog",
     requireAuth,

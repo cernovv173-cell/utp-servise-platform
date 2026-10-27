@@ -15,6 +15,40 @@ body {
   background: #f4f6fc;
 }
 
+@keyframes price-ticker-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.price-ticker-track {
+  animation-name: price-ticker-scroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.price-ticker:hover .price-ticker-track,
+.price-ticker:focus-within .price-ticker-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .price-ticker-track {
+    animation: none;
+  }
+
+  .price-ticker-track [data-ticker-duplicate="true"] {
+    display: none;
+  }
+
+  .price-ticker-viewport {
+    overflow-x: auto;
+  }
+}
+
 html[data-theme="dark"] body {
   background-color: #070b18;
   background-image:
