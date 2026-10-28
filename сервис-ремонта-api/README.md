@@ -348,6 +348,10 @@ a season is available locally.
 Administrators create scheduled `PROMOTION` and `GIVEAWAY` offers through the authenticated admin
 endpoints and publish them for customers. A signed-in customer may join each published offer once while
 it is open. Promotions are participation campaigns only; they do not change repair-order prices.
+The public home page reads `GET /public/offers`, which returns only published offers whose start time
+has arrived and whose end time is still in the future. That response contains offer text, schedule,
+and giveaway rewards only; participant counts, customer participation, and winner identities remain
+available only through the authenticated customer/admin endpoints.
 Giveaways require a prize or bonus-point amount for each of the three places. After an offer closes,
 an administrator can draw three distinct participants; the selected names remain private until the
 administrator publishes the results. Publishing reveals the three-place podium and credits each

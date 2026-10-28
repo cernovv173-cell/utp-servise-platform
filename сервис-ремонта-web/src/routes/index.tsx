@@ -7,6 +7,7 @@ import { RaccoonIcon } from "@/components/raccoon-icon";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
+import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
 import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
@@ -75,6 +76,7 @@ const HomePage = () => {
           </Link>
         </div>
       </SectionCard>
+      {user?.role === "CUSTOMER" && <CustomerOfferHomeBanners isCustomer />}
       {user?.role === "CUSTOMER" && token && <ServicePriceTicker token={token} />}
       {news.data?.technologyFact && <TechnologyFactCard fact={news.data.technologyFact} />}
       <FeaturedNewsCarousel articles={featured} isLoading={news.isLoading} isError={news.isError} />

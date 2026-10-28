@@ -14,6 +14,7 @@ import {
 import { PublicSiteShell, repairRequestHref } from "@/components/public-site-shell";
 import { RaccoonIcon } from "@/components/raccoon-icon";
 
+import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 
@@ -114,6 +115,7 @@ export const PublicHome = () => {
         </div>
       </section>
 
+      <CustomerOfferHomeBanners />
       <ServicePriceTicker />
 
       <section id="services" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-12 md:px-8">

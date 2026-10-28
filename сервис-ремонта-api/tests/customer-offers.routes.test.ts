@@ -16,6 +16,7 @@ const technicianToken = "T".repeat(48);
 const promotionId = "11111111-1111-4111-8111-111111111111";
 const giveawayId = "22222222-2222-4222-8222-222222222222";
 const scheduledGiveawayId = "33333333-3333-4333-8333-333333333333";
+const unpublishedOfferId = "55555555-5555-4555-8555-555555555555";
 
 const makeOffer = (
   id: string,
@@ -57,11 +58,41 @@ const makeOffer = (
 
 const createHarness = () => {
   const users = [
-    { id: "admin-user", email: "admin@test.invalid", displayName: "Администратор", role: "ADMIN" as const, token: adminToken },
-    { id: "customer-user", email: "customer@test.invalid", displayName: "Клиент Один", role: "CUSTOMER" as const, token: customerToken },
-    { id: "customer-two", email: "second@test.invalid", displayName: "Клиент Два", role: "CUSTOMER" as const, token: secondCustomerToken },
-    { id: "customer-three", email: "third@test.invalid", displayName: "Клиент Три", role: "CUSTOMER" as const, token: thirdCustomerToken },
-    { id: "tech-user", email: "tech@test.invalid", displayName: "Мастер", role: "TECHNICIAN" as const, token: technicianToken },
+    {
+      id: "admin-user",
+      email: "admin@test.invalid",
+      displayName: "Администратор",
+      role: "ADMIN" as const,
+      token: adminToken,
+    },
+    {
+      id: "customer-user",
+      email: "customer@test.invalid",
+      displayName: "Клиент Один",
+      role: "CUSTOMER" as const,
+      token: customerToken,
+    },
+    {
+      id: "customer-two",
+      email: "second@test.invalid",
+      displayName: "Клиент Два",
+      role: "CUSTOMER" as const,
+      token: secondCustomerToken,
+    },
+    {
+      id: "customer-three",
+      email: "third@test.invalid",
+      displayName: "Клиент Три",
+      role: "CUSTOMER" as const,
+      token: thirdCustomerToken,
+    },
+    {
+      id: "tech-user",
+      email: "tech@test.invalid",
+      displayName: "Мастер",
+      role: "TECHNICIAN" as const,
+      token: technicianToken,
+    },
   ];
   const offers = [
     makeOffer(promotionId),
@@ -88,6 +119,7 @@ const createHarness = () => {
       startsAt: new Date(Date.now() + 3_600_000),
       endsAt: new Date(Date.now() + 7_200_000),
     }),
+    makeOffer(unpublishedOfferId, { isPublished: false }),
   ];
   const entries: Array<{
     id: string;
@@ -96,28 +128,57 @@ const createHarness = () => {
     joinedAt: Date;
     place: number | null;
   }> = [
-    { id: "entry-one", offerId: giveawayId, customerId: "customer-user", joinedAt: new Date(), place: null },
-    { id: "entry-two", offerId: giveawayId, customerId: "customer-two", joinedAt: new Date(), place: null },
-    { id: "entry-three", offerId: giveawayId, customerId: "customer-three", joinedAt: new Date(), place: null },
+    {
+      id: "entry-one",
+      offerId: giveawayId,
+      customerId: "customer-user",
+      joinedAt: new Date(),
+      place: null,
+    },
+    {
+      id: "entry-two",
+      offerId: giveawayId,
+      customerId: "customer-two",
+      joinedAt: new Date(),
+      place: null,
+    },
+    {
+      id: "entry-three",
+      offerId: giveawayId,
+      customerId: "customer-three",
+      joinedAt: new Date(),
+      place: null,
+    },
   ];
   const loyaltyTransactions: Array<Record<string, unknown>> = [];
   let entryNumber = 4;
   let offerNumber = 4;
 
-  const entryMatches = (entry: (typeof entries)[number], filter: Record<string, any>) => {
+  const entryMatches = (
+    entry: (typeof entries)[number],
+    filter: Record<string, any>,
+  ) => {
     if (Array.isArray(filter.OR)) {
-      return filter.OR.some((condition: Record<string, any>) => entryMatches(entry, condition));
+      return filter.OR.some((condition: Record<string, any>) =>
+        entryMatches(entry, condition),
+      );
     }
-    if (filter.customerId && entry.customerId !== filter.customerId) return false;
+    if (filter.customerId && entry.customerId !== filter.customerId)
+      return false;
     if (filter.place?.not === null && entry.place === null) return false;
     if (filter.place === null && entry.place !== null) return false;
     return true;
   };
 
-  const includeOffer = (offer: (typeof offers)[number], include: Record<string, any>) => {
+  const includeOffer = (
+    offer: (typeof offers)[number],
+    include: Record<string, any>,
+  ) => {
     const offerEntries = entries.filter((entry) => entry.offerId === offer.id);
     const entryFilter = include.entries?.where ?? {};
-    const selectedEntries = offerEntries.filter((entry) => entryMatches(entry, entryFilter));
+    const selectedEntries = offerEntries.filter((entry) =>
+      entryMatches(entry, entryFilter),
+    );
     const selected = selectedEntries.map((entry) => {
       if (include.entries?.select?.customer) {
         const customer = users.find((user) => user.id === entry.customerId)!;
@@ -133,16 +194,26 @@ const createHarness = () => {
         customerId: entry.customerId,
         joinedAt: entry.joinedAt,
         place: entry.place,
-        customer: { displayName: users.find((user) => user.id === entry.customerId)?.displayName ?? "" },
+        customer: {
+          displayName:
+            users.find((user) => user.id === entry.customerId)?.displayName ??
+            "",
+        },
       };
     });
-    return { ...offer, _count: { entries: offerEntries.length }, entries: selected };
+    return {
+      ...offer,
+      _count: { entries: offerEntries.length },
+      entries: selected,
+    };
   };
 
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
-        const user = users.find((candidate) => hashSessionToken(candidate.token) === where.tokenHash);
+        const user = users.find(
+          (candidate) => hashSessionToken(candidate.token) === where.tokenHash,
+        );
         return user
           ? {
               expiresAt: new Date(Date.now() + 60_000),
@@ -163,16 +234,55 @@ const createHarness = () => {
       },
     },
     customerOffer: {
-      findMany: async ({ where, include }: { where?: { isPublished?: boolean }; include: Record<string, any> }) =>
+      findMany: async ({
+        where,
+        include,
+        select,
+      }: {
+        where?: {
+          isPublished?: boolean;
+          startsAt?: { lte: Date };
+          endsAt?: { gt: Date };
+        };
+        include?: Record<string, any>;
+        select?: Record<string, true>;
+      }) =>
         offers
-          .filter((offer) => where?.isPublished === undefined || offer.isPublished === where.isPublished)
-          .map((offer) => includeOffer(offer, include)),
-      findUnique: async ({ where, include }: { where: { id: string }; include?: Record<string, any> }) => {
+          .filter(
+            (offer) =>
+              (where?.isPublished === undefined ||
+                offer.isPublished === where.isPublished) &&
+              (!where?.startsAt?.lte || offer.startsAt <= where.startsAt.lte) &&
+              (!where?.endsAt?.gt || offer.endsAt > where.endsAt.gt),
+          )
+          .map((offer) =>
+            select
+              ? Object.fromEntries(
+                  Object.keys(select).map((key) => [
+                    key,
+                    offer[key as keyof typeof offer],
+                  ]),
+                )
+              : includeOffer(offer, include ?? {}),
+          ),
+      findUnique: async ({
+        where,
+        include,
+      }: {
+        where: { id: string };
+        include?: Record<string, any>;
+      }) => {
         const offer = offers.find((candidate) => candidate.id === where.id);
         if (!offer) return null;
         return include ? includeOffer(offer, include) : offer;
       },
-      findUniqueOrThrow: async ({ where, include }: { where: { id: string }; include: Record<string, any> }) => {
+      findUniqueOrThrow: async ({
+        where,
+        include,
+      }: {
+        where: { id: string };
+        include: Record<string, any>;
+      }) => {
         const offer = offers.find((candidate) => candidate.id === where.id);
         assert.ok(offer);
         return includeOffer(offer, include);
@@ -185,17 +295,38 @@ const createHarness = () => {
         offers.push(offer);
         return offer;
       },
-      update: async ({ where, data }: { where: { id: string }; data: { isPublished: boolean } }) => {
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: { isPublished: boolean };
+      }) => {
         const offer = offers.find((candidate) => candidate.id === where.id);
         assert.ok(offer);
         offer.isPublished = data.isPublished;
         return offer;
       },
-      updateMany: async ({ where, data }: { where: { id: string; drawnAt?: null | { not: null }; resultsPublishedAt?: null }; data: { drawnAt?: Date; resultsPublishedAt?: Date } }) => {
-        const offer = offers.find((candidate) =>
-          candidate.id === where.id &&
-          (where.drawnAt === undefined || (where.drawnAt === null ? candidate.drawnAt === null : candidate.drawnAt !== null)) &&
-          (where.resultsPublishedAt === undefined || candidate.resultsPublishedAt === null),
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: {
+          id: string;
+          drawnAt?: null | { not: null };
+          resultsPublishedAt?: null;
+        };
+        data: { drawnAt?: Date; resultsPublishedAt?: Date };
+      }) => {
+        const offer = offers.find(
+          (candidate) =>
+            candidate.id === where.id &&
+            (where.drawnAt === undefined ||
+              (where.drawnAt === null
+                ? candidate.drawnAt === null
+                : candidate.drawnAt !== null)) &&
+            (where.resultsPublishedAt === undefined ||
+              candidate.resultsPublishedAt === null),
         );
         if (!offer) return { count: 0 };
         Object.assign(offer, data);
@@ -203,25 +334,64 @@ const createHarness = () => {
       },
     },
     customerOfferParticipation: {
-      findUnique: async ({ where }: { where: { offerId_customerId: { offerId: string; customerId: string } } }) =>
-        entries.find((entry) => entry.offerId === where.offerId_customerId.offerId && entry.customerId === where.offerId_customerId.customerId) ?? null,
-      findMany: async ({ where }: { where: { offerId: string } }) => entries.filter((entry) => entry.offerId === where.offerId),
-      create: async ({ data }: { data: { offerId: string; customerId: string } }) => {
-        const entry = { id: `entry-${entryNumber++}`, ...data, joinedAt: new Date(), place: null };
+      findUnique: async ({
+        where,
+      }: {
+        where: { offerId_customerId: { offerId: string; customerId: string } };
+      }) =>
+        entries.find(
+          (entry) =>
+            entry.offerId === where.offerId_customerId.offerId &&
+            entry.customerId === where.offerId_customerId.customerId,
+        ) ?? null,
+      findMany: async ({ where }: { where: { offerId: string } }) =>
+        entries.filter((entry) => entry.offerId === where.offerId),
+      create: async ({
+        data,
+      }: {
+        data: { offerId: string; customerId: string };
+      }) => {
+        const entry = {
+          id: `entry-${entryNumber++}`,
+          ...data,
+          joinedAt: new Date(),
+          place: null,
+        };
         entries.push(entry);
         return entry;
       },
-      updateMany: async ({ where, data }: { where: { id: string; offerId: string; place: null }; data: { place: number } }) => {
-        const entry = entries.find((candidate) => candidate.id === where.id && candidate.offerId === where.offerId && candidate.place === null);
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: { id: string; offerId: string; place: null };
+        data: { place: number };
+      }) => {
+        const entry = entries.find(
+          (candidate) =>
+            candidate.id === where.id &&
+            candidate.offerId === where.offerId &&
+            candidate.place === null,
+        );
         if (!entry) return { count: 0 };
         entry.place = data.place;
         return { count: 1 };
       },
     },
     loyaltyTransaction: {
-      createMany: async ({ data }: { data: Array<Record<string, unknown>> }) => {
+      createMany: async ({
+        data,
+      }: {
+        data: Array<Record<string, unknown>>;
+      }) => {
         for (const item of data) {
-          if (!loyaltyTransactions.some((existing) => existing.customerOfferId === item.customerOfferId && existing.customerId === item.customerId)) {
+          if (
+            !loyaltyTransactions.some(
+              (existing) =>
+                existing.customerOfferId === item.customerOfferId &&
+                existing.customerId === item.customerId,
+            )
+          ) {
             loyaltyTransactions.push(item);
           }
         }
@@ -230,12 +400,17 @@ const createHarness = () => {
     },
   };
   Object.assign(client, {
-    $transaction: async <T>(operation: (transaction: typeof client) => Promise<T>) => operation(client),
+    $transaction: async <T>(
+      operation: (transaction: typeof client) => Promise<T>,
+    ) => operation(client),
   });
 
   const app = express();
   app.use(express.json());
-  app.use("/api", createCustomerOffersRouter(client as unknown as DatabaseClient));
+  app.use(
+    "/api",
+    createCustomerOffersRouter(client as unknown as DatabaseClient),
+  );
   app.use(errorHandler);
   const server = app.listen(0);
 
@@ -251,11 +426,29 @@ test("customers join once, and administrators draw and publish three distinct wi
   const baseUrl = `http://127.0.0.1:${address.port}/api`;
   const headers = (token: string) => ({ authorization: `Bearer ${token}` });
 
-  const listing = await fetch(`${baseUrl}/offers`, { headers: headers(customerToken) });
+  const publicOffersResponse = await fetch(`${baseUrl}/public/offers`);
+  assert.equal(publicOffersResponse.status, 200);
+  assert.equal(publicOffersResponse.headers.get("cache-control"), "no-store");
+  const publicOffers = await publicOffersResponse.json();
+  assert.deepEqual(
+    publicOffers.offers.map((offer: { id: string }) => offer.id),
+    [promotionId],
+  );
+  assert.equal(publicOffers.offers[0].participantCount, undefined);
+  assert.equal(publicOffers.offers[0].myParticipation, undefined);
+  assert.equal(publicOffers.offers[0].winners, undefined);
+
+  const listing = await fetch(`${baseUrl}/offers`, {
+    headers: headers(customerToken),
+  });
   assert.equal(listing.status, 200);
   const listingBody = await listing.json();
   assert.equal(listingBody.offers.length, 3);
-  assert.equal(listingBody.offers.find((offer: { id: string }) => offer.id === giveawayId).winners.length, 0);
+  assert.equal(
+    listingBody.offers.find((offer: { id: string }) => offer.id === giveawayId)
+      .winners.length,
+    0,
+  );
 
   const joined = await fetch(`${baseUrl}/offers/${promotionId}/participate`, {
     method: "POST",
@@ -268,12 +461,18 @@ test("customers join once, and administrators draw and publish three distinct wi
   });
   assert.equal(repeated.status, 200);
   assert.equal((await repeated.json()).alreadyParticipating, true);
-  assert.equal(harness.entries.filter((entry) => entry.offerId === promotionId).length, 1);
+  assert.equal(
+    harness.entries.filter((entry) => entry.offerId === promotionId).length,
+    1,
+  );
 
-  const notYetOpen = await fetch(`${baseUrl}/offers/${scheduledGiveawayId}/participate`, {
-    method: "POST",
-    headers: headers(customerToken),
-  });
+  const notYetOpen = await fetch(
+    `${baseUrl}/offers/${scheduledGiveawayId}/participate`,
+    {
+      method: "POST",
+      headers: headers(customerToken),
+    },
+  );
   assert.equal(notYetOpen.status, 409);
 
   const forbidden = await fetch(`${baseUrl}/admin/offers`, {
@@ -288,45 +487,74 @@ test("customers join once, and administrators draw and publish three distinct wi
   assert.equal(draw.status, 200);
   const drawBody = await draw.json();
   assert.equal(drawBody.offer.winners.length, 3);
-  assert.deepEqual(drawBody.offer.winners.map((winner: { place: number }) => winner.place), [1, 2, 3]);
+  assert.deepEqual(
+    drawBody.offer.winners.map((winner: { place: number }) => winner.place),
+    [1, 2, 3],
+  );
   assert.equal(harness.loyaltyTransactions.length, 0);
 
-  const beforePublish = await fetch(`${baseUrl}/offers`, { headers: headers(customerToken) });
-  const privateOffer = (await beforePublish.json()).offers.find((offer: { id: string }) => offer.id === giveawayId);
+  const beforePublish = await fetch(`${baseUrl}/offers`, {
+    headers: headers(customerToken),
+  });
+  const privateOffer = (await beforePublish.json()).offers.find(
+    (offer: { id: string }) => offer.id === giveawayId,
+  );
   assert.equal(privateOffer.winners.length, 0);
   assert.equal(privateOffer.myParticipation.place, null);
 
-  const forbiddenPublish = await fetch(`${baseUrl}/admin/offers/${giveawayId}/publish-results`, {
-    method: "POST",
-    headers: headers(customerToken),
-  });
+  const forbiddenPublish = await fetch(
+    `${baseUrl}/admin/offers/${giveawayId}/publish-results`,
+    {
+      method: "POST",
+      headers: headers(customerToken),
+    },
+  );
   assert.equal(forbiddenPublish.status, 403);
 
-  const publish = await fetch(`${baseUrl}/admin/offers/${giveawayId}/publish-results`, {
-    method: "POST",
-    headers: headers(adminToken),
-  });
+  const publish = await fetch(
+    `${baseUrl}/admin/offers/${giveawayId}/publish-results`,
+    {
+      method: "POST",
+      headers: headers(adminToken),
+    },
+  );
   assert.equal(publish.status, 200);
   const publishedOffer = (await publish.json()).offer;
   assert.equal(publishedOffer.resultsPublishedAt !== null, true);
   assert.equal(harness.loyaltyTransactions.length, 3);
-  const expectedPoints = new Map([[1, 400], [2, 200], [3, 100]]);
-  for (const winner of publishedOffer.winners as Array<{ place: number; customerId: string }>) {
-    const transaction = harness.loyaltyTransactions.find((item) => item.customerId === winner.customerId);
+  const expectedPoints = new Map([
+    [1, 400],
+    [2, 200],
+    [3, 100],
+  ]);
+  for (const winner of publishedOffer.winners as Array<{
+    place: number;
+    customerId: string;
+  }>) {
+    const transaction = harness.loyaltyTransactions.find(
+      (item) => item.customerId === winner.customerId,
+    );
     assert.equal(transaction?.points, expectedPoints.get(winner.place));
     assert.equal(transaction?.customerOfferId, giveawayId);
     assert.equal(transaction?.actorId, "admin-user");
     assert.equal(transaction?.type, "OFFER_REWARD");
   }
 
-  const publicResults = await fetch(`${baseUrl}/offers`, { headers: headers(customerToken) });
-  const customerOffer = (await publicResults.json()).offers.find((offer: { id: string }) => offer.id === giveawayId);
+  const publicResults = await fetch(`${baseUrl}/offers`, {
+    headers: headers(customerToken),
+  });
+  const customerOffer = (await publicResults.json()).offers.find(
+    (offer: { id: string }) => offer.id === giveawayId,
+  );
   assert.equal(customerOffer.winners.length, 3);
 
-  const repeatedPublish = await fetch(`${baseUrl}/admin/offers/${giveawayId}/publish-results`, {
-    method: "POST",
-    headers: headers(adminToken),
-  });
+  const repeatedPublish = await fetch(
+    `${baseUrl}/admin/offers/${giveawayId}/publish-results`,
+    {
+      method: "POST",
+      headers: headers(adminToken),
+    },
+  );
   assert.equal(repeatedPublish.status, 200);
   assert.equal(harness.loyaltyTransactions.length, 3);
 });
@@ -355,14 +583,20 @@ test("only administrators create offers and each giveaway place requires a prize
 
   const customerCreate = await fetch(baseUrl, {
     method: "POST",
-    headers: { authorization: `Bearer ${customerToken}`, "content-type": "application/json" },
+    headers: {
+      authorization: `Bearer ${customerToken}`,
+      "content-type": "application/json",
+    },
     body: JSON.stringify(body),
   });
   assert.equal(customerCreate.status, 403);
 
   const adminCreate = await fetch(baseUrl, {
     method: "POST",
-    headers: { authorization: `Bearer ${adminToken}`, "content-type": "application/json" },
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
     body: JSON.stringify(body),
   });
   assert.equal(adminCreate.status, 201);
@@ -372,15 +606,30 @@ test("only administrators create offers and each giveaway place requires a prize
 
   const invalidGiveaway = await fetch(baseUrl, {
     method: "POST",
-    headers: { authorization: `Bearer ${adminToken}`, "content-type": "application/json" },
-    body: JSON.stringify({ ...body, thirdPlacePrize: null, thirdPlacePoints: 0 }),
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      ...body,
+      thirdPlacePrize: null,
+      thirdPlacePoints: 0,
+    }),
   });
   assert.equal(invalidGiveaway.status, 400);
 
   const invalidPromotion = await fetch(baseUrl, {
     method: "POST",
-    headers: { authorization: `Bearer ${adminToken}`, "content-type": "application/json" },
-    body: JSON.stringify({ ...body, type: "PROMOTION", firstPlacePrize: null, firstPlacePoints: 250 }),
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      ...body,
+      type: "PROMOTION",
+      firstPlacePrize: null,
+      firstPlacePoints: 250,
+    }),
   });
   assert.equal(invalidPromotion.status, 400);
 });

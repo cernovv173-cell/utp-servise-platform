@@ -45,7 +45,9 @@ const createOfferBody = z
         [body.thirdPlacePrize, body.thirdPlacePoints],
       ];
       return body.type === "GIVEAWAY"
-        ? rewards.every(([prize, prizePoints]) => Boolean(prize?.trim()) || prizePoints > 0)
+        ? rewards.every(
+            ([prize, prizePoints]) => Boolean(prize?.trim()) || prizePoints > 0,
+          )
         : rewards.every(([prize, prizePoints]) => !prize && prizePoints === 0);
     },
     {
@@ -78,9 +80,21 @@ const offerRewards = (offer: {
   thirdPlacePrize: string | null;
   thirdPlacePoints: number;
 }) => [
-  { place: 1, prize: offer.firstPlacePrize, bonusPoints: offer.firstPlacePoints },
-  { place: 2, prize: offer.secondPlacePrize, bonusPoints: offer.secondPlacePoints },
-  { place: 3, prize: offer.thirdPlacePrize, bonusPoints: offer.thirdPlacePoints },
+  {
+    place: 1,
+    prize: offer.firstPlacePrize,
+    bonusPoints: offer.firstPlacePoints,
+  },
+  {
+    place: 2,
+    prize: offer.secondPlacePrize,
+    bonusPoints: offer.secondPlacePoints,
+  },
+  {
+    place: 3,
+    prize: offer.thirdPlacePrize,
+    bonusPoints: offer.thirdPlacePoints,
+  },
 ];
 
 const customerOfferResponse = <
@@ -110,8 +124,13 @@ const customerOfferResponse = <
       customer: { displayName: string };
     }>;
   },
->(offer: T, customerId: string) => {
-  const myEntry = offer.entries.find((entry) => entry.customerId === customerId);
+>(
+  offer: T,
+  customerId: string,
+) => {
+  const myEntry = offer.entries.find(
+    (entry) => entry.customerId === customerId,
+  );
   const winners = offer.resultsPublishedAt
     ? offer.entries
         .filter((entry) => entry.place !== null)
@@ -178,7 +197,9 @@ const adminOfferResponse = <
       customer: { displayName: string };
     }>;
   },
->(offer: T) => ({
+>(
+  offer: T,
+) => ({
   id: offer.id,
   type: offer.type,
   title: offer.title,
@@ -226,6 +247,36 @@ export const createCustomerOffersRouter = (
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
+
+  router.get("/public/offers", async (_request, response) => {
+    const now = new Date();
+    const offers = await database.customerOffer.findMany({
+      where: {
+        isPublished: true,
+        startsAt: { lte: now },
+        endsAt: { gt: now },
+      },
+      orderBy: [{ endsAt: "asc" }, { startsAt: "desc" }],
+      take: 20,
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        content: true,
+        firstPlacePrize: true,
+        firstPlacePoints: true,
+        secondPlacePrize: true,
+        secondPlacePoints: true,
+        thirdPlacePrize: true,
+        thirdPlacePoints: true,
+        startsAt: true,
+        endsAt: true,
+      },
+    });
+
+    response.setHeader("Cache-Control", "no-store");
+    response.json({ offers });
+  });
 
   router.get(
     "/offers",
@@ -277,7 +328,11 @@ export const createCustomerOffersRouter = (
         },
       });
       if (!offer) {
-        throw new HttpError(404, "OFFER_NOT_FOUND", "Акция или розыгрыш не найдены.");
+        throw new HttpError(
+          404,
+          "OFFER_NOT_FOUND",
+          "Акция или розыгрыш не найдены.",
+        );
       }
 
       const key = { offerId_customerId: { offerId, customerId: user.id } };
@@ -292,7 +347,11 @@ export const createCustomerOffersRouter = (
 
       const now = new Date();
       if (!offer.isPublished || offer.startsAt > now || offer.endsAt <= now) {
-        throw new HttpError(409, "OFFER_NOT_OPEN", "Сейчас запись на участие закрыта.");
+        throw new HttpError(
+          409,
+          "OFFER_NOT_OPEN",
+          "Сейчас запись на участие закрыта.",
+        );
       }
 
       try {
@@ -306,10 +365,11 @@ export const createCustomerOffersRouter = (
         });
       } catch (error) {
         if (!isUniqueConstraintError(error)) throw error;
-        const participation = await database.customerOfferParticipation.findUnique({
-          where: key,
-          select: { id: true, joinedAt: true, place: true },
-        });
+        const participation =
+          await database.customerOfferParticipation.findUnique({
+            where: key,
+            select: { id: true, joinedAt: true, place: true },
+          });
         if (!participation) throw error;
         response.json({ participation, alreadyParticipating: true });
       }
@@ -344,14 +404,23 @@ export const createCustomerOffersRouter = (
           title: input.title,
           content: input.content,
           firstPlacePrize:
-            input.type === "GIVEAWAY" ? input.firstPlacePrize?.trim() || null : null,
-          firstPlacePoints: input.type === "GIVEAWAY" ? input.firstPlacePoints : 0,
+            input.type === "GIVEAWAY"
+              ? input.firstPlacePrize?.trim() || null
+              : null,
+          firstPlacePoints:
+            input.type === "GIVEAWAY" ? input.firstPlacePoints : 0,
           secondPlacePrize:
-            input.type === "GIVEAWAY" ? input.secondPlacePrize?.trim() || null : null,
-          secondPlacePoints: input.type === "GIVEAWAY" ? input.secondPlacePoints : 0,
+            input.type === "GIVEAWAY"
+              ? input.secondPlacePrize?.trim() || null
+              : null,
+          secondPlacePoints:
+            input.type === "GIVEAWAY" ? input.secondPlacePoints : 0,
           thirdPlacePrize:
-            input.type === "GIVEAWAY" ? input.thirdPlacePrize?.trim() || null : null,
-          thirdPlacePoints: input.type === "GIVEAWAY" ? input.thirdPlacePoints : 0,
+            input.type === "GIVEAWAY"
+              ? input.thirdPlacePrize?.trim() || null
+              : null,
+          thirdPlacePoints:
+            input.type === "GIVEAWAY" ? input.thirdPlacePoints : 0,
           startsAt: new Date(input.startsAt),
           endsAt: new Date(input.endsAt),
           isPublished: input.isPublished,
@@ -375,7 +444,11 @@ export const createCustomerOffersRouter = (
         select: { id: true },
       });
       if (!current) {
-        throw new HttpError(404, "OFFER_NOT_FOUND", "Акция или розыгрыш не найдены.");
+        throw new HttpError(
+          404,
+          "OFFER_NOT_FOUND",
+          "Акция или розыгрыш не найдены.",
+        );
       }
       const offer = await database.customerOffer.update({
         where: { id: offerId },
@@ -400,10 +473,18 @@ export const createCustomerOffersRouter = (
           throw new HttpError(404, "OFFER_NOT_FOUND", "Розыгрыш не найден.");
         }
         if (offer.type !== "GIVEAWAY") {
-          throw new HttpError(409, "NOT_A_GIVEAWAY", "Победителей можно выбрать только в розыгрыше.");
+          throw new HttpError(
+            409,
+            "NOT_A_GIVEAWAY",
+            "Победителей можно выбрать только в розыгрыше.",
+          );
         }
         if (offer.drawnAt) {
-          throw new HttpError(409, "GIVEAWAY_ALREADY_DRAWN", "Победители уже выбраны.");
+          throw new HttpError(
+            409,
+            "GIVEAWAY_ALREADY_DRAWN",
+            "Победители уже выбраны.",
+          );
         }
         if (offer.endsAt > new Date()) {
           throw new HttpError(
@@ -431,7 +512,11 @@ export const createCustomerOffersRouter = (
           data: { drawnAt },
         });
         if (claimed.count !== 1) {
-          throw new HttpError(409, "GIVEAWAY_ALREADY_DRAWN", "Победители уже выбраны.");
+          throw new HttpError(
+            409,
+            "GIVEAWAY_ALREADY_DRAWN",
+            "Победители уже выбраны.",
+          );
         }
         for (const [index, winner] of winners.entries()) {
           await transaction.customerOfferParticipation.updateMany({
@@ -466,16 +551,28 @@ export const createCustomerOffersRouter = (
           throw new HttpError(404, "OFFER_NOT_FOUND", "Розыгрыш не найден.");
         }
         if (offer.type !== "GIVEAWAY" || !offer.drawnAt) {
-          throw new HttpError(409, "GIVEAWAY_NOT_DRAWN", "Сначала выберите победителей розыгрыша.");
+          throw new HttpError(
+            409,
+            "GIVEAWAY_NOT_DRAWN",
+            "Сначала выберите победителей розыгрыша.",
+          );
         }
         if (offer.resultsPublishedAt) return adminOfferResponse(offer);
         if (offer.entries.length !== 3) {
-          throw new HttpError(409, "GIVEAWAY_RESULTS_INCOMPLETE", "В результатах должны быть все три места.");
+          throw new HttpError(
+            409,
+            "GIVEAWAY_RESULTS_INCOMPLETE",
+            "В результатах должны быть все три места.",
+          );
         }
 
         const resultsPublishedAt = new Date();
         const claimed = await transaction.customerOffer.updateMany({
-          where: { id: offerId, drawnAt: { not: null }, resultsPublishedAt: null },
+          where: {
+            id: offerId,
+            drawnAt: { not: null },
+            resultsPublishedAt: null,
+          },
           data: { resultsPublishedAt },
         });
         if (claimed.count !== 1) {
@@ -484,7 +581,11 @@ export const createCustomerOffersRouter = (
             include: adminOfferInclude,
           });
           if (current.resultsPublishedAt) return adminOfferResponse(current);
-          throw new HttpError(409, "GIVEAWAY_RESULTS_ALREADY_PUBLISHED", "Результаты уже опубликованы.");
+          throw new HttpError(
+            409,
+            "GIVEAWAY_RESULTS_ALREADY_PUBLISHED",
+            "Результаты уже опубликованы.",
+          );
         }
 
         const rewardsByPlace = new Map(
@@ -500,7 +601,11 @@ export const createCustomerOffersRouter = (
               actorId: admin.id,
               type: "OFFER_REWARD" as const,
               points: reward.bonusPoints,
-              reason: `Награда за ${winner.place}-е место в розыгрыше «${offer.title}»`.slice(0, 255),
+              reason:
+                `Награда за ${winner.place}-е место в розыгрыше «${offer.title}»`.slice(
+                  0,
+                  255,
+                ),
             },
           ];
         });

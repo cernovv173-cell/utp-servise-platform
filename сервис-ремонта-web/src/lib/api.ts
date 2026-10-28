@@ -633,6 +633,22 @@ export type CustomerOffer = {
   winners: CustomerOfferWinner[];
 };
 
+export type PublicCustomerOffer = Pick<
+  CustomerOffer,
+  | "id"
+  | "type"
+  | "title"
+  | "content"
+  | "firstPlacePrize"
+  | "firstPlacePoints"
+  | "secondPlacePrize"
+  | "secondPlacePoints"
+  | "thirdPlacePrize"
+  | "thirdPlacePoints"
+  | "startsAt"
+  | "endsAt"
+>;
+
 export type AdminCustomerOffer = Omit<CustomerOffer, "myParticipation">;
 
 export type CreateCustomerOfferInput = {
@@ -1552,6 +1568,9 @@ export const getBanners = (token: string, signal?: AbortSignal) =>
 
 export const getCustomerOffers = (token: string, signal?: AbortSignal) =>
   apiRequest<{ offers: CustomerOffer[] }>("/offers", token, { signal });
+
+export const getPublicCustomerOffers = (signal?: AbortSignal) =>
+  apiRequest<{ offers: PublicCustomerOffer[] }>("/public/offers", null, { signal });
 
 export const participateInCustomerOffer = (token: string, offerId: string) =>
   apiRequest<{

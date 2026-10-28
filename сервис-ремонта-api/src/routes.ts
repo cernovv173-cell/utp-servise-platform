@@ -122,6 +122,7 @@ export const createApiRouter = ({
         request.path.startsWith("/loyalty") ||
         request.path.startsWith("/referrals") ||
         request.path.startsWith("/banners") ||
+        request.path.startsWith("/public/offers") ||
         request.path.startsWith("/offers") ||
         request.path.startsWith("/admin/offers") ||
         request.path.startsWith("/admin/loyalty") ||
