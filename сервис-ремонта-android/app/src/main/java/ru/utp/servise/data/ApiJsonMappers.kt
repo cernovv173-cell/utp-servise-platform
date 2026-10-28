@@ -490,6 +490,21 @@ internal fun JSONObject.toCustomerOffer(): CustomerOffer {
     )
 }
 
+internal fun JSONObject.toPublicCustomerOffer() = PublicCustomerOffer(
+    id = getString("id"),
+    type = getString("type"),
+    title = getString("title"),
+    content = optString("content"),
+    firstPlacePrize = nullableString("firstPlacePrize"),
+    firstPlacePoints = optInt("firstPlacePoints"),
+    secondPlacePrize = nullableString("secondPlacePrize"),
+    secondPlacePoints = optInt("secondPlacePoints"),
+    thirdPlacePrize = nullableString("thirdPlacePrize"),
+    thirdPlacePoints = optInt("thirdPlacePoints"),
+    startsAt = getString("startsAt"),
+    endsAt = getString("endsAt"),
+)
+
 internal fun JSONObject.toOrderChat() = OrderChat(
     id = nullableString("id"),
     orderId = getString("orderId"),

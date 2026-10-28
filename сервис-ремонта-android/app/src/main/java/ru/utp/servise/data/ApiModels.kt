@@ -483,6 +483,21 @@ data class CustomerOfferWinner(
     val bonusPoints: Int,
 )
 
+data class PublicCustomerOffer(
+    val id: String,
+    val type: String,
+    val title: String,
+    val content: String,
+    val firstPlacePrize: String?,
+    val firstPlacePoints: Int,
+    val secondPlacePrize: String?,
+    val secondPlacePoints: Int,
+    val thirdPlacePrize: String?,
+    val thirdPlacePoints: Int,
+    val startsAt: String,
+    val endsAt: String,
+)
+
 data class CustomerOffer(
     val id: String,
     val type: String,

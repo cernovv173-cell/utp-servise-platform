@@ -229,6 +229,9 @@ internal fun AuthenticatedWorkspace(
                                     { navController.navigate("customer/loyalty") },
                                     onCampaignNavigate,
                                     { navController.navigate("customer/support-chat") },
+                                    onOpenOffers = {
+                                        navController.navigate("customer/offers") { launchSingleTop = true }
+                                    },
                                 )
                             }
                             composable("customer/shop") {

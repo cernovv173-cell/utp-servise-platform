@@ -75,6 +75,7 @@ fun CustomerHomeScreen(
     onLoyalty: () -> Unit,
     onCampaignNavigate: (String) -> Unit,
     onContactAdministrator: () -> Unit,
+    onOpenOffers: () -> Unit,
 ) {
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -103,6 +104,10 @@ fun CustomerHomeScreen(
             placement = "HOME",
             token = token,
             onNavigate = onCampaignNavigate,
+        )
+        CustomerOfferHomeBanners(
+            onOpenOffers = onOpenOffers,
+            modifier = Modifier.padding(vertical = 14.dp),
         )
         Card(onClick = onLoyalty, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

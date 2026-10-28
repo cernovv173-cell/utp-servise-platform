@@ -419,6 +419,10 @@ object ApiClient {
         "GET", "/offers", token,
     ).getJSONArray("offers").mapObjects { it.toCustomerOffer() }
 
+    fun publicCustomerOffers(): List<PublicCustomerOffer> = request(
+        "GET", "/public/offers",
+    ).getJSONArray("offers").mapObjects { it.toPublicCustomerOffer() }
+
     fun participateInCustomerOffer(token: String, offerId: String) {
         request("POST", "/offers/$offerId/participate", token)
     }

@@ -110,6 +110,8 @@ fun PublicHomeScreen(
             }
         }
 
+        CustomerOfferHomeBanners(onOpenOffers = onCustomerLogin)
+
         Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
             PublicSectionTitle("Услуги сервиса")
             services.forEach { service ->
