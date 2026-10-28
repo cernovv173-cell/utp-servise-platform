@@ -31,9 +31,13 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(message: RemoteMessage) {
         val fallbackTitle = when (message.data["type"]) {
+            "news_published" -> "Новая новость UTP Servise"
+            "customer_offer_published" -> "Новая акция или розыгрыш"
             "help_request" -> "Новый запрос помощи"
             "support_chat_message" -> "Новое сообщение в чате поддержки"
             "maintenance_reminder" -> "Пора обслужить технику"
+            "repair_order_completed" -> "Ремонт завершён"
+            "repair_order_ready" -> "Ремонт готов к выдаче"
             else -> "Новое сообщение по ремонту"
         }
         val title = message.notification?.title ?: fallbackTitle

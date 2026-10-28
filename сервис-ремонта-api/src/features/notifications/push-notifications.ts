@@ -194,6 +194,7 @@ export const sendRepairOrderNotification = async (
   order: RepairOrderNotificationContext,
   actorId: string,
   body: string,
+  title = "Обновление по заявке",
 ): Promise<void> => {
   try {
     const administrators = await database.user.findMany({
@@ -208,7 +209,7 @@ export const sendRepairOrderNotification = async (
         actorId,
       }),
       {
-        title: "Обновление по заявке",
+        title,
         body,
         data: { type: "repair_order_update", orderId: order.id },
       },
@@ -226,6 +227,7 @@ export const sendRepairOrderNotificationForId = async (
   orderId: string,
   actorId: string,
   body: string,
+  title?: string,
 ): Promise<void> => {
   try {
     const order = await database.repairOrder.findUnique({
@@ -233,7 +235,7 @@ export const sendRepairOrderNotificationForId = async (
       select: { id: true, customerId: true, assignedTechnicianId: true },
     });
     if (order)
-      await sendRepairOrderNotification(database, order, actorId, body);
+      await sendRepairOrderNotification(database, order, actorId, body, title);
   } catch {
     logger.warn(
       { code: "ORDER_PUSH_CONTEXT_UNAVAILABLE" },
@@ -269,6 +271,59 @@ export const sendNewsPublicationNotification = async (
   } catch {
     logger.warn(
       { code: "NEWS_PUSH_RECIPIENTS_UNAVAILABLE" },
+      "push_notification_delivery_skipped",
+    );
+    return false;
+  }
+};
+
+export const customerOfferPublicationNotificationContent = (
+  type: "PROMOTION" | "GIVEAWAY",
+  offerTitle: string,
+): { readonly title: string; readonly body: string } => ({
+  title:
+    type === "GIVEAWAY"
+      ? "Опубликован новый розыгрыш UTP Servise"
+      : "Опубликована новая акция UTP Servise",
+  body: offerTitle,
+});
+
+export const sendCustomerOfferPublicationNotification = async (
+  database: DatabaseClient,
+  offer: {
+    readonly id: string;
+    readonly type: "PROMOTION" | "GIVEAWAY";
+    readonly title: string;
+    readonly endsAt: Date;
+  },
+  notificationId = offer.id,
+): Promise<boolean> => {
+  try {
+    const customers = await database.user.findMany({
+      where: { role: "CUSTOMER", active: true },
+      select: { id: true },
+    });
+    const content = customerOfferPublicationNotificationContent(
+      offer.type,
+      offer.title,
+    );
+    return await sendPushNotification(
+      database,
+      customers.map(({ id }) => id),
+      {
+        ...content,
+        data: {
+          type: "customer_offer_published",
+          offerId: offer.id,
+          notificationId,
+        },
+        androidTag: `customer-offer-${offer.id}`,
+        androidExpiresAt: offer.endsAt,
+      },
+    );
+  } catch {
+    logger.warn(
+      { code: "CUSTOMER_OFFER_PUSH_RECIPIENTS_UNAVAILABLE" },
       "push_notification_delivery_skipped",
     );
     return false;

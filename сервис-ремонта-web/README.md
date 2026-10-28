@@ -289,3 +289,11 @@ Motion is disabled when the visitor requests reduced motion.
 Only an administrator sees the seasonal control on the home page. It can enable the current calendar
 season or turn the theme off, while the API enforces the start date and administrator role. Winter
 cannot be enabled before December 1.
+
+Signed-in customers receive in-app alerts for newly published news and promotions/giveaways, plus
+their repair reaching `READY_FOR_PICKUP` or `COMPLETED`. The customer header
+polls these records every 30 seconds, stores a per-account seen snapshot, and links each alert to its
+news, offers, or orders page. If the customer grants browser notification permission, an alert is
+shown as a system notification while the site tab is open in the background; when the site is visible
+or system notifications are unavailable, it appears inside the site. Closed-browser push is not
+configured for Web.

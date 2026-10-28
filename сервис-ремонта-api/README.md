@@ -359,3 +359,13 @@ winner's configured bonus points to the loyalty ledger in the same transaction. 
 prevents duplicate awards if results are published again. The additive
 `20261018200000_customer_offers` migration creates the offer and participation records and links
 award transactions without rewriting existing customer data.
+
+The first publication of a news article sends a customer push notification. Publishing a promotion
+or giveaway also creates a durable `customer_offer_push_deliveries` work item in the same database
+transaction; the worker sends it as soon as it is published, skips unpublished or expired offers,
+and retries temporary Firebase delivery failures. An offer scheduled to start later can therefore
+be announced at publication; its Android notification expires at the configured end time. Repair-order status changes already notify the order's
+other participants; `READY_FOR_PICKUP` now explicitly says the repair is ready, and successful
+customer pickup-code confirmation sends a separate completion notification. Firebase delivery
+requires a registered device token and the relevant notification permission. The new additive
+`20261028190000_customer_offer_push_deliveries` migration adds only the delivery queue.

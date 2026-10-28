@@ -151,6 +151,15 @@ const createHarness = () => {
     },
   ];
   const loyaltyTransactions: Array<Record<string, unknown>> = [];
+  const offerPushDeliveries: Array<{
+    id: string;
+    offerId: string;
+    nextAttemptAt: Date;
+    lockedUntil: Date | null;
+    sentAt: Date | null;
+    attemptCount: number;
+    lastError: string | null;
+  }> = [];
   let entryNumber = 4;
   let offerNumber = 4;
 
@@ -268,13 +277,23 @@ const createHarness = () => {
       findUnique: async ({
         where,
         include,
+        select,
       }: {
         where: { id: string };
         include?: Record<string, any>;
+        select?: Record<string, boolean>;
       }) => {
         const offer = offers.find((candidate) => candidate.id === where.id);
         if (!offer) return null;
-        return include ? includeOffer(offer, include) : offer;
+        if (select) {
+          return Object.fromEntries(
+            Object.keys(select).map((key) => [
+              key,
+              offer[key as keyof typeof offer],
+            ]),
+          );
+        }
+        return include ? includeOffer(offer, include) : { ...offer };
       },
       findUniqueOrThrow: async ({
         where,
@@ -330,6 +349,58 @@ const createHarness = () => {
         );
         if (!offer) return { count: 0 };
         Object.assign(offer, data);
+        return { count: 1 };
+      },
+    },
+    customerOfferPushDelivery: {
+      findUnique: async ({ where }: { where: { offerId: string } }) =>
+        offerPushDeliveries.find(
+          (delivery) => delivery.offerId === where.offerId,
+        ) ?? null,
+      upsert: async ({
+        where,
+        create,
+        update,
+      }: {
+        where: { offerId: string };
+        create: { offerId: string; nextAttemptAt: Date };
+        update: Partial<{
+          nextAttemptAt: Date;
+          lockedUntil: Date | null;
+          attemptCount: number;
+          lastError: string | null;
+        }>;
+      }) => {
+        const existing = offerPushDeliveries.find(
+          (delivery) => delivery.offerId === where.offerId,
+        );
+        if (existing) {
+          Object.assign(existing, update);
+          return existing;
+        }
+        const delivery = {
+          id: `offer-push-${offerPushDeliveries.length + 1}`,
+          ...create,
+          lockedUntil: null,
+          sentAt: null,
+          attemptCount: 0,
+          lastError: null,
+        };
+        offerPushDeliveries.push(delivery);
+        return delivery;
+      },
+      deleteMany: async ({
+        where,
+      }: {
+        where: { offerId: string; sentAt?: null };
+      }) => {
+        const index = offerPushDeliveries.findIndex(
+          (delivery) =>
+            delivery.offerId === where.offerId &&
+            (where.sentAt === undefined || delivery.sentAt === where.sentAt),
+        );
+        if (index < 0) return { count: 0 };
+        offerPushDeliveries.splice(index, 1);
         return { count: 1 };
       },
     },
@@ -414,7 +485,7 @@ const createHarness = () => {
   app.use(errorHandler);
   const server = app.listen(0);
 
-  return { offers, entries, loyaltyTransactions, server };
+  return { offers, entries, loyaltyTransactions, offerPushDeliveries, server };
 };
 
 test("customers join once, and administrators draw and publish three distinct winners", async (t) => {
@@ -576,7 +647,7 @@ test("only administrators create offers and each giveaway place requires a prize
     secondPlacePoints: 150,
     thirdPlacePrize: "Третий приз",
     thirdPlacePoints: 50,
-    startsAt: new Date(Date.now() - 60_000).toISOString(),
+    startsAt: new Date(Date.now() + 60_000).toISOString(),
     endsAt: new Date(Date.now() + 3_600_000).toISOString(),
     isPublished: true,
   };
@@ -603,6 +674,15 @@ test("only administrators create offers and each giveaway place requires a prize
   const created = await adminCreate.json();
   assert.equal(created.offer.firstPlacePoints, 250);
   assert.equal(created.offer.isPublished, true);
+  assert.equal(harness.offerPushDeliveries.length, 1);
+  assert.equal(harness.offerPushDeliveries[0]?.offerId, created.offer.id);
+  assert.ok(
+    harness.offerPushDeliveries[0]?.nextAttemptAt.getTime() <= Date.now(),
+  );
+  assert.ok(
+    harness.offerPushDeliveries[0]!.nextAttemptAt.getTime() <
+      Date.parse(body.startsAt),
+  );
 
   const invalidGiveaway = await fetch(baseUrl, {
     method: "POST",
@@ -632,4 +712,33 @@ test("only administrators create offers and each giveaway place requires a prize
     }),
   });
   assert.equal(invalidPromotion.status, 400);
+});
+
+test("publishing an offer queues one notification and unpublishing cancels it", async (t) => {
+  const harness = createHarness();
+  await once(harness.server, "listening");
+  t.after(() => harness.server.close());
+  const address = harness.server.address();
+  assert.ok(address && typeof address !== "string");
+  const baseUrl = `http://127.0.0.1:${address.port}/api/admin/offers/${unpublishedOfferId}`;
+  const headers = {
+    authorization: `Bearer ${adminToken}`,
+    "content-type": "application/json",
+  };
+
+  const published = await fetch(baseUrl, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ isPublished: true }),
+  });
+  assert.equal(published.status, 200);
+  assert.equal(harness.offerPushDeliveries.length, 1);
+
+  const unpublished = await fetch(baseUrl, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ isPublished: false }),
+  });
+  assert.equal(unpublished.status, 200);
+  assert.equal(harness.offerPushDeliveries.length, 0);
 });

@@ -11,6 +11,7 @@ import { IncomingOrderNotifications } from "@/features/admin/incoming-order-noti
 import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
+import { CustomerEventNotifications } from "@/features/customer/customer-event-notifications";
 import {
   getHelpNavigationLinksForRole,
   getNavigationGroupsForRole,
@@ -107,6 +108,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
               {user.displayName}
             </span>
             <IncomingOrderNotifications />
+            {user.role === "CUSTOMER" && <CustomerEventNotifications />}
             {user.role === "ADMIN" && <RepairChatNotifications />}
             {user.role === "ADMIN" && <SupportChatNotifications />}
             <button

@@ -1003,10 +1003,26 @@ model CustomerOffer {
   createdBy          User?                        @relation("CustomerOfferCreator", fields: [createdById], references: [id], onDelete: SetNull)
   entries            CustomerOfferParticipation[]
   rewardTransactions LoyaltyTransaction[]         @relation("CustomerOfferReward")
+  pushDelivery       CustomerOfferPushDelivery?
 
   @@index([isPublished, startsAt, endsAt])
   @@index([type, endsAt])
   @@map("customer_offers")
+}
+
+model CustomerOfferPushDelivery {
+  id            String        @id @default(uuid()) @db.Uuid
+  offerId       String        @unique @map("offer_id") @db.Uuid
+  nextAttemptAt DateTime      @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lockedUntil   DateTime?     @map("locked_until") @db.Timestamptz(3)
+  sentAt        DateTime?     @map("sent_at") @db.Timestamptz(3)
+  attemptCount  Int           @default(0) @map("attempt_count")
+  lastError     String?       @map("last_error") @db.VarChar(500)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  offer         CustomerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+
+  @@index([sentAt, nextAttemptAt, lockedUntil])
+  @@map("customer_offer_push_deliveries")
 }
 
 model CustomerOfferParticipation {

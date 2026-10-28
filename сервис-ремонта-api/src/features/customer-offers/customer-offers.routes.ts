@@ -9,6 +9,7 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { scheduleCustomerOfferPush } from "./customer-offer-push-delivery.js";
 import { selectRandomWinners } from "./winner-selection.js";
 
 const offerParams = z.object({ offerId: z.string().uuid() });
@@ -398,34 +399,40 @@ export const createCustomerOffersRouter = (
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createOfferBody>>(response);
-      const offer = await database.customerOffer.create({
-        data: {
-          type: input.type,
-          title: input.title,
-          content: input.content,
-          firstPlacePrize:
-            input.type === "GIVEAWAY"
-              ? input.firstPlacePrize?.trim() || null
-              : null,
-          firstPlacePoints:
-            input.type === "GIVEAWAY" ? input.firstPlacePoints : 0,
-          secondPlacePrize:
-            input.type === "GIVEAWAY"
-              ? input.secondPlacePrize?.trim() || null
-              : null,
-          secondPlacePoints:
-            input.type === "GIVEAWAY" ? input.secondPlacePoints : 0,
-          thirdPlacePrize:
-            input.type === "GIVEAWAY"
-              ? input.thirdPlacePrize?.trim() || null
-              : null,
-          thirdPlacePoints:
-            input.type === "GIVEAWAY" ? input.thirdPlacePoints : 0,
-          startsAt: new Date(input.startsAt),
-          endsAt: new Date(input.endsAt),
-          isPublished: input.isPublished,
-          createdById: user.id,
-        },
+      const offer = await database.$transaction(async (transaction) => {
+        const created = await transaction.customerOffer.create({
+          data: {
+            type: input.type,
+            title: input.title,
+            content: input.content,
+            firstPlacePrize:
+              input.type === "GIVEAWAY"
+                ? input.firstPlacePrize?.trim() || null
+                : null,
+            firstPlacePoints:
+              input.type === "GIVEAWAY" ? input.firstPlacePoints : 0,
+            secondPlacePrize:
+              input.type === "GIVEAWAY"
+                ? input.secondPlacePrize?.trim() || null
+                : null,
+            secondPlacePoints:
+              input.type === "GIVEAWAY" ? input.secondPlacePoints : 0,
+            thirdPlacePrize:
+              input.type === "GIVEAWAY"
+                ? input.thirdPlacePrize?.trim() || null
+                : null,
+            thirdPlacePoints:
+              input.type === "GIVEAWAY" ? input.thirdPlacePoints : 0,
+            startsAt: new Date(input.startsAt),
+            endsAt: new Date(input.endsAt),
+            isPublished: input.isPublished,
+            createdById: user.id,
+          },
+        });
+        if (created.isPublished) {
+          await scheduleCustomerOfferPush(transaction, created.id);
+        }
+        return created;
       });
       response.status(201).json({ offer });
     },
@@ -439,20 +446,30 @@ export const createCustomerOffersRouter = (
     async (_request, response) => {
       const { offerId } = paramsOf(response);
       const input = bodyOf<z.infer<typeof updateOfferBody>>(response);
-      const current = await database.customerOffer.findUnique({
-        where: { id: offerId },
-        select: { id: true },
-      });
-      if (!current) {
-        throw new HttpError(
-          404,
-          "OFFER_NOT_FOUND",
-          "Акция или розыгрыш не найдены.",
-        );
-      }
-      const offer = await database.customerOffer.update({
-        where: { id: offerId },
-        data: { isPublished: input.isPublished },
+      const offer = await database.$transaction(async (transaction) => {
+        const current = await transaction.customerOffer.findUnique({
+          where: { id: offerId },
+          select: { id: true, isPublished: true },
+        });
+        if (!current) {
+          throw new HttpError(
+            404,
+            "OFFER_NOT_FOUND",
+            "Акция или розыгрыш не найдены.",
+          );
+        }
+        const updated = await transaction.customerOffer.update({
+          where: { id: offerId },
+          data: { isPublished: input.isPublished },
+        });
+        if (!current.isPublished && updated.isPublished) {
+          await scheduleCustomerOfferPush(transaction, updated.id);
+        } else if (current.isPublished && !updated.isPublished) {
+          await transaction.customerOfferPushDelivery.deleteMany({
+            where: { offerId, sentAt: null },
+          });
+        }
+        return updated;
       });
       response.json({ offer });
     },

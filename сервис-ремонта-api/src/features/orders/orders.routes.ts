@@ -1691,9 +1691,8 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         database,
         result.order,
         user.id,
-        input.pickupPin
-          ? "Заказ выдан клиенту по резервному коду."
-          : "Заказ выдан клиенту по QR-коду.",
+        `Ремонт по заявке ${result.order.serviceNumber} завершён, техника выдана клиенту.`,
+        "Ремонт завершён",
       );
       response.json(result);
     },
@@ -1937,7 +1936,10 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         database,
         order,
         user.id,
-        "Изменён статус заявки на ремонт.",
+        status === "READY_FOR_PICKUP"
+          ? `Ремонт по заявке ${order.serviceNumber} готов. Технику можно забрать.`
+          : "Изменён статус заявки на ремонт.",
+        status === "READY_FOR_PICKUP" ? "Ремонт готов к выдаче" : undefined,
       );
       response.json({ order });
     },
