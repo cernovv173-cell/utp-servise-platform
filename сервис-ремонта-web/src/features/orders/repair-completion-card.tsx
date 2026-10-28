@@ -2,6 +2,7 @@ import { ShieldCheck, Wrench } from "lucide-react";
 
 import { buildRepairCompletionCardContent } from "@/features/orders/repair-completion-card-content";
 import { RepairOrderReviewForm } from "@/features/orders/repair-order-review-form";
+import { RepairTipAction } from "@/features/orders/repair-tip-action";
 
 import type { RepairOrder } from "@/lib/api";
 
@@ -62,14 +63,17 @@ export const RepairCompletionCard = ({ order }: { order: RepairOrder }) => {
         </div>
       </div>
 
-      <div className="mt-4">
-        {order.review ? (
-          <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
-            Спасибо! Ваш отзыв уже отправлен.
-          </p>
-        ) : (
-          <RepairOrderReviewForm orderId={order.id} serviceNumber={order.serviceNumber} />
-        )}
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          {order.review ? (
+            <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
+              Спасибо! Ваш отзыв уже отправлен.
+            </p>
+          ) : (
+            <RepairOrderReviewForm orderId={order.id} serviceNumber={order.serviceNumber} />
+          )}
+        </div>
+        <RepairTipAction serviceNumber={order.serviceNumber} />
       </div>
     </section>
   );

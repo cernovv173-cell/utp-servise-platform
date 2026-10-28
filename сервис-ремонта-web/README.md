@@ -244,7 +244,9 @@ services. `/admin/procurement` recommends bringing tracked spare parts back to t
 minimum; active approved-estimate parts are shown separately because their stock was already
 deducted. Completed-job reviews and electronic repair documents remain available through the existing
 order-card workflows. On a customer's completed repair, a raccoon card shows the recorded work
-summary and warranty terms and opens the existing one-review flow.
+summary and warranty terms and opens the existing one-review flow. It also has a separate “Отправить
+чаевые” button; until the business registers and configures YooMoney, it explains that tips are not
+available and does not initiate a payment.
 
 Administrators set, move, or clear a repair's planned completion time from the order card and can add
 a customer-facing reason. The date change and audit entry are saved together; customers and staff see
