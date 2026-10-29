@@ -280,6 +280,10 @@ object ApiClient {
             },
     ).getJSONObject("catalogItem").toCatalogItem()
 
+    fun deleteCatalogItem(token: String, catalogItemId: String) {
+        request("DELETE", "/catalog/$catalogItemId", token)
+    }
+
     fun uploadCatalogProductImage(token: String, catalogItemId: String, image: ByteArray) {
         MediaApiClient.binaryRequest(
             "POST",

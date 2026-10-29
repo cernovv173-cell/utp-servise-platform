@@ -19,6 +19,21 @@ describe("request transport", () => {
     await expect(request("/api/items")).rejects.toThrow("Request failed (503)");
   });
 
+  it("shows a safe server-provided error message for rejected requests", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json(
+            { error: { code: "CONFLICT", message: "Сначала завершите заказ." } },
+            { status: 409 },
+          ),
+        ),
+    );
+    await expect(request("/api/items")).rejects.toThrow("Сначала завершите заказ.");
+  });
+
   it("accepts mutations with no response body", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status: 204 })));
     await expect(request<void>("/api/items/1", { method: "DELETE" })).resolves.toBeUndefined();

@@ -86,13 +86,17 @@ network has no creative to show. Actual ad delivery depends on MyTarget's invent
 account configuration.
 
 The `/catalog` page uses the API catalog shared with Android. Administrators can add and edit
-service and spare-part names/prices and deactivate or reactivate entries; technicians can view active
+service, spare-part and product details and deactivate or reactivate entries; technicians can view active
 items. Administrators can enter and correct spare-part stock balances; both administrators and
 technicians see recorded stock, while unrecorded legacy stock is identified separately. Each tracked
 item has an administrator-configurable minimum balance shown with its stock; the catalog summary
 highlights items at or below that threshold, and always highlights zero stock. A threshold of 0
 alerts only on zero balance; newly tracked items default to 3. Services do not carry stock. Customer
-accounts do not have permission to browse this internal price catalog.
+accounts do not have permission to browse this internal price catalog. Administrators may permanently
+delete a service, spare part or product after confirming the action. Inventory items must have a
+recorded zero balance; deletion is blocked while the item is in an unfinished repair, pending repair
+estimate, or pending/confirmed shop order. Completed and cancelled order history keeps its saved
+names and prices after the catalog entry is removed.
 
 The separate `/shop` storefront uses only active product entries, never repair services or spare parts.
 Customers can browse the catalog, keep a per-account cart, and submit an order without online payment;

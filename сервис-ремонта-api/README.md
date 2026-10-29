@@ -51,6 +51,14 @@ older tracked rows keep that threshold until an administrator changes it. A thre
 when the balance reaches zero; zero-stock items are always highlighted. The additive migration leaves
 untracked legacy balances and service rows untracked.
 
+Only administrators can permanently delete a catalog entry through `DELETE /catalog/:catalogItemId`.
+Services can be deleted without a stock balance; a spare part or product must have a recorded balance
+of 0 first. Deletion is blocked while the item is used by an unfinished repair, a pending customer
+estimate, or a pending/confirmed shop order. Completed and cancelled order lines remain in history
+with their saved names and prices; their catalog foreign key is cleared. Product photos are removed
+from project storage on a best-effort basis after the database transaction succeeds; a temporary
+storage failure does not undo the catalog deletion.
+
 ## Public service prices
 
 The guest web landing page reads the active service price list from

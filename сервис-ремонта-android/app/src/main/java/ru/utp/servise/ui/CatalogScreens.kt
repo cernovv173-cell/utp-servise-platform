@@ -39,7 +39,7 @@ import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.orderItemTypeLabel
 
-private const val DEFAULT_MINIMUM_STOCK_QUANTITY = 3
+internal const val DEFAULT_MINIMUM_STOCK_QUANTITY = 3
 
 private fun isRestockNeeded(stockQuantity: Int?, minimumStockQuantity: Int?): Boolean =
     stockQuantity != null &&
@@ -142,6 +142,7 @@ fun CatalogManagementScreen(
         mutableStateOf(DEFAULT_MINIMUM_STOCK_QUANTITY.toString())
     }
     var editedItem by remember { mutableStateOf<CatalogItem?>(null) }
+    var pendingDeleteItem by remember { mutableStateOf<CatalogItem?>(null) }
     val price = priceText.toIntOrNull()
     val stockTrackedItems = catalogItems.filter {
         it.active && it.type != "SERVICE" && it.stockQuantity != null
@@ -388,6 +389,9 @@ fun CatalogManagementScreen(
                                 runAction({ ApiClient.updateCatalogItem(token, item.copy(active = !item.active)) }) {}
                             },
                         ) { Text(if (item.active) "Отключить" else "Включить") }
+                        TextButton(onClick = { pendingDeleteItem = item }) {
+                            Text("Удалить навсегда", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
             }
@@ -404,108 +408,18 @@ fun CatalogManagementScreen(
             },
         )
     }
-}
 
-@Composable
-private fun CatalogItemEditDialog(
-    item: CatalogItem,
-    onDismiss: () -> Unit,
-    onSave: (CatalogItem) -> Unit,
-) {
-    var type by remember(item.id) { mutableStateOf(item.type) }
-    var name by remember(item.id) { mutableStateOf(item.name) }
-    var description by remember(item.id) { mutableStateOf(item.description.orEmpty()) }
-    var priceText by remember(item.id) { mutableStateOf(item.unitPriceRub.toString()) }
-    var stockText by remember(item.id) { mutableStateOf(item.stockQuantity?.toString().orEmpty()) }
-    var minimumStockText by remember(item.id) {
-        mutableStateOf((item.minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY).toString())
+    pendingDeleteItem?.let { item ->
+        CatalogItemDeleteDialog(
+            itemName = item.name,
+            requiresZeroStock = item.type != "SERVICE",
+            onDismiss = { pendingDeleteItem = null },
+            onDelete = {
+                pendingDeleteItem = null
+                runAction({ ApiClient.deleteCatalogItem(token, item.id) }) { refresh() }
+            },
+        )
     }
-    val price = priceText.toIntOrNull()
-    val minimumStock = minimumStockText.toIntOrNull()
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Изменить позицию") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    if (type == "SERVICE") Button(onClick = { type = "SERVICE" }) { Text("Услуга") }
-                    else OutlinedButton(onClick = { type = "SERVICE" }) { Text("Услуга") }
-                    if (type == "SPARE_PART") Button(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
-                    else OutlinedButton(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
-                    if (type == "PRODUCT") Button(onClick = { type = "PRODUCT" }) { Text("Товар") }
-                    else OutlinedButton(onClick = { type = "PRODUCT" }) { Text("Товар") }
-                }
-                OutlinedTextField(name, { name = it }, label = { Text("Название") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                OutlinedTextField(
-                    priceText,
-                    { priceText = it.filter(Char::isDigit).take(8) },
-                    label = { Text("Цена, ₽") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                )
-                if (type == "PRODUCT") {
-                    OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it.take(2000) },
-                        label = { Text("Описание товара") },
-                        supportingText = { Text("До 2 000 символов") },
-                        minLines = 2,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                    )
-                }
-                if (type != "SERVICE") {
-                    OutlinedTextField(
-                        value = stockText,
-                        onValueChange = { stockText = it.filter(Char::isDigit).take(10) },
-                        label = { Text("Остаток, шт.") },
-                        supportingText = {
-                            if (item.stockQuantity == null && item.type != "SERVICE") {
-                                Text("Учёт остатка ещё не настроен — укажите фактическое количество.")
-                            }
-                        },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                    )
-                    OutlinedTextField(
-                        value = minimumStockText,
-                        onValueChange = { minimumStockText = it.filter(Char::isDigit).take(10) },
-                        label = { Text("Минимальный остаток для сигнала, шт.") },
-                        supportingText = { Text("0 — сигнал только при нулевом остатке.") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                    )
-                }
-                Text("Изменение каталога не меняет цены уже добавленных в заказы позиций.", fontSize = 11.sp, color = UtpMuted)
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onSave(
-                        item.copy(
-                            type = type,
-                            name = name.trim(),
-                            description = if (type == "PRODUCT") description.trim().takeIf { it.isNotEmpty() } else null,
-                            unitPriceRub = price!!,
-                            stockQuantity = if (type != "SERVICE") stockText.toIntOrNull() else null,
-                            minimumStockQuantity = if (type != "SERVICE") minimumStock else null,
-                        ),
-                    )
-                },
-                enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
-                    (type == "SERVICE" ||
-                        (stockText.toIntOrNull() != null && minimumStock != null)),
-            ) { Text("Сохранить") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
-    )
 }
 
 private fun itemStockLabel(item: CatalogItem): String =

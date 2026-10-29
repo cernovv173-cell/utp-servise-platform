@@ -1199,6 +1199,9 @@ export const updateRepairCatalogItem = (
     body: JSON.stringify(input),
   });
 
+export const deleteRepairCatalogItem = (token: string, id: string) =>
+  apiRequest<void>(`/catalog/${id}`, token, { method: "DELETE" });
+
 export const updateCatalogInventory = (
   token: string,
   id: string,

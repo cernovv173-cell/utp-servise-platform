@@ -9,6 +9,10 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import {
+  type MediaStorage,
+  projectMediaStorage,
+} from "../media/media-storage.js";
 import { isInventoryCatalogItem } from "./catalog-policy.js";
 
 const catalogItemIdParams = z.object({
@@ -86,7 +90,10 @@ const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
 
-export const createCatalogRouter = (database: DatabaseClient): Router => {
+export const createCatalogRouter = (
+  database: DatabaseClient,
+  storage: MediaStorage = projectMediaStorage,
+): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
 
@@ -301,6 +308,116 @@ export const createCatalogRouter = (database: DatabaseClient): Router => {
         });
       });
       response.json({ catalogItem });
+    },
+  );
+
+  router.delete(
+    "/catalog/:catalogItemId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: catalogItemIdParams }),
+    async (_request, response) => {
+      const { catalogItemId } =
+        paramsOf<z.infer<typeof catalogItemIdParams>>(response);
+      const imageObjectIds = await database.$transaction(
+        async (transaction) => {
+          await transaction.$queryRaw`
+          SELECT "id" FROM "repair_catalog_items" WHERE "id" = ${catalogItemId}::uuid FOR UPDATE
+        `;
+          const existing = await transaction.repairCatalogItem.findUnique({
+            where: { id: catalogItemId },
+            select: {
+              id: true,
+              type: true,
+              stockQuantity: true,
+              imageObjectIds: true,
+            },
+          });
+          if (!existing) {
+            throw new HttpError(
+              404,
+              "CATALOG_ITEM_NOT_FOUND",
+              "Позиция каталога не найдена.",
+            );
+          }
+          if (existing.type !== "SERVICE" && existing.stockQuantity !== 0) {
+            throw new HttpError(
+              409,
+              "CATALOG_STOCK_NOT_EMPTY",
+              "Сначала укажите фактический остаток товара или запчасти и установите его в 0.",
+            );
+          }
+
+          const openRepairItem = await transaction.repairOrderItem.findFirst({
+            where: {
+              catalogItemId,
+              order: { status: { notIn: ["COMPLETED", "CANCELLED"] } },
+            },
+            select: { id: true },
+          });
+          if (openRepairItem) {
+            throw new HttpError(
+              409,
+              "CATALOG_ITEM_IN_OPEN_REPAIR",
+              "Нельзя удалить позицию, пока она используется в незавершённом ремонте. Сначала завершите или отмените ремонт.",
+            );
+          }
+
+          const pendingEstimates = await transaction.repairEstimate.findMany({
+            where: {
+              status: "PENDING",
+              order: { status: { notIn: ["COMPLETED", "CANCELLED"] } },
+            },
+            select: { itemsSnapshot: true },
+          });
+          const itemInPendingEstimate = pendingEstimates.some(
+            ({ itemsSnapshot }) =>
+              Array.isArray(itemsSnapshot) &&
+              itemsSnapshot.some(
+                (entry) =>
+                  typeof entry === "object" &&
+                  entry !== null &&
+                  !Array.isArray(entry) &&
+                  "catalogItemId" in entry &&
+                  entry.catalogItemId === catalogItemId,
+              ),
+          );
+          if (itemInPendingEstimate) {
+            throw new HttpError(
+              409,
+              "CATALOG_ITEM_IN_PENDING_ESTIMATE",
+              "Нельзя удалить позицию, пока её содержит смета, ожидающая ответа клиента. Сначала обработайте или замените эту смету.",
+            );
+          }
+
+          const openShopOrderItem = await transaction.shopOrderItem.findFirst({
+            where: {
+              catalogItemId,
+              order: { status: { in: ["PENDING", "CONFIRMED"] } },
+            },
+            select: { id: true },
+          });
+          if (openShopOrderItem) {
+            throw new HttpError(
+              409,
+              "CATALOG_ITEM_IN_OPEN_SHOP_ORDER",
+              "Нельзя удалить позицию, пока есть ожидающий или подтверждённый заказ магазина. Сначала завершите или отмените заказ.",
+            );
+          }
+
+          await transaction.repairCatalogItem.delete({
+            where: { id: catalogItemId },
+          });
+          return existing.imageObjectIds;
+        },
+      );
+
+      await Promise.all(
+        imageObjectIds.map((objectId) =>
+          storage.delete(objectId).catch(() => undefined),
+        ),
+      );
+      response.status(204).end();
     },
   );
 
