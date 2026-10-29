@@ -543,24 +543,62 @@ model RepairReceipt {
 }
 
 model RepairCatalogItem {
-  id                   String              @id @default(uuid()) @db.Uuid
+  id                   String                  @id @default(uuid()) @db.Uuid
   type                 RepairOrderItemType
-  name                 String              @db.VarChar(160)
-  description          String?             @db.VarChar(2000)
-  imageObjectIds       String[]            @default([]) @map("image_object_ids")
-  unitPriceRub         Int                 @map("unit_price_rub")
-  stockQuantity        Int?                @map("stock_quantity")
-  minimumStockQuantity Int?                @map("minimum_stock_quantity")
-  active               Boolean             @default(true)
-  createdById          String?             @map("created_by_id") @db.Uuid
-  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy            User?               @relation("CatalogItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  name                 String                  @db.VarChar(160)
+  description          String?                 @db.VarChar(2000)
+  imageObjectIds       String[]                @default([]) @map("image_object_ids")
+  unitPriceRub         Int                     @map("unit_price_rub")
+  stockQuantity        Int?                    @map("stock_quantity")
+  minimumStockQuantity Int?                    @map("minimum_stock_quantity")
+  active               Boolean                 @default(true)
+  createdById          String?                 @map("created_by_id") @db.Uuid
+  createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy            User?                   @relation("CatalogItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
   orderItems           RepairOrderItem[]
   shopOrderItems       ShopOrderItem[]
+  inventoryReceipts    InventoryStockReceipt[]
 
   @@index([active, type, name])
   @@map("repair_catalog_items")
+}
+
+model ProcurementSupplier {
+  id          String                  @id @default(uuid()) @db.Uuid
+  name        String                  @unique @db.VarChar(160)
+  contactName String?                 @map("contact_name") @db.VarChar(120)
+  phone       String?                 @db.VarChar(32)
+  email       String?                 @db.VarChar(320)
+  note        String?                 @db.VarChar(1000)
+  isActive    Boolean                 @default(true) @map("is_active")
+  createdAt   DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  receipts    InventoryStockReceipt[]
+
+  @@index([isActive, name])
+  @@map("procurement_suppliers")
+}
+
+model InventoryStockReceipt {
+  id                   String               @id @default(uuid()) @db.Uuid
+  supplierId           String?              @map("supplier_id") @db.Uuid
+  supplierNameSnapshot String               @map("supplier_name_snapshot") @db.VarChar(160)
+  catalogItemId        String?              @map("catalog_item_id") @db.Uuid
+  itemType             RepairOrderItemType  @map("item_type")
+  itemNameSnapshot     String               @map("item_name_snapshot") @db.VarChar(160)
+  quantity             Int
+  unitCostRub          Int?                 @map("unit_cost_rub")
+  documentReference    String?              @map("document_reference") @db.VarChar(120)
+  receivedAt           DateTime             @default(now()) @map("received_at") @db.Timestamptz(3)
+  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  supplier             ProcurementSupplier? @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  catalogItem          RepairCatalogItem?   @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+
+  @@index([receivedAt])
+  @@index([supplierId, receivedAt])
+  @@index([catalogItemId, receivedAt])
+  @@map("inventory_stock_receipts")
 }
 
 model ShopOrder {

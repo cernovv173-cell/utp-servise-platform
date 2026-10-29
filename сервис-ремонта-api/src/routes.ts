@@ -18,6 +18,7 @@ import { createNewsRouter } from "./features/news/news.routes.js";
 import { createOperationsRouter } from "./features/operations/operations.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
 import { createRepairEstimatesRouter } from "./features/orders/repair-estimates.routes.js";
+import { createProcurementRouter } from "./features/procurement/procurement.routes.js";
 import { createReferralRouter } from "./features/referrals/referral.routes.js";
 import { createReviewShowcaseRouter } from "./features/reviews/review-showcase.routes.js";
 import { createSalaryRouter } from "./features/salary/salary.routes.js";
@@ -81,6 +82,7 @@ export const createApiRouter = ({
     router.use(createSupportChatRouter(database.client));
     router.use(createCatalogRouter(database.client));
     router.use(createOperationsRouter(database.client));
+    router.use(createProcurementRouter(database.client));
     router.use(createChatRouter(database.client));
     router.use(createNewsRouter(database.client));
     router.use(createCraftsRouter(database.client));

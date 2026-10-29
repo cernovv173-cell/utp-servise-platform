@@ -76,9 +76,10 @@ export const createOperationsRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const [catalogItems, activeEstimateParts] = await Promise.all([
         database.repairCatalogItem.findMany({
-          where: { type: "SPARE_PART", active: true },
+          where: { type: { in: ["SPARE_PART", "PRODUCT"] }, active: true },
           select: {
             id: true,
+            type: true,
             name: true,
             stockQuantity: true,
             minimumStockQuantity: true,

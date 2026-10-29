@@ -190,6 +190,7 @@ export type OperationsDashboard = {
 
 export type ProcurementItem = {
   id: string;
+  type: RepairCatalogType;
   name: string;
   stockQuantity: number;
   minimumStockQuantity: number;

@@ -1,12 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { PackageCheck, ShoppingCart } from "lucide-react";
+import { useState } from "react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { ProcurementSuppliers } from "@/features/procurement/procurement-suppliers";
+import {
+  getProcurementSuppliers,
+  getStockReceipts,
+} from "@/features/procurement/procurement-api";
+import { StockReceiptHistory } from "@/features/procurement/stock-receipt-history";
+import { StockReceiptDialog } from "@/features/procurement/stock-receipt-dialog";
 
-import { getProcurementList } from "@/lib/api";
+import { getProcurementList, getRepairCatalog } from "@/lib/api";
 
 const ProcurementPage = () => {
   const { token, user } = useAuth();
@@ -16,7 +24,24 @@ const ProcurementPage = () => {
     queryFn: ({ signal }) => getProcurementList(token!, signal),
     enabled: Boolean(token && canView),
   });
+  const suppliers = useQuery({
+    queryKey: ["procurement-suppliers", token],
+    queryFn: ({ signal }) => getProcurementSuppliers(token!, signal),
+    enabled: Boolean(token && canView),
+  });
+  const receipts = useQuery({
+    queryKey: ["stock-receipts", token],
+    queryFn: ({ signal }) => getStockReceipts(token!, signal),
+    enabled: Boolean(token && canView),
+  });
+  const catalog = useQuery({
+    queryKey: ["repair-catalog", token],
+    queryFn: ({ signal }) => getRepairCatalog(token!, signal),
+    enabled: Boolean(token && canView),
+  });
+  const [receiptItemId, setReceiptItemId] = useState<string | null>(null);
   const items = list.data?.items ?? [];
+  const catalogItems = catalog.data?.catalogItems ?? [];
 
   if (!canView) {
     return (
@@ -35,22 +60,32 @@ const ProcurementPage = () => {
     <AppShell active="/admin/procurement">
       <PageTitle
         eyebrow={user?.role === "PROCUREMENT" ? "ЗАКУПКИ" : "АДМИНИСТРИРОВАНИЕ"}
-        title="Закупка запчастей"
-        description="Рекомендации по пополнению склада и детали, задействованные в текущих ремонтах с согласованными сметами."
+        title="Закупки и поставщики"
+        description="Пополнение склада, реестр поставщиков и история поступлений запчастей и товаров."
         action={
-          <Link
-            to="/catalog"
-            className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-3 text-sm font-semibold dark:border-slate-700"
-          >
-            Каталог и остатки
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <button
+              className="inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-3 text-sm font-semibold text-white disabled:opacity-50"
+              disabled={catalog.isLoading || suppliers.isLoading}
+              onClick={() => setReceiptItemId("")}
+              type="button"
+            >
+              Оформить поступление
+            </button>
+            <Link
+              to="/catalog"
+              className="inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-3 text-sm font-semibold dark:border-slate-700"
+            >
+              Каталог и остатки
+            </Link>
+          </div>
         }
       />
       <SectionCard className="mb-4 border-blue-200 bg-blue-50/70 dark:border-blue-900 dark:bg-blue-950/20">
         <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
           Количество к закупке рассчитано до установленного минимального остатка. Запчасти из
-          согласованных смет уже списаны со склада, поэтому они показаны отдельно и повторно не
-          прибавляются к заказу поставщику.
+          согласованных смет уже списаны со склада, поэтому они не прибавляются повторно к
+          рекомендации. Поступление фиксирует выбранного поставщика и увеличивает остаток.
         </p>
       </SectionCard>
       {list.isLoading && <p className="text-sm text-slate-500">Загружаем список…</p>}
@@ -66,8 +101,8 @@ const ProcurementPage = () => {
           <PackageCheck size={28} className="text-emerald-600" aria-hidden="true" />
           <h2 className="font-semibold">Пополнение не требуется</h2>
           <p className="max-w-md text-sm text-slate-500">
-            Активные запчасти находятся на уровне минимального остатка или выше, а незакрытых
-            согласованных смет с деталями нет.
+            Активные товары и запчасти находятся на уровне минимального остатка или выше, а
+            незакрытых согласованных смет с деталями нет.
           </p>
         </SectionCard>
       )}
@@ -91,19 +126,61 @@ const ProcurementPage = () => {
                 )}
               </div>
               <div className="shrink-0 text-right">
+                <p className="text-xs text-slate-500">
+                  {item.type === "SPARE_PART" ? "Запчасть" : "Товар"}
+                </p>
                 <p className="text-xs text-slate-500">Рекомендуется заказать</p>
                 <p className="mt-1 text-2xl font-semibold text-amber-700 dark:text-amber-300">
                   {item.recommendedPurchase}
                 </p>
+                <button
+                  className="mt-2 min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold dark:border-slate-700"
+                  onClick={() => setReceiptItemId(item.id)}
+                  type="button"
+                >
+                  Записать поступление
+                </button>
               </div>
             </div>
           </SectionCard>
         ))}
       </div>
       <p className="mt-4 text-xs text-slate-500">
-        Список обновляется автоматически из каталога и активных заявок. Для фактического изменения
-        остатка откройте каталог.
+        Если для позиции ещё не указан фактический остаток, сначала установите его в каталоге, затем
+        оформляйте поступления от поставщика.
       </p>
+      {suppliers.isError ? (
+        <SectionCard>
+          <p role="alert" className="text-sm text-rose-600">
+            Не удалось загрузить поставщиков.
+          </p>
+        </SectionCard>
+      ) : (
+        !suppliers.isLoading && (
+          <ProcurementSuppliers suppliers={suppliers.data?.suppliers ?? []} />
+        )
+      )}
+      {receipts.isError ? (
+        <SectionCard>
+          <p role="alert" className="text-sm text-rose-600">
+            Не удалось загрузить историю поступлений.
+          </p>
+        </SectionCard>
+      ) : (
+        !receipts.isLoading && (
+          <StockReceiptHistory receipts={receipts.data?.receipts ?? []} />
+        )
+      )}
+      {receiptItemId !== null && (
+        <StockReceiptDialog
+          key={receiptItemId || "any-item"}
+          items={catalogItems}
+          onOpenChange={(open) => !open && setReceiptItemId(null)}
+          open
+          preselectedItemId={receiptItemId || undefined}
+          suppliers={suppliers.data?.suppliers ?? []}
+        />
+      )}
     </AppShell>
   );
 };
