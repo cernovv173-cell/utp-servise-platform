@@ -470,7 +470,6 @@ ru.utp.servise:attr/initialActivityCount = 0x7f0300c8
 ru.utp.servise:string/abc_action_mode_done = 0x7f0e0003
 ru.utp.servise:attr/autoSizeTextType = 0x7f03003b
 ru.utp.servise:string/abc_action_bar_up_description = 0x7f0e0001
-ru.utp.servise:raw/welcome_intro = 0x7f0d0004
 ru.utp.servise:attr/switchPreferenceStyle = 0x7f030159
 ru.utp.servise:raw/ru_ok_tracer_keep = 0x7f0d0002
 ru.utp.servise:mipmap/ic_launcher_round = 0x7f0c0001

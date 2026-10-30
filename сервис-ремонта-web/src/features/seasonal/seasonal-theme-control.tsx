@@ -15,20 +15,27 @@ const seasonLabels: Record<SeasonalSeason, string> = {
   WINTER: "Зима",
 };
 
-const seasonIcons = {
-  SPRING: Leaf,
-  SUMMER: Sun,
-  AUTUMN: CloudSun,
-  WINTER: Snowflake,
-} satisfies Record<SeasonalSeason, typeof Leaf>;
-
-const formatCalendarDate = (date: string) =>
-  new Intl.DateTimeFormat("ru-RU", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T12:00:00Z`));
+const seasonOptions: {
+  season: SeasonalSeason;
+  label: string;
+  description: string;
+  icon: typeof Leaf;
+}[] = [
+  {
+    season: "SPRING",
+    label: "Весна",
+    description: "Свежие краски и весенние лепестки.",
+    icon: Leaf,
+  },
+  { season: "SUMMER", label: "Лето", description: "Тёплая палитра и солнечные блики.", icon: Sun },
+  {
+    season: "AUTUMN",
+    label: "Осень",
+    description: "Осенние листья и мягкий дождь.",
+    icon: CloudSun,
+  },
+  { season: "WINTER", label: "Зима", description: "Зимний фон и падающий снег.", icon: Snowflake },
+];
 
 export const SeasonalThemeControl = ({ token }: { token: string }) => {
   const queryClient = useQueryClient();
@@ -48,69 +55,99 @@ export const SeasonalThemeControl = ({ token }: { token: string }) => {
   });
 
   const state = theme.data;
-  const isActive = Boolean(state && state.activeSeason === state.calendarSeason);
-  const SeasonIcon = state ? seasonIcons[state.calendarSeason] : Leaf;
 
   return (
-    <SectionCard className="mb-6 border-blue-100 bg-gradient-to-r from-white to-blue-50/80 dark:border-[#304373] dark:from-[#0b1428] dark:to-[#111d3a]">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-4">
-          <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-100 text-blue-700 dark:bg-[#17264b] dark:text-[#9aeeff]">
-            <SeasonIcon size={24} aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-xs font-semibold tracking-[0.16em] text-blue-700 uppercase dark:text-[#9aeeff]">
-              Для администратора
-            </p>
-            <h2 className="mt-1 text-lg font-semibold">Сезонное оформление</h2>
-            {theme.isPending && (
-              <p className="mt-1 text-sm text-slate-500">Проверяем календарь сезонов…</p>
-            )}
-            {theme.isError && !state && (
-              <p className="mt-1 text-sm text-rose-700 dark:text-rose-300" role="status">
-                Не удалось загрузить настройки. Проверьте подключение и попробуйте ещё раз.
-              </p>
-            )}
-            {state && (
-              <>
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300" aria-live="polite">
-                  {isActive
-                    ? `Сейчас действует оформление «${seasonLabels[state.calendarSeason]}» на сайте и в Android.`
-                    : `Оформление выключено. Сейчас календарный сезон — ${seasonLabels[state.calendarSeason].toLowerCase()}.`}
-                </p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Следующий сезон: {seasonLabels[state.nextSeason]} —{" "}
-                  {formatCalendarDate(state.nextSeasonStartsOn)}. Включить можно только в его сезон.
-                </p>
-              </>
-            )}
-          </div>
-        </div>
-        {state ? (
-          <button
-            type="button"
-            disabled={changeTheme.isPending || theme.isFetching}
-            onClick={() => changeTheme.mutate(isActive ? "NONE" : state.calendarSeason)}
-            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {changeTheme.isPending ? (
-              <LoaderCircle size={17} className="animate-spin" aria-hidden="true" />
-            ) : (
-              <SeasonIcon size={17} aria-hidden="true" />
-            )}
-            {isActive ? "Отключить оформление" : `Включить «${seasonLabels[state.calendarSeason]}»`}
-          </button>
-        ) : (
+    <div className="grid gap-4">
+      <SectionCard className="border-blue-100 bg-gradient-to-r from-white to-blue-50/80 dark:border-[#304373] dark:from-[#0b1428] dark:to-[#111d3a]">
+        <p className="text-xs font-semibold tracking-[0.16em] text-blue-700 uppercase dark:text-[#9aeeff]">
+          Настройки сервиса
+        </p>
+        <h2 className="mt-1 text-lg font-semibold">Сезонное оформление</h2>
+        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300" aria-live="polite">
+          {state
+            ? state.activeSeason === "NONE"
+              ? `Оформление выключено. Календарный сезон сейчас — ${seasonLabels[state.calendarSeason].toLowerCase()}.`
+              : `Включено оформление «${seasonLabels[state.activeSeason]}». Календарный сезон сейчас — ${seasonLabels[state.calendarSeason].toLowerCase()}.`
+            : theme.isPending
+              ? "Загружаем настройки сезонного оформления…"
+              : "Выберите оформление для сайта и Android."}
+        </p>
+        <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
+          Вы можете выбрать любой сезон в любое время. Включение одного варианта автоматически
+          отключает предыдущий; настройка сохраняется до следующего изменения.
+        </p>
+      </SectionCard>
+
+      {theme.isError && !state && (
+        <SectionCard>
+          <p className="text-sm text-rose-700 dark:text-rose-300" role="alert">
+            Не удалось загрузить настройки. Проверьте подключение и попробуйте ещё раз.
+          </p>
           <button
             type="button"
             disabled={theme.isFetching}
             onClick={() => void theme.refetch()}
-            className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60 dark:border-[#304373] dark:text-slate-200 dark:hover:bg-[#152449]"
+            className="mt-3 min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60 dark:border-[#304373] dark:text-slate-200 dark:hover:bg-[#152449]"
           >
             Повторить загрузку
           </button>
-        )}
-      </div>
-    </SectionCard>
+        </SectionCard>
+      )}
+
+      {state && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {seasonOptions.map(({ season, label, description, icon: Icon }) => {
+            const isActive = state.activeSeason === season;
+
+            return (
+              <SectionCard key={season} className="border-slate-200/80 dark:border-[#26365f]">
+                <div className="flex items-start justify-between gap-4">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
+                    <Icon size={21} aria-hidden="true" />
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isActive}
+                    aria-label={`${label}: ${isActive ? "выключить" : "включить"} сезонное оформление`}
+                    disabled={changeTheme.isPending || theme.isFetching}
+                    onClick={() => changeTheme.mutate(isActive ? "NONE" : season)}
+                    className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:cursor-not-allowed disabled:opacity-60 ${
+                      isActive
+                        ? "border-blue-700 bg-blue-600 dark:border-cyan-300 dark:bg-cyan-500"
+                        : "border-slate-300 bg-slate-200 dark:border-slate-600 dark:bg-slate-700"
+                    }`}
+                  >
+                    <span
+                      className={`size-5 rounded-full bg-white shadow transition-transform ${isActive ? "translate-x-6" : "translate-x-1"}`}
+                    />
+                    {changeTheme.isPending && (
+                      <LoaderCircle
+                        size={13}
+                        className="absolute inset-0 m-auto animate-spin text-slate-500"
+                        aria-hidden="true"
+                      />
+                    )}
+                  </button>
+                </div>
+                <h3 className="mt-4 font-semibold">{label}</h3>
+                <p className="mt-1 text-sm leading-5 text-slate-500 dark:text-slate-400">
+                  {description}
+                </p>
+                <p className="mt-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {isActive ? "Включено" : "Выключено"}
+                </p>
+              </SectionCard>
+            );
+          })}
+        </div>
+      )}
+
+      {theme.isError && state && (
+        <p className="text-sm text-rose-700 dark:text-rose-300" role="status">
+          Не удалось обновить настройки. Показан последний сохранённый выбор.
+        </p>
+      )}
+    </div>
   );
 };

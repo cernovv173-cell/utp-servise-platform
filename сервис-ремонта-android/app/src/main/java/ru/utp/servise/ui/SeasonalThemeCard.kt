@@ -5,20 +5,20 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.SeasonalThemeState
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 private val seasonLabels = mapOf(
     "SPRING" to "Весна",
@@ -27,11 +27,18 @@ private val seasonLabels = mapOf(
     "WINTER" to "Зима",
 )
 
-private fun formatSeasonDate(value: String): String = runCatching {
-    LocalDate.parse(value).format(
-        DateTimeFormatter.ofPattern("d MMMM yyyy 'г.'", Locale.forLanguageTag("ru-RU")),
-    )
-}.getOrDefault(value)
+private data class SeasonOption(
+    val key: String,
+    val label: String,
+    val description: String,
+)
+
+private val seasonOptions = listOf(
+    SeasonOption("SPRING", "Весна", "Свежие краски и весенние лепестки."),
+    SeasonOption("SUMMER", "Лето", "Тёплая палитра и солнечные блики."),
+    SeasonOption("AUTUMN", "Осень", "Осенние листья и мягкий дождь."),
+    SeasonOption("WINTER", "Зима", "Зимний фон и падающий снег."),
+)
 
 @Composable
 fun SeasonalThemeCard(
@@ -40,12 +47,11 @@ fun SeasonalThemeCard(
     onSeasonChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val seasonLabel = seasonLabels[state.calendarSeason]
-    val nextSeasonLabel = seasonLabels[state.nextSeason]
-    val isActive = state.activeSeason == state.calendarSeason && seasonLabel != null
+    val isLoaded = seasonLabels.containsKey(state.calendarSeason)
+    val calendarSeasonLabel = seasonLabels[state.calendarSeason]?.lowercase() ?: "не определён"
 
     Card(
-        modifier = modifier.fillMaxWidth().padding(bottom = 12.dp),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
@@ -68,43 +74,63 @@ fun SeasonalThemeCard(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                if (seasonLabel != null) {
-                    Text(
-                        seasonLabel,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
             }
             Text(
                 when {
-                    seasonLabel == null -> "Подключаем календарь сезонов…"
-                    isActive -> "Оформление «$seasonLabel» включено на сайте и в Android."
-                    else -> "Сейчас календарный сезон — ${seasonLabel.lowercase()}. Оформление пока выключено."
+                    !isLoaded -> "Загружаем настройки сезонного оформления…"
+                    state.activeSeason == "NONE" ->
+                        "Оформление выключено. Календарный сезон сейчас — $calendarSeasonLabel."
+                    else -> {
+                        val activeLabel = seasonLabels[state.activeSeason].orEmpty()
+                        "Включено оформление «$activeLabel». Календарный сезон сейчас — $calendarSeasonLabel."
+                    }
                 },
                 color = UtpMuted,
                 fontSize = 13.sp,
             )
-            if (nextSeasonLabel != null && state.nextSeasonStartsOn.isNotBlank()) {
+            Text(
+                "Выберите любой сезон в любое время. Включение нового варианта отключит предыдущий; " +
+                    "выбор сохранится на сайте и в Android до следующего изменения.",
+                color = UtpMuted,
+                fontSize = 12.sp,
+            )
+            seasonOptions.forEach { option ->
+                val isActive = state.activeSeason == option.key
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            option.label,
+                            color = UtpInk,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(option.description, color = UtpMuted, fontSize = 12.sp)
+                        Text(
+                            if (isActive) "Включено" else "Выключено",
+                            color = if (isActive) MaterialTheme.colorScheme.primary else UtpMuted,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                    Switch(
+                        modifier = Modifier.semantics {
+                            contentDescription = "Сезон ${option.label}"
+                        },
+                        checked = isActive,
+                        enabled = !busy && isLoaded,
+                        onCheckedChange = { enabled ->
+                            onSeasonChange(if (enabled) option.key else "NONE")
+                        },
+                    )
+                }
+            }
+            if (busy) {
                 Text(
-                    "Следующий сезон: $nextSeasonLabel — ${formatSeasonDate(state.nextSeasonStartsOn)}.",
+                    "Сохраняем настройки…",
                     color = UtpMuted,
                     fontSize = 12.sp,
-                )
-            }
-            Button(
-                onClick = { onSeasonChange(if (isActive) "NONE" else state.calendarSeason) },
-                enabled = !busy && seasonLabel != null,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    when {
-                        busy -> "Сохраняем…"
-                        seasonLabel == null -> "Календарь недоступен"
-                        isActive -> "Выключить оформление"
-                        else -> "Включить «$seasonLabel»"
-                    },
-                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }

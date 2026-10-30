@@ -1,6 +1,6 @@
 # Application
 
-На каждом открытии сайта показывается короткое видео-приветствие от енота. Ролик запускается без звука, его можно пропустить или включить звук; если браузер блокирует воспроизведение либо видео недоступно, остаётся текстовая заставка с переходом дальше.
+Видео-заставка с приветствием отключена: при открытии сайта сразу показывается выбранная страница, без промежуточного экрана.
 
 На главной странице размещены рекламные места MyTarget (в отдельной AMP-странице) и Mail.ru (`ad-2087473`, асинхронная загрузка). Фактический показ зависит от доступности рекламной сети, её настроек и блокировщиков; перед публикацией проверьте, что использование сторонней рекламы отражено в уведомлении о конфиденциальности/согласии сайта.
 
@@ -292,9 +292,11 @@ particles move across the viewport: spring petals, summer light glints, autumn l
 snow. During the autumn theme, a 30-minute rain effect runs once per hour alongside the leaves.
 The illustrations feature laptops, computer parts, and repair tools, not household appliances.
 Motion is disabled when the visitor requests reduced motion.
-Only an administrator sees the seasonal control on the home page. It can enable the current calendar
-season or turn the theme off, while the API enforces the start date and administrator role. Winter
-cannot be enabled before December 1.
+Administrators manage seasonal appearance from the separate “Оформление” tab in the role navigation.
+Four switches enable spring, summer, autumn, or winter at any time; enabling one replaces the previous
+choice, and switching it off disables the seasonal theme. The selection is saved on the server and
+applies across Web and Android until the administrator changes it. The calendar season is informational
+only; it does not restrict the administrator's choice.
 
 Signed-in customers receive in-app alerts for newly published news and promotions/giveaways, plus
 their repair reaching `READY_FOR_PICKUP` or `COMPLETED`. The customer header

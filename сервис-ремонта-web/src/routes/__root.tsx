@@ -1,14 +1,11 @@
 import { HeadContent, Link, Outlet, createRootRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-
-import { LaunchIntro } from "@/components/launch-intro";
+import { useEffect } from "react";
 
 import { AuthProvider } from "@/features/auth/auth-provider";
 import { SeasonalSceneBackground } from "@/features/seasonal/seasonal-scene-background";
 import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
 const RootComponent = () => {
-  const [introDismissed, setIntroDismissed] = useState(false);
   const seasonalTheme = useSeasonalTheme();
 
   useEffect(() => {
@@ -27,7 +24,6 @@ const RootComponent = () => {
       <AuthProvider>
         <div className="relative z-10">
           <Outlet />
-          {!introDismissed && <LaunchIntro onClose={() => setIntroDismissed(true)} />}
         </div>
       </AuthProvider>
     </div>

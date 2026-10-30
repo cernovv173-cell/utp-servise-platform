@@ -36,6 +36,7 @@ import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminOverviewRouteImport } from './routes/admin.overview'
 import { Route as AdminProcurementRouteImport } from './routes/admin.procurement'
 import { Route as AdminScheduleRouteImport } from './routes/admin.schedule'
+import { Route as AdminSeasonalRouteImport } from './routes/admin.seasonal'
 import { Route as AdminShopOrdersRouteImport } from './routes/admin.shop-orders'
 import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
@@ -175,6 +176,11 @@ const AdminScheduleRoute = AdminScheduleRouteImport.update({
   path: '/schedule',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSeasonalRoute = AdminSeasonalRouteImport.update({
+  id: '/seasonal',
+  path: '/seasonal',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminShopOrdersRoute = AdminShopOrdersRouteImport.update({
   id: '/shop-orders',
   path: '/shop-orders',
@@ -219,6 +225,7 @@ export interface FileRoutesByFullPath {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -251,6 +258,7 @@ export interface FileRoutesByTo {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
   '/admin/schedule': typeof AdminScheduleRoute
+  '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
@@ -318,6 +327,7 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/admin/seasonal'
     | '/admin/shop-orders'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
@@ -350,6 +360,7 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/admin/seasonal'
     | '/admin/shop-orders'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
@@ -382,6 +393,7 @@ export interface FileRouteTypes {
     | '/admin/overview'
     | '/admin/procurement'
     | '/admin/schedule'
+    | '/admin/seasonal'
     | '/admin/shop-orders'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
@@ -602,6 +614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminScheduleRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/seasonal': {
+      id: '/admin/seasonal'
+      path: '/seasonal'
+      fullPath: '/admin/seasonal'
+      preLoaderRoute: typeof AdminSeasonalRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/shop-orders': {
       id: '/admin/shop-orders'
       path: '/shop-orders'
@@ -645,6 +664,7 @@ interface AdminRouteChildren {
   AdminOverviewRoute: typeof AdminOverviewRoute
   AdminProcurementRoute: typeof AdminProcurementRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
+  AdminSeasonalRoute: typeof AdminSeasonalRoute
   AdminShopOrdersRoute: typeof AdminShopOrdersRoute
 }
 
@@ -655,6 +675,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOverviewRoute: AdminOverviewRoute,
   AdminProcurementRoute: AdminProcurementRoute,
   AdminScheduleRoute: AdminScheduleRoute,
+  AdminSeasonalRoute: AdminSeasonalRoute,
   AdminShopOrdersRoute: AdminShopOrdersRoute,
 }
 

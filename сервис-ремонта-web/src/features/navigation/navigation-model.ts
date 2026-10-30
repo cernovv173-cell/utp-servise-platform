@@ -1,6 +1,7 @@
 import {
   ClipboardList,
   Home,
+  Leaf,
   LifeBuoy,
   type LucideIcon,
   MessageSquareText,
@@ -24,6 +25,7 @@ export type NavigationRoute =
   | "/catalog"
   | "/salary"
   | "/admin"
+  | "/admin/seasonal"
   | "/admin/orders"
   | "/admin/procurement";
 
@@ -81,6 +83,7 @@ const navigationByRole: Record<Role, NavigationGroup> = {
     links: [
       { to: "/admin/orders", label: "Заявки", compactLabel: "Заявки", icon: ClipboardList },
       { to: "/admin", label: "Управление", compactLabel: "Управление", icon: Settings },
+      { to: "/admin/seasonal", label: "Оформление", compactLabel: "Сезон", icon: Leaf },
       { to: "/catalog", label: "Каталог", compactLabel: "Каталог", icon: Package },
       { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
     ],

@@ -13,7 +13,6 @@ import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { PublicHome } from "@/features/public/public-home";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
-import { SeasonalThemeControl } from "@/features/seasonal/seasonal-theme-control";
 
 import { getBanners, getNews, getOrders } from "@/lib/api";
 
@@ -55,7 +54,6 @@ const HomePage = () => {
         title={`Здравствуйте, ${user?.displayName ?? ""}!`}
         description="Рады видеть вас в сервисе ремонта техники."
       />
-      {user?.role === "ADMIN" && token && <SeasonalThemeControl token={token} />}
       <SectionCard className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-600 to-sky-500 text-white">
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>

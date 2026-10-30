@@ -172,6 +172,7 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
         primaryDestinations = listOf(
             WorkspaceDestination("admin/orders", "Заявки", Icons.AutoMirrored.Filled.List),
             WorkspaceDestination("admin/manage", "Управление", Icons.Filled.Settings),
+            WorkspaceDestination("admin/seasonal", "Сезоны", Icons.Filled.Star),
             WorkspaceDestination("admin/catalog", "Каталог", Icons.Filled.Search),
             WorkspaceDestination("admin/profile", "Профиль", Icons.Filled.Person),
         ),

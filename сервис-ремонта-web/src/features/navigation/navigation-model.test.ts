@@ -22,7 +22,13 @@ describe("role-aware primary navigation", () => {
 
   it("gives each employee role only its working sections and profile", () => {
     expect(primaryRoutesFor("TECHNICIAN")).toEqual(["/orders", "/catalog", "/salary", "/account"]);
-    expect(primaryRoutesFor("ADMIN")).toEqual(["/admin/orders", "/admin", "/catalog", "/account"]);
+    expect(primaryRoutesFor("ADMIN")).toEqual([
+      "/admin/orders",
+      "/admin",
+      "/admin/seasonal",
+      "/catalog",
+      "/account",
+    ]);
     expect(primaryRoutesFor("PROCUREMENT")).toEqual(["/admin/procurement", "/catalog", "/account"]);
   });
 

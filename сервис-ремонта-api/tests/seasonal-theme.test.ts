@@ -144,10 +144,10 @@ test("only an administrator can change the season", async (t) => {
   assert.equal(customer.getWriteCount(), 0);
 });
 
-test("winter cannot start before December 1, even through a direct API request", async (t) => {
+test("an administrator can enable any season regardless of the calendar date", async (t) => {
   const { endpoint, getWriteCount } = await createTestApp(
     t,
-    () => new Date("2026-11-30T20:59:59.999Z"),
+    () => new Date("2026-10-16T09:00:00.000Z"),
   );
   const response = await fetch(endpoint, {
     method: "PUT",
@@ -157,11 +157,12 @@ test("winter cannot start before December 1, even through a direct API request",
     },
     body: JSON.stringify({ season: "WINTER" }),
   });
-  assert.equal(response.status, 409);
-  assert.equal(getWriteCount(), 0);
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).activeSeason, "WINTER");
+  assert.equal(getWriteCount(), 1);
 });
 
-test("an administrator can activate the current season, disable it, and winter starts at Moscow midnight", async (t) => {
+test("an administrator can switch seasons and disable the active theme", async (t) => {
   let instant = new Date("2026-10-16T09:00:00.000Z");
   const { endpoint, getWriteCount } = await createTestApp(t, () => instant);
   const request = (season: string) =>
@@ -191,7 +192,7 @@ test("an administrator can activate the current season, disable it, and winter s
   assert.equal(getWriteCount(), 3);
 });
 
-test("an earlier season setting stops applying when its calendar season ends", async (t) => {
+test("a manually selected theme remains active after the calendar season changes", async (t) => {
   let instant = new Date("2026-10-16T09:00:00.000Z");
   const { endpoint } = await createTestApp(t, () => instant);
   await fetch(endpoint, {
@@ -205,5 +206,5 @@ test("an earlier season setting stops applying when its calendar season ends", a
 
   instant = new Date("2026-11-30T21:00:00.000Z");
   const response = await fetch(endpoint);
-  assert.equal((await response.json()).activeSeason, "NONE");
+  assert.equal((await response.json()).activeSeason, "AUTUMN");
 });

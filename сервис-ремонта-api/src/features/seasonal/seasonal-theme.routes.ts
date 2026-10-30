@@ -6,11 +6,7 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
-import {
-  type Season,
-  type SeasonChoice,
-  getSeasonCalendar,
-} from "./seasonal-calendar.js";
+import { type SeasonChoice, getSeasonCalendar } from "./seasonal-calendar.js";
 
 const SETTING_KEY = "seasonal_theme";
 const seasonChoiceSchema = z.enum([
@@ -33,13 +29,6 @@ const storedSeasonSchema = z
 
 type StoredSeason = z.infer<typeof storedSeasonSchema>;
 type SeasonalThemeClock = () => Date;
-
-const seasonName: Record<Season, string> = {
-  SPRING: "весны",
-  SUMMER: "лета",
-  AUTUMN: "осени",
-  WINTER: "зимы",
-};
 
 const readStoredSeason = async (
   database: DatabaseClient,
@@ -82,12 +71,11 @@ export const createSeasonalThemeRouter = (
     response.set("Cache-Control", "no-store");
     const calendar = getSeasonCalendar(now());
     const setting = await readStoredSeason(database);
-    const activeSeason: SeasonChoice =
-      setting.season === calendar.calendarSeason ? setting.season : "NONE";
+    const activeSeason: SeasonChoice = setting.season;
     response.json({
       ...calendar,
       activeSeason,
-      activatedAt: activeSeason === "NONE" ? null : setting.activatedAt,
+      activatedAt: setting.activatedAt,
     });
   });
 
@@ -102,15 +90,6 @@ export const createSeasonalThemeRouter = (
       };
       const instant = now();
       const calendar = getSeasonCalendar(instant);
-      if (body.season !== "NONE" && body.season !== calendar.calendarSeason) {
-        throw new HttpError(
-          409,
-          "SEASON_NOT_AVAILABLE",
-          `Сейчас доступно оформление ${seasonName[calendar.calendarSeason]}. ` +
-            `Следующее сезонное оформление откроется ${calendar.nextSeasonStartsOn}.`,
-        );
-      }
-
       const setting: StoredSeason =
         body.season === "NONE"
           ? { season: "NONE", activatedAt: null }

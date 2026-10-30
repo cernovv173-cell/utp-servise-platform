@@ -394,22 +394,21 @@ internal fun AuthenticatedWorkspace(
                                 RepairOrdersScreen(
                                     "Управление заказами", orders, user.role, token, staff,
                                     catalogItems, false, runAction, refresh, onReview = {},
-                                    headerContent = {
-                                        if (user.role == "ADMIN") {
-                                            SeasonalThemeCard(
-                                                state = seasonalTheme,
-                                                busy = busy,
-                                                onSeasonChange = { season ->
-                                                    runAction(
-                                                        { ApiClient.setSeasonalTheme(token, season) },
-                                                        { result ->
-                                                            (result as? SeasonalThemeState)?.let(onSeasonalThemeChanged)
-                                                        },
-                                                    )
-                                                },
-                                            )
-                                        }
+                                )
+                            }
+                            composable("admin/seasonal") {
+                                SeasonalThemeCard(
+                                    state = seasonalTheme,
+                                    busy = busy,
+                                    onSeasonChange = { season ->
+                                        runAction(
+                                            { ApiClient.setSeasonalTheme(token, season) },
+                                            { result ->
+                                                (result as? SeasonalThemeState)?.let(onSeasonalThemeChanged)
+                                            },
+                                        )
                                     },
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
                                 )
                             }
                             composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, catalogItems, true, runAction, refresh, onReview = {}) }
