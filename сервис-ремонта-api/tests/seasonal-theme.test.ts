@@ -4,7 +4,6 @@ import { once } from "node:events";
 import test, { type TestContext } from "node:test";
 
 import { hashSessionToken } from "../src/features/auth/auth.middleware.js";
-import { getSeasonCalendar } from "../src/features/seasonal/seasonal-calendar.js";
 import { createSeasonalThemeRouter } from "../src/features/seasonal/seasonal-theme.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
@@ -77,32 +76,7 @@ const createTestApp = async (
   };
 };
 
-test("the Moscow calendar changes seasons at the first day of each month", () => {
-  const cases = [
-    ["2026-02-28T20:59:59.999Z", "WINTER", "2025-12-01"],
-    ["2026-02-28T21:00:00.000Z", "SPRING", "2026-03-01"],
-    ["2026-05-31T20:59:59.999Z", "SPRING", "2026-03-01"],
-    ["2026-05-31T21:00:00.000Z", "SUMMER", "2026-06-01"],
-    ["2026-08-31T20:59:59.999Z", "SUMMER", "2026-06-01"],
-    ["2026-08-31T21:00:00.000Z", "AUTUMN", "2026-09-01"],
-    ["2026-11-30T20:59:59.999Z", "AUTUMN", "2026-09-01"],
-    ["2026-11-30T21:00:00.000Z", "WINTER", "2026-12-01"],
-  ] as const;
-
-  for (const [instant, season, startsOn] of cases) {
-    const calendar = getSeasonCalendar(new Date(instant));
-    assert.equal(calendar.calendarSeason, season, instant);
-    assert.equal(calendar.seasonStartsOn, startsOn, instant);
-  }
-  assert.deepEqual(getSeasonCalendar(new Date("2026-12-01T00:00:00.000Z")), {
-    calendarSeason: "WINTER",
-    seasonStartsOn: "2026-12-01",
-    nextSeason: "SPRING",
-    nextSeasonStartsOn: "2027-03-01",
-  });
-});
-
-test("the public status defaults to no active theme and reports the next season", async (t) => {
+test("the public status returns only the administrator's saved selection", async (t) => {
   const { endpoint } = await createTestApp(
     t,
     () => new Date("2026-10-16T09:00:00.000Z"),
@@ -111,10 +85,6 @@ test("the public status defaults to no active theme and reports the next season"
   assert.equal(response.status, 200);
   assert.equal(response.headers.get("cache-control"), "no-store");
   assert.deepEqual(await response.json(), {
-    calendarSeason: "AUTUMN",
-    seasonStartsOn: "2026-09-01",
-    nextSeason: "WINTER",
-    nextSeasonStartsOn: "2026-12-01",
     activeSeason: "NONE",
     activatedAt: null,
   });
@@ -145,9 +115,10 @@ test("only an administrator can change the season", async (t) => {
 });
 
 test("an administrator can enable any season regardless of the calendar date", async (t) => {
+  const selectedAt = "2026-10-16T09:00:00.000Z";
   const { endpoint, getWriteCount } = await createTestApp(
     t,
-    () => new Date("2026-10-16T09:00:00.000Z"),
+    () => new Date(selectedAt),
   );
   const response = await fetch(endpoint, {
     method: "PUT",
@@ -158,7 +129,10 @@ test("an administrator can enable any season regardless of the calendar date", a
     body: JSON.stringify({ season: "WINTER" }),
   });
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).activeSeason, "WINTER");
+  assert.deepEqual(await response.json(), {
+    activeSeason: "WINTER",
+    activatedAt: selectedAt,
+  });
   assert.equal(getWriteCount(), 1);
 });
 

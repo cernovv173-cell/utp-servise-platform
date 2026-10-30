@@ -47,8 +47,7 @@ fun SeasonalThemeCard(
     onSeasonChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val isLoaded = seasonLabels.containsKey(state.calendarSeason)
-    val calendarSeasonLabel = seasonLabels[state.calendarSeason]?.lowercase() ?: "не определён"
+    val isLoaded = state.loaded
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -78,11 +77,10 @@ fun SeasonalThemeCard(
             Text(
                 when {
                     !isLoaded -> "Загружаем настройки сезонного оформления…"
-                    state.activeSeason == "NONE" ->
-                        "Оформление выключено. Календарный сезон сейчас — $calendarSeasonLabel."
+                    state.activeSeason == "NONE" -> "Сезонное оформление выключено."
                     else -> {
                         val activeLabel = seasonLabels[state.activeSeason].orEmpty()
-                        "Включено оформление «$activeLabel». Календарный сезон сейчас — $calendarSeasonLabel."
+                        "Включено оформление «$activeLabel»."
                     }
                 },
                 color = UtpMuted,

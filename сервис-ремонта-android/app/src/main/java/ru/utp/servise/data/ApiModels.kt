@@ -279,11 +279,8 @@ data class ReferralProgram(
 
 data class SeasonalThemeState(
     val activeSeason: String = "NONE",
-    val calendarSeason: String = "",
-    val seasonStartsOn: String = "",
-    val nextSeason: String = "",
-    val nextSeasonStartsOn: String = "",
     val activatedAt: String? = null,
+    val loaded: Boolean = false,
 )
 
 data class SalaryAmounts(val day: Int = 0, val week: Int = 0, val month: Int = 0)

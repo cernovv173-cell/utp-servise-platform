@@ -65,10 +65,6 @@ export type SeasonalSeasonChoice = SeasonalSeason | "NONE";
 
 export type SeasonalThemeState = {
   activeSeason: SeasonalSeasonChoice;
-  calendarSeason: SeasonalSeason;
-  seasonStartsOn: string;
-  nextSeason: SeasonalSeason;
-  nextSeasonStartsOn: string;
   activatedAt: string | null;
 };
 

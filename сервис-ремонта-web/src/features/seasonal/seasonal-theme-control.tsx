@@ -66,15 +66,15 @@ export const SeasonalThemeControl = ({ token }: { token: string }) => {
         <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300" aria-live="polite">
           {state
             ? state.activeSeason === "NONE"
-              ? `Оформление выключено. Календарный сезон сейчас — ${seasonLabels[state.calendarSeason].toLowerCase()}.`
-              : `Включено оформление «${seasonLabels[state.activeSeason]}». Календарный сезон сейчас — ${seasonLabels[state.calendarSeason].toLowerCase()}.`
+              ? "Сезонное оформление выключено."
+              : `Включено оформление «${seasonLabels[state.activeSeason]}».`
             : theme.isPending
               ? "Загружаем настройки сезонного оформления…"
               : "Выберите оформление для сайта и Android."}
         </p>
         <p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">
-          Вы можете выбрать любой сезон в любое время. Включение одного варианта автоматически
-          отключает предыдущий; настройка сохраняется до следующего изменения.
+          Администратор может выбрать любой сезон в любое время, независимо от даты. Включение
+          нового варианта отключает предыдущий; настройка сохраняется до следующего изменения.
         </p>
       </SectionCard>
 

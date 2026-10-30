@@ -304,8 +304,8 @@ Motion is disabled when the visitor requests reduced motion.
 Administrators manage seasonal appearance from the separate “Оформление” tab in the role navigation.
 Four switches enable spring, summer, autumn, or winter at any time; enabling one replaces the previous
 choice, and switching it off disables the seasonal theme. The selection is saved on the server and
-applies across Web and Android until the administrator changes it. The calendar season is informational
-only; it does not restrict the administrator's choice.
+applies across Web and Android until the administrator changes it. No calendar season is calculated,
+displayed, or used to determine the active theme.
 
 Signed-in customers receive in-app alerts for newly published news and promotions/giveaways, plus
 their repair reaching `READY_FOR_PICKUP` or `COMPLETED`. The customer header

@@ -340,14 +340,13 @@ history stays intact.
 
 ## Seasonal themes
 
-`GET /seasonal-theme` exposes the active theme and the Moscow calendar season to Web and Android.
-The calendar metadata uses meteorological season starts: spring on March 1, summer on June 1, autumn
-on September 1, and winter on December 1. `PUT /seasonal-theme` is restricted to administrators and
-accepts any one of the four seasons or `NONE`, independent of the current date. Enabling a season
-replaces the previously selected season; `NONE` disables the seasonal theme. Administrators choose
-the setting from the dedicated seasonal-appearance tab in Web or Android. The setting is stored in
-the existing `app_settings` row `seasonal_theme`, with no schema migration, and remains active until
-an administrator changes it. Both clients refresh the public state periodically.
+`GET /seasonal-theme` returns only the manually selected theme and its activation time; it does not
+calculate or expose a calendar season. `PUT /seasonal-theme` is restricted to administrators and
+accepts any one of the four seasons or `NONE`, regardless of the date. Enabling a season replaces
+the previously selected season; `NONE` disables the seasonal theme. Administrators choose the
+setting from the dedicated seasonal-appearance tab in Web or Android. The selection is stored in the
+existing `app_settings` row `seasonal_theme`, with no schema migration, and remains active until an
+administrator changes it. Both clients refresh the public state periodically.
 
 ## Customer promotions and giveaways
 

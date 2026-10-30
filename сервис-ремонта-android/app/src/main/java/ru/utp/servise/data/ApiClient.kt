@@ -973,11 +973,8 @@ object ApiClient {
 
     private fun JSONObject.toSeasonalThemeState() = SeasonalThemeState(
         activeSeason = optString("activeSeason", "NONE"),
-        calendarSeason = optString("calendarSeason"),
-        seasonStartsOn = optString("seasonStartsOn"),
-        nextSeason = optString("nextSeason"),
-        nextSeasonStartsOn = optString("nextSeasonStartsOn"),
         activatedAt = nullableString("activatedAt"),
+        loaded = true,
     )
 
     internal fun request(method: String, path: String, token: String? = null, body: JSONObject? = null): JSONObject {

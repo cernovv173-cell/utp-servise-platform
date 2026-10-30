@@ -6,7 +6,6 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
-import { type SeasonChoice, getSeasonCalendar } from "./seasonal-calendar.js";
 
 const SETTING_KEY = "seasonal_theme";
 const seasonChoiceSchema = z.enum([
@@ -69,12 +68,9 @@ export const createSeasonalThemeRouter = (
 
   router.get("/seasonal-theme", async (_request, response) => {
     response.set("Cache-Control", "no-store");
-    const calendar = getSeasonCalendar(now());
     const setting = await readStoredSeason(database);
-    const activeSeason: SeasonChoice = setting.season;
     response.json({
-      ...calendar,
-      activeSeason,
+      activeSeason: setting.season,
       activatedAt: setting.activatedAt,
     });
   });
@@ -89,7 +85,6 @@ export const createSeasonalThemeRouter = (
         readonly body: z.infer<typeof seasonRequestSchema>;
       };
       const instant = now();
-      const calendar = getSeasonCalendar(instant);
       const setting: StoredSeason =
         body.season === "NONE"
           ? { season: "NONE", activatedAt: null }
@@ -97,7 +92,6 @@ export const createSeasonalThemeRouter = (
       await saveStoredSeason(database, setting);
       response.set("Cache-Control", "no-store");
       response.json({
-        ...calendar,
         activeSeason: setting.season,
         activatedAt: setting.activatedAt,
       });
