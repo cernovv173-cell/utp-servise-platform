@@ -12,6 +12,7 @@ drawable utp_servise_launcher_source
 drawable utp_servise_logo
 mipmap ic_launcher
 mipmap ic_launcher_round
+raw welcome_intro
 string gcm_defaultSenderId
 string google_api_key
 string google_app_id
