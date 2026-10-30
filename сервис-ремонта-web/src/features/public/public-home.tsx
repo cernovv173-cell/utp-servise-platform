@@ -15,6 +15,7 @@ import { PublicSiteShell, repairRequestHref } from "@/components/public-site-she
 import { RaccoonIcon } from "@/components/raccoon-icon";
 
 import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
+import { GuidesSection } from "@/features/guides/guides-section";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 
@@ -183,6 +184,8 @@ export const PublicHome = () => {
           </div>
         </div>
       </section>
+
+      <GuidesSection />
 
       <HomeReviewShowcase />
 

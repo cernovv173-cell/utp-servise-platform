@@ -66,8 +66,8 @@ export const AppShell = ({ active, children }: { active: string; children: React
   const navigationGroups = getNavigationGroupsForRole(user.role);
   const helpNavigationLinks = getHelpNavigationLinksForRole(user.role);
   return (
-    <div className="app-shell min-h-dvh bg-slate-50/45 text-slate-900 dark:bg-transparent dark:text-[#edf2ff]">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)]">
+    <div className="app-shell min-h-dvh bg-slate-50/45 text-slate-900 dark:bg-transparent dark:text-[#edf2ff] print:bg-white print:text-black">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)] print:hidden">
         <Link to="/" className="flex items-center gap-3 px-2 text-lg font-bold tracking-tight">
           <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[#55e6ff] via-[#5580ff] to-[#ad65ff] text-xl text-white shadow-[0_0_24px_rgba(83,121,255,0.5)]">
             <RaccoonIcon motion="peek" />
@@ -93,7 +93,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
         </div>
       </aside>
       <div className="lg:pl-60">
-        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 shadow-sm backdrop-blur md:px-8 dark:border-[#26365f]/80 dark:bg-[#080e20]/85 dark:shadow-[0_8px_32px_rgba(0,0,0,0.14)]">
+        <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 shadow-sm backdrop-blur md:px-8 dark:border-[#26365f]/80 dark:bg-[#080e20]/85 dark:shadow-[0_8px_32px_rgba(0,0,0,0.14)] print:hidden">
           <Link to="/" className="flex items-center gap-2 font-bold lg:hidden">
             <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-[#55e6ff] via-[#5580ff] to-[#ad65ff] text-lg text-white shadow-[0_0_18px_rgba(83,121,255,0.45)]">
               <RaccoonIcon motion="peek" />
@@ -120,20 +120,22 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </button>
           </div>
         </header>
-        <MobileSectionNavigation
-          active={active}
-          groups={navigationGroups}
-          helpLinks={helpNavigationLinks}
-        />
+        <div className="print:hidden">
+          <MobileSectionNavigation
+            active={active}
+            groups={navigationGroups}
+            helpLinks={helpNavigationLinks}
+          />
+        </div>
         <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-9">
-          <div className="mb-5 flex justify-end">
+          <div className="mb-5 flex justify-end print:hidden">
             <AppInstallButton />
           </div>
           {children}
         </main>
       </div>
       {user.role === "ADMIN" && (
-        <div className="fixed right-5 bottom-5 z-30">
+        <div className="fixed right-5 bottom-5 z-30 print:hidden">
           <AdminOrderCreate
             onCreated={() => queryClient.invalidateQueries({ queryKey: ["orders"] })}
             trigger={

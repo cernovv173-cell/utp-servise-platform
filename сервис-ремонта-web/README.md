@@ -276,6 +276,15 @@ lifecycle safeguards. The staff section of `/admin` can create technician accoun
 temporary passwords that must be changed on first sign-in; customer self-registration remains on
 `/login` and cannot create staff or administrator accounts.
 
+## Customer repair guides
+
+The public home page and signed-in customer navigation link to `/guides`, with separate public
+articles at `/guides/prepare-laptop`, `/guides/thermal-paste`, and `/guides/what-to-bring`. The
+two checklists can be marked on the page and reset; their state is temporary and is not saved to an
+account. Each article includes a browser print action, a short service note, and an application
+link to create a repair request. The cooling guide describes five reasons to have the cooling system
+checked and does not diagnose thermal paste from symptoms alone.
+
 The game feature, screens, API endpoints, and active game models have been removed from the Web and
 Android applications. Old game endpoints are no longer supported. The first visit clears obsolete
 browser caches and local game preferences while retaining customer logins, shopping carts, and other

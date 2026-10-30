@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   ClipboardList,
   Home,
   Leaf,
@@ -29,7 +30,7 @@ export type NavigationRoute =
   | "/admin/orders"
   | "/admin/procurement";
 
-export type HelpRoute = "/chats" | "/support";
+export type HelpRoute = "/chats" | "/support" | "/guides";
 
 export type NavigationLink = {
   to: NavigationRoute;
@@ -98,6 +99,7 @@ const helpLinksByRole: Record<Role, HelpNavigationLink[]> = {
       compactLabel: "Сообщения",
       icon: MessageSquareText,
     },
+    { to: "/guides", label: "Полезные памятки", compactLabel: "Памятки", icon: BookOpen },
     { to: "/support", label: "Поддержка клиентов", compactLabel: "Поддержка", icon: LifeBuoy },
   ],
   TECHNICIAN: [

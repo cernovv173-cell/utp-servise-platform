@@ -19,6 +19,7 @@ import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as ChecksRouteImport } from './routes/checks'
 import { Route as CraftsRouteImport } from './routes/crafts'
 import { Route as DevicesRouteImport } from './routes/devices'
+import { Route as GuidesRouteImport } from './routes/guides'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
 import { Route as NewsRouteImport } from './routes/news'
@@ -38,6 +39,9 @@ import { Route as AdminProcurementRouteImport } from './routes/admin.procurement
 import { Route as AdminScheduleRouteImport } from './routes/admin.schedule'
 import { Route as AdminSeasonalRouteImport } from './routes/admin.seasonal'
 import { Route as AdminShopOrdersRouteImport } from './routes/admin.shop-orders'
+import { Route as GuidesPrepareLaptopRouteImport } from './routes/guides.prepare-laptop'
+import { Route as GuidesThermalPasteRouteImport } from './routes/guides.thermal-paste'
+import { Route as GuidesWhatToBringRouteImport } from './routes/guides.what-to-bring'
 import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
 
@@ -89,6 +93,11 @@ const CraftsRoute = CraftsRouteImport.update({
 const DevicesRoute = DevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuidesRoute = GuidesRouteImport.update({
+  id: '/guides',
+  path: '/guides',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -186,6 +195,21 @@ const AdminShopOrdersRoute = AdminShopOrdersRouteImport.update({
   path: '/shop-orders',
   getParentRoute: () => AdminRoute,
 } as any)
+const GuidesPrepareLaptopRoute = GuidesPrepareLaptopRouteImport.update({
+  id: '/prepare-laptop',
+  path: '/prepare-laptop',
+  getParentRoute: () => GuidesRoute,
+} as any)
+const GuidesThermalPasteRoute = GuidesThermalPasteRouteImport.update({
+  id: '/thermal-paste',
+  path: '/thermal-paste',
+  getParentRoute: () => GuidesRoute,
+} as any)
+const GuidesWhatToBringRoute = GuidesWhatToBringRouteImport.update({
+  id: '/what-to-bring',
+  path: '/what-to-bring',
+  getParentRoute: () => GuidesRoute,
+} as any)
 const SupportCustomerIdRoute = SupportCustomerIdRouteImport.update({
   id: '/$customerId',
   path: '/$customerId',
@@ -208,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
+  '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -227,6 +252,9 @@ export interface FileRoutesByFullPath {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
+  '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
+  '/guides/thermal-paste': typeof GuidesThermalPasteRoute
+  '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -241,6 +269,7 @@ export interface FileRoutesByTo {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
+  '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -260,6 +289,9 @@ export interface FileRoutesByTo {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
+  '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
+  '/guides/thermal-paste': typeof GuidesThermalPasteRoute
+  '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -275,6 +307,7 @@ export interface FileRoutesById {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
+  '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -294,6 +327,9 @@ export interface FileRoutesById {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
+  '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
+  '/guides/thermal-paste': typeof GuidesThermalPasteRoute
+  '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -310,6 +346,7 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
+    | '/guides'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -329,6 +366,9 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
+    | '/guides/prepare-laptop'
+    | '/guides/thermal-paste'
+    | '/guides/what-to-bring'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
@@ -343,6 +383,7 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
+    | '/guides'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -362,6 +403,9 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
+    | '/guides/prepare-laptop'
+    | '/guides/thermal-paste'
+    | '/guides/what-to-bring'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   id:
@@ -376,6 +420,7 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
+    | '/guides'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -395,6 +440,9 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
+    | '/guides/prepare-laptop'
+    | '/guides/thermal-paste'
+    | '/guides/what-to-bring'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesById: FileRoutesById
@@ -410,6 +458,7 @@ export interface RootRouteChildren {
   ChecksRoute: typeof ChecksRoute
   CraftsRoute: typeof CraftsRoute
   DevicesRoute: typeof DevicesRoute
+  GuidesRoute: typeof GuidesRouteWithChildren
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
   NewsRoute: typeof NewsRoute
@@ -493,6 +542,13 @@ declare module '@tanstack/react-router' {
       path: '/devices'
       fullPath: '/devices'
       preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guides': {
+      id: '/guides'
+      path: '/guides'
+      fullPath: '/guides'
+      preLoaderRoute: typeof GuidesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -628,6 +684,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminShopOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/guides/prepare-laptop': {
+      id: '/guides/prepare-laptop'
+      path: '/prepare-laptop'
+      fullPath: '/guides/prepare-laptop'
+      preLoaderRoute: typeof GuidesPrepareLaptopRouteImport
+      parentRoute: typeof GuidesRoute
+    }
+    '/guides/thermal-paste': {
+      id: '/guides/thermal-paste'
+      path: '/thermal-paste'
+      fullPath: '/guides/thermal-paste'
+      preLoaderRoute: typeof GuidesThermalPasteRouteImport
+      parentRoute: typeof GuidesRoute
+    }
+    '/guides/what-to-bring': {
+      id: '/guides/what-to-bring'
+      path: '/what-to-bring'
+      fullPath: '/guides/what-to-bring'
+      preLoaderRoute: typeof GuidesWhatToBringRouteImport
+      parentRoute: typeof GuidesRoute
+    }
     '/support/$customerId': {
       id: '/support/$customerId'
       path: '/$customerId'
@@ -681,6 +758,21 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface GuidesRouteChildren {
+  GuidesPrepareLaptopRoute: typeof GuidesPrepareLaptopRoute
+  GuidesThermalPasteRoute: typeof GuidesThermalPasteRoute
+  GuidesWhatToBringRoute: typeof GuidesWhatToBringRoute
+}
+
+const GuidesRouteChildren: GuidesRouteChildren = {
+  GuidesPrepareLaptopRoute: GuidesPrepareLaptopRoute,
+  GuidesThermalPasteRoute: GuidesThermalPasteRoute,
+  GuidesWhatToBringRoute: GuidesWhatToBringRoute,
+}
+
+const GuidesRouteWithChildren =
+  GuidesRoute._addFileChildren(GuidesRouteChildren)
+
 interface SupportRouteChildren {
   SupportCustomerIdRoute: typeof SupportCustomerIdRoute
 }
@@ -703,6 +795,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChecksRoute: ChecksRoute,
   CraftsRoute: CraftsRoute,
   DevicesRoute: DevicesRoute,
+  GuidesRoute: GuidesRouteWithChildren,
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,
   NewsRoute: NewsRoute,

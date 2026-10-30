@@ -65,6 +65,7 @@ describe("help navigation", () => {
     ]);
     expect(getHelpNavigationLinksForRole("CUSTOMER").map((link) => link.to)).toEqual([
       "/chats",
+      "/guides",
       "/support",
     ]);
   });
@@ -79,5 +80,6 @@ describe("help navigation", () => {
   it("marks a customer support conversation as part of the help section", () => {
     expect(isNavigationItemActive("/support/123", "/support")).toBe(true);
     expect(isNavigationItemActive("/chats", "/support")).toBe(false);
+    expect(isNavigationItemActive("/guides/thermal-paste", "/guides")).toBe(true);
   });
 });

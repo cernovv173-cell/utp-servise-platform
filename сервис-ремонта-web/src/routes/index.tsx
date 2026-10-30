@@ -8,6 +8,7 @@ import { RaccoonIcon } from "@/components/raccoon-icon";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
 import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
+import { GuidesSection } from "@/features/guides/guides-section";
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
 import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
@@ -84,6 +85,7 @@ const HomePage = () => {
         asOf={banners.dataUpdatedAt}
         className="mb-5"
       />
+      <GuidesSection compact />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {user?.role === "ADMIN" && (
           <Link to="/admin/customers">

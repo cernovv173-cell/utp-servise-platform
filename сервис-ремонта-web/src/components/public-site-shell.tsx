@@ -15,8 +15,8 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
   }, [dark]);
 
   return (
-    <div className="min-h-dvh bg-slate-50/55 text-slate-900 dark:bg-transparent dark:text-[#edf2ff]">
-      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 shadow-sm backdrop-blur dark:border-[#26365f]/80 dark:bg-[#080e20]/85">
+    <div className="min-h-dvh bg-slate-50/55 text-slate-900 dark:bg-transparent dark:text-[#edf2ff] print:bg-white print:text-black">
+      <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 shadow-sm backdrop-blur dark:border-[#26365f]/80 dark:bg-[#080e20]/85 print:hidden">
         <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-4 px-4 md:px-8">
           <Link
             to="/"
@@ -46,6 +46,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
             >
               Отзывы
             </a>
+            <Link
+              to="/guides"
+              className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
+            >
+              Полезное
+            </Link>
             <Link
               to="/about"
               className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
@@ -94,6 +100,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
             Отзывы
           </a>
           <Link
+            to="/guides"
+            className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
+          >
+            Памятки
+          </Link>
+          <Link
             to="/about"
             className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
           >
@@ -120,7 +132,7 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
         </nav>
       </header>
       <main>{children}</main>
-      <footer className="border-t border-slate-200/80 bg-white/70 dark:border-[#26365f]/80 dark:bg-[#080e20]/70">
+      <footer className="border-t border-slate-200/80 bg-white/70 dark:border-[#26365f]/80 dark:bg-[#080e20]/70 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between md:px-8">
           <div>
             <p className="font-semibold text-slate-800 dark:text-slate-200">UTP Servise</p>
@@ -132,6 +144,9 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
               className="font-medium hover:text-blue-700 dark:hover:text-cyan-300"
             >
               Отзывы
+            </Link>
+            <Link to="/guides" className="font-medium hover:text-blue-700 dark:hover:text-cyan-300">
+              Памятки
             </Link>
             <Link to="/about" className="font-medium hover:text-blue-700 dark:hover:text-cyan-300">
               О компании
