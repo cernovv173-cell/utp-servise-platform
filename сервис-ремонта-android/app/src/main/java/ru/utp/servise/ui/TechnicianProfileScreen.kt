@@ -16,7 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.PrimaryTabRow
+import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -60,7 +60,7 @@ fun TechnicianProfileScreen(
         Text("${profile?.displayName ?: "Профиль мастера"}${if (profile?.isVerified == true) "  ✓" else ""}", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text(if (profile?.isVerified == true) "Профиль проверен сервисом" else "Профиль ожидает проверки", color = UtpMuted, fontSize = 13.sp)
         Spacer(Modifier.height(12.dp))
-        PrimaryTabRow(selectedTabIndex = selectedTab) {
+        ScrollableTabRow(selectedTabIndex = selectedTab) {
             listOf("О мастере", "Работы", "Отзывы").forEachIndexed { index, title ->
                 Tab(selected = selectedTab == index, onClick = { selectedTab = index }, text = { Text(title) })
             }
