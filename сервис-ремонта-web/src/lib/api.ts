@@ -323,7 +323,7 @@ export type StaffMember = {
 
 export type TechnicianProfile = {
   userId: string;
-  homeAddress: string;
+  homeAddress?: string;
   experienceYears: number | null;
   bio: string;
   certificates: string[];

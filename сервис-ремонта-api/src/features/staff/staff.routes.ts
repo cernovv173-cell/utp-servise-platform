@@ -128,16 +128,13 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           },
         });
       }
-      if (
-        !profile ||
-        profile.user.role !== "TECHNICIAN" ||
-        (!isSelf && !isAdmin)
-      )
+      if (!profile || profile.user.role !== "TECHNICIAN")
         throw new HttpError(
           404,
           "TECHNICIAN_PROFILE_NOT_FOUND",
           "Профиль мастера не найден.",
         );
+      const { homeAddress, ...publicProfile } = profile;
       const [completedOrders, reviews, works] = await Promise.all([
         database.repairOrder.count({
           where: { assignedTechnicianId: userId, status: "COMPLETED" },
@@ -174,8 +171,8 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
       ]);
       response.json({
         profile: {
-          ...profile,
-          homeAddress: isSelf || isAdmin ? profile.homeAddress : "",
+          ...publicProfile,
+          ...(isSelf || isAdmin ? { homeAddress } : {}),
           completedOrders,
           rating: reviews.length
             ? reviews.reduce((sum, review) => sum + review.rating, 0) /

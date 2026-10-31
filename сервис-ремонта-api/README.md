@@ -1,32 +1,12 @@
 # Application
 
-## Technician profiles in Android
+## Technician profiles
 
-Signed-in customers can open a verified technician profile from a repair card. Android presents
-**О мастере**, **Работы**, and **Отзывы** tabs. Profiles show avatar, self-reported experience,
-biography, certificates, completed repairs, and rating from published reviews. Work photos are
-limited to completed repairs explicitly approved by the customer; consent can be revoked from the
-completed order. Technicians manage their own profile and administrators control verification.
-The additive `20261031110000_technician_profiles` migration stores this data.
-
-## Technician profiles in Android
-
-Signed-in customers can open a verified technician profile from a repair card. Android presents
-**О мастере**, **Работы**, and **Отзывы** tabs. Profiles show avatar, self-reported experience,
-biography, certificates, completed repairs, and rating from published reviews. Work photos are
-limited to completed repairs explicitly approved by the customer; consent can be revoked from the
-completed order. Technicians manage their own profile and administrators control verification.
-The additive `20261031110000_technician_profiles` migration stores this data.
-
-## Technician profiles in Android
-
-Signed-in customers can open a verified technician profile from a repair card. The Android screen
-has **О мастере**, **Работы**, and **Отзывы** tabs. The profile includes the technician avatar,
-self-reported experience, biography, certificates, completed-order count and an average based on
-published reviews. Examples use photos only from completed orders after the customer grants
-portfolio consent; the customer can revoke that consent from their order. Technicians edit their
-own profiles, while administrators control verification. These additions use the additive
-`20261031110000_technician_profiles` migration.
+Signed-in users can open a technician card from a repair order. Technicians can edit their own name,
+phone, home address, profile photo, and years of experience; administrators can view the card and
+home address. Other signed-in users receive the public card fields, but the API omits `homeAddress`
+from their response entirely. A missing profile is initialized when its owner opens the card. The
+additive `20261031120000_technician_home_address` migration stores the private address.
 
 Install dependencies and start the development server:
 

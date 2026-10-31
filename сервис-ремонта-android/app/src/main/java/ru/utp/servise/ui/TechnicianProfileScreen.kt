@@ -42,6 +42,7 @@ fun TechnicianProfileScreen(
     token: String,
     editable: Boolean,
     runAction: RunAction,
+    canViewHomeAddress: Boolean,
 ) {
     var profile by remember(technicianId) { mutableStateOf<TechnicianProfile?>(null) }
     var experience by remember(technicianId) { mutableStateOf("") }
@@ -86,6 +87,9 @@ fun TechnicianProfileScreen(
                         } else {
                             Text("Стаж: ${profile?.experienceYears?.let { "$it лет" } ?: "не указан"}", color = UtpInk, modifier = Modifier.padding(top = 8.dp))
                             Text("Телефон: ${profile?.phoneNumber.orEmpty().ifBlank { "не указан" }}", color = UtpInk, modifier = Modifier.padding(top = 8.dp))
+                            if (canViewHomeAddress) {
+                                Text("Домашний адрес: ${profile?.homeAddress.orEmpty().ifBlank { "не указан" }}", color = UtpInk, modifier = Modifier.padding(top = 8.dp))
+                            }
                         }
                     }
                 }

@@ -219,7 +219,13 @@ internal fun AuthenticatedWorkspace(
                     when (user.role) {
                         "CUSTOMER" -> {
                             composable("technician/profile/{technicianId}") { entry ->
-                                TechnicianProfileScreen(entry.arguments?.getString("technicianId").orEmpty(), token, false, runAction)
+                                TechnicianProfileScreen(
+                                    technicianId = entry.arguments?.getString("technicianId").orEmpty(),
+                                    token = token,
+                                    editable = false,
+                                    runAction = runAction,
+                                    canViewHomeAddress = false,
+                                )
                             }
                             composable("customer/home") {
                                 CustomerHomeScreen(
@@ -357,9 +363,9 @@ internal fun AuthenticatedWorkspace(
                             composable("technician/profile") {
                                 Column {
                                     androidx.compose.material3.OutlinedButton(
-                                        onClick = { navController.navigate("technician/profile/${user.id}") },
+                                        onClick = { navController.navigate("technician/profile/edit") },
                                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                                    ) { Text("Моя карточка мастера · 3 вкладки") }
+                                    ) { Text("Моя анкета мастера") }
                                     ProfileScreen(
                                         user,
                                         token,
@@ -371,6 +377,15 @@ internal fun AuthenticatedWorkspace(
                                         onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
                                     )
                                 }
+                            }
+                            composable("technician/profile/edit") {
+                                TechnicianProfileScreen(
+                                    technicianId = user.id,
+                                    token = token,
+                                    editable = true,
+                                    runAction = runAction,
+                                    canViewHomeAddress = true,
+                                )
                             }
                         }
                         "PROCUREMENT" -> {
@@ -476,7 +491,13 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) { navController.navigate("admin/technician-profile/$it") } }
                             composable("admin/technician-profile/{technicianId}") { entry ->
-                                TechnicianProfileScreen(entry.arguments?.getString("technicianId").orEmpty(), token, false, runAction)
+                                TechnicianProfileScreen(
+                                    technicianId = entry.arguments?.getString("technicianId").orEmpty(),
+                                    token = token,
+                                    editable = false,
+                                    runAction = runAction,
+                                    canViewHomeAddress = true,
+                                )
                             }
                             composable("admin/customers") {
                                 CustomerManagementScreen(token, busy, runAction) { navController.popBackStack() }
