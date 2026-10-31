@@ -852,6 +852,7 @@ model Review {
   @@map("reviews")
 }
 
+
 model CraftItem {
   id                   String       @id @default(uuid()) @db.Uuid
   title                String       @db.VarChar(160)

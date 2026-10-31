@@ -1,6 +1,5 @@
 package ru.utp.servise.ui
 
-import android.app.Activity
 import android.app.DatePickerDialog
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -28,7 +27,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -239,7 +237,6 @@ fun ProfileScreen(
     var birthDate by remember(user.id) { mutableStateOf(user.birthDate.orEmpty()) }
     var savedBirthDate by remember(user.id) { mutableStateOf(user.birthDate.orEmpty()) }
     var genderMenuExpanded by remember { mutableStateOf(false) }
-    var themeMode by remember(user.id) { mutableStateOf(readThemeMode(context)) }
     var currentPassword by remember(user.id) { mutableStateOf("") }
     var newPassword by remember(user.id) { mutableStateOf("") }
     var confirmPassword by remember(user.id) { mutableStateOf("") }
@@ -542,29 +539,7 @@ fun ProfileScreen(
         ) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Text("Внешний вид", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Text("Выберите оформление приложения", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp, bottom = 8.dp))
-                ThemeMode.entries.forEach { mode ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                themeMode = mode
-                                saveThemeMode(context, mode)
-                                (context as? Activity)?.recreate()
-                            },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = themeMode == mode,
-                            onClick = {
-                                themeMode = mode
-                                saveThemeMode(context, mode)
-                                (context as? Activity)?.recreate()
-                            },
-                        )
-                        Text(mode.title, color = UtpInk, fontSize = 14.sp)
-                    }
-                }
+                Text("Всегда включена", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
             }
         }
         if (user.role == "CUSTOMER" && onAccountDeleted != null) {

@@ -351,16 +351,18 @@ internal fun AuthenticatedWorkspace(
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh, token = token) }
                             composable("technician/about") { CompanyScreen(token, false, busy, runAction, onBack = null, banners = banners, onCampaignNavigate = onCampaignNavigate) }
                             composable("technician/profile") {
-                                ProfileScreen(
-                                    user,
-                                    token,
-                                    runAction,
-                                    onUserUpdated,
-                                    onPasswordChanged,
-                                    onLogout,
-                                    onOpenSections = { navController.navigate("sections") { launchSingleTop = true } },
-                                    onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
-                                )
+                                Column {
+                                    ProfileScreen(
+                                        user,
+                                        token,
+                                        runAction,
+                                        onUserUpdated,
+                                        onPasswordChanged,
+                                        onLogout,
+                                        onOpenSections = { navController.navigate("sections") { launchSingleTop = true } },
+                                        onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
+                                    )
+                                }
                             }
                         }
                         "PROCUREMENT" -> {
