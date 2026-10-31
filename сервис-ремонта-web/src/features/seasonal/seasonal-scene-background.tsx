@@ -20,7 +20,7 @@ const accentIcons = {
   WINTER: [Snowflake, Sparkles, Snowflake],
 } satisfies Record<SeasonalSeason, (typeof Leaf)[]>;
 
-const particlePositions = [
+const baseParticlePositions = [
   { left: "8%", top: "12%", delay: 0, duration: 18 },
   { left: "22%", top: "68%", delay: 1.4, duration: 24 },
   { left: "34%", top: "32%", delay: 2.7, duration: 20 },
@@ -30,6 +30,28 @@ const particlePositions = [
   { left: "82%", top: "9%", delay: 4.2, duration: 21 },
   { left: "94%", top: "74%", delay: 1.1, duration: 25 },
 ];
+
+const seasonalParticlePositions = {
+  SPRING: Array.from({ length: 18 }, (_, index) => ({
+    left: `${(index * 31 + 6) % 100}%`,
+    top: `${(index * 53 + 9) % 100}%`,
+    delay: (index * 1.17) % 8,
+    duration: 11 + ((index * 7) % 12),
+  })),
+  SUMMER: Array.from({ length: 22 }, (_, index) => ({
+    left: `${(index * 43 + 4) % 100}%`,
+    top: `${(index * 29 + 13) % 100}%`,
+    delay: (index * 0.73) % 7,
+    duration: 2.2 + ((index * 5) % 28) / 10,
+  })),
+  AUTUMN: Array.from({ length: 34 }, (_, index) => ({
+    left: `${(index * 37 + 3) % 100}%`,
+    top: `${(index * 41 + 7) % 100}%`,
+    delay: (index * 0.91) % 9,
+    duration: 13 + ((index * 11) % 14),
+  })),
+  WINTER: baseParticlePositions,
+} satisfies Record<SeasonalSeason, typeof baseParticlePositions>;
 
 const accentPositions = [
   { left: "15%", top: "22%", delay: 0.2, size: 24 },
@@ -91,13 +113,13 @@ const SeasonalRain = () => {
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {Array.from({ length: 32 }, (_, index) => (
+      {Array.from({ length: 46 }, (_, index) => (
         <span
           key={`rain-${index}`}
           className="seasonal-rain-drop absolute -top-7 block"
           style={{
             left: `${(index * 37 + 3) % 100}%`,
-            animationDuration: `${620 + (index % 7) * 55}ms`,
+            animationDuration: `${1100 + (index % 8) * 130}ms`,
             animationDelay: `${-(index % 9) * 70}ms`,
           }}
         />
@@ -112,8 +134,15 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
   if (season === "NONE") return null;
 
   const ParticleIcon = particleIcons[season];
+  const visibleParticles = seasonalParticlePositions[season];
   const particleMotion =
-    season === "SUMMER" ? "seasonal-particle seasonal-sparkle" : "seasonal-particle seasonal-drift";
+    season === "SUMMER"
+      ? "seasonal-particle seasonal-sparkle"
+      : season === "AUTUMN"
+        ? "seasonal-particle seasonal-leaf-fall"
+        : season === "SPRING"
+          ? "seasonal-particle seasonal-petal-drift"
+          : "seasonal-particle seasonal-drift";
 
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
@@ -122,14 +151,29 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
         className="absolute inset-0 opacity-40 transition-opacity duration-700 dark:opacity-30"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-white/45 to-white/60 dark:from-[#070b18]/50 dark:via-[#070b18]/60 dark:to-[#070b18]/75" />
-      <div className="seasonal-glow-pulse absolute top-1/4 -left-24 size-72 rounded-full bg-[var(--season-glow)] blur-3xl" />
-      <div className="seasonal-sunbeam absolute top-0 -right-28 h-[65vh] w-80 rotate-[-8deg] bg-gradient-to-b from-[var(--season-glow)] to-transparent blur-3xl" />
-      {particlePositions.map((position, index) => (
+      <div
+        className={`seasonal-glow-pulse absolute top-1/4 -left-24 size-72 rounded-full bg-[var(--season-glow)] blur-3xl ${season === "SPRING" ? "seasonal-spring-glow" : ""}`}
+      />
+      {season === "SUMMER" ? (
+        <>
+          <div className="seasonal-sunbeam absolute top-0 -right-28 h-[65vh] w-80 rotate-[-8deg] bg-gradient-to-b from-[var(--season-glow)] to-transparent blur-3xl" />
+          <div className="seasonal-sun-glint seasonal-sun-glint-one absolute top-[12%] left-[18%] size-36 rounded-full" />
+          <div className="seasonal-sun-glint seasonal-sun-glint-two absolute top-[38%] right-[14%] size-24 rounded-full" />
+          <div className="seasonal-sun-glint seasonal-sun-glint-three absolute bottom-[14%] left-[55%] size-28 rounded-full" />
+        </>
+      ) : null}
+      {visibleParticles.map((position, index) => (
         <ParticleIcon
           key={`${season}-${index}`}
           aria-hidden="true"
-          size={16 + (index % 3) * 5}
-          className={`absolute text-[var(--season-accent)] opacity-75 dark:opacity-80 ${particleMotion}`}
+          size={
+            season === "AUTUMN"
+              ? 17 + (index % 4) * 4
+              : season === "SPRING"
+                ? 18 + (index % 4) * 5
+                : 16 + (index % 3) * 5
+          }
+          className={`absolute text-[var(--season-accent)] opacity-75 dark:opacity-80 ${particleMotion} ${season === "SPRING" ? `seasonal-spring-color-${index % 5}` : ""}`}
           style={{
             left: position.left,
             top: position.top,
