@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -91,10 +92,12 @@ export const ReviewShowcaseImages = ({ review }: { review: Review }) => {
                 <button
                   type="button"
                   disabled={busy}
+                  aria-label={`Удалить фото: ${label}`}
+                  title="Удалить"
                   onClick={() => remove.mutate(kind)}
-                  className="min-h-9 rounded-lg border border-rose-200 px-2 text-xs font-medium text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
+                  className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
                 >
-                  Удалить
+                  <X size={16} aria-hidden="true" />
                 </button>
               </div>
             )}

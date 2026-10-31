@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
@@ -102,15 +103,17 @@ const ItemQuantityRow = ({
               Сохранить
             </button>
           </form>
-          <button
-            type="button"
-            disabled={update.isPending || remove.isPending}
-            onClick={() => {
-              if (window.confirm(`Удалить позицию «${item.name}» из заказа?`)) remove.mutate();
-            }}
-            className="min-h-9 rounded-lg border border-rose-200 px-3 text-xs font-semibold text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
-          >
-            Удалить
+            <button
+              type="button"
+              disabled={update.isPending || remove.isPending}
+              aria-label={`Удалить позицию ${item.name}`}
+              title="Удалить позицию"
+              onClick={() => {
+                if (window.confirm(`Удалить позицию «${item.name}» из заказа?`)) remove.mutate();
+              }}
+              className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
+            >
+              <X size={16} aria-hidden="true" />
           </button>
         </div>
       ) : (

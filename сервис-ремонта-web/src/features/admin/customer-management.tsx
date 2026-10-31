@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
+import { Lock, Settings, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
@@ -241,9 +241,11 @@ export const CustomerManagement = () => {
             <button
               type="button"
               onClick={() => setCreatedCustomer(null)}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-700"
+              aria-label="Скрыть данные нового клиента"
+              title="Скрыть данные"
+              className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
             >
-              Скрыть
+              <Lock size={16} aria-hidden="true" />
             </button>
           </div>
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
@@ -316,9 +318,15 @@ export const CustomerManagement = () => {
                     <button
                       type="button"
                       onClick={() => setEditingId(editingId === customer.id ? null : customer.id)}
-                      className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
+                      aria-label={
+                        editingId === customer.id
+                          ? "Закрыть редактирование"
+                          : `Изменить данные клиента ${customer.displayName}`
+                      }
+                      title={editingId === customer.id ? "Закрыть редактирование" : "Изменить"}
+                      className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
                     >
-                      {editingId === customer.id ? "Закрыть" : "Изменить"}
+                      <Settings size={16} aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -328,9 +336,11 @@ export const CustomerManagement = () => {
                         setDeletingCustomer(customer);
                       }}
                       disabled={remove.isPending}
-                      className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
+                      aria-label={`Удалить клиента ${customer.displayName}`}
+                      title="Удалить"
+                      className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
                     >
-                      <Trash2 size={16} /> Удалить
+                      <X size={16} aria-hidden="true" />
                     </button>
                   </div>
                 </div>

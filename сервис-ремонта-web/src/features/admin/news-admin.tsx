@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Lock, Unlock, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
@@ -162,20 +163,36 @@ export const NewsAdmin = () => {
                 </div>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() =>
                       update.mutate({ id: item.id, data: { isFeatured: !item.isFeatured } })
                     }
-                    className={`min-h-9 rounded-lg border px-3 text-xs font-medium ${item.isFeatured ? "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950" : "border-slate-200 dark:border-slate-700"}`}
+                    aria-label={
+                      item.isFeatured
+                        ? `Убрать с главной: ${item.title}`
+                        : `Показать на главной: ${item.title}`
+                    }
+                    title={item.isFeatured ? "Убрать с главной" : "На главную"}
+                    className={`rounded-lg border px-3 py-2 text-xs font-medium ${item.isFeatured ? "border-blue-200 bg-blue-50 text-blue-700 dark:bg-blue-950" : "border-slate-200 dark:border-slate-700"}`}
                   >
-                    {item.isFeatured ? "Приоритетная" : "На главную"}
+                    {item.isFeatured ? "На главной" : "На главную"}
                   </button>
                   <button
+                    type="button"
                     onClick={() =>
                       update.mutate({ id: item.id, data: { isPublished: !item.isPublished } })
                     }
-                    className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
+                    aria-label={
+                      item.isPublished ? `Скрыть: ${item.title}` : `Опубликовать: ${item.title}`
+                    }
+                    title={item.isPublished ? "Скрыть" : "Опубликовать"}
+                    className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
                   >
-                    {item.isPublished ? "Снять" : "Опубликовать"}
+                    {item.isPublished ? (
+                      <Lock size={16} aria-hidden="true" />
+                    ) : (
+                      <Unlock size={16} aria-hidden="true" />
+                    )}
                   </button>
                   <button
                     type="button"
@@ -187,9 +204,9 @@ export const NewsAdmin = () => {
                         remove.mutate(item.id);
                       }
                     }}
-                    className="grid size-9 place-items-center rounded-lg border border-rose-200 text-lg font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                    className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
                   >
-                    ×
+                    <X size={16} aria-hidden="true" />
                   </button>
                 </div>
               </article>

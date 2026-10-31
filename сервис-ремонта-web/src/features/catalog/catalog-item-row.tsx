@@ -1,4 +1,4 @@
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus, Lock, Settings, Unlock, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import {
@@ -116,25 +116,41 @@ export const CatalogItemRow = ({
               <button
                 type="button"
                 onClick={() => setShowEditor((visible) => !visible)}
-                className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
+                aria-label={
+                  showEditor ? `Закрыть редактирование: ${item.name}` : `Изменить: ${item.name}`
+                }
+                title={showEditor ? "Закрыть редактирование" : "Изменить"}
+                className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
               >
-                {showEditor ? "Закрыть" : "Изменить"}
+                {showEditor ? (
+                  <X size={16} aria-hidden="true" />
+                ) : (
+                  <Settings size={16} aria-hidden="true" />
+                )}
               </button>
               <button
                 type="button"
                 disabled={saving}
                 onClick={() => onSave({ active: !item.active })}
-                className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
+                aria-label={item.active ? `Скрыть: ${item.name}` : `Показать: ${item.name}`}
+                title={item.active ? "Скрыть" : "Показать"}
+                className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
               >
-                {item.active ? "Скрыть" : "Включить"}
+                {item.active ? (
+                  <Lock size={16} aria-hidden="true" />
+                ) : (
+                  <Unlock size={16} aria-hidden="true" />
+                )}
               </button>
               <button
                 type="button"
                 disabled={saving || imageBusy || deleteBusy}
                 onClick={() => setConfirmingDelete(true)}
-                className="min-h-9 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
+                aria-label={`Удалить: ${item.name}`}
+                title="Удалить"
+                className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
               >
-                Удалить
+                <X size={16} aria-hidden="true" />
               </button>
             </div>
           )}
@@ -160,7 +176,7 @@ export const CatalogItemRow = ({
                   aria-label={`Удалить фото ${index + 1}: ${item.name}`}
                   className="absolute -top-2 -right-2 grid size-7 place-items-center rounded-full bg-white text-rose-600 shadow hover:bg-rose-50 disabled:opacity-50 dark:bg-slate-900"
                 >
-                  <Trash2 size={14} aria-hidden="true" />
+                  <X size={14} aria-hidden="true" />
                 </button>
               </div>
             ))}

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Lock, Unlock, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
@@ -207,10 +208,21 @@ export const BannerManagement = () => {
               </p>
             </div>
             <button
+              type="button"
               onClick={() => update.mutate({ id: banner.id, data: { isActive: !banner.isActive } })}
-              className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs dark:border-slate-700"
+              aria-label={
+                banner.isActive
+                  ? `Скрыть баннер ${banner.title}`
+                  : `Показать баннер ${banner.title}`
+              }
+              title={banner.isActive ? "Скрыть" : "Показать"}
+              className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
             >
-              {banner.isActive ? "Отключить" : "Активировать"}
+              {banner.isActive ? (
+                <Lock size={16} aria-hidden="true" />
+              ) : (
+                <Unlock size={16} aria-hidden="true" />
+              )}
             </button>
             <button
               type="button"
@@ -222,9 +234,9 @@ export const BannerManagement = () => {
                   remove.mutate(banner.id);
                 }
               }}
-              className="grid size-9 place-items-center rounded-lg border border-rose-200 text-lg font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+              className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
             >
-              ×
+              <X size={16} aria-hidden="true" />
             </button>
           </article>
         ))}

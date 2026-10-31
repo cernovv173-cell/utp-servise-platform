@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Lock, Unlock, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
@@ -356,9 +357,19 @@ export const CustomerOffersManagement = () => {
                         setPublished.mutate({ offerId: offer.id, isPublished: !offer.isPublished })
                       }
                       disabled={setPublished.isPending}
-                      className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
+                      aria-label={
+                        offer.isPublished
+                          ? `Скрыть: ${offer.title}`
+                          : `Опубликовать: ${offer.title}`
+                      }
+                      title={offer.isPublished ? "Скрыть" : "Опубликовать"}
+                      className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
                     >
-                      {offer.isPublished ? "Скрыть" : "Опубликовать"}
+                      {offer.isPublished ? (
+                        <Lock size={16} aria-hidden="true" />
+                      ) : (
+                        <Unlock size={16} aria-hidden="true" />
+                      )}
                     </button>
                     <button
                       type="button"
@@ -374,9 +385,9 @@ export const CustomerOffersManagement = () => {
                           removeOffer.mutate(offer.id);
                         }
                       }}
-                      className="grid size-9 place-items-center rounded-lg border border-rose-200 text-lg font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                      className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
                     >
-                      ×
+                      <X size={16} aria-hidden="true" />
                     </button>
                   </div>
                 </div>

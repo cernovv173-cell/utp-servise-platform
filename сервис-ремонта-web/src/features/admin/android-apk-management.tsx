@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { X } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
@@ -295,9 +296,11 @@ export const AndroidApkManagement = () => {
                 setError("");
                 setConfirmDelete(true);
               }}
-              className="min-h-10 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
+              aria-label="Удалить APK"
+              title="Удалить APK"
+              className="grid size-10 place-items-center rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
             >
-              Удалить APK
+              <X size={17} aria-hidden="true" />
             </button>
           )}
         </div>

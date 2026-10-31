@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Lock, Unlock } from "lucide-react";
 
 import { SectionCard } from "@/components/app-shell";
 import { ProtectedImage } from "@/components/protected-image";
@@ -57,10 +58,17 @@ export const ReviewManagement = () => {
               <ReviewShowcaseImages review={review} />
             </div>
             <button
+              type="button"
               onClick={() => mutation.mutate({ id: review.id, published: !review.isPublished })}
-              className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs dark:border-slate-700"
+              aria-label={review.isPublished ? "Скрыть отзыв" : "Опубликовать отзыв"}
+              title={review.isPublished ? "Скрыть" : "Опубликовать"}
+              className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
             >
-              {review.isPublished ? "Скрыть" : "Опубликовать"}
+              {review.isPublished ? (
+                <Lock size={16} aria-hidden="true" />
+              ) : (
+                <Unlock size={16} aria-hidden="true" />
+              )}
             </button>
           </article>
         ))}

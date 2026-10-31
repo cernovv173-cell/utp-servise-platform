@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserRound, UserRoundX } from "lucide-react";
+import { Lock, Unlock, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -98,21 +98,33 @@ export const StaffManagement = () => {
                   <button
                     type="button"
                     disabled={activeMutation.isPending}
+                    aria-label={
+                      member.active
+                        ? `Скрыть доступ ${member.displayName}`
+                        : `Показать доступ ${member.displayName}`
+                    }
+                    title={member.active ? "Скрыть доступ" : "Восстановить доступ"}
+                    className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
                     onClick={() =>
                       activeMutation.mutate({ userId: member.id, active: !member.active })
                     }
-                    className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
                   >
-                    {member.active ? "Отключить" : "Восстановить доступ"}
+                    {member.active ? (
+                      <Lock size={16} aria-hidden="true" />
+                    ) : (
+                      <Unlock size={16} aria-hidden="true" />
+                    )}
                   </button>
                 )}
                 {member.role === "TECHNICIAN" && (
                   <button
                     type="button"
                     onClick={() => setConfirmingId(confirmingId === member.id ? null : member.id)}
-                    className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 dark:border-rose-900 dark:text-rose-300"
+                    aria-label={`Удалить мастера ${member.displayName}`}
+                    title="Удалить"
+                    className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 dark:border-rose-900 dark:text-rose-300"
                   >
-                    <UserRoundX size={16} /> Удалить
+                    <X size={16} aria-hidden="true" />
                   </button>
                 )}
               </div>
