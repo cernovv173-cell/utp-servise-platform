@@ -538,7 +538,7 @@ fun ProfileScreen(
             colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
         ) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
-                Text("Внешний вид", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text("Тёмная тема", fontWeight = FontWeight.SemiBold, color = UtpInk)
                 Text("Всегда включена", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
             }
         }
