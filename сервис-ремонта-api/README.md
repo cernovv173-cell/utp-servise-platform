@@ -2,6 +2,24 @@
 
 ## Technician profiles in Android
 
+Signed-in customers can open a verified technician profile from a repair card. Android presents
+**О мастере**, **Работы**, and **Отзывы** tabs. Profiles show avatar, self-reported experience,
+biography, certificates, completed repairs, and rating from published reviews. Work photos are
+limited to completed repairs explicitly approved by the customer; consent can be revoked from the
+completed order. Technicians manage their own profile and administrators control verification.
+The additive `20261031110000_technician_profiles` migration stores this data.
+
+## Technician profiles in Android
+
+Signed-in customers can open a verified technician profile from a repair card. Android presents
+**О мастере**, **Работы**, and **Отзывы** tabs. Profiles show avatar, self-reported experience,
+biography, certificates, completed repairs, and rating from published reviews. Work photos are
+limited to completed repairs explicitly approved by the customer; consent can be revoked from the
+completed order. Technicians manage their own profile and administrators control verification.
+The additive `20261031110000_technician_profiles` migration stores this data.
+
+## Technician profiles in Android
+
 Signed-in customers can open a verified technician profile from a repair card. The Android screen
 has **О мастере**, **Работы**, and **Отзывы** tabs. The profile includes the technician avatar,
 self-reported experience, biography, certificates, completed-order count and an average based on

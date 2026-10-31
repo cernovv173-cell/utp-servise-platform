@@ -88,6 +88,7 @@ import ru.utp.servise.ui.ReviewFormScreen
 import ru.utp.servise.ui.ReviewsScreen
 import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.StaffManagementScreen
+import ru.utp.servise.ui.TechnicianProfileScreen
 import ru.utp.servise.ui.SalaryScreen
 import ru.utp.servise.ui.SeasonalThemeCard
 import ru.utp.servise.ui.UtpBlue
@@ -267,7 +268,7 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("customer/crafts") { CraftsScreen(token, false, craftItems, craftOrders, staff, runAction, refresh, { navController.popBackStack() }, banners, onCampaignNavigate) }
                             composable("customer/orders") {
-                                RepairOrdersScreen("Мои ремонты", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
+                                RepairOrdersScreen("Мои ремонты", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { target -> if (target.startsWith("technician-profile:")) navController.navigate("technician/profile/${target.substringAfter(':')}") else navController.navigate("chat/$target") }, onReview = { id -> navController.navigate("customer/review/$id") })
                             }
                             composable("customer/history") {
                                 RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = { id -> navController.navigate("customer/review/$id") })
@@ -473,10 +474,9 @@ internal fun AuthenticatedWorkspace(
                             composable("admin/chats") {
                                 AdminChatInboxScreen(adminChats, refresh, { navController.navigate("chat/$it") }) { navController.popBackStack() }
                             }
-                            composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
-                            composable("technician/profile/{technicianId}") { entry ->
-                                val technicianId = entry.arguments?.getString("technicianId").orEmpty()
-                                TechnicianProfileScreen(technicianId, token, technicianId == user.id, runAction)
+                            composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) { navController.navigate("admin/technician-profile/$it") } }
+                            composable("admin/technician-profile/{technicianId}") { entry ->
+                                TechnicianProfileScreen(entry.arguments?.getString("technicianId").orEmpty(), token, false, runAction)
                             }
                             composable("admin/customers") {
                                 CustomerManagementScreen(token, busy, runAction) { navController.popBackStack() }

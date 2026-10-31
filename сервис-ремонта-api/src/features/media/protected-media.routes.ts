@@ -159,16 +159,24 @@ export const createProtectedMediaRouter = (
                   const photo = await database.repairOrderPhoto.findUnique({
                     where: { objectId },
                     select: {
+                      portfolioConsentAt: true,
                       order: {
                         select: {
                           customerId: true,
                           assignedTechnicianId: true,
+                          status: true,
                         },
                       },
                     },
                   });
                   if (photo) {
-                    if (!canViewRepairOrder(user.role, user.id, photo.order))
+                    const isPublicPortfolioPhoto =
+                      photo.portfolioConsentAt !== null &&
+                      photo.order.status === "COMPLETED";
+                    if (
+                      !isPublicPortfolioPhoto &&
+                      !canViewRepairOrder(user.role, user.id, photo.order)
+                    )
                       invalidMedia();
                   } else {
                     const intake = await database.repairOrderIntake.findFirst({
@@ -190,9 +198,7 @@ export const createProtectedMediaRouter = (
                       },
                     });
                     if (intake) {
-                      if (
-                        !canViewRepairOrder(user.role, user.id, intake.order)
-                      )
+                      if (!canViewRepairOrder(user.role, user.id, intake.order))
                         invalidMedia();
                     } else {
                       const catalogProduct =

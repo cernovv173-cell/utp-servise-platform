@@ -224,6 +224,11 @@ internal fun RepairOrderCard(
                     )
                 }
                 if (role == "CUSTOMER" || role == "ADMIN") {
+                    if (role == "CUSTOMER" && order.technicianId != null) {
+                        TextButton(onClick = { onChat("technician-profile:${order.technicianId}") }) {
+                            Text("Карточка мастера")
+                        }
+                    }
                     order.technicianPhoneNumber?.takeIf { it.isNotBlank() }?.let {
                         Text("Телефон мастера: $it", fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 3.dp))
                     }
@@ -240,6 +245,13 @@ internal fun RepairOrderCard(
                         Modifier.fillMaxWidth().height(190.dp).padding(top = 7.dp),
                         "Фото ${index + 1} к заказу",
                     )
+                    if (role == "CUSTOMER" && order.status == "COMPLETED" && order.technicianId != null) {
+                        TextButton(onClick = {
+                            runAction({ ApiClient.setPortfolioConsent(token, order.id, photo.id, photo.portfolioConsentAt == null) }) { }
+                        }) {
+                            Text(if (photo.portfolioConsentAt == null) "Разрешить показать в работах мастера" else "Отозвать согласие на показ")
+                        }
+                    }
                 }
             }
             PhotoPickerButton("Добавить фото к заказу") { uri: Uri ->

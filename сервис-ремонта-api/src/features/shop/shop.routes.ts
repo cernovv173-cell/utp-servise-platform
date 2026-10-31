@@ -68,7 +68,11 @@ const createOrderBody = z
           message: "Укажите адрес доставки.",
         });
       }
-    } else if (order.deliveryArea || order.deliveryCity || order.deliveryAddress) {
+    } else if (
+      order.deliveryArea ||
+      order.deliveryCity ||
+      order.deliveryAddress
+    ) {
       context.addIssue({
         code: "custom",
         path: ["deliveryMethod"],

@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +37,7 @@ import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.TechnicianProfile
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 fun TechnicianProfileScreen(
     technicianId: String,
     token: String,

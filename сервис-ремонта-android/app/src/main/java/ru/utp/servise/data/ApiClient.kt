@@ -921,12 +921,13 @@ object ApiClient {
     fun technicianProfile(token: String, userId: String): TechnicianProfile =
         request("GET", "/staff/$userId/profile", token).getJSONObject("profile").toTechnicianProfile()
 
-    fun saveTechnicianProfile(token: String, userId: String, experience: Int?, bio: String, certificates: List<String>): TechnicianProfile =
+    fun saveTechnicianProfile(token: String, userId: String, experience: Int?, bio: String, certificates: List<String>): TechnicianProfile {
         request("PUT", "/staff/$userId/profile", token, JSONObject()
             .put("experienceYears", experience ?: JSONObject.NULL)
             .put("bio", bio)
             .put("certificates", JSONArray().apply { certificates.forEach(::put) }))
-            .getJSONObject("profile").let { technicianProfile(token, userId) }
+        return technicianProfile(token, userId)
+    }
 
     fun setTechnicianVerification(token: String, userId: String, verified: Boolean) = request(
         "PATCH", "/staff/$userId/profile/verification", token,
