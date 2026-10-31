@@ -1,4 +1,4 @@
-import { Flower2, Leaf, Snowflake, Sparkles } from "lucide-react";
+import { Flower2, Leaf, Snowflake, Sparkles, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SeasonalArtwork } from "@/features/seasonal/seasonal-artwork";
@@ -12,6 +12,13 @@ const particleIcons = {
   WINTER: Snowflake,
 } satisfies Record<SeasonalSeason, typeof Leaf>;
 
+const accentIcons = {
+  SPRING: [Flower2, Sparkles, Leaf],
+  SUMMER: [Sun, Sparkles, Sun],
+  AUTUMN: [Leaf, Sparkles, Leaf],
+  WINTER: [Snowflake, Sparkles, Snowflake],
+} satisfies Record<SeasonalSeason, (typeof Leaf)[]>;
+
 const particlePositions = [
   { left: "8%", top: "12%", delay: 0, duration: 18 },
   { left: "22%", top: "68%", delay: 1.4, duration: 24 },
@@ -21,6 +28,14 @@ const particlePositions = [
   { left: "70%", top: "55%", delay: 2.1, duration: 23 },
   { left: "82%", top: "9%", delay: 4.2, duration: 21 },
   { left: "94%", top: "74%", delay: 1.1, duration: 25 },
+];
+
+const accentPositions = [
+  { left: "15%", top: "22%", delay: 0.2, size: 24 },
+  { left: "76%", top: "34%", delay: 1.1, size: 18 },
+  { left: "89%", top: "78%", delay: 2.4, size: 22 },
+  { left: "5%", top: "62%", delay: 1.8, size: 16 },
+  { left: "52%", top: "8%", delay: 0.8, size: 20 },
 ];
 
 const SeasonalRain = () => {
@@ -73,12 +88,14 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
         className="absolute inset-0 opacity-40 transition-opacity duration-700 dark:opacity-30"
       />
       <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-white/45 to-white/60 dark:from-[#070b18]/50 dark:via-[#070b18]/60 dark:to-[#070b18]/75" />
+      <div className="seasonal-glow-pulse absolute top-1/4 -left-24 size-72 rounded-full bg-[var(--season-glow)] blur-3xl" />
+      <div className="seasonal-sunbeam absolute top-0 -right-28 h-[65vh] w-80 rotate-[-8deg] bg-gradient-to-b from-[var(--season-glow)] to-transparent blur-3xl" />
       {particlePositions.map((position, index) => (
         <ParticleIcon
           key={`${season}-${index}`}
           aria-hidden="true"
           size={16 + (index % 3) * 5}
-          className={`absolute text-blue-700/60 dark:text-sky-100/55 ${particleMotion}`}
+          className={`absolute text-[var(--season-accent)] opacity-75 dark:opacity-80 ${particleMotion}`}
           style={{
             left: position.left,
             top: position.top,
@@ -87,6 +104,21 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
           }}
         />
       ))}
+      {accentPositions.map((position, index) => {
+        const AccentIcon = accentIcons[season][index % accentIcons[season].length];
+        return (
+          <AccentIcon
+            key={`accent-${season}-${index}`}
+            size={position.size}
+            className="seasonal-orbit absolute text-[var(--season-accent)] opacity-55 drop-shadow-sm dark:opacity-70"
+            style={{
+              left: position.left,
+              top: position.top,
+              animationDelay: `${position.delay}s`,
+            }}
+          />
+        );
+      })}
       {season === "AUTUMN" && <SeasonalRain />}
     </div>
   );
