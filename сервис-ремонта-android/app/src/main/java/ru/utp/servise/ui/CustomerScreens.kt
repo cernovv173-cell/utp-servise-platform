@@ -564,6 +564,7 @@ fun ProfileScreen(
         }
         Spacer(Modifier.height(16.dp))
         OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp)) { Text("Выйти из аккаунта") }
+        PrivacyPolicyLink(modifier = Modifier.fillMaxWidth())
     }
 
     if (showAccountDeletionDialog) {

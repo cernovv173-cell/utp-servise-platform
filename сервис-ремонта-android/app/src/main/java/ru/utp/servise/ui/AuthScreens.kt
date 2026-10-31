@@ -269,6 +269,7 @@ private fun LoginScreen(
                 Text("Забыли пароль?")
             }
         }
+        PrivacyPolicyLink(modifier = Modifier.fillMaxWidth())
     }
 }
 
@@ -402,6 +403,7 @@ private fun RegisterScreen(
                 )
             }
         }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2 && email.isNotBlank() && password.length >= 8, shape = RoundedCornerShape(18.dp)) { Text("Зарегистрироваться") }
+        PrivacyPolicyLink(modifier = Modifier.fillMaxWidth())
     }
 }
 

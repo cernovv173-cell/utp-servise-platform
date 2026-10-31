@@ -401,6 +401,12 @@ const LoginPage = () => {
               )}
             </>
           )}
+          <a
+            href="/privacy-policy.html"
+            className="mt-5 block text-center text-xs text-slate-500 underline underline-offset-4 hover:text-blue-700 dark:text-slate-400 dark:hover:text-cyan-300"
+          >
+            Политика конфиденциальности
+          </a>
         </div>
       </section>
       <aside className="relative hidden overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-12 text-white lg:flex lg:flex-col lg:justify-end">

@@ -152,6 +152,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
               О компании
             </Link>
             <a
+              href="/privacy-policy.html"
+              className="font-medium hover:text-blue-700 dark:hover:text-cyan-300"
+            >
+              Политика конфиденциальности
+            </a>
+            <a
               href="/login?next=%2Fnews"
               className="font-medium hover:text-blue-700 dark:hover:text-cyan-300"
             >

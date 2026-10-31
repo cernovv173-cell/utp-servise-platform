@@ -475,6 +475,12 @@ const AccountPage = () => {
           </ModalContent>
         </Modal>
       )}
+      <a
+        href="/privacy-policy.html"
+        className="mt-5 inline-flex text-sm font-medium text-blue-700 underline underline-offset-4 hover:text-blue-800 dark:text-cyan-300 dark:hover:text-cyan-200"
+      >
+        Политика конфиденциальности
+      </a>
     </AppShell>
   );
 };
