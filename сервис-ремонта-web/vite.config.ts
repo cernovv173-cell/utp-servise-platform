@@ -1,14 +1,8 @@
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
-import { existsSync } from "node:fs";
-import { loadEnvFile } from "node:process";
 import { URL, fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
-
-const ENV_PATH = ".env";
-
-if (existsSync(ENV_PATH)) loadEnvFile(ENV_PATH);
+import { defineConfig, loadEnv } from "vite";
 
 const readPort = (): number | undefined => {
   const configuredPort = process.env.PORT?.trim();
@@ -22,7 +16,8 @@ const readPort = (): number | undefined => {
   return port;
 };
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const buildEnv = loadEnv(mode, process.cwd(), "");
   const port = readPort();
   const server = {
     host: "0.0.0.0",
@@ -36,7 +31,7 @@ export default defineConfig(() => {
   return {
     define: {
       "import.meta.env.VITE_YANDEX_CLIENT_ID": JSON.stringify(
-        process.env.YANDEX_CLIENT_ID?.trim() ?? "",
+        buildEnv.YANDEX_CLIENT_ID?.trim() ?? "",
       ),
     },
     plugins: [tanstackRouter({ autoCodeSplitting: true }), react(), tailwindcss()],
