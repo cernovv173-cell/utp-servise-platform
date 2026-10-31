@@ -921,11 +921,20 @@ object ApiClient {
     fun technicianProfile(token: String, userId: String): TechnicianProfile =
         request("GET", "/staff/$userId/profile", token).getJSONObject("profile").toTechnicianProfile()
 
-    fun saveTechnicianProfile(token: String, userId: String, experience: Int?, bio: String, certificates: List<String>): TechnicianProfile {
+    fun updateTechnicianIdentity(token: String, displayName: String, phoneNumber: String?) =
+        request("PATCH", "/auth/profile", token, JSONObject()
+            .put("displayName", displayName)
+            .put("phoneNumber", phoneNumber ?: JSONObject.NULL))
+            .getJSONObject("user")
+            .toUser()
+
+    fun saveTechnicianProfile(token: String, userId: String, displayName: String, phoneNumber: String?, experience: Int?, homeAddress: String): TechnicianProfile {
         request("PUT", "/staff/$userId/profile", token, JSONObject()
             .put("experienceYears", experience ?: JSONObject.NULL)
-            .put("bio", bio)
-            .put("certificates", JSONArray().apply { certificates.forEach(::put) }))
+            .put("homeAddress", homeAddress)
+            .put("bio", "")
+            .put("certificates", JSONArray()))
+        updateTechnicianIdentity(token, displayName, phoneNumber)
         return technicianProfile(token, userId)
     }
 

@@ -604,8 +604,10 @@ internal fun JSONObject.toTechnicianProfile(): TechnicianProfile {
     return TechnicianProfile(
         userId = optString("userId"),
         displayName = user.optString("displayName"),
+        phoneNumber = user.nullableString("phoneNumber"),
         avatarObjectId = user.nullableString("avatarObjectId"),
         experienceYears = if (isNull("experienceYears")) null else optInt("experienceYears"),
+        homeAddress = optString("homeAddress"),
         bio = optString("bio"),
         certificates = optJSONArray("certificates").strings(),
         isVerified = optBoolean("isVerified"),

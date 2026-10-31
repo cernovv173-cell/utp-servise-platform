@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { BadgeCheck, BriefcaseBusiness, Star } from "lucide-react";
+import { BriefcaseBusiness, Star } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -9,11 +9,7 @@ import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import {
-  getTechnicianProfile,
-  saveTechnicianProfile,
-  setTechnicianProfileVerified,
-} from "@/lib/api";
+import { getTechnicianProfile, saveTechnicianProfile, uploadAvatar } from "@/lib/api";
 
 export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string }) => {
   const { token, user } = useAuth();
@@ -25,22 +21,42 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
   });
   const profile = profileQuery.data?.profile;
   const isOwner = user?.role === "TECHNICIAN" && user.id === technicianId;
-  const isAdmin = user?.role === "ADMIN";
-  const [experience, setExperience] = useState<number | "">(profile?.experienceYears ?? "");
-  const [bio, setBio] = useState(profile?.bio ?? "");
-  const [certificates, setCertificates] = useState(profile?.certificates.join("\n") ?? "");
+  const canViewAddress = isOwner || user?.role === "ADMIN";
+  const [draft, setDraft] = useState<{
+    profileKey: string;
+    experience: number | "";
+    name: string;
+    phone: string;
+    address: string;
+  } | null>(null);
+  const profileKey = profile
+    ? `${profile.userId}:${profile.user.displayName}:${profile.user.phoneNumber ?? ""}:${profile.homeAddress}:${profile.experienceYears ?? ""}`
+    : "";
+  const currentDraft = draft?.profileKey === profileKey ? draft : null;
+  const experience = currentDraft?.experience ?? profile?.experienceYears ?? "";
+  const name = currentDraft?.name ?? profile?.user.displayName ?? "";
+  const phone = currentDraft?.phone ?? profile?.user.phoneNumber ?? "";
+  const address = currentDraft?.address ?? profile?.homeAddress ?? "";
+  const updateDraft = (updates: Partial<NonNullable<typeof draft>>) =>
+    setDraft({
+      profileKey,
+      experience: currentDraft?.experience ?? profile?.experienceYears ?? "",
+      name: currentDraft?.name ?? profile?.user.displayName ?? "",
+      phone: currentDraft?.phone ?? profile?.user.phoneNumber ?? "",
+      address: currentDraft?.address ?? profile?.homeAddress ?? "",
+      ...updates,
+    });
   const save = useMutation({
-    mutationFn: () =>
-      saveTechnicianProfile(token!, technicianId, {
+    mutationFn: async () => {
+      return saveTechnicianProfile(token!, technicianId, {
+        displayName: name,
+        phoneNumber: phone || null,
         experienceYears: experience === "" ? null : experience,
-        bio,
-        certificates: certificates
-          .split("\n")
-          .map((value) => value.trim())
-          .filter(Boolean),
-      }),
+        homeAddress: address,
+      });
+    },
     onSuccess: async () => {
-      toast.success("Профиль мастера сохранён. После изменения потребуется повторная проверка.");
+      toast.success("Анкета сохранена.");
       await queryClient.invalidateQueries({
         queryKey: ["technician-profile", token, technicianId],
       });
@@ -48,19 +64,6 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Не удалось сохранить профиль."),
   });
-  const verify = useMutation({
-    mutationFn: (isVerified: boolean) =>
-      setTechnicianProfileVerified(token!, technicianId, isVerified),
-    onSuccess: async () => {
-      toast.success("Статус проверки профиля обновлён.");
-      await queryClient.invalidateQueries({
-        queryKey: ["technician-profile", token, technicianId],
-      });
-    },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Не удалось изменить статус проверки."),
-  });
-
   return (
     <AppShell active="/orders">
       <PageTitle eyebrow="МАСТЕР" title={profile?.user.displayName ?? "Карточка мастера"} />
@@ -86,13 +89,7 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
               />
               <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-semibold">{profile.user.displayName}</h2>
-                <p className="mt-1 inline-flex items-center gap-2 text-sm text-slate-500">
-                  <BadgeCheck
-                    size={17}
-                    className={profile.isVerified ? "text-emerald-500" : "text-slate-400"}
-                  />
-                  {profile.isVerified ? "Профиль проверен" : "Профиль ожидает проверки"}
-                </p>
+                <p className="mt-1 text-sm text-slate-500">Анкета мастера</p>
               </div>
               <div className="grid grid-cols-2 gap-3 text-center text-sm">
                 <div className="rounded-xl bg-slate-100 p-3 dark:bg-slate-800">
@@ -122,6 +119,62 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
                 }}
               >
                 <label className="grid gap-1.5 text-sm font-medium">
+                  ФИО
+                  <input
+                    value={name}
+                    onChange={(event) => updateDraft({ name: event.target.value })}
+                    required
+                    maxLength={120}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900"
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium">
+                  Номер телефона
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => updateDraft({ phone: event.target.value })}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900"
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium">
+                  Домашний адрес{" "}
+                  <span className="font-normal text-slate-500">
+                    Виден только вам и администратору
+                  </span>
+                  <input
+                    value={address}
+                    onChange={(event) => updateDraft({ address: event.target.value })}
+                    maxLength={500}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900"
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium">
+                  Фото мастера
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file && token)
+                        void uploadAvatar(token, file)
+                          .then(async () => {
+                            toast.success("Фото профиля обновлено.");
+                            await queryClient.invalidateQueries({
+                              queryKey: ["technician-profile", token, technicianId],
+                            });
+                            await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+                          })
+                          .catch((error: unknown) =>
+                            toast.error(
+                              error instanceof Error ? error.message : "Не удалось загрузить фото.",
+                            ),
+                          );
+                    }}
+                    className="text-sm"
+                  />
+                </label>
+                <label className="grid gap-1.5 text-sm font-medium">
                   Стаж, лет
                   <input
                     type="number"
@@ -129,29 +182,11 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
                     max={70}
                     value={experience}
                     onChange={(event) =>
-                      setExperience(event.target.value === "" ? "" : Number(event.target.value))
+                      updateDraft({
+                        experience: event.target.value === "" ? "" : Number(event.target.value),
+                      })
                     }
                     className="h-11 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900"
-                  />
-                </label>
-                <label className="grid gap-1.5 text-sm font-medium">
-                  О мастере
-                  <textarea
-                    maxLength={2000}
-                    rows={4}
-                    value={bio}
-                    onChange={(event) => setBio(event.target.value)}
-                    className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
-                  />
-                </label>
-                <label className="grid gap-1.5 text-sm font-medium">
-                  Сертификаты — по одному в строке
-                  <textarea
-                    maxLength={4000}
-                    rows={3}
-                    value={certificates}
-                    onChange={(event) => setCertificates(event.target.value)}
-                    className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
                   />
                 </label>
                 <button
@@ -169,32 +204,15 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
                     ? "не указан"
                     : `${profile.experienceYears} лет`}
                 </p>
-                <p className="whitespace-pre-wrap">
-                  {profile.bio || "Описание пока не добавлено."}
+                <p>
+                  <strong>Телефон:</strong> {profile.user.phoneNumber || "не указан"}
                 </p>
-                <div>
-                  <h3 className="font-semibold">Сертификаты</h3>
-                  {profile.certificates.length ? (
-                    <ul className="mt-2 list-inside list-disc text-sm text-slate-500">
-                      {profile.certificates.map((certificate) => (
-                        <li key={certificate}>{certificate}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-1 text-sm text-slate-500">Сертификаты не добавлены.</p>
-                  )}
-                </div>
+                {canViewAddress && (
+                  <p>
+                    <strong>Домашний адрес:</strong> {profile.homeAddress || "не указан"}
+                  </p>
+                )}
               </div>
-            )}
-            {isAdmin && (
-              <button
-                type="button"
-                disabled={verify.isPending}
-                onClick={() => verify.mutate(!profile.isVerified)}
-                className="mt-5 min-h-10 rounded-lg border border-slate-300 px-4 text-sm font-semibold dark:border-slate-600"
-              >
-                {profile.isVerified ? "Снять подтверждение" : "Подтвердить профиль"}
-              </button>
             )}
           </SectionCard>
         </>

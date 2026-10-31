@@ -466,6 +466,7 @@ model RepairOrderPhoto {
 model TechnicianProfile {
   userId          String   @id @map("user_id") @db.Uuid
   experienceYears Int?     @map("experience_years") @db.SmallInt
+  homeAddress     String   @default("") @map("home_address") @db.VarChar(500)
   bio             String   @default("") @db.VarChar(2000)
   certificates    Json     @default("[]")
   isVerified      Boolean  @default(false) @map("is_verified")

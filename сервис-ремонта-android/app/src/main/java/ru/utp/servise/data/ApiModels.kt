@@ -618,8 +618,10 @@ data class CustomerReview(
 data class TechnicianProfile(
     val userId: String,
     val displayName: String,
+    val phoneNumber: String? = null,
     val avatarObjectId: String?,
     val experienceYears: Int?,
+    val homeAddress: String = "",
     val bio: String,
     val certificates: List<String>,
     val isVerified: Boolean,

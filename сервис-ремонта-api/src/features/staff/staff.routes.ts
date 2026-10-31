@@ -49,9 +49,16 @@ const updateTechnicianSchema = z
 const userIdParams = z.object({ userId: z.string().uuid() });
 const technicianProfileBody = z
   .object({
-    experienceYears: z.number().int().min(0).max(70).nullable(),
-    bio: z.string().trim().max(2000),
-    certificates: z.array(z.string().trim().min(1).max(200)).max(20),
+    displayName: z.string().trim().min(2).max(120),
+    phoneNumber: phoneNumberSchema,
+    experienceYears: z.number().int().min(0).max(70).nullable().optional(),
+    homeAddress: z.string().trim().max(500),
+    bio: z.string().trim().max(2000).optional().default(""),
+    certificates: z
+      .array(z.string().trim().min(1).max(200))
+      .max(20)
+      .optional()
+      .default([]),
   })
   .strict();
 
@@ -94,6 +101,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
               id: true,
               displayName: true,
               avatarObjectId: true,
+              phoneNumber: true,
               role: true,
             },
           },
@@ -113,6 +121,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
                 id: true,
                 displayName: true,
                 avatarObjectId: true,
+                phoneNumber: true,
                 role: true,
               },
             },
@@ -122,7 +131,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
       if (
         !profile ||
         profile.user.role !== "TECHNICIAN" ||
-        (!profile.isVerified && !isSelf && !isAdmin)
+        (!isSelf && !isAdmin)
       )
         throw new HttpError(
           404,
@@ -166,6 +175,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
       response.json({
         profile: {
           ...profile,
+          homeAddress: isSelf || isAdmin ? profile.homeAddress : "",
           completedOrders,
           rating: reviews.length
             ? reviews.reduce((sum, review) => sum + review.rating, 0) /
@@ -195,12 +205,46 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           "Можно менять только собственный профиль.",
         );
       const input = bodyOf<z.infer<typeof technicianProfileBody>>(response);
-      const profile = await database.technicianProfile.upsert({
-        where: { userId },
-        create: { userId, ...input },
-        update: { ...input, isVerified: false, verifiedAt: null },
+      const technician = await database.user.findFirst({
+        where: { id: userId, role: "TECHNICIAN" },
+        select: { id: true },
       });
-      response.json({ profile });
+      if (!technician)
+        throw new HttpError(404, "STAFF_NOT_FOUND", "Мастер не найден.");
+      const [updatedUser, profile] = await Promise.all([
+        database.user.update({
+          where: { id: userId },
+          data: {
+            displayName: input.displayName,
+            phoneNumber: input.phoneNumber || null,
+          },
+        }),
+        database.technicianProfile.upsert({
+          where: { userId },
+          create: {
+            userId,
+            experienceYears: input.experienceYears ?? null,
+            homeAddress: input.homeAddress,
+          },
+          update: {
+            ...(input.experienceYears !== undefined
+              ? { experienceYears: input.experienceYears }
+              : {}),
+            homeAddress: input.homeAddress,
+          },
+        }),
+      ]);
+      response.json({
+        profile: {
+          ...profile,
+          user: {
+            id: updatedUser.id,
+            displayName: updatedUser.displayName,
+            avatarObjectId: updatedUser.avatarObjectId,
+            phoneNumber: updatedUser.phoneNumber,
+          },
+        },
+      });
     },
   );
 

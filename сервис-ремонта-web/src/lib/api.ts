@@ -323,12 +323,18 @@ export type StaffMember = {
 
 export type TechnicianProfile = {
   userId: string;
+  homeAddress: string;
   experienceYears: number | null;
   bio: string;
   certificates: string[];
   isVerified: boolean;
   verifiedAt: string | null;
-  user: { id: string; displayName: string; avatarObjectId: string | null };
+  user: {
+    id: string;
+    displayName: string;
+    avatarObjectId: string | null;
+    phoneNumber?: string | null;
+  };
   completedOrders: number;
   rating: number | null;
   reviews: {
@@ -1381,18 +1387,25 @@ export const getTechnicianProfile = (token: string, userId: string, signal?: Abo
 export const saveTechnicianProfile = (
   token: string,
   userId: string,
-  input: { experienceYears: number | null; bio: string; certificates: string[] },
+  input: {
+    displayName: string;
+    phoneNumber: string | null;
+    experienceYears: number | null;
+    homeAddress: string;
+  },
 ) =>
   apiRequest<{ profile: TechnicianProfile }>(`/staff/${userId}/profile`, token, {
     method: "PUT",
     body: JSON.stringify(input),
   });
 
-export const setTechnicianProfileVerified = (
-  token: string,
-  userId: string,
-  isVerified: boolean,
-) =>
+export const uploadAvatar = async (token: string, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return apiRequest<{ user: User }>("/media/avatar", token, { method: "POST", body: form });
+};
+
+export const setTechnicianProfileVerified = (token: string, userId: string, isVerified: boolean) =>
   apiRequest<{ profile: TechnicianProfile }>(`/staff/${userId}/profile/verification`, token, {
     method: "PATCH",
     body: JSON.stringify({ isVerified }),
