@@ -351,6 +351,28 @@ const createHarness = () => {
         Object.assign(offer, data);
         return { count: 1 };
       },
+      deleteMany: async ({ where }: { where: { id: string } }) => {
+        const index = offers.findIndex((offer) => offer.id === where.id);
+        if (index < 0) return { count: 0 };
+        offers.splice(index, 1);
+        for (
+          let entryIndex = entries.length - 1;
+          entryIndex >= 0;
+          entryIndex -= 1
+        ) {
+          if (entries[entryIndex]?.offerId === where.id)
+            entries.splice(entryIndex, 1);
+        }
+        for (
+          let deliveryIndex = offerPushDeliveries.length - 1;
+          deliveryIndex >= 0;
+          deliveryIndex -= 1
+        ) {
+          if (offerPushDeliveries[deliveryIndex]?.offerId === where.id)
+            offerPushDeliveries.splice(deliveryIndex, 1);
+        }
+        return { count: 1 };
+      },
     },
     customerOfferPushDelivery: {
       findUnique: async ({ where }: { where: { offerId: string } }) =>
@@ -741,4 +763,27 @@ test("publishing an offer queues one notification and unpublishing cancels it", 
   });
   assert.equal(unpublished.status, 200);
   assert.equal(harness.offerPushDeliveries.length, 0);
+});
+
+test("administrators can delete an offer and its participation records", async (t) => {
+  const harness = createHarness();
+  await once(harness.server, "listening");
+  t.after(() => harness.server.close());
+  const address = harness.server.address();
+  assert.ok(address && typeof address !== "string");
+
+  const response = await fetch(
+    `http://127.0.0.1:${address.port}/api/admin/offers/${giveawayId}`,
+    { method: "DELETE", headers: { authorization: `Bearer ${adminToken}` } },
+  );
+
+  assert.equal(response.status, 204);
+  assert.equal(
+    harness.offers.some((offer) => offer.id === giveawayId),
+    false,
+  );
+  assert.equal(
+    harness.entries.some((entry) => entry.offerId === giveawayId),
+    false,
+  );
 });

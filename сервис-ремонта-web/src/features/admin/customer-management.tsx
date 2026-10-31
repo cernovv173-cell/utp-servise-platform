@@ -330,7 +330,7 @@ export const CustomerManagement = () => {
                       disabled={remove.isPending}
                       className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
                     >
-                      <Trash2 size={16} /> Удалить навсегда
+                      <Trash2 size={16} /> Удалить
                     </button>
                   </div>
                 </div>
@@ -386,8 +386,8 @@ export const CustomerManagement = () => {
             <ModalDescription>
               Это действие нельзя отменить. Будут удалены аккаунт и доступ клиента, заявки и
               ремонты, чеки и связанные расчёты выплат, устройства, фотографии, переписки, отзывы,
-              бонусы, рефералы и участие в акциях. Остатки склада не
-              пересчитываются. Записи других клиентов и общие справочники останутся.
+              бонусы, рефералы и участие в акциях. Остатки склада не пересчитываются. Записи других
+              клиентов и общие справочники останутся.
             </ModalDescription>
           </ModalHeader>
           {deletingCustomer && (
@@ -431,7 +431,7 @@ export const CustomerManagement = () => {
               }}
               className="min-h-10 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {remove.isPending ? "Удаляем…" : "Удалить навсегда"}
+              {remove.isPending ? "Удаляем…" : "Удалить"}
             </button>
           </ModalFooter>
         </ModalContent>

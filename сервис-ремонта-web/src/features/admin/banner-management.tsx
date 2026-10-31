@@ -6,7 +6,7 @@ import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { createBanner, getBanners, updateBanner, uploadAdminImage } from "@/lib/api";
+import { createBanner, deleteBanner, getBanners, updateBanner, uploadAdminImage } from "@/lib/api";
 
 const iso = (value: string) => (value ? new Date(value).toISOString() : null);
 
@@ -25,6 +25,10 @@ export const BannerManagement = () => {
   const update = useMutation({
     mutationFn: ({ id, data }: { id: string; data: { isActive: boolean } }) =>
       updateBanner(token!, id, data),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["banners", token] }),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteBanner(token!, id),
     onSuccess: () => client.invalidateQueries({ queryKey: ["banners", token] }),
   });
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -207,6 +211,20 @@ export const BannerManagement = () => {
               className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs dark:border-slate-700"
             >
               {banner.isActive ? "Отключить" : "Активировать"}
+            </button>
+            <button
+              type="button"
+              aria-label={`Удалить баннер «${banner.title}»`}
+              title="Удалить рекламный баннер"
+              disabled={remove.isPending}
+              onClick={() => {
+                if (window.confirm(`Удалить рекламный баннер «${banner.title}»?`)) {
+                  remove.mutate(banner.id);
+                }
+              }}
+              className="grid size-9 place-items-center rounded-lg border border-rose-200 text-lg font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+            >
+              ×
             </button>
           </article>
         ))}

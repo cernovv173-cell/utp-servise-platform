@@ -475,6 +475,27 @@ export const createCustomerOffersRouter = (
     },
   );
 
+  router.delete(
+    "/admin/offers/:offerId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: offerParams }),
+    async (_request, response) => {
+      const { offerId } = paramsOf(response);
+      const deleted = await database.customerOffer.deleteMany({
+        where: { id: offerId },
+      });
+      if (deleted.count === 0) {
+        throw new HttpError(
+          404,
+          "OFFER_NOT_FOUND",
+          "Акция или розыгрыш не найдены.",
+        );
+      }
+      response.status(204).end();
+    },
+  );
+
   router.post(
     "/admin/offers/:offerId/draw",
     requireAuth,

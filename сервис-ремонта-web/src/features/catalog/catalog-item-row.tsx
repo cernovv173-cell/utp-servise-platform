@@ -134,7 +134,7 @@ export const CatalogItemRow = ({
                 onClick={() => setConfirmingDelete(true)}
                 className="min-h-9 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
               >
-                Удалить навсегда
+                Удалить
               </button>
             </div>
           )}
@@ -297,7 +297,7 @@ export const CatalogItemRow = ({
       <Modal open={confirmingDelete} onOpenChange={setConfirmingDelete}>
         <ModalContent>
           <ModalHeader>
-            <ModalTitle>Удалить позицию навсегда?</ModalTitle>
+            <ModalTitle>Удалить позицию?</ModalTitle>
             <ModalDescription>
               «{item.name}» исчезнет из каталога. Удаление невозможно отменить.{" "}
               {tracksStock(item.type) && "Остаток должен быть нулевым. "}Позиция не должна входить в
@@ -320,7 +320,7 @@ export const CatalogItemRow = ({
               onClick={confirmDelete}
               className="min-h-10 rounded-lg bg-rose-600 px-4 text-sm font-semibold text-white disabled:opacity-60"
             >
-              {deleteBusy ? "Удаляем…" : "Удалить навсегда"}
+              {deleteBusy ? "Удаляем…" : "Удалить"}
             </button>
           </ModalFooter>
         </ModalContent>

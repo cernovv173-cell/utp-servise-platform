@@ -78,7 +78,7 @@ const CatalogPage = () => {
   const deleteItem = useMutation({
     mutationFn: (id: string) => deleteRepairCatalogItem(token!, id),
     onSuccess: async () => {
-      toast.success("Позиция навсегда удалена из каталога.");
+      toast.success("Позиция удалена из каталога.");
       await refresh();
     },
     onError: (error) =>

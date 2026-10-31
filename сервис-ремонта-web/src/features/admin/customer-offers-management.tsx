@@ -6,14 +6,15 @@ import { SectionCard } from "@/components/app-shell";
 import { useAuth } from "@/features/auth/auth-context";
 
 import {
+  type AdminCustomerOffer,
+  type CreateCustomerOfferInput,
+  type CustomerOfferType,
   createAdminCustomerOffer,
+  deleteAdminCustomerOffer,
   drawAdminCustomerOffer,
   getAdminCustomerOffers,
   publishAdminCustomerOfferResults,
   updateAdminCustomerOffer,
-  type AdminCustomerOffer,
-  type CreateCustomerOfferInput,
-  type CustomerOfferType,
 } from "@/lib/api";
 import { useCurrentTime } from "@/lib/current-time";
 
@@ -105,10 +106,22 @@ export const CustomerOffersManagement = () => {
     mutationFn: ({ offerId, isPublished }: { offerId: string; isPublished: boolean }) =>
       updateAdminCustomerOffer(token!, offerId, isPublished),
     onSuccess: async (_result, variables) => {
-      setNotice(variables.isPublished ? "Предложение опубликовано." : "Предложение скрыто от клиентов.");
+      setNotice(
+        variables.isPublished ? "Предложение опубликовано." : "Предложение скрыто от клиентов.",
+      );
       await refresh();
     },
     onError: () => setError("Не удалось изменить публикацию предложения."),
+  });
+
+  const removeOffer = useMutation({
+    mutationFn: (offerId: string) => deleteAdminCustomerOffer(token!, offerId),
+    onSuccess: async () => {
+      setError("");
+      setNotice("Акция или розыгрыш удалены вместе с записями участников.");
+      await refresh();
+    },
+    onError: () => setError("Не удалось удалить публикацию. Обновите список и попробуйте снова."),
   });
 
   const draw = useMutation({
@@ -163,20 +176,23 @@ export const CustomerOffersManagement = () => {
       return;
     }
 
-    create.mutate({
-      type,
-      title: String(form.get("title") ?? "").trim(),
-      content: String(form.get("content") ?? "").trim(),
-      firstPlacePrize,
-      firstPlacePoints,
-      secondPlacePrize,
-      secondPlacePoints,
-      thirdPlacePrize,
-      thirdPlacePoints,
-      startsAt: new Date(startsAt).toISOString(),
-      endsAt: new Date(endsAt).toISOString(),
-      isPublished: form.get("isPublished") === "on",
-    }, { onSuccess: () => formElement.reset() });
+    create.mutate(
+      {
+        type,
+        title: String(form.get("title") ?? "").trim(),
+        content: String(form.get("content") ?? "").trim(),
+        firstPlacePrize,
+        firstPlacePoints,
+        secondPlacePrize,
+        secondPlacePoints,
+        thirdPlacePrize,
+        thirdPlacePoints,
+        startsAt: new Date(startsAt).toISOString(),
+        endsAt: new Date(endsAt).toISOString(),
+        isPublished: form.get("isPublished") === "on",
+      },
+      { onSuccess: () => formElement.reset() },
+    );
   };
 
   return (
@@ -184,18 +200,20 @@ export const CustomerOffersManagement = () => {
       <SectionCard>
         <h2 className="font-semibold">Акция или розыгрыш для клиентов</h2>
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          Опубликованные предложения появятся у клиентов в Web и Android. Участие фиксируется в аккаунте;
-          акции не меняют стоимость заказа автоматически.
+          Опубликованные предложения появятся у клиентов в Web и Android. Участие фиксируется в
+          аккаунте; акции не меняют стоимость заказа автоматически.
         </p>
 
         <form onSubmit={submit} className="mt-5 grid gap-4">
           <fieldset className="grid gap-2">
             <legend className="text-sm font-medium">Тип предложения</legend>
             <div className="flex flex-wrap gap-3">
-              {([
-                ["GIVEAWAY", "Розыгрыш"],
-                ["PROMOTION", "Акция"],
-              ] as const).map(([value, label]) => (
+              {(
+                [
+                  ["GIVEAWAY", "Розыгрыш"],
+                  ["PROMOTION", "Акция"],
+                ] as const
+              ).map(([value, label]) => (
                 <label
                   key={value}
                   className={`inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border px-4 text-sm font-medium ${type === value ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-cyan-200" : "border-slate-200 dark:border-slate-700"}`}
@@ -240,12 +258,27 @@ export const CustomerOffersManagement = () => {
             <div className="grid gap-3">
               <h3 className="text-sm font-semibold">Награды по местам</h3>
               <p className="text-xs leading-5 text-slate-500">
-                Для каждого места задайте приз, баллы или оба варианта. Баллы появятся в истории победителя,
-                когда вы опубликуете результаты.
+                Для каждого места задайте приз, баллы или оба варианта. Баллы появятся в истории
+                победителя, когда вы опубликуете результаты.
               </p>
-              <PlaceRewardFields place={1} prizeName="firstPlacePrize" pointsName="firstPlacePoints" defaultPoints={0} />
-              <PlaceRewardFields place={2} prizeName="secondPlacePrize" pointsName="secondPlacePoints" defaultPoints={0} />
-              <PlaceRewardFields place={3} prizeName="thirdPlacePrize" pointsName="thirdPlacePoints" defaultPoints={0} />
+              <PlaceRewardFields
+                place={1}
+                prizeName="firstPlacePrize"
+                pointsName="firstPlacePoints"
+                defaultPoints={0}
+              />
+              <PlaceRewardFields
+                place={2}
+                prizeName="secondPlacePrize"
+                pointsName="secondPlacePoints"
+                defaultPoints={0}
+              />
+              <PlaceRewardFields
+                place={3}
+                prizeName="thirdPlacePrize"
+                pointsName="thirdPlacePoints"
+                defaultPoints={0}
+              />
             </div>
           )}
 
@@ -279,7 +312,11 @@ export const CustomerOffersManagement = () => {
               {error || "Не удалось сохранить предложение."}
             </p>
           )}
-          {notice && <p role="status" className="text-sm text-emerald-700 dark:text-emerald-300">{notice}</p>}
+          {notice && (
+            <p role="status" className="text-sm text-emerald-700 dark:text-emerald-300">
+              {notice}
+            </p>
+          )}
           <button
             type="submit"
             disabled={create.isPending}
@@ -296,7 +333,10 @@ export const CustomerOffersManagement = () => {
           {(query.data?.offers ?? []).map((offer) => {
             const ended = new Date(offer.endsAt).getTime() <= now;
             return (
-              <article key={offer.id} className="grid gap-3 rounded-xl border border-slate-100 p-4 dark:border-slate-800">
+              <article
+                key={offer.id}
+                className="grid gap-3 rounded-xl border border-slate-100 p-4 dark:border-slate-800"
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-48 flex-1">
                     <p className="text-xs font-semibold tracking-wide text-blue-600 uppercase dark:text-cyan-300">
@@ -305,17 +345,40 @@ export const CustomerOffersManagement = () => {
                     <h3 className="mt-1 font-semibold">{offer.title}</h3>
                     <p className="mt-1 text-sm leading-6 text-slate-500">{offer.content}</p>
                     <p className="mt-2 text-xs text-slate-400">
-                      {formatDate(offer.startsAt)} — {formatDate(offer.endsAt)} · Участников: {offer.participantCount}
+                      {formatDate(offer.startsAt)} — {formatDate(offer.endsAt)} · Участников:{" "}
+                      {offer.participantCount}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPublished.mutate({ offerId: offer.id, isPublished: !offer.isPublished })}
-                    disabled={setPublished.isPending}
-                    className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
-                  >
-                    {offer.isPublished ? "Скрыть" : "Опубликовать"}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPublished.mutate({ offerId: offer.id, isPublished: !offer.isPublished })
+                      }
+                      disabled={setPublished.isPending}
+                      className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
+                    >
+                      {offer.isPublished ? "Скрыть" : "Опубликовать"}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Удалить «${offer.title}»`}
+                      title="Удалить акцию или розыгрыш"
+                      disabled={removeOffer.isPending}
+                      onClick={() => {
+                        const participationWarning =
+                          offer.participantCount > 0
+                            ? ` Вместе с публикацией будут удалены записи ${offer.participantCount} участников.`
+                            : "";
+                        if (window.confirm(`Удалить «${offer.title}»?${participationWarning}`)) {
+                          removeOffer.mutate(offer.id);
+                        }
+                      }}
+                      className="grid size-9 place-items-center rounded-lg border border-rose-200 text-lg font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                    >
+                      ×
+                    </button>
+                  </div>
                 </div>
 
                 {offer.type === "GIVEAWAY" && (
@@ -328,7 +391,8 @@ export const CustomerOffersManagement = () => {
                       ][place - 1]!;
                       return (
                         <p key={place}>
-                          <span className="font-semibold">{place}-е место:</span> {reward.prize || "без отдельного подарка"}
+                          <span className="font-semibold">{place}-е место:</span>{" "}
+                          {reward.prize || "без отдельного подарка"}
                           {reward.points > 0 ? ` · ${reward.points} баллов` : ""}
                         </p>
                       );
@@ -338,7 +402,12 @@ export const CustomerOffersManagement = () => {
 
                 {offer.winners.length > 0 && (
                   <div className="grid gap-2 rounded-lg border border-emerald-200 bg-emerald-50/70 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/30">
-                    <p className="font-semibold">Победители {offer.resultsPublishedAt ? "(результаты опубликованы)" : "(видно только администратору)"}</p>
+                    <p className="font-semibold">
+                      Победители{" "}
+                      {offer.resultsPublishedAt
+                        ? "(результаты опубликованы)"
+                        : "(видно только администратору)"}
+                    </p>
                     {offer.winners.map((winner) => (
                       <p key={winner.place}>
                         {winner.place}-е место — {winner.displayName}
@@ -348,8 +417,10 @@ export const CustomerOffersManagement = () => {
                   </div>
                 )}
 
-                {offer.type === "GIVEAWAY" && ended && !offer.drawnAt && (
-                  offer.participantCount < 3 ? (
+                {offer.type === "GIVEAWAY" &&
+                  ended &&
+                  !offer.drawnAt &&
+                  (offer.participantCount < 3 ? (
                     <p className="text-xs text-amber-700 dark:text-amber-300">
                       Для выбора трёх мест нужно не менее трёх участников.
                     </p>
@@ -364,7 +435,11 @@ export const CustomerOffersManagement = () => {
                       >
                         {draw.isPending ? "Выбираем…" : "Подтвердить жеребьёвку"}
                       </button>
-                      <button type="button" onClick={() => setConfirmDrawId(null)} className="min-h-9 px-3 text-slate-500">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDrawId(null)}
+                        className="min-h-9 px-3 text-slate-500"
+                      >
                         Отмена
                       </button>
                     </div>
@@ -376,11 +451,12 @@ export const CustomerOffersManagement = () => {
                     >
                       Выбрать победителей случайно
                     </button>
-                  )
-                )}
+                  ))}
 
-                {offer.type === "GIVEAWAY" && offer.drawnAt && !offer.resultsPublishedAt && (
-                  confirmPublishId === offer.id ? (
+                {offer.type === "GIVEAWAY" &&
+                  offer.drawnAt &&
+                  !offer.resultsPublishedAt &&
+                  (confirmPublishId === offer.id ? (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span>Опубликовать имена победителей и начислить баллы?</span>
                       <button
@@ -391,7 +467,11 @@ export const CustomerOffersManagement = () => {
                       >
                         {publishResults.isPending ? "Публикуем…" : "Опубликовать результаты"}
                       </button>
-                      <button type="button" onClick={() => setConfirmPublishId(null)} className="min-h-9 px-3 text-slate-500">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmPublishId(null)}
+                        className="min-h-9 px-3 text-slate-500"
+                      >
                         Отмена
                       </button>
                     </div>
@@ -403,13 +483,16 @@ export const CustomerOffersManagement = () => {
                     >
                       Опубликовать победителей и начислить баллы
                     </button>
-                  )
-                )}
+                  ))}
               </article>
             );
           })}
           {query.isLoading && <p className="text-sm text-slate-500">Загружаем предложения…</p>}
-          {query.isError && <p role="alert" className="text-sm text-rose-600">Не удалось загрузить предложения.</p>}
+          {query.isError && (
+            <p role="alert" className="text-sm text-rose-600">
+              Не удалось загрузить предложения.
+            </p>
+          )}
           {!query.isLoading && !query.isError && (query.data?.offers.length ?? 0) === 0 && (
             <p className="text-sm text-slate-500">Предложений пока нет.</p>
           )}

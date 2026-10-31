@@ -469,7 +469,7 @@ const AccountPage = () => {
                 onClick={() => deleteAccountMutation.mutate()}
                 className="min-h-10 rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60"
               >
-                {deleteAccountMutation.isPending ? "Удаляем…" : "Удалить навсегда"}
+                {deleteAccountMutation.isPending ? "Удаляем…" : "Удалить"}
               </button>
             </ModalFooter>
           </ModalContent>

@@ -266,5 +266,26 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.delete(
+    "/news/:articleId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: articleIdParams }),
+    async (_request, response) => {
+      const { articleId } = paramsOf<z.infer<typeof articleIdParams>>(response);
+      const deleted = await database.newsArticle.deleteMany({
+        where: { id: articleId },
+      });
+      if (deleted.count === 0) {
+        throw new HttpError(
+          404,
+          "NEWS_ARTICLE_NOT_FOUND",
+          "Новость не найдена.",
+        );
+      }
+      response.status(204).end();
+    },
+  );
+
   return router;
 };

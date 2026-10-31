@@ -5,7 +5,7 @@ import { SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { createNews, getNews, updateNews } from "@/lib/api";
+import { createNews, deleteNews, getNews, updateNews } from "@/lib/api";
 import { useCurrentTime } from "@/lib/current-time";
 
 export const NewsAdmin = () => {
@@ -30,6 +30,10 @@ export const NewsAdmin = () => {
       id: string;
       data: { isPublished?: boolean; isFeatured?: boolean };
     }) => updateNews(token!, id, data),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["news", token] }),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => deleteNews(token!, id),
     onSuccess: () => client.invalidateQueries({ queryKey: ["news", token] }),
   });
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -172,6 +176,20 @@ export const NewsAdmin = () => {
                     className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700"
                   >
                     {item.isPublished ? "Снять" : "Опубликовать"}
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Удалить публикацию «${item.title}»`}
+                    title="Удалить публикацию"
+                    disabled={remove.isPending}
+                    onClick={() => {
+                      if (window.confirm(`Удалить публикацию «${item.title}»?`)) {
+                        remove.mutate(item.id);
+                      }
+                    }}
+                    className="grid size-9 place-items-center rounded-lg border border-rose-200 text-lg font-semibold text-rose-600 hover:bg-rose-50 disabled:opacity-50 dark:border-rose-900 dark:hover:bg-rose-950/40"
+                  >
+                    ×
                   </button>
                 </div>
               </article>

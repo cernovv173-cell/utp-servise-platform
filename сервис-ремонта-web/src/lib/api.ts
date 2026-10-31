@@ -1234,6 +1234,9 @@ export const updateNews = (token: string, id: string, input: Partial<NewsArticle
     body: JSON.stringify(input),
   });
 
+export const deleteNews = (token: string, id: string) =>
+  apiRequest<void>(`/news/${id}`, token, { method: "DELETE" });
+
 export const getReviews = (token: string, signal?: AbortSignal) =>
   apiRequest<{ reviews: Review[] }>("/reviews", token, { signal });
 
@@ -1593,6 +1596,9 @@ export const updateAdminCustomerOffer = (token: string, offerId: string, isPubli
     body: JSON.stringify({ isPublished }),
   });
 
+export const deleteAdminCustomerOffer = (token: string, offerId: string) =>
+  apiRequest<void>(`/admin/offers/${offerId}`, token, { method: "DELETE" });
+
 export const drawAdminCustomerOffer = (token: string, offerId: string) =>
   apiRequest<{ offer: AdminCustomerOffer }>(`/admin/offers/${offerId}/draw`, token, {
     method: "POST",
@@ -1614,6 +1620,9 @@ export const updateBanner = (token: string, id: string, banner: Partial<SiteBann
     method: "PATCH",
     body: JSON.stringify(banner),
   });
+
+export const deleteBanner = (token: string, id: string) =>
+  apiRequest<void>(`/banners/${id}`, token, { method: "DELETE" });
 
 export const uploadAdminImage = async (path: string, token: string, file: File) => {
   const response = await fetch(`${apiBase}${path}`, {

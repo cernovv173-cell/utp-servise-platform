@@ -112,7 +112,7 @@ export const StaffManagement = () => {
                     onClick={() => setConfirmingId(confirmingId === member.id ? null : member.id)}
                     className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-rose-200 px-3 text-sm font-medium text-rose-700 dark:border-rose-900 dark:text-rose-300"
                   >
-                    <UserRoundX size={16} /> Удалить навсегда
+                    <UserRoundX size={16} /> Удалить
                   </button>
                 )}
               </div>

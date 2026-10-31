@@ -195,5 +195,22 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.delete(
+    "/banners/:bannerId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: bannerParams }),
+    async (_request, response) => {
+      const { bannerId } = paramsOf(response);
+      const deleted = await database.siteBanner.deleteMany({
+        where: { id: bannerId },
+      });
+      if (deleted.count === 0) {
+        throw new HttpError(404, "BANNER_NOT_FOUND", "Баннер не найден.");
+      }
+      response.status(204).end();
+    },
+  );
+
   return router;
 };
