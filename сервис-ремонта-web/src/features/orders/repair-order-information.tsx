@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, Phone } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import type { ChangeEvent } from "react";
 import { toast } from "sonner";
 
@@ -120,6 +121,15 @@ export const RepairOrderInformation = ({ order, token }: { order: RepairOrder; t
             {order.assignedTechnician && (
               <p className="flex flex-wrap items-center gap-1">
                 Мастер: <strong>{order.assignedTechnician.displayName}</strong>
+                {user?.role === "CUSTOMER" && (
+                  <Link
+                    to="/staff/$technicianId"
+                    params={{ technicianId: order.assignedTechnician.id }}
+                    className="ml-1 font-semibold text-blue-600 hover:underline"
+                  >
+                    Профиль мастера
+                  </Link>
+                )}
                 {order.assignedTechnician.phoneNumber && (
                   <a
                     href={`tel:${order.assignedTechnician.phoneNumber}`}

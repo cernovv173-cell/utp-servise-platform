@@ -42,6 +42,7 @@ import { Route as AdminShopOrdersRouteImport } from './routes/admin.shop-orders'
 import { Route as GuidesPrepareLaptopRouteImport } from './routes/guides.prepare-laptop'
 import { Route as GuidesThermalPasteRouteImport } from './routes/guides.thermal-paste'
 import { Route as GuidesWhatToBringRouteImport } from './routes/guides.what-to-bring'
+import { Route as StaffTechnicianIdRouteImport } from './routes/staff.$technicianId'
 import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
 
@@ -210,6 +211,11 @@ const GuidesWhatToBringRoute = GuidesWhatToBringRouteImport.update({
   path: '/what-to-bring',
   getParentRoute: () => GuidesRoute,
 } as any)
+const StaffTechnicianIdRoute = StaffTechnicianIdRouteImport.update({
+  id: '/staff/$technicianId',
+  path: '/staff/$technicianId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SupportCustomerIdRoute = SupportCustomerIdRouteImport.update({
   id: '/$customerId',
   path: '/$customerId',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
   '/guides/thermal-paste': typeof GuidesThermalPasteRoute
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
+  '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -292,6 +299,7 @@ export interface FileRoutesByTo {
   '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
   '/guides/thermal-paste': typeof GuidesThermalPasteRoute
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
+  '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -330,6 +338,7 @@ export interface FileRoutesById {
   '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
   '/guides/thermal-paste': typeof GuidesThermalPasteRoute
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
+  '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
@@ -369,6 +378,7 @@ export interface FileRouteTypes {
     | '/guides/prepare-laptop'
     | '/guides/thermal-paste'
     | '/guides/what-to-bring'
+    | '/staff/$technicianId'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
@@ -406,6 +416,7 @@ export interface FileRouteTypes {
     | '/guides/prepare-laptop'
     | '/guides/thermal-paste'
     | '/guides/what-to-bring'
+    | '/staff/$technicianId'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   id:
@@ -443,6 +454,7 @@ export interface FileRouteTypes {
     | '/guides/prepare-laptop'
     | '/guides/thermal-paste'
     | '/guides/what-to-bring'
+    | '/staff/$technicianId'
     | '/support/$customerId'
     | '/admin/orders/$orderId'
   fileRoutesById: FileRoutesById
@@ -470,6 +482,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   SupportRoute: typeof SupportRouteWithChildren
   YandexTokenRoute: typeof YandexTokenRoute
+  StaffTechnicianIdRoute: typeof StaffTechnicianIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -705,6 +718,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof GuidesWhatToBringRouteImport
       parentRoute: typeof GuidesRoute
     }
+    '/staff/$technicianId': {
+      id: '/staff/$technicianId'
+      path: '/staff/$technicianId'
+      fullPath: '/staff/$technicianId'
+      preLoaderRoute: typeof StaffTechnicianIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/support/$customerId': {
       id: '/support/$customerId'
       path: '/$customerId'
@@ -807,6 +827,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   SupportRoute: SupportRouteWithChildren,
   YandexTokenRoute: YandexTokenRoute,
+  StaffTechnicianIdRoute: StaffTechnicianIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

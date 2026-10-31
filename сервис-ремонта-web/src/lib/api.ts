@@ -321,6 +321,27 @@ export type StaffMember = {
   role: string;
 };
 
+export type TechnicianProfile = {
+  userId: string;
+  experienceYears: number | null;
+  bio: string;
+  certificates: string[];
+  isVerified: boolean;
+  verifiedAt: string | null;
+  user: { id: string; displayName: string; avatarObjectId: string | null };
+  completedOrders: number;
+  rating: number | null;
+  reviews: {
+    id: string;
+    rating: number;
+    comment: string;
+    createdAt: string;
+    customer: { displayName: string };
+    order: { deviceType: string };
+  }[];
+  works: { id: string; objectId: string; deviceType: string }[];
+};
+
 export type RepairReceipt = {
   id: string;
   receiptNumber: string;
@@ -1353,6 +1374,41 @@ export const searchOrders = (token: string, serviceNumber: string, signal?: Abor
 
 export const getStaff = (token: string, signal?: AbortSignal) =>
   apiRequest<{ staff: StaffMember[] }>("/staff", token, { signal });
+
+export const getTechnicianProfile = (token: string, userId: string, signal?: AbortSignal) =>
+  apiRequest<{ profile: TechnicianProfile }>(`/staff/${userId}/profile`, token, { signal });
+
+export const saveTechnicianProfile = (
+  token: string,
+  userId: string,
+  input: { experienceYears: number | null; bio: string; certificates: string[] },
+) =>
+  apiRequest<{ profile: TechnicianProfile }>(`/staff/${userId}/profile`, token, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+
+export const setTechnicianProfileVerified = (
+  token: string,
+  userId: string,
+  isVerified: boolean,
+) =>
+  apiRequest<{ profile: TechnicianProfile }>(`/staff/${userId}/profile/verification`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ isVerified }),
+  });
+
+export const setRepairPhotoPortfolioConsent = (
+  token: string,
+  orderId: string,
+  photoId: string,
+  consent: boolean,
+) =>
+  apiRequest<{ consent: boolean }>(
+    `/orders/${orderId}/photos/${photoId}/portfolio-consent`,
+    token,
+    { method: "PATCH", body: JSON.stringify({ consent }) },
+  );
 
 export const createStaff = (
   token: string,

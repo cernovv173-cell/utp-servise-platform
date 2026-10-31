@@ -11,6 +11,7 @@ import { RepairOrderItemsEditor } from "@/features/admin/repair-order-items-edit
 import { RepairOrderPriority } from "@/features/admin/repair-order-priority";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
+import { setRepairPhotoPortfolioConsent } from "@/lib/api";
 import { CustomerPickupQr } from "@/features/orders/customer-pickup-qr";
 import {
   archiveForOrderListView,

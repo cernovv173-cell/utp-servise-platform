@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock, Unlock, UserRound, X } from "lucide-react";
 import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
@@ -94,6 +95,15 @@ export const StaffManagement = () => {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
+                {member.role === "TECHNICIAN" && (
+                  <Link
+                    to="/staff/$technicianId"
+                    params={{ technicianId: member.id }}
+                    className="inline-flex min-h-9 items-center rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
+                  >
+                    Профиль мастера
+                  </Link>
+                )}
                 {member.id !== user?.id && (
                   <button
                     type="button"
