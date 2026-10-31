@@ -1,3 +1,4 @@
+import { useRouterState } from "@tanstack/react-router";
 import { Flower2, Leaf, Snowflake, Sparkles, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -38,6 +39,37 @@ const accentPositions = [
   { left: "52%", top: "8%", delay: 0.8, size: 20 },
 ];
 
+const snowPositions = Array.from({ length: 110 }, (_, index) => ({
+  left: `${(index * 47 + 11) % 100}%`,
+  delay: -((index * 13) % 24),
+  duration: 5 + ((index * 7) % 11),
+  size: 2 + ((index * 17) % 6),
+  drift: 24 + ((index * 19) % 115),
+  opacity: 0.42 + ((index * 23) % 50) / 100,
+}));
+
+const Snowstorm = ({ isNavigating }: { isNavigating: boolean }) => (
+  <div className="absolute inset-0 overflow-hidden">
+    {snowPositions.map((flake, index) => (
+      <span
+        key={`snow-${index}`}
+        className={`seasonal-snowflake absolute -top-3 block rounded-full ${isNavigating ? "seasonal-blizzard-flake" : "seasonal-snow-fall"}`}
+        style={
+          {
+            left: flake.left,
+            width: `${flake.size}px`,
+            height: `${flake.size}px`,
+            opacity: flake.opacity,
+            animationDelay: `${flake.delay}s`,
+            animationDuration: `${flake.duration * (isNavigating ? 0.48 : 1)}s`,
+            "--snow-drift": `${flake.drift}px`,
+          } as React.CSSProperties
+        }
+      />
+    ))}
+  </div>
+);
+
 const SeasonalRain = () => {
   const [isRaining, setIsRaining] = useState(false);
 
@@ -75,6 +107,8 @@ const SeasonalRain = () => {
 };
 
 export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoice }) => {
+  const isNavigating = useRouterState({ select: (state) => state.isLoading });
+
   if (season === "NONE") return null;
 
   const ParticleIcon = particleIcons[season];
@@ -120,6 +154,7 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
         );
       })}
       {season === "AUTUMN" && <SeasonalRain />}
+      {season === "WINTER" && <Snowstorm isNavigating={isNavigating} />}
     </div>
   );
 };

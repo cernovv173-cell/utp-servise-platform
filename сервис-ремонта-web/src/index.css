@@ -292,6 +292,20 @@ html[data-season] .seasonal-color-wash {
   animation: seasonal-rain-fall 760ms linear infinite;
 }
 
+.seasonal-snowflake {
+  background: radial-gradient(circle at 35% 30%, #fff 0 22%, #dff4ff 48%, #8bd5ff 100%);
+  box-shadow: 0 0 8px rgb(186 230 253 / 82%);
+  will-change: transform;
+}
+
+.seasonal-snow-fall {
+  animation: seasonal-snow-fall linear infinite;
+}
+
+.seasonal-blizzard-flake {
+  animation: seasonal-blizzard-flake 1.8s linear infinite;
+}
+
 @keyframes seasonal-rain-fall {
   from {
     transform: translate3d(0, 0, 0) rotate(14deg);
@@ -299,6 +313,24 @@ html[data-season] .seasonal-color-wash {
 
   to {
     transform: translate3d(-34px, calc(100vh + 64px), 0) rotate(14deg);
+  }
+}
+
+@keyframes seasonal-snow-fall {
+  from {
+    transform: translate3d(0, -3vh, 0);
+  }
+  to {
+    transform: translate3d(var(--snow-drift), 105vh, 0);
+  }
+}
+
+@keyframes seasonal-blizzard-flake {
+  from {
+    transform: translate3d(-8vw, -4vh, 0) scale(0.75);
+  }
+  to {
+    transform: translate3d(calc(22vw + var(--snow-drift)), 105vh, 0) scale(1.2);
   }
 }
 
@@ -315,6 +347,12 @@ html[data-season] .seasonal-color-wash {
   .seasonal-rain-drop {
     animation: none;
     opacity: 0.3;
+  }
+
+  .seasonal-snow-fall,
+  .seasonal-blizzard-flake {
+    animation: none;
+    opacity: 0.68;
   }
 }
 
