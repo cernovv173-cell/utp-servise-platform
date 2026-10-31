@@ -918,6 +918,26 @@ object ApiClient {
 
     fun staff(token: String): List<StaffMember> = request("GET", "/staff", token).getJSONArray("staff").mapObjects { it.toStaff() }
 
+    fun technicianProfile(token: String, userId: String): TechnicianProfile =
+        request("GET", "/staff/$userId/profile", token).getJSONObject("profile").toTechnicianProfile()
+
+    fun saveTechnicianProfile(token: String, userId: String, experience: Int?, bio: String, certificates: List<String>): TechnicianProfile =
+        request("PUT", "/staff/$userId/profile", token, JSONObject()
+            .put("experienceYears", experience ?: JSONObject.NULL)
+            .put("bio", bio)
+            .put("certificates", JSONArray().apply { certificates.forEach(::put) }))
+            .getJSONObject("profile").let { technicianProfile(token, userId) }
+
+    fun setTechnicianVerification(token: String, userId: String, verified: Boolean) = request(
+        "PATCH", "/staff/$userId/profile/verification", token,
+        JSONObject().put("isVerified", verified),
+    )
+
+    fun setPortfolioConsent(token: String, orderId: String, photoId: String, consent: Boolean) = request(
+        "PATCH", "/orders/$orderId/photos/$photoId/portfolio-consent", token,
+        JSONObject().put("consent", consent),
+    )
+
     fun createStaff(token: String, email: String, displayName: String, role: String, phoneNumber: String?): NewStaffResult {
         val result = request("POST", "/staff", token,
             JSONObject().put("email", email).put("displayName", displayName).put("role", role)

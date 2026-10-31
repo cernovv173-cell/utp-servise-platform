@@ -105,6 +105,7 @@ data class RepairOrder(
     val technicianName: String,
     val technicianPhoneNumber: String?,
     val technicianAvatarObjectId: String?,
+    val technicianId: String? = null,
     val hasReview: Boolean,
     val history: List<String>,
     val items: List<RepairOrderItem>,
@@ -240,7 +241,7 @@ data class RepairWarranty(
 
 data class PickupCode(val qrPayload: String, val fallbackPin: String, val expiresAt: String)
 
-data class RepairOrderPhoto(val id: String, val objectId: String)
+data class RepairOrderPhoto(val id: String, val objectId: String, val portfolioConsentAt: String? = null)
 
 data class RepairOrderItem(
     val id: String,
@@ -612,6 +613,30 @@ data class CustomerReview(
     val isPublished: Boolean = false,
     val imageObjectId: String? = null,
     val createdAt: String = "",
+)
+
+data class TechnicianProfile(
+    val userId: String,
+    val displayName: String,
+    val avatarObjectId: String?,
+    val experienceYears: Int?,
+    val bio: String,
+    val certificates: List<String>,
+    val isVerified: Boolean,
+    val completedOrders: Int,
+    val rating: Double?,
+    val works: List<TechnicianWork>,
+    val reviews: List<TechnicianProfileReview>,
+)
+
+data class TechnicianWork(val id: String, val objectId: String, val deviceType: String)
+data class TechnicianProfileReview(
+    val id: String,
+    val rating: Int,
+    val comment: String,
+    val createdAt: String,
+    val customerName: String,
+    val deviceType: String,
 )
 
 data class PublicReview(

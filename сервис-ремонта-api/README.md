@@ -1,5 +1,15 @@
 # Application
 
+## Technician profiles in Android
+
+Signed-in customers can open a verified technician profile from a repair card. The Android screen
+has **О мастере**, **Работы**, and **Отзывы** tabs. The profile includes the technician avatar,
+self-reported experience, biography, certificates, completed-order count and an average based on
+published reviews. Examples use photos only from completed orders after the customer grants
+portfolio consent; the customer can revoke that consent from their order. Technicians edit their
+own profiles, while administrators control verification. These additions use the additive
+`20261031110000_technician_profiles` migration.
+
 Install dependencies and start the development server:
 
 ```bash

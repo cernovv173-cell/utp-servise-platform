@@ -291,6 +291,7 @@ const orderDetails = (role: UserRole) => ({
       id: true,
       objectId: true,
       createdAt: true,
+      portfolioConsentAt: true,
       createdBy: { select: { displayName: true } },
     },
   },

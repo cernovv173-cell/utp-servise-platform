@@ -217,6 +217,9 @@ internal fun AuthenticatedWorkspace(
                 ) {
                     when (user.role) {
                         "CUSTOMER" -> {
+                            composable("technician/profile/{technicianId}") { entry ->
+                                TechnicianProfileScreen(entry.arguments?.getString("technicianId").orEmpty(), token, false, runAction)
+                            }
                             composable("customer/home") {
                                 CustomerHomeScreen(
                                     user, token, news, technologyFact, banners,
@@ -352,6 +355,10 @@ internal fun AuthenticatedWorkspace(
                             composable("technician/about") { CompanyScreen(token, false, busy, runAction, onBack = null, banners = banners, onCampaignNavigate = onCampaignNavigate) }
                             composable("technician/profile") {
                                 Column {
+                                    androidx.compose.material3.OutlinedButton(
+                                        onClick = { navController.navigate("technician/profile/${user.id}") },
+                                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                                    ) { Text("Моя карточка мастера · 3 вкладки") }
                                     ProfileScreen(
                                         user,
                                         token,
@@ -467,6 +474,10 @@ internal fun AuthenticatedWorkspace(
                                 AdminChatInboxScreen(adminChats, refresh, { navController.navigate("chat/$it") }) { navController.popBackStack() }
                             }
                             composable("admin/staff") { StaffManagementScreen(token, user, staff, runAction, refresh) }
+                            composable("technician/profile/{technicianId}") { entry ->
+                                val technicianId = entry.arguments?.getString("technicianId").orEmpty()
+                                TechnicianProfileScreen(technicianId, token, technicianId == user.id, runAction)
+                            }
                             composable("admin/customers") {
                                 CustomerManagementScreen(token, busy, runAction) { navController.popBackStack() }
                             }

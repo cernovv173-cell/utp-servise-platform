@@ -47,6 +47,11 @@ const updateTechnicianSchema = z
   .strict()
   .refine((body) => Object.keys(body).length > 0);
 const userIdParams = z.object({ userId: z.string().uuid() });
+const technicianProfileBody = z.object({
+  experienceYears: z.number().int().min(0).max(70).nullable(),
+  bio: z.string().trim().max(2000),
+  certificates: z.array(z.string().trim().min(1).max(200)).max(20),
+}).strict();
 
 const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly body: T }).body;
@@ -69,6 +74,77 @@ const isForeignKeyViolation = (error: unknown): boolean =>
 export const createStaffRouter = (database: DatabaseClient): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
+
+  router.get(
+    "/staff/:userId/profile",
+    requireAuth,
+    validateRequest({ params: userIdParams }),
+    async (_request, response) => {
+      const userId = userIdOf(response);
+      const actor = getAuthenticatedUser(response);
+      const isSelf = actor.id === userId && actor.role === "TECHNICIAN";
+      const isAdmin = actor.role === "ADMIN";
+      const profile = await database.technicianProfile.findUnique({
+        where: { userId },
+        include: { user: { select: { id: true, displayName: true, avatarObjectId: true, role: true } } },
+      });
+      if (!profile || profile.user.role !== "TECHNICIAN")
+        throw new HttpError(404, "TECHNICIAN_PROFILE_NOT_FOUND", "Профиль мастера не найден.");
+      if (!profile.isVerified && !isSelf && !isAdmin)
+        throw new HttpError(404, "TECHNICIAN_PROFILE_NOT_FOUND", "Профиль мастера не найден.");
+
+      const [completedOrders, reviews, photos] = await Promise.all([
+        database.repairOrder.count({ where: { assignedTechnicianId: userId, status: "COMPLETED" } }),
+        database.review.findMany({
+          where: { isPublished: true, order: { assignedTechnicianId: userId, status: "COMPLETED" } },
+          select: { id: true, rating: true, comment: true, createdAt: true, customer: { select: { displayName: true } }, order: { select: { deviceType: true } } },
+          orderBy: { createdAt: "desc" }, take: 100,
+        }),
+        database.repairOrderPhoto.findMany({
+          where: { portfolioConsentAt: { not: null }, order: { assignedTechnicianId: userId, status: "COMPLETED" } },
+          select: { id: true, objectId: true, order: { select: { deviceType: true } } },
+          orderBy: { createdAt: "desc" }, take: 50,
+        }),
+      ]);
+      const rating = reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : null;
+      response.json({ profile: { ...profile, completedOrders, rating, reviews, works: photos.map(({ order, ...photo }) => ({ ...photo, deviceType: order.deviceType })) } });
+    },
+  );
+
+  router.put(
+    "/staff/:userId/profile",
+    requireAuth,
+    requireRoles("TECHNICIAN"),
+    validateRequest({ params: userIdParams, body: technicianProfileBody }),
+    async (_request, response) => {
+      const userId = userIdOf(response);
+      const actor = getAuthenticatedUser(response);
+      if (actor.id !== userId) throw new HttpError(403, "PROFILE_OWNER_REQUIRED", "Можно менять только собственный профиль.");
+      const input = bodyOf<z.infer<typeof technicianProfileBody>>(response);
+      const profile = await database.technicianProfile.upsert({
+        where: { userId },
+        create: { userId, ...input },
+        update: { ...input, isVerified: false, verifiedAt: null },
+      });
+      response.json({ profile });
+    },
+  );
+
+  router.patch(
+    "/staff/:userId/profile/verification",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: userIdParams, body: z.object({ isVerified: z.boolean() }).strict() }),
+    async (_request, response) => {
+      const userId = userIdOf(response);
+      const { isVerified } = bodyOf<{ isVerified: boolean }>(response);
+      const profile = await database.technicianProfile.update({
+        where: { userId },
+        data: { isVerified, verifiedAt: isVerified ? new Date() : null },
+      });
+      response.json({ profile });
+    },
+  );
 
   router.get(
     "/staff",

@@ -31,6 +31,7 @@ const craftOrderParams = z.object({ craftOrderId: z.string().uuid() });
 const bannerParams = z.object({ bannerId: z.string().uuid() });
 const reviewParams = z.object({ reviewId: z.string().uuid() });
 const orderParams = z.object({ orderId: z.string().uuid() });
+const orderPhotoConsentParams = z.object({ orderId: z.string().uuid(), photoId: z.string().uuid() });
 const intakePhotoParams = z.object({
   orderId: z.string().uuid(),
   side: z.enum(["front", "back", "left", "right"]),
@@ -38,6 +39,8 @@ const intakePhotoParams = z.object({
 
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
+const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
+  (response.locals.input as { readonly body: T }).body;
 
 const invalidMedia = (): never => {
   throw new HttpError(404, "IMAGE_NOT_FOUND", "Фотография не найдена.");
@@ -57,6 +60,32 @@ export const createMediaRouter = (
   const router = Router();
   const requireAuth = createRequireAuth(database);
   const allowedRoles = requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN");
+
+  router.patch(
+    "/orders/:orderId/photos/:photoId/portfolio-consent",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    validateRequest({
+      params: orderPhotoConsentParams,
+      body: z.object({ consent: z.boolean() }).strict(),
+    }),
+    async (_request, response) => {
+      const { orderId, photoId } = paramsOf<z.infer<typeof orderPhotoConsentParams>>(response);
+      const user = getAuthenticatedUser(response);
+      const order = await database.repairOrder.findFirst({
+        where: { id: orderId, customerId: user.id, status: "COMPLETED" },
+        select: { id: true },
+      });
+      if (!order) throw new HttpError(404, "ORDER_NOT_FOUND", "Завершённая заявка не найдена.");
+      const { consent } = bodyOf<{ consent: boolean }>(response);
+      const photo = await database.repairOrderPhoto.updateMany({
+        where: { id: photoId, orderId },
+        data: { portfolioConsentAt: consent ? new Date() : null },
+      });
+      if (!photo.count) throw new HttpError(404, "ORDER_PHOTO_NOT_FOUND", "Фото не найдено.");
+      response.json({ consent });
+    },
+  );
 
   router.post(
     "/media/avatar",

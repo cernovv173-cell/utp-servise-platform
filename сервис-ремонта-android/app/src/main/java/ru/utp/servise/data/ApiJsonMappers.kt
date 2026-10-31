@@ -41,6 +41,7 @@ internal fun JSONObject.toOrder(): RepairOrder {
         technicianName = technician?.optString("displayName").orEmpty(),
         technicianPhoneNumber = technician?.nullableString("phoneNumber"),
         technicianAvatarObjectId = technician?.nullableString("avatarObjectId"),
+        technicianId = technician?.nullableString("id"),
         hasReview = existingReview != null && existingReview.length() > 0,
         history = statusEvents.mapObjects { event ->
             val from = event.nullableString("from")
@@ -65,7 +66,7 @@ internal fun JSONObject.toOrder(): RepairOrder {
             )
         },
         photos = optJSONArray("photos").mapObjects { photo ->
-            RepairOrderPhoto(photo.getString("id"), photo.getString("objectId"))
+            RepairOrderPhoto(photo.getString("id"), photo.getString("objectId"), photo.nullableString("portfolioConsentAt"))
         },
         serviceNumber = nullableString("serviceNumber") ?: getString("id"),
         expectedCompletionAt = nullableString("expectedCompletionAt"),
@@ -595,6 +596,32 @@ internal fun JSONObject.toReview(): CustomerReview {
         isPublished = optBoolean("isPublished"),
         imageObjectId = nullableString("imageObjectId"),
         createdAt = optString("createdAt"),
+    )
+}
+
+internal fun JSONObject.toTechnicianProfile(): TechnicianProfile {
+    val user = optJSONObject("user") ?: JSONObject()
+    return TechnicianProfile(
+        userId = optString("userId"),
+        displayName = user.optString("displayName"),
+        avatarObjectId = user.nullableString("avatarObjectId"),
+        experienceYears = if (isNull("experienceYears")) null else optInt("experienceYears"),
+        bio = optString("bio"),
+        certificates = optJSONArray("certificates").strings(),
+        isVerified = optBoolean("isVerified"),
+        completedOrders = optInt("completedOrders"),
+        rating = if (isNull("rating")) null else optDouble("rating"),
+        works = optJSONArray("works").mapObjects { work ->
+            TechnicianWork(work.getString("id"), work.getString("objectId"), work.optString("deviceType"))
+        },
+        reviews = optJSONArray("reviews").mapObjects { review ->
+            TechnicianProfileReview(
+                id = review.getString("id"), rating = review.getInt("rating"),
+                comment = review.optString("comment"), createdAt = review.optString("createdAt"),
+                customerName = review.optJSONObject("customer")?.optString("displayName").orEmpty(),
+                deviceType = review.optJSONObject("order")?.optString("deviceType").orEmpty(),
+            )
+        },
     )
 }
 

@@ -175,6 +175,7 @@ model User {
   repairChatReadReceipts  OrderChatAdminRead[]           @relation("RepairChatReadAdministrator")
   pushDeviceTokens        PushDeviceToken[]
   orderPhotos             RepairOrderPhoto[]
+  technicianProfile       TechnicianProfile?
   createdIntakes          RepairOrderIntake[]            @relation("IntakeCreator")
   updatedIntakes          RepairOrderIntake[]            @relation("IntakeUpdater")
   issuedRepairWarranties  RepairWarranty[]               @relation("WarrantyIssuer")
@@ -454,11 +455,26 @@ model RepairOrderPhoto {
   objectId    String      @unique @map("object_id") @db.VarChar(255)
   createdById String?     @map("created_by_id") @db.Uuid
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  portfolioConsentAt DateTime? @map("portfolio_consent_at") @db.Timestamptz(3)
   order       RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
   createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([orderId, createdAt])
   @@map("repair_order_photos")
+}
+
+model TechnicianProfile {
+  userId          String   @id @map("user_id") @db.Uuid
+  experienceYears Int?     @map("experience_years") @db.SmallInt
+  bio             String   @default("") @db.VarChar(2000)
+  certificates    Json     @default("[]")
+  isVerified      Boolean  @default(false) @map("is_verified")
+  verifiedAt      DateTime? @map("verified_at") @db.Timestamptz(3)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("technician_profiles")
 }
 
 model RepairOrderIntake {
