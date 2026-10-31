@@ -50,17 +50,10 @@ fun TechnologyFactCard(fact: TechnologyFact) {
                 Text("Источник: ${fact.sourceName}")
             }
             Text(
-                "Следующий факт — около ${formatFactTime(fact.nextUpdateAt)} · обновление каждые 2 часа",
+                "При следующем открытии приложения появится другой факт. Карточка также обновляется автоматически.",
                 fontSize = 11.sp,
                 color = UtpMuted,
             )
         }
     }
 }
-
-private fun formatFactTime(value: String): String =
-    runCatching {
-        java.time.Instant.parse(value)
-            .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-    }.getOrDefault(value)

@@ -5,11 +5,6 @@ import { SectionCard } from "@/components/app-shell";
 import type { TechnologyFact } from "@/lib/api";
 
 export const TechnologyFactCard = ({ fact }: { fact: TechnologyFact }) => {
-  const nextUpdateTime = new Intl.DateTimeFormat("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(fact.nextUpdateAt));
-
   return (
     <section aria-label="Факт о компьютерных технологиях" aria-live="polite" aria-atomic="true">
       <SectionCard className="mb-5 border-amber-200 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/20">
@@ -35,7 +30,8 @@ export const TechnologyFactCard = ({ fact }: { fact: TechnologyFact }) => {
                 Источник: {fact.sourceName}
               </a>
               <p className="text-slate-500 dark:text-slate-400">
-                Следующий факт — около {nextUpdateTime} · обновление каждые 2 часа
+                Обновите страницу, чтобы увидеть другой факт; карточка также обновляется каждые 2
+                часа.
               </p>
             </div>
           </div>

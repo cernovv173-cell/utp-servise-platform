@@ -35,11 +35,11 @@ server-bound Mail.ru application credentials (`MAIL_RU_EMAIL` and `MAIL_RU_APP_P
 implicit TLS on SMTP port 465. These credentials are assigned only to the API. Reset links are
 restricted to origins in `WEB_APP_ORIGIN` and lead to the web `/reset-password` screen.
 
-The public landing pages on Web and Android load only the curated technology fact from
-`GET /public/technology-fact`; it includes a source link and the next UTC update time. The
-endpoint does not expose news articles, reviews, or user data. The authenticated `GET /news`
-response also contains the same fact for signed-in home screens. The shared fact rotates every
-two hours without a background job or database writes.
+`GET /public/technology-fact` exposes only a curated technology fact and its source; it does not
+expose news articles, reviews, or user data. Authenticated `GET /news` also returns a fact for the
+signed-in home screen. Clients pass the previously shown `previousFactId` to receive the next fact
+on a page/app refresh. Both routes share the same curated list; selection is stateless and creates
+no database records.
 
 Customer registration accepts an optional referral code from Web, Android, or Yandex/VK signup.
 After the invited customer's first repair is completed and an administrator confirms its receipt as
@@ -301,11 +301,12 @@ still the current Moscow date. Neither the card nor the date is exposed to
 other users.
 
 Every authenticated `GET /news` response also includes a source-linked
-`technologyFact`. The API selects from a curated fact list in a shared UTC
-two-hour interval and returns `updatedAt` and `nextUpdateAt`, so Web and Android
-show the same fact and can refresh at its next boundary. This rotation is
-derived from the current time; it does not create database records, run a
-background job, send push notifications, or fetch live technology news.
+`technologyFact`. Web and Android use the same curated list and pass the last
+shown `previousFactId` when they load the feed, so the next fact differs from
+the one previously displayed. The API still returns `updatedAt` and
+`nextUpdateAt` for the existing two-hour automatic refresh. Selection is
+stateless: it does not create database records, run a background job, send push
+notifications, or fetch live technology news.
 
 # Customer visit requests and service operations
 

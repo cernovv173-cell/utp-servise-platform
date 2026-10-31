@@ -1025,13 +1025,16 @@ export const removeRepairOrderItem = (token: string, orderId: string, itemId: st
     method: "DELETE",
   });
 
-export const getNews = (token: string, signal?: AbortSignal) =>
-  apiRequest<{
+export const getNews = (token: string, signal?: AbortSignal, previousFactId?: string) => {
+  const query = previousFactId ? `?previousFactId=${encodeURIComponent(previousFactId)}` : "";
+
+  return apiRequest<{
     articles: NewsArticle[];
     reviews: Review[];
     birthdayGreeting: PersonalBirthdayGreeting | null;
     technologyFact: TechnologyFact;
-  }>("/news", token, { signal });
+  }>(`/news${query}`, token, { signal });
+};
 
 export const getPublicTechnologyFact = (signal?: AbortSignal) =>
   apiRequest<{ technologyFact: TechnologyFact }>("/public/technology-fact", null, { signal });

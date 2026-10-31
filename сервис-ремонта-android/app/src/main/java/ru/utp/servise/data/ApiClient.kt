@@ -369,8 +369,12 @@ object ApiClient {
         MediaApiClient.binaryRequest("POST", "/craft-orders/$orderId/chat/image", token, image)
     }
 
-    fun news(token: String): NewsFeed {
-        val response = request("GET", "/news", token)
+    fun news(token: String, previousFactId: String? = null): NewsFeed {
+        val query = previousFactId
+            ?.takeIf(String::isNotBlank)
+            ?.let { "?previousFactId=${URLEncoder.encode(it, Charsets.UTF_8.name())}" }
+            .orEmpty()
+        val response = request("GET", "/news$query", token)
         val now = java.time.Instant.now()
         val birthdayGreeting = response.optJSONObject("birthdayGreeting")?.let { greeting ->
             val startsAt = greeting.nullableString("startsAt")
@@ -400,9 +404,15 @@ object ApiClient {
         return NewsFeed(articles = articles, technologyFact = technologyFact)
     }
 
-    fun publicTechnologyFact(): TechnologyFact = request(
-        "GET", "/public/technology-fact",
-    ).getJSONObject("technologyFact").toTechnologyFact()
+    fun publicTechnologyFact(previousFactId: String? = null): TechnologyFact {
+        val query = previousFactId
+            ?.takeIf(String::isNotBlank)
+            ?.let { "?previousFactId=${URLEncoder.encode(it, Charsets.UTF_8.name())}" }
+            .orEmpty()
+        return request("GET", "/public/technology-fact$query")
+            .getJSONObject("technologyFact")
+            .toTechnologyFact()
+    }
 
     fun publicReviews(): List<PublicReview> = request("GET", "/public/reviews")
         .getJSONArray("reviews")

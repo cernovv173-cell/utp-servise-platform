@@ -14,7 +14,7 @@ import {
   getMoscowBirthdayDate,
   getMoscowBirthdayDayWindow,
 } from "../notifications/birthday-time.js";
-import { getCurrentTechnologyFact } from "./technology-facts.js";
+import { getNextTechnologyFact } from "./technology-facts.js";
 
 const scheduleNewsPush = async (
   database: Pick<DatabaseClient, "newsPushDelivery">,
@@ -87,17 +87,27 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
 
-  router.get("/public/technology-fact", (_request, response) => {
-    response.json({ technologyFact: getCurrentTechnologyFact() });
+  router.get("/public/technology-fact", (request, response) => {
+    response.setHeader("Cache-Control", "no-store");
+    const previousFactId =
+      typeof request.query.previousFactId === "string"
+        ? request.query.previousFactId
+        : undefined;
+    response.json({ technologyFact: getNextTechnologyFact(previousFactId) });
   });
 
   router.get(
     "/news",
     requireAuth,
     requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
-    async (_request, response) => {
+    async (request, response) => {
+      response.setHeader("Cache-Control", "no-store");
       const user = getAuthenticatedUser(response);
       const now = new Date();
+      const previousFactId =
+        typeof request.query.previousFactId === "string"
+          ? request.query.previousFactId
+          : undefined;
       const articles = await database.newsArticle.findMany({
         where:
           user.role === "ADMIN"
@@ -145,7 +155,7 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
         articles,
         reviews,
         birthdayGreeting,
-        technologyFact: getCurrentTechnologyFact(now),
+        technologyFact: getNextTechnologyFact(previousFactId, now),
       });
     },
   );

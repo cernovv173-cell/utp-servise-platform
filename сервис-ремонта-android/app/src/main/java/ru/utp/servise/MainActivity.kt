@@ -52,6 +52,7 @@ import ru.utp.servise.data.CustomerOffer
 import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.TechnologyFact
+import ru.utp.servise.data.TechnologyFactStore
 import ru.utp.servise.data.LoyaltyAccount
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.PushTokenManager
@@ -109,6 +110,7 @@ private fun UtpServiseApp(
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val tokenStore = remember { SessionStore(context) }
+    val technologyFactStore = remember(context) { TechnologyFactStore(context) }
     var token by remember { mutableStateOf("") }
     var user by remember { mutableStateOf<AppUser?>(null) }
     var sessionReady by remember { mutableStateOf(false) }
@@ -216,7 +218,10 @@ private fun UtpServiseApp(
                             supportChats = emptyList(),
                         )
                     } else {
-                        val newsFeed = ApiClient.news(token)
+                        val newsFeed = ApiClient.news(
+                            token,
+                            technologyFactStore.previousFactId(),
+                        )
                         WorkspaceData(
                             orders = ApiClient.orders(token, archived = false) +
                                 ApiClient.orders(token, archived = true),
@@ -252,7 +257,12 @@ private fun UtpServiseApp(
                 craftItems = data.craftItems
                 craftOrders = data.craftOrders
                 news = data.news
-                technologyFact = data.technologyFact
+                if (technologyFact == null) {
+                    data.technologyFact?.let { fact ->
+                        technologyFact = fact
+                        technologyFactStore.rememberFact(fact.id)
+                    }
+                }
                 banners = data.banners
                 loyalty = data.loyalty
                 referralProgram = data.referralProgram
@@ -277,12 +287,15 @@ private fun UtpServiseApp(
 
         while (true) {
             try {
-                val feed = withContext(Dispatchers.IO) { ApiClient.news(token) }
+                val feed = withContext(Dispatchers.IO) {
+                    ApiClient.news(token, technologyFactStore.previousFactId())
+                }
                 val refreshedFact = feed.technologyFact
                 if (refreshedFact != null) {
                     news = feed.articles
-                    if (refreshedFact.updatedAt != currentFact.updatedAt) {
+                    if (refreshedFact.id != currentFact.id) {
                         technologyFact = refreshedFact
+                        technologyFactStore.rememberFact(refreshedFact.id)
                         return@LaunchedEffect
                     }
                 }

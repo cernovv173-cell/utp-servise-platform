@@ -11,11 +11,12 @@ import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-ho
 import { GuidesSection } from "@/features/guides/guides-section";
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
 import { TechnologyFactCard } from "@/features/news/technology-fact-card";
+import { getNewsWithNextTechnologyFact } from "@/features/news/technology-fact-query";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { PublicHome } from "@/features/public/public-home";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 
-import { getBanners, getNews, getOrders } from "@/lib/api";
+import { getBanners, getOrders } from "@/lib/api";
 
 const HomePage = () => {
   const { ready, token, user } = useAuth();
@@ -26,8 +27,9 @@ const HomePage = () => {
   });
   const news = useQuery({
     queryKey: ["news", token],
-    queryFn: ({ signal }) => getNews(token!, signal),
+    queryFn: ({ signal }) => getNewsWithNextTechnologyFact(token!, signal),
     enabled: Boolean(token),
+    refetchOnMount: "always",
     refetchInterval: (currentQuery) => {
       const nextUpdateAt = currentQuery.state.data?.technologyFact?.nextUpdateAt;
       if (!nextUpdateAt) return false;

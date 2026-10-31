@@ -249,9 +249,19 @@ test("only administrators write news and customer-facing reads exclude drafts", 
     `${baseUrl.replace(/\/news$/u, "")}/public/technology-fact`,
   );
   assert.equal(publicFactResponse.status, 200);
+  assert.equal(publicFactResponse.headers.get("cache-control"), "no-store");
   const publicFactBody = await publicFactResponse.json();
   assert.ok(publicFactBody.technologyFact.title);
   assert.ok(publicFactBody.technologyFact.sourceUrl.startsWith("https://"));
+  const nextPublicFactResponse = await fetch(
+    `${baseUrl.replace(/\/news$/u, "")}/public/technology-fact?previousFactId=${publicFactBody.technologyFact.id}`,
+  );
+  const nextPublicFactBody = await nextPublicFactResponse.json();
+  assert.equal(nextPublicFactResponse.status, 200);
+  assert.notEqual(
+    nextPublicFactBody.technologyFact.id,
+    publicFactBody.technologyFact.id,
+  );
   assert.equal(
     Date.parse(publicFactBody.technologyFact.nextUpdateAt) -
       Date.parse(publicFactBody.technologyFact.updatedAt),
@@ -260,11 +270,16 @@ test("only administrators write news and customer-facing reads exclude drafts", 
   assert.equal("articles" in publicFactBody, false);
   assert.equal("reviews" in publicFactBody, false);
 
-  const customerNews = await fetch(baseUrl, {
-    headers: headers(customerToken),
-  });
+  const customerNews = await fetch(
+    `${baseUrl}?previousFactId=line-mode-browser`,
+    {
+      headers: headers(customerToken),
+    },
+  );
   assert.equal(customerNews.status, 200);
+  assert.equal(customerNews.headers.get("cache-control"), "no-store");
   const customerNewsBody = await customerNews.json();
+  assert.equal(customerNewsBody.technologyFact.id, "battery-charge-cycle");
   assert.ok(customerNewsBody.technologyFact.title);
   assert.ok(customerNewsBody.technologyFact.sourceUrl.startsWith("https://"));
   assert.equal(

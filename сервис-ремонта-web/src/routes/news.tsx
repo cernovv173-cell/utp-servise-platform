@@ -8,15 +8,16 @@ import { NewsAdmin } from "@/features/admin/news-admin";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { BirthdayGreetingCard } from "@/features/news/birthday-greeting-card";
-
-import { getNews } from "@/lib/api";
+import { TechnologyFactCard } from "@/features/news/technology-fact-card";
+import { getNewsWithNextTechnologyFact } from "@/features/news/technology-fact-query";
 
 const NewsPage = () => {
   const { token, user } = useAuth();
   const query = useQuery({
     queryKey: ["news", token],
-    queryFn: ({ signal }) => getNews(token!, signal),
+    queryFn: ({ signal }) => getNewsWithNextTechnologyFact(token!, signal),
     enabled: Boolean(token),
+    refetchOnMount: "always",
     refetchInterval: (currentQuery) => {
       const nextUpdateAt = currentQuery.state.data?.technologyFact?.nextUpdateAt;
       if (!nextUpdateAt) return false;
@@ -43,6 +44,7 @@ const NewsPage = () => {
       {query.data?.birthdayGreeting && (
         <BirthdayGreetingCard greeting={query.data.birthdayGreeting} />
       )}
+      {query.data?.technologyFact && <TechnologyFactCard fact={query.data.technologyFact} />}
       <div className="grid gap-4 md:grid-cols-2">
         {(query.data?.articles ?? [])
           .filter((item) => item.isPublished)

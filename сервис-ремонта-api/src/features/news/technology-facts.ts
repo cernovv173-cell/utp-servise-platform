@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 export const technologyFactRotationIntervalMilliseconds = 2 * 60 * 60 * 1_000;
 
 type TechnologyFactEntry = {
@@ -114,22 +116,59 @@ const technologyFacts: TechnologyFactEntry[] = [
     sourceName: "CERN",
     sourceUrl: "https://home.cern/why-bring-back-line-mode-browser/",
   },
+  {
+    id: "battery-charge-cycle",
+    title: "Цикл аккумулятора складывается из расхода заряда",
+    content:
+      "Цикл батареи iPhone — это суммарный расход 100% её ёмкости, не обязательно за одну зарядку. Например, расход 75% в один день и ещё 25% на следующий в сумме составляют один цикл.",
+    sourceName: "Apple Support — циклы зарядки iPhone",
+    sourceUrl:
+      "https://support.apple.com/en-ie/guide/iphone/iph63eecc618/27/ios/27",
+  },
+  {
+    id: "usb-c-is-a-connector",
+    title: "USB‑C — это разъём, а не гарантия скорости",
+    content:
+      "Форма USB‑C сама по себе не задаёт скорость передачи данных или мощность зарядки. Например, кабель USB 2.0 с разъёмом USB‑C поддерживает передачу до 480 Мбит/с; возможности зависят от кабеля и подключённых устройств.",
+    sourceName: "USB Implementers Forum — USB Type‑C guidelines",
+    sourceUrl:
+      "https://www.usb.org/sites/default/files/usb_type-c_language_product_and_packaging_guidelines_20230320.pdf",
+  },
+  {
+    id: "water-resistance-wears",
+    title: "Влагозащита телефона может ослабнуть со временем",
+    content:
+      "Apple отмечает, что защита iPhone от воды и пыли не является постоянной и может снижаться при обычном износе. Указанный рейтинг проверяют в контролируемых лабораторных условиях.",
+    sourceName: "Apple Support — защита iPhone от воды и пыли",
+    sourceUrl: "https://support.apple.com/en-in/108039",
+  },
+  {
+    id: "backup-321",
+    title: "Правило резервного копирования 3‑2‑1",
+    content:
+      "Для важных данных рекомендуют хранить три копии (основную и две резервные), использовать два разных типа носителей и держать одну копию отдельно от основного места хранения.",
+    sourceName: "CISA — Data Backup Options",
+    sourceUrl:
+      "https://www.cisa.gov/sites/default/files/publications/data_backup_options.pdf",
+  },
 ];
 
-export const getCurrentTechnologyFact = (
+export const getNextTechnologyFact = (
+  previousFactId?: string,
   now: Date = new Date(),
 ): TechnologyFact => {
-  const currentSlot = Math.floor(
-    now.getTime() / technologyFactRotationIntervalMilliseconds,
+  const previousIndex = technologyFacts.findIndex(
+    (fact) => fact.id === previousFactId,
   );
   const factIndex =
-    ((currentSlot % technologyFacts.length) + technologyFacts.length) %
-    technologyFacts.length;
-  const updatedAt = currentSlot * technologyFactRotationIntervalMilliseconds;
+    previousIndex < 0
+      ? randomInt(technologyFacts.length)
+      : (previousIndex + 1) % technologyFacts.length;
+  const updatedAt = now.getTime();
 
   return {
     ...technologyFacts[factIndex]!,
-    updatedAt: new Date(updatedAt).toISOString(),
+    updatedAt: now.toISOString(),
     nextUpdateAt: new Date(
       updatedAt + technologyFactRotationIntervalMilliseconds,
     ).toISOString(),
