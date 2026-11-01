@@ -32,7 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.firebase.FirebaseApp
 import com.google.android.gms.tasks.Tasks
-import com.google.firebase.messaging.FirebaseMessaging
 import com.vk.id.VKID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -398,7 +397,7 @@ private fun UtpServiseApp(
                     withContext(Dispatchers.IO) {
                         runCatching {
                             if (FirebaseApp.getApps(context).isNotEmpty()) {
-                                val pushToken = Tasks.await(FirebaseMessaging.getInstance().token)
+                                val pushToken = Tasks.await(PushTokenManager.fetchToken())
                                 ApiClient.unregisterPushToken(activeToken, pushToken)
                             }
                         }

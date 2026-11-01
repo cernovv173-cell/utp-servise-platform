@@ -20,6 +20,9 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
         NotificationChannels.ensureCreated(this)
     }
 
+    // Метод помечен устаревшим в библиотеке firebase-messaging. Переход на его замену нужно
+    // проверить на устройстве, поэтому пока он оставлен без изменений.
+    @Suppress("OVERRIDE_DEPRECATION")
     override fun onNewToken(token: String) {
         if (FirebaseApp.getApps(this).isEmpty()) return
         val sessionToken = runCatching { SessionStore(applicationContext).readToken() }
