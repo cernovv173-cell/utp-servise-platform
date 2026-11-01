@@ -31,7 +31,11 @@ import { Route as SalaryRouteImport } from './routes/salary'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as YandexTokenRouteImport } from './routes/yandex-token'
+import { Route as AdminApkRouteImport } from './routes/admin.apk'
+import { Route as AdminCompanyRouteImport } from './routes/admin.company'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminLoyaltyRouteImport } from './routes/admin.loyalty'
+import { Route as AdminOffersRouteImport } from './routes/admin.offers'
 import { Route as AdminOrderEditingRouteImport } from './routes/admin.order-editing'
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminOverviewRouteImport } from './routes/admin.overview'
@@ -39,6 +43,7 @@ import { Route as AdminProcurementRouteImport } from './routes/admin.procurement
 import { Route as AdminScheduleRouteImport } from './routes/admin.schedule'
 import { Route as AdminSeasonalRouteImport } from './routes/admin.seasonal'
 import { Route as AdminShopOrdersRouteImport } from './routes/admin.shop-orders'
+import { Route as AdminStaffRouteImport } from './routes/admin.staff'
 import { Route as GuidesPrepareLaptopRouteImport } from './routes/guides.prepare-laptop'
 import { Route as GuidesThermalPasteRouteImport } from './routes/guides.thermal-paste'
 import { Route as GuidesWhatToBringRouteImport } from './routes/guides.what-to-bring'
@@ -156,9 +161,29 @@ const YandexTokenRoute = YandexTokenRouteImport.update({
   path: '/yandex-token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminApkRoute = AdminApkRouteImport.update({
+  id: '/apk',
+  path: '/apk',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCompanyRoute = AdminCompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminLoyaltyRoute = AdminLoyaltyRouteImport.update({
+  id: '/loyalty',
+  path: '/loyalty',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminOffersRoute = AdminOffersRouteImport.update({
+  id: '/offers',
+  path: '/offers',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminOrderEditingRoute = AdminOrderEditingRouteImport.update({
@@ -194,6 +219,11 @@ const AdminSeasonalRoute = AdminSeasonalRouteImport.update({
 const AdminShopOrdersRoute = AdminShopOrdersRouteImport.update({
   id: '/shop-orders',
   path: '/shop-orders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminStaffRoute = AdminStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
   getParentRoute: () => AdminRoute,
 } as any)
 const GuidesPrepareLaptopRoute = GuidesPrepareLaptopRouteImport.update({
@@ -250,7 +280,11 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
+  '/admin/apk': typeof AdminApkRoute
+  '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/loyalty': typeof AdminLoyaltyRoute
+  '/admin/offers': typeof AdminOffersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
@@ -258,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
   '/guides/thermal-paste': typeof GuidesThermalPasteRoute
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
@@ -288,7 +323,11 @@ export interface FileRoutesByTo {
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
+  '/admin/apk': typeof AdminApkRoute
+  '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/loyalty': typeof AdminLoyaltyRoute
+  '/admin/offers': typeof AdminOffersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
@@ -296,6 +335,7 @@ export interface FileRoutesByTo {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
   '/guides/thermal-paste': typeof GuidesThermalPasteRoute
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
@@ -327,7 +367,11 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/yandex-token': typeof YandexTokenRoute
+  '/admin/apk': typeof AdminApkRoute
+  '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/loyalty': typeof AdminLoyaltyRoute
+  '/admin/offers': typeof AdminOffersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
@@ -335,6 +379,7 @@ export interface FileRoutesById {
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
+  '/admin/staff': typeof AdminStaffRoute
   '/guides/prepare-laptop': typeof GuidesPrepareLaptopRoute
   '/guides/thermal-paste': typeof GuidesThermalPasteRoute
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
@@ -367,7 +412,11 @@ export interface FileRouteTypes {
     | '/shop'
     | '/support'
     | '/yandex-token'
+    | '/admin/apk'
+    | '/admin/company'
     | '/admin/customers'
+    | '/admin/loyalty'
+    | '/admin/offers'
     | '/admin/order-editing'
     | '/admin/orders'
     | '/admin/overview'
@@ -375,6 +424,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
+    | '/admin/staff'
     | '/guides/prepare-laptop'
     | '/guides/thermal-paste'
     | '/guides/what-to-bring'
@@ -405,7 +455,11 @@ export interface FileRouteTypes {
     | '/shop'
     | '/support'
     | '/yandex-token'
+    | '/admin/apk'
+    | '/admin/company'
     | '/admin/customers'
+    | '/admin/loyalty'
+    | '/admin/offers'
     | '/admin/order-editing'
     | '/admin/orders'
     | '/admin/overview'
@@ -413,6 +467,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
+    | '/admin/staff'
     | '/guides/prepare-laptop'
     | '/guides/thermal-paste'
     | '/guides/what-to-bring'
@@ -443,7 +498,11 @@ export interface FileRouteTypes {
     | '/shop'
     | '/support'
     | '/yandex-token'
+    | '/admin/apk'
+    | '/admin/company'
     | '/admin/customers'
+    | '/admin/loyalty'
+    | '/admin/offers'
     | '/admin/order-editing'
     | '/admin/orders'
     | '/admin/overview'
@@ -451,6 +510,7 @@ export interface FileRouteTypes {
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
+    | '/admin/staff'
     | '/guides/prepare-laptop'
     | '/guides/thermal-paste'
     | '/guides/what-to-bring'
@@ -641,11 +701,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof YandexTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/apk': {
+      id: '/admin/apk'
+      path: '/apk'
+      fullPath: '/admin/apk'
+      preLoaderRoute: typeof AdminApkRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/company': {
+      id: '/admin/company'
+      path: '/company'
+      fullPath: '/admin/company'
+      preLoaderRoute: typeof AdminCompanyRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/customers': {
       id: '/admin/customers'
       path: '/customers'
       fullPath: '/admin/customers'
       preLoaderRoute: typeof AdminCustomersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/loyalty': {
+      id: '/admin/loyalty'
+      path: '/loyalty'
+      fullPath: '/admin/loyalty'
+      preLoaderRoute: typeof AdminLoyaltyRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/offers': {
+      id: '/admin/offers'
+      path: '/offers'
+      fullPath: '/admin/offers'
+      preLoaderRoute: typeof AdminOffersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/order-editing': {
@@ -695,6 +783,13 @@ declare module '@tanstack/react-router' {
       path: '/shop-orders'
       fullPath: '/admin/shop-orders'
       preLoaderRoute: typeof AdminShopOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/staff': {
+      id: '/admin/staff'
+      path: '/staff'
+      fullPath: '/admin/staff'
+      preLoaderRoute: typeof AdminStaffRouteImport
       parentRoute: typeof AdminRoute
     }
     '/guides/prepare-laptop': {
@@ -755,7 +850,11 @@ const AdminOrdersRouteWithChildren = AdminOrdersRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminApkRoute: typeof AdminApkRoute
+  AdminCompanyRoute: typeof AdminCompanyRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminLoyaltyRoute: typeof AdminLoyaltyRoute
+  AdminOffersRoute: typeof AdminOffersRoute
   AdminOrderEditingRoute: typeof AdminOrderEditingRoute
   AdminOrdersRoute: typeof AdminOrdersRouteWithChildren
   AdminOverviewRoute: typeof AdminOverviewRoute
@@ -763,10 +862,15 @@ interface AdminRouteChildren {
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSeasonalRoute: typeof AdminSeasonalRoute
   AdminShopOrdersRoute: typeof AdminShopOrdersRoute
+  AdminStaffRoute: typeof AdminStaffRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminApkRoute: AdminApkRoute,
+  AdminCompanyRoute: AdminCompanyRoute,
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminLoyaltyRoute: AdminLoyaltyRoute,
+  AdminOffersRoute: AdminOffersRoute,
   AdminOrderEditingRoute: AdminOrderEditingRoute,
   AdminOrdersRoute: AdminOrdersRouteWithChildren,
   AdminOverviewRoute: AdminOverviewRoute,
@@ -774,6 +878,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminScheduleRoute: AdminScheduleRoute,
   AdminSeasonalRoute: AdminSeasonalRoute,
   AdminShopOrdersRoute: AdminShopOrdersRoute,
+  AdminStaffRoute: AdminStaffRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)

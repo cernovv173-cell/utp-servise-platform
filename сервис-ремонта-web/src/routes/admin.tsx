@@ -3,11 +3,7 @@ import { Outlet, createFileRoute, useRouterState } from "@tanstack/react-router"
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { AdminSectionLinks } from "@/features/admin/admin-section-links";
-import { AndroidApkManagement } from "@/features/admin/android-apk-management";
-import { CompanyAdmin } from "@/features/admin/company-admin";
-import { CustomerOffersManagement } from "@/features/admin/customer-offers-management";
-import { LoyaltyManagement } from "@/features/admin/loyalty-management";
-import { StaffManagement } from "@/features/admin/staff-management";
+import { AdminToolLinks } from "@/features/admin/admin-tool-links";
 import { useAuth } from "@/features/auth/auth-context";
 
 const AdminPage = () => {
@@ -30,11 +26,7 @@ const AdminPage = () => {
       ) : (
         <div className="grid gap-6">
           <AdminSectionLinks />
-          <AndroidApkManagement />
-          <CustomerOffersManagement />
-          <StaffManagement />
-          <LoyaltyManagement />
-          <CompanyAdmin />
+          <AdminToolLinks />
         </div>
       )}
     </AppShell>
