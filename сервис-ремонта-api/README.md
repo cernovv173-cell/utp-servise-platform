@@ -41,11 +41,12 @@ signed-in home screen. Clients pass the previously shown `previousFactId` to rec
 on a page/app refresh. Both routes share the same curated list; selection is stateless and creates
 no database records.
 
-Customer registration accepts an optional referral code from Web, Android, or Yandex/VK signup.
-After the invited customer's first repair is completed and an administrator confirms its receipt as
-paid, the same transaction records 100 personal bonus points for both customers and marks the
-referral rewarded. A conditional status claim and unique referral/customer ledger key prevent repeat
-rewards; registration alone never awards points.
+Customer registration accepts an optional one-use referral code from Web, Android, or Yandex/VK
+signup. Each active customer can issue three codes, valid for six calendar months. After the invited
+customer's first repair is completed and an administrator confirms its receipt as paid, the same
+transaction records 250 personal bonus points for both customers and marks the referral rewarded. A
+conditional status claim and unique referral/customer ledger key prevent repeat rewards; registration
+alone never awards points.
 
 Startup diagnostics identify invalid configuration fields and sanitize other error messages without
 printing configuration values. Run `pnpm test` for configuration and diagnostic regressions.
@@ -218,14 +219,17 @@ when the administrator confirms the repair payment and awards 10% of the remaini
 
 ## Customer referrals
 
-Each customer receives a unique referral code. `GET /referrals/me` returns the code, totals, and up to
-50 recent invitations; legacy accounts receive a code on first access. Public registration may
-include `referralCode`, which links the new customer to one active customer inviter. When an
-administrator confirms payment for the referred customer's first completed repair, the same database
-transaction marks the referral rewarded and records two 100-point `REFERRAL_REWARD` ledger entries with a
-referral-specific reason.
-Registration, craft orders, repeated payment confirmation, and later repairs do not issue another
-referral reward. Points remain non-cash loyalty points and follow the existing repair-redemption cap.
+Each active customer receives three personal, one-use referral codes. `GET /referrals/me` returns the
+codes, their issue and expiry dates, status, totals, and up to 50 recent invitations. Codes expire six
+calendar months after first issue; an unused legacy code is retained as the first code, and the other
+two are created at the same time. Public registration may include `referralCode`; it is claimed
+atomically and linked to the new account, so it cannot be reused or applied to an existing account.
+When an administrator confirms payment for the referred customer's first completed repair, the same
+database transaction marks the referral rewarded and records two 250-point `REFERRAL_REWARD` ledger
+entries with referral-specific reasons.
+Registration alone, craft orders, repeated payment confirmation, and later repairs do not issue
+another referral reward. Referral points remain non-cash loyalty points and follow the existing
+repair-redemption cap.
 
 ## Intake, work orders, and customer pickup
 

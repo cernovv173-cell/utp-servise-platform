@@ -7,7 +7,7 @@ import {
 } from "../src/features/referrals/referral-rewards.js";
 import type { Prisma } from "../src/generated/prisma/client.js";
 
-test("first paid repair awards 100 points to both customers only once", async () => {
+test("first paid repair awards 250 points to both customers only once", async () => {
   let status: "PENDING" | "REWARDED" = "PENDING";
   const transactions: Array<Record<string, unknown>> = [];
   const transaction = {

@@ -7,8 +7,12 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
-import { isUniqueViolation } from "../auth/session.js";
-import { generateReferralCode } from "./referral-code.js";
+import { ensureCustomerReferralCodes } from "./customer-referral-codes.js";
+import {
+  REFERRAL_CODE_COUNT,
+  REFERRAL_CODE_VALIDITY_MONTHS,
+} from "./referral-code.js";
+import { REFERRAL_REWARD_POINTS } from "./referral-rewards.js";
 
 export const createReferralRouter = (database: DatabaseClient): Router => {
   const router = Router();
@@ -20,38 +24,48 @@ export const createReferralRouter = (database: DatabaseClient): Router => {
     requireRoles("CUSTOMER"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
-      let referralCode = (
-        await database.user.findUnique({
-          where: { id: user.id },
-          select: { referralCode: true },
-        })
-      )?.referralCode;
-
-      for (let attempt = 0; !referralCode && attempt < 5; attempt += 1) {
-        const candidate = generateReferralCode();
-        try {
-          await database.user.updateMany({
-            where: { id: user.id, referralCode: null },
-            data: { referralCode: candidate },
-          });
-        } catch (error) {
-          if (!isUniqueViolation(error)) throw error;
-        }
-        referralCode = (
-          await database.user.findUnique({
-            where: { id: user.id },
-            select: { referralCode: true },
-          })
-        )?.referralCode;
-      }
-
-      if (!referralCode) {
+      const codes = await database.$transaction((transaction) =>
+        ensureCustomerReferralCodes(transaction, user.id),
+      );
+      const primaryCode = codes.find(({ slot }) => slot === 1);
+      if (!primaryCode) {
         throw new HttpError(
           503,
           "REFERRAL_CODE_UNAVAILABLE",
           "Не удалось подготовить ссылку приглашения. Попробуйте позже.",
         );
       }
+
+      const codeDetails = await database.customerReferralCode.findMany({
+        where: { ownerId: user.id },
+        orderBy: { slot: "asc" },
+        select: {
+          id: true,
+          slot: true,
+          code: true,
+          issuedAt: true,
+          expiresAt: true,
+          claimedAt: true,
+          referral: {
+            select: {
+              id: true,
+              status: true,
+              createdAt: true,
+              rewardedAt: true,
+            },
+          },
+        },
+      });
+      const legacyReferral = await database.customerReferral.findFirst({
+        where: {
+          referrerId: user.id,
+          promoCodeId: null,
+          createdAt: { gte: primaryCode.issuedAt },
+        },
+        orderBy: { createdAt: "asc" },
+        select: { id: true, status: true, createdAt: true, rewardedAt: true },
+      });
+      const now = new Date();
 
       const [totalInvites, pendingCount, rewardedCount, referrals] =
         await Promise.all([
@@ -76,7 +90,29 @@ export const createReferralRouter = (database: DatabaseClient): Router => {
         ]);
 
       response.json({
-        referralCode,
+        referralCode: primaryCode.code,
+        codes: codeDetails.map((code) => {
+          const referral =
+            code.referral ?? (code.slot === 1 ? legacyReferral : null);
+          const status = referral
+            ? referral.status
+            : code.claimedAt
+              ? "USED"
+              : code.expiresAt <= now
+                ? "EXPIRED"
+                : "AVAILABLE";
+          return {
+            id: code.id,
+            slot: code.slot,
+            code: code.code,
+            issuedAt: code.issuedAt,
+            expiresAt: code.expiresAt,
+            status,
+          };
+        }),
+        codeCount: REFERRAL_CODE_COUNT,
+        validityMonths: REFERRAL_CODE_VALIDITY_MONTHS,
+        rewardPoints: REFERRAL_REWARD_POINTS,
         totalInvites,
         pendingCount,
         rewardedCount,

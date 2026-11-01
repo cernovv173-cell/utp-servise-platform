@@ -132,7 +132,7 @@ test("a referral is paid with the first repair receipt, not repeated confirmatio
   assert.equal(referralAwards.length, 2);
   assert.deepEqual(
     referralAwards.map((entry) => entry.points),
-    [100, 100],
+    [250, 250],
   );
   assert.deepEqual(
     referralAwards.map((entry) => entry.customerId),

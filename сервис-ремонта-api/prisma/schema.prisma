@@ -201,6 +201,7 @@ model User {
   maxNotifications        MaxNotificationDelivery[]
   referralsSent           CustomerReferral[]             @relation("ReferralInviter")
   referralReceived        CustomerReferral?              @relation("ReferralInvitee")
+  referralPromoCodes      CustomerReferralCode[]         @relation("ReferralPromoCodeOwner")
   createdCustomerOffers   CustomerOffer[]                @relation("CustomerOfferCreator")
   customerOfferEntries    CustomerOfferParticipation[]   @relation("CustomerOfferParticipant")
 
@@ -450,30 +451,30 @@ model TechnicianSalaryEntry {
 }
 
 model RepairOrderPhoto {
-  id          String      @id @default(uuid()) @db.Uuid
-  orderId     String      @map("order_id") @db.Uuid
-  objectId    String      @unique @map("object_id") @db.VarChar(255)
-  createdById String?     @map("created_by_id") @db.Uuid
-  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  portfolioConsentAt DateTime? @map("portfolio_consent_at") @db.Timestamptz(3)
-  order       RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  createdBy   User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  id                 String      @id @default(uuid()) @db.Uuid
+  orderId            String      @map("order_id") @db.Uuid
+  objectId           String      @unique @map("object_id") @db.VarChar(255)
+  createdById        String?     @map("created_by_id") @db.Uuid
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  portfolioConsentAt DateTime?   @map("portfolio_consent_at") @db.Timestamptz(3)
+  order              RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy          User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([orderId, createdAt])
   @@map("repair_order_photos")
 }
 
 model TechnicianProfile {
-  userId          String   @id @map("user_id") @db.Uuid
-  experienceYears Int?     @map("experience_years") @db.SmallInt
-  homeAddress     String   @default("") @map("home_address") @db.VarChar(500)
-  bio             String   @default("") @db.VarChar(2000)
-  certificates    Json     @default("[]")
-  isVerified      Boolean  @default(false) @map("is_verified")
+  userId          String    @id @map("user_id") @db.Uuid
+  experienceYears Int?      @map("experience_years") @db.SmallInt
+  homeAddress     String    @default("") @map("home_address") @db.VarChar(500)
+  bio             String    @default("") @db.VarChar(2000)
+  certificates    Json      @default("[]")
+  isVerified      Boolean   @default(false) @map("is_verified")
   verifiedAt      DateTime? @map("verified_at") @db.Timestamptz(3)
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("technician_profiles")
 }
@@ -869,7 +870,6 @@ model Review {
   @@map("reviews")
 }
 
-
 model CraftItem {
   id                   String       @id @default(uuid()) @db.Uuid
   title                String       @db.VarChar(160)
@@ -1002,20 +1002,38 @@ model LoyaltyTransaction {
 }
 
 model CustomerReferral {
-  id            String               @id @default(uuid()) @db.Uuid
-  referrerId    String               @map("referrer_id") @db.Uuid
-  inviteeId     String               @unique @map("invitee_id") @db.Uuid
-  status        ReferralStatus       @default(PENDING)
-  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  rewardedAt    DateTime?            @map("rewarded_at") @db.Timestamptz(3)
-  rewardOrderId String?              @unique @map("reward_order_id") @db.Uuid
-  referrer      User                 @relation("ReferralInviter", fields: [referrerId], references: [id], onDelete: Restrict)
-  invitee       User                 @relation("ReferralInvitee", fields: [inviteeId], references: [id], onDelete: Restrict)
-  rewardOrder   RepairOrder?         @relation("ReferralRewardOrder", fields: [rewardOrderId], references: [id], onDelete: SetNull)
-  transactions  LoyaltyTransaction[] @relation("ReferralTransactions")
+  id            String                @id @default(uuid()) @db.Uuid
+  referrerId    String                @map("referrer_id") @db.Uuid
+  inviteeId     String                @unique @map("invitee_id") @db.Uuid
+  promoCodeId   String?               @unique @map("promo_code_id") @db.Uuid
+  status        ReferralStatus        @default(PENDING)
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  rewardedAt    DateTime?             @map("rewarded_at") @db.Timestamptz(3)
+  rewardOrderId String?               @unique @map("reward_order_id") @db.Uuid
+  referrer      User                  @relation("ReferralInviter", fields: [referrerId], references: [id], onDelete: Restrict)
+  invitee       User                  @relation("ReferralInvitee", fields: [inviteeId], references: [id], onDelete: Restrict)
+  promoCode     CustomerReferralCode? @relation("ReferralPromoCodeRedemption", fields: [promoCodeId], references: [id], onDelete: SetNull)
+  rewardOrder   RepairOrder?          @relation("ReferralRewardOrder", fields: [rewardOrderId], references: [id], onDelete: SetNull)
+  transactions  LoyaltyTransaction[]  @relation("ReferralTransactions")
 
   @@index([referrerId, status, createdAt])
   @@map("customer_referrals")
+}
+
+model CustomerReferralCode {
+  id        String            @id @default(uuid()) @db.Uuid
+  ownerId   String            @map("owner_id") @db.Uuid
+  slot      Int               @db.SmallInt
+  code      String            @unique @db.VarChar(16)
+  issuedAt  DateTime          @default(now()) @map("issued_at") @db.Timestamptz(3)
+  expiresAt DateTime          @map("expires_at") @db.Timestamptz(3)
+  claimedAt DateTime?         @map("claimed_at") @db.Timestamptz(3)
+  owner     User              @relation("ReferralPromoCodeOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  referral  CustomerReferral? @relation("ReferralPromoCodeRedemption")
+
+  @@unique([ownerId, slot])
+  @@index([ownerId, expiresAt])
+  @@map("customer_referral_codes")
 }
 
 model SiteBanner {

@@ -278,8 +278,18 @@ data class ReferralEntry(
     val rewardedAt: String?,
 )
 
+data class ReferralPromoCode(
+    val id: String = "",
+    val slot: Int = 1,
+    val code: String = "",
+    val issuedAt: String = "",
+    val expiresAt: String = "",
+    val status: String = "AVAILABLE",
+)
+
 data class ReferralProgram(
     val referralCode: String = "",
+    val codes: List<ReferralPromoCode> = emptyList(),
     val totalInvites: Int = 0,
     val pendingCount: Int = 0,
     val rewardedCount: Int = 0,

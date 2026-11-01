@@ -579,6 +579,17 @@ export type LoyaltyTransaction = {
 };
 export type ReferralProgram = {
   referralCode: string;
+  codes?: Array<{
+    id: string;
+    slot: number;
+    code: string;
+    issuedAt: string;
+    expiresAt: string;
+    status: "AVAILABLE" | "EXPIRED" | "USED" | "PENDING" | "REWARDED";
+  }>;
+  codeCount?: number;
+  validityMonths?: number;
+  rewardPoints?: number;
   totalInvites: number;
   pendingCount: number;
   rewardedCount: number;

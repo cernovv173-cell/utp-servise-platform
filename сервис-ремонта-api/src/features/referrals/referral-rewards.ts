@@ -1,6 +1,6 @@
 import type { Prisma } from "../../generated/prisma/client.js";
 
-export const REFERRAL_REWARD_POINTS = 100;
+export const REFERRAL_REWARD_POINTS = 250;
 
 type AwardReferralInput = {
   readonly inviteeId: string;

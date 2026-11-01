@@ -479,8 +479,26 @@ object ApiClient {
 
     fun referralProgram(token: String): ReferralProgram {
         val json = request("GET", "/referrals/me", token)
+        val referralCode = json.optString("referralCode")
+        val codes = json.optJSONArray("codes").mapObjects { code ->
+            ReferralPromoCode(
+                id = code.optString("id"),
+                slot = code.optInt("slot", 1),
+                code = code.optString("code"),
+                issuedAt = code.optString("issuedAt"),
+                expiresAt = code.optString("expiresAt"),
+                status = code.optString("status", "AVAILABLE"),
+            )
+        }.ifEmpty {
+            if (referralCode.isNotBlank()) {
+                listOf(ReferralPromoCode(slot = 1, code = referralCode))
+            } else {
+                emptyList()
+            }
+        }
         return ReferralProgram(
-            referralCode = json.optString("referralCode"),
+            referralCode = referralCode,
+            codes = codes,
             totalInvites = json.optInt("totalInvites"),
             pendingCount = json.optInt("pendingCount"),
             rewardedCount = json.optInt("rewardedCount"),

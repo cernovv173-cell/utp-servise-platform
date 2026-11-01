@@ -23,6 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.LoyaltyAccount
+import ru.utp.servise.data.ReferralPromoCode
 import ru.utp.servise.data.ReferralProgram
 import ru.utp.servise.data.SiteBanner
 import java.time.Instant
@@ -36,6 +37,13 @@ fun LoyaltyScreen(
     onCampaignNavigate: (String) -> Unit,
 ) {
     val context = LocalContext.current
+    val referralCodes = referralProgram.codes.ifEmpty {
+        if (referralProgram.referralCode.isNotBlank()) {
+            listOf(ReferralPromoCode(slot = 1, code = referralProgram.referralCode))
+        } else {
+            emptyList()
+        }
+    }
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -65,40 +73,63 @@ fun LoyaltyScreen(
                 Text("• Профилактическая работа подходит, если оформлена в заказе как услуга; действует тот же лимит. Баллы не обналичиваются, не переводятся и не выводятся.", fontSize = 12.sp, color = UtpMuted, lineHeight = 18.sp)
             }
         }
-        if (referralProgram.referralCode.isNotBlank()) {
+        if (referralCodes.isNotEmpty()) {
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Пригласите друга", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text(
-                        "После завершения первого ремонта и подтверждения оплаты сервисом вам обоим начислят по 100 бонусных баллов. Это баллы для скидки, не деньги для вывода.",
+                        "У вас три личных одноразовых кода, каждый действует шесть месяцев с момента выдачи. После первого завершённого и оплаченного ремонта нового клиента вам обоим начислят по 250 баллов. Регистрация сама по себе награду не даёт.",
                         fontSize = 12.sp,
                         color = UtpMuted,
                         lineHeight = 18.sp,
                     )
-                    Text("Ваш код: ${referralProgram.referralCode}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = UtpBlue)
                     Text(
                         "Приглашено: ${referralProgram.totalInvites} · ожидают оплаты: ${referralProgram.pendingCount} · награда получена: ${referralProgram.rewardedCount}",
                         fontSize = 12.sp,
                         color = UtpMuted,
                         lineHeight = 18.sp,
                     )
-                    Button(
-                        onClick = {
-                            val inviteLink = "https://task.app.amazi.pro/login?ref=${referralProgram.referralCode}"
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, "Приглашение в UTP Servise")
-                                putExtra(
-                                    Intent.EXTRA_TEXT,
-                                    "Приглашаю в UTP Servise! Зарегистрируйся по ссылке $inviteLink или введи код ${referralProgram.referralCode}. После завершения первого ремонта и подтверждения оплаты сервисом нам обоим начислят по 100 бонусных баллов.",
-                                )
+                    referralCodes.forEach { code ->
+                        val statusText = when (code.status) {
+                            "PENDING" -> "Друг зарегистрировался · ожидается первый оплаченный ремонт"
+                            "REWARDED" -> "Награда начислена"
+                            "EXPIRED" -> "Срок действия истёк"
+                            "USED" -> "Код использован"
+                            else -> "Можно отправить другу"
+                        }
+                        Column(
+                            Modifier.fillMaxWidth().background(UtpPale, RoundedCornerShape(14.dp)).padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text("Код ${code.slot}: ${code.code}", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = UtpBlue)
+                            Text(statusText, fontSize = 11.sp, color = UtpMuted, lineHeight = 16.sp)
+                            if (code.expiresAt.isNotBlank()) {
+                                val expiration = runCatching {
+                                    Instant.parse(code.expiresAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
+                                }.getOrDefault(code.expiresAt.take(10))
+                                Text("Действует до $expiration", fontSize = 11.sp, color = UtpMuted)
                             }
-                            context.startActivity(Intent.createChooser(shareIntent, "Пригласить друга"))
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                    ) {
-                        Text("Поделиться приглашением")
+                            if (code.status == "AVAILABLE") {
+                                Button(
+                                    onClick = {
+                                        val inviteLink = "https://xn----dtbhbq0ahshee.xn--p1ai/login?ref=${code.code}"
+                                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                            type = "text/plain"
+                                            putExtra(Intent.EXTRA_SUBJECT, "Приглашение в UTP Servise")
+                                            putExtra(
+                                                Intent.EXTRA_TEXT,
+                                                "Приглашаю в UTP Servise! Зарегистрируйся по ссылке $inviteLink или введи код ${code.code}. После первого завершённого и оплаченного ремонта нам обоим начислят по 250 бонусных баллов.",
+                                            )
+                                        }
+                                        context.startActivity(Intent.createChooser(shareIntent, "Пригласить друга"))
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(14.dp),
+                                ) {
+                                    Text("Поделиться этим кодом")
+                                }
+                            }
+                        }
                     }
                     referralProgram.referrals.take(5).forEach { referral ->
                         val date = runCatching {

@@ -9,10 +9,19 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 
 test("VK login verifies the provider identity and creates a customer session", async (t) => {
   const referralCode = "FEDCBA9876543210";
+  const now = new Date();
   const referrer = {
     id: "44444444-4444-4444-8444-444444444444",
     role: "CUSTOMER",
     active: true,
+  };
+  const promoCode = {
+    id: "55555555-5555-4555-8555-555555555555",
+    ownerId: referrer.id,
+    slot: 1,
+    issuedAt: new Date(now.getTime() - 60_000),
+    expiresAt: new Date(now.getTime() + 60_000),
+    claimedAt: null as Date | null,
   };
   const users: Array<Record<string, unknown>> = [];
   const sessions: Array<Record<string, unknown>> = [];
@@ -24,7 +33,9 @@ test("VK login verifies the provider identity and creates a customer session", a
   const transactionClient = {
     user: {
       findUnique: async ({ where }: { where: Record<string, string> }) =>
-        where.referralCode === referralCode ? referrer : findUser({ where }),
+        where.referralCode === referralCode || where.id === referrer.id
+          ? referrer
+          : findUser({ where }),
       create: async ({ data }: { data: Record<string, unknown> }) => {
         const user = {
           id: "33333333-3333-4333-8333-333333333333",
@@ -38,7 +49,16 @@ test("VK login verifies the provider identity and creates a customer session", a
         return user;
       },
     },
+    customerReferralCode: {
+      findUnique: async () => promoCode,
+      updateMany: async () => {
+        if (promoCode.claimedAt) return { count: 0 };
+        promoCode.claimedAt = new Date();
+        return { count: 1 };
+      },
+    },
     customerReferral: {
+      findFirst: async () => null,
       create: async ({ data }: { data: Record<string, unknown> }) => {
         recordedReferral = data;
         return data;
@@ -108,6 +128,7 @@ test("VK login verifies the provider identity and creates a customer session", a
   assert.deepEqual(recordedReferral, {
     referrerId: referrer.id,
     inviteeId: users[0]?.id,
+    promoCodeId: promoCode.id,
   });
   assert.equal(sessions.length, 1);
 });

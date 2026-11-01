@@ -180,10 +180,11 @@ of the amount paid in cash, and craft orders earn 5% after payment. Previously c
 remain in customer loyalty balances; game rewards are no longer issued. Preventive work qualifies
 only when included in a repair order as a service line and uses the same 30% limit.
 
-On `/loyalty`, customers can copy a personal referral link and see invitation statuses. The link opens
-registration with the referral code filled in; a code can also be entered manually. After the referred
-customer's first paid repair, both people receive 100 bonus points. The reward is not issued for
-registration alone and remains subject to the normal non-cash redemption rules.
+On `/loyalty`, customers receive three personal, one-use referral codes, each valid for six months
+from issue, and can copy an individual registration link for each. A code is attached to a new
+customer during registration and cannot be reused or applied to an existing account. After that
+customer's first completed repair is confirmed as paid, both people receive 250 bonus points. Signup
+alone never issues the reward; points remain non-cash and follow the normal redemption rules.
 
 Customer and administrator order cards show a Code 128 barcode generated from the order's existing
 unique service number. The barcode is derived at display time, so it adds no database field and does
