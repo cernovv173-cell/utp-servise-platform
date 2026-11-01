@@ -134,7 +134,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           "TECHNICIAN_PROFILE_NOT_FOUND",
           "Профиль мастера не найден.",
         );
-      const { homeAddress, ...publicProfile } = profile;
+      const { homeAddress, isVerified, verifiedAt, ...publicProfile } = profile;
       const [completedOrders, reviews, works] = await Promise.all([
         database.repairOrder.count({
           where: { assignedTechnicianId: userId, status: "COMPLETED" },
@@ -231,9 +231,10 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           },
         }),
       ]);
+      const { isVerified, verifiedAt, ...savedProfile } = profile;
       response.json({
         profile: {
-          ...profile,
+          ...savedProfile,
           user: {
             id: updatedUser.id,
             displayName: updatedUser.displayName,
@@ -242,36 +243,6 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           },
         },
       });
-    },
-  );
-
-  router.patch(
-    "/staff/:userId/profile/verification",
-    requireAuth,
-    requireRoles("ADMIN"),
-    validateRequest({
-      params: userIdParams,
-      body: z.object({ isVerified: z.boolean() }).strict(),
-    }),
-    async (_request, response) => {
-      const userId = userIdOf(response);
-      const { isVerified } = bodyOf<{ isVerified: boolean }>(response);
-      const technician = await database.user.findFirst({
-        where: { id: userId, role: "TECHNICIAN" },
-        select: { id: true },
-      });
-      if (!technician)
-        throw new HttpError(404, "STAFF_NOT_FOUND", "Мастер не найден.");
-      const profile = await database.technicianProfile.upsert({
-        where: { userId },
-        create: {
-          userId,
-          isVerified,
-          verifiedAt: isVerified ? new Date() : null,
-        },
-        update: { isVerified, verifiedAt: isVerified ? new Date() : null },
-      });
-      response.json({ profile });
     },
   );
 

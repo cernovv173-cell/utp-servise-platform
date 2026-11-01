@@ -91,6 +91,16 @@ test("technician home address is returned only to its owner and administrators",
     },
     technicianProfile: {
       findUnique: async () => profile,
+      upsert: async () => profile,
+    },
+    user: {
+      findFirst: async () => ({ id: technicianId }),
+      update: async () => ({
+        id: technicianId,
+        displayName: "Мастер",
+        avatarObjectId: "technician-avatar",
+        phoneNumber: "+7 900 123-45-67",
+      }),
     },
     repairOrder: {
       count: async () => 3,
@@ -112,6 +122,7 @@ test("technician home address is returned only to its owner and administrators",
     },
   };
   const app = express();
+  app.use(express.json());
   app.use("/api", createStaffRouter(database as unknown as DatabaseClient));
   app.use(errorHandler);
   const server = app.listen(0);
@@ -144,4 +155,46 @@ test("technician home address is returned only to its owner and administrators",
 
   const otherTechnicianProfile = await readProfile(tokens.anotherTechnician);
   assert.equal(Object.hasOwn(otherTechnicianProfile, "homeAddress"), false);
+
+  for (const view of [
+    ownerProfile,
+    adminProfile,
+    customerProfile,
+    otherTechnicianProfile,
+  ]) {
+    assert.equal(Object.hasOwn(view, "isVerified"), false);
+    assert.equal(Object.hasOwn(view, "verifiedAt"), false);
+  }
+
+  const saveResponse = await fetch(endpoint, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${tokens.technician}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      displayName: "Мастер",
+      phoneNumber: "+7 900 123-45-67",
+      experienceYears: 8,
+      homeAddress: profile.homeAddress,
+    }),
+  });
+  assert.equal(saveResponse.status, 200);
+  const savedProfile = (await saveResponse.json()).profile as Record<
+    string,
+    unknown
+  >;
+  assert.equal(savedProfile.homeAddress, profile.homeAddress);
+  assert.equal(Object.hasOwn(savedProfile, "isVerified"), false);
+  assert.equal(Object.hasOwn(savedProfile, "verifiedAt"), false);
+
+  const verificationResponse = await fetch(`${endpoint}/verification`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${tokens.admin}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ isVerified: true }),
+  });
+  assert.equal(verificationResponse.status, 404);
 });
