@@ -948,11 +948,6 @@ object ApiClient {
         return technicianProfile(token, userId)
     }
 
-    fun setTechnicianVerification(token: String, userId: String, verified: Boolean) = request(
-        "PATCH", "/staff/$userId/profile/verification", token,
-        JSONObject().put("isVerified", verified),
-    )
-
     fun setPortfolioConsent(token: String, orderId: String, photoId: String, consent: Boolean) = request(
         "PATCH", "/orders/$orderId/photos/$photoId/portfolio-consent", token,
         JSONObject().put("consent", consent),

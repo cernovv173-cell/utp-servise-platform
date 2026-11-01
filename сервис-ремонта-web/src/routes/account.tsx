@@ -16,6 +16,7 @@ import {
 import { clearCustomerLocalData } from "@/features/account/account-local-data";
 import { useAuth } from "@/features/auth/auth-context";
 import { AccountQuickLinks } from "@/features/navigation/account-quick-links";
+import { TechnicianQuestionnaireCard } from "@/features/staff/technician-questionnaire-card";
 
 import {
   changePassword,
@@ -201,6 +202,9 @@ const AccountPage = () => {
             )}
           </form>
         </SectionCard>
+        {user?.role === "TECHNICIAN" && user.id && (
+          <TechnicianQuestionnaireCard technicianId={user.id} />
+        )}
         {user?.role === "CUSTOMER" && (
           <SectionCard>
             <h2 className="font-semibold">Уведомления в Telegram</h2>

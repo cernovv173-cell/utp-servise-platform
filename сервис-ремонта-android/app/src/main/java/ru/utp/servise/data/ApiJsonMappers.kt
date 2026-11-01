@@ -610,7 +610,6 @@ internal fun JSONObject.toTechnicianProfile(): TechnicianProfile {
         homeAddress = optString("homeAddress"),
         bio = optString("bio"),
         certificates = optJSONArray("certificates").strings(),
-        isVerified = optBoolean("isVerified"),
         completedOrders = optInt("completedOrders"),
         rating = if (isNull("rating")) null else optDouble("rating"),
         works = optJSONArray("works").mapObjects { work ->

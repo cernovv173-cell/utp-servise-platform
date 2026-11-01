@@ -136,12 +136,6 @@ fun StaffManagementScreen(
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         if (member.role == "TECHNICIAN") {
-                            TextButton(onClick = {
-                                runAction({ ApiClient.setTechnicianVerification(token, member.id, true) }) { refresh() }
-                            }) { Text("Проверить профиль") }
-                            TextButton(onClick = {
-                                runAction({ ApiClient.setTechnicianVerification(token, member.id, false) }) { refresh() }
-                            }) { Text("Снять проверку") }
                             TextButton(onClick = { onOpenTechnicianProfile(member.id) }) { Text("Профиль") }
                             TextButton(onClick = { editedStaff = member }) { Text("Изменить") }
                             TextButton(

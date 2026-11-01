@@ -329,8 +329,6 @@ export type TechnicianProfile = {
   experienceYears: number | null;
   bio: string;
   certificates: string[];
-  isVerified: boolean;
-  verifiedAt: string | null;
   user: {
     id: string;
     displayName: string;
@@ -1398,12 +1396,6 @@ export const uploadAvatar = async (token: string, file: File) => {
   form.append("file", file);
   return apiRequest<{ user: User }>("/media/avatar", token, { method: "POST", body: form });
 };
-
-export const setTechnicianProfileVerified = (token: string, userId: string, isVerified: boolean) =>
-  apiRequest<{ profile: TechnicianProfile }>(`/staff/${userId}/profile/verification`, token, {
-    method: "PATCH",
-    body: JSON.stringify({ isVerified }),
-  });
 
 export const setRepairPhotoPortfolioConsent = (
   token: string,

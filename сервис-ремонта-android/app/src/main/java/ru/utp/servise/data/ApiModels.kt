@@ -624,7 +624,6 @@ data class TechnicianProfile(
     val homeAddress: String = "",
     val bio: String,
     val certificates: List<String>,
-    val isVerified: Boolean,
     val completedOrders: Int,
     val rating: Double?,
     val works: List<TechnicianWork>,

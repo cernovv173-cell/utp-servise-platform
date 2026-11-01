@@ -65,16 +65,19 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
       toast.error(error instanceof Error ? error.message : "Не удалось сохранить профиль."),
   });
   return (
-    <AppShell active="/orders">
+    <AppShell active={isOwner ? "/account" : "/orders"}>
       <PageTitle eyebrow="МАСТЕР" title={profile?.user.displayName ?? "Карточка мастера"} />
       {profileQuery.isLoading && <p className="text-sm text-slate-500">Загружаем профиль…</p>}
       {profileQuery.isError && (
         <SectionCard>
           <p role="alert" className="text-sm text-slate-500">
-            {profileQuery.error.message || "Профиль пока недоступен или ожидает подтверждения."}
+            {profileQuery.error.message || "Профиль пока недоступен."}
           </p>
-          <Link className="mt-3 inline-flex text-sm text-blue-600 underline" to="/orders">
-            Вернуться к заявкам
+          <Link
+            className="mt-3 inline-flex text-sm text-blue-600 underline"
+            to={isOwner ? "/account" : "/orders"}
+          >
+            {isOwner ? "Вернуться в личный кабинет" : "Вернуться к заявкам"}
           </Link>
         </SectionCard>
       )}
