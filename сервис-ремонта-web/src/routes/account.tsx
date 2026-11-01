@@ -29,6 +29,7 @@ import {
   requestTelegramLink,
   updateProfile,
 } from "@/lib/api";
+import { getPhoneNumberError, phoneNumberPlaceholder } from "@/lib/phone";
 
 const AccountPage = () => {
   const { token, user, logout, setSession } = useAuth();
@@ -97,6 +98,11 @@ const AccountPage = () => {
   });
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const phoneError = getPhoneNumberError(phone, { required: user?.role === "CUSTOMER" });
+    if (phoneError) {
+      toast.error(phoneError);
+      return;
+    }
     mutation.mutate();
   };
   const passwordMutation = useMutation({
@@ -150,12 +156,19 @@ const AccountPage = () => {
           </p>
           <form onSubmit={submit} className="mt-5 grid gap-4">
             <label className="grid gap-1.5 text-sm font-medium">
-              Телефон
+              Телефон{" "}
+              {user?.role !== "CUSTOMER" && (
+                <span className="font-normal text-slate-500">(необязательно)</span>
+              )}
               <input
                 value={phone}
                 onChange={(event) => setPhone(event.target.value)}
                 type="tel"
                 maxLength={32}
+                inputMode="tel"
+                autoComplete="tel"
+                required={user?.role === "CUSTOMER"}
+                placeholder={phoneNumberPlaceholder}
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
               />
             </label>

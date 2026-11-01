@@ -88,15 +88,15 @@ test("profile phone updates only the signed-in account and rejects malformed num
     headers,
     body: JSON.stringify({ phoneNumber: null }),
   });
-  assert.equal(clear.status, 200);
-  assert.equal((await clear.json()).user.phoneNumber, null);
-  assert.equal(updates[1]?.where.id, user.id);
+  assert.equal(clear.status, 400);
+  assert.equal((await clear.json()).error.code, "PHONE_REQUIRED");
+  assert.equal(updates.length, 1);
 
   const birthdayProfile = await fetch(endpoint, {
     method: "PATCH",
     headers,
     body: JSON.stringify({
-      phoneNumber: null,
+      phoneNumber: "+7 (999) 123-45-67",
       gender: "FEMALE",
       birthDate: "1990-04-07",
     }),
@@ -105,17 +105,72 @@ test("profile phone updates only the signed-in account and rejects malformed num
   const birthdayUser = (await birthdayProfile.json()).user;
   assert.equal(birthdayUser.gender, "FEMALE");
   assert.equal(birthdayUser.birthDate, "1990-04-07");
-  assert.equal(updates[2]?.data.gender, "FEMALE");
+  assert.equal(updates[1]?.data.gender, "FEMALE");
   assert.equal(
-    updates[2]?.data.birthDate.toISOString(),
+    updates[1]?.data.birthDate.toISOString(),
     "1990-04-07T00:00:00.000Z",
   );
 
   const futureBirthday = await fetch(endpoint, {
     method: "PATCH",
     headers,
-    body: JSON.stringify({ phoneNumber: null, birthDate: "2999-01-01" }),
+    body: JSON.stringify({
+      phoneNumber: "+7 (999) 123-45-67",
+      birthDate: "2999-01-01",
+    }),
   });
   assert.equal(futureBirthday.status, 400);
-  assert.equal(updates.length, 3);
+  assert.equal(updates.length, 2);
+});
+
+test("staff profiles may still clear their phone number", async (t) => {
+  const sessionToken = "S".repeat(48);
+  const user = {
+    id: "22222222-2222-4222-8222-222222222222",
+    email: "staff-phone@example.test",
+    displayName: "Staff phone test",
+    phoneNumber: "+7 (999) 111-22-33",
+    gender: null,
+    birthDate: null,
+    role: "TECHNICIAN",
+    active: true,
+    mustChangePassword: false,
+  };
+  const client = {
+    session: {
+      findUnique: async ({ where }: { where: { tokenHash: string } }) =>
+        where.tokenHash === hashSessionToken(sessionToken)
+          ? { expiresAt: new Date(Date.now() + 60_000), user }
+          : null,
+    },
+    user: {
+      update: async (input: { data: { phoneNumber: string | null } }) => {
+        user.phoneNumber = input.data.phoneNumber;
+        return user;
+      },
+    },
+  };
+  const app = express();
+  app.use(express.json());
+  app.use("/api", createAuthRouter(client as unknown as DatabaseClient));
+  app.use(errorHandler);
+  const server = app.listen(0);
+  await once(server, "listening");
+  t.after(() => server.close());
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+
+  const response = await fetch(
+    `http://127.0.0.1:${address.port}/api/auth/profile`,
+    {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${sessionToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ phoneNumber: null }),
+    },
+  );
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).user.phoneNumber, null);
 });

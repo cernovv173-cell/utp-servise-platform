@@ -12,6 +12,7 @@ import { RepairChatNotifications } from "@/features/admin/repair-chat-notificati
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
 import { CustomerEventNotifications } from "@/features/customer/customer-event-notifications";
+import { CustomerPhoneGate } from "@/features/customer/customer-phone-gate";
 import {
   getHelpNavigationLinksForRole,
   getNavigationGroupsForRole,
@@ -131,7 +132,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
           <div className="mb-5 flex justify-end print:hidden">
             <AppInstallButton />
           </div>
-          {children}
+          {user.role === "CUSTOMER" && !user.phoneNumber ? <CustomerPhoneGate /> : children}
         </main>
       </div>
       {user.role === "ADMIN" && (

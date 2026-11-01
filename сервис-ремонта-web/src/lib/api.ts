@@ -773,7 +773,7 @@ export const registerRequest = (
     body: JSON.stringify({
       displayName,
       email,
-      phoneNumber: phoneNumber || undefined,
+      phoneNumber: phoneNumber.trim(),
       password,
       referralCode: referralCode?.trim() || undefined,
     }),
@@ -1311,7 +1311,7 @@ export const updateProfile = (
   apiRequest<{ user: User }>("/auth/profile", token, {
     method: "PATCH",
     body: JSON.stringify({
-      phoneNumber: phoneNumber || null,
+      phoneNumber: phoneNumber.trim() || null,
       ...(gender !== undefined ? { gender } : {}),
       ...(birthDate !== undefined ? { birthDate: birthDate || null } : {}),
     }),

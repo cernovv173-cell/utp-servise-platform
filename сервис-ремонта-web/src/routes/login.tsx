@@ -15,6 +15,7 @@ import {
   requestPasswordReset,
   yandexLoginRequest,
 } from "@/lib/api";
+import { getPhoneNumberError, phoneNumberPlaceholder } from "@/lib/phone";
 
 const LoginPage = () => {
   const { setSession } = useAuth();
@@ -85,11 +86,19 @@ const LoginPage = () => {
         return;
       }
       const enteredReferralCode = String(values.get("referralCode") ?? "").trim();
+      const enteredPhone = String(values.get("phone") ?? "").trim();
+      if (registering) {
+        const phoneError = getPhoneNumberError(enteredPhone, { required: true });
+        if (phoneError) {
+          setError(phoneError);
+          return;
+        }
+      }
       const session = registering
         ? await registerRequest(
             String(values.get("name")),
             String(values.get("email")),
-            String(values.get("phone")),
+            enteredPhone,
             String(values.get("password")),
             enteredReferralCode,
           )
@@ -250,11 +259,15 @@ const LoginPage = () => {
             </label>
             {registering && !recovering && (
               <label className="grid gap-1.5 text-sm font-medium">
-                Телефон, необязательно
+                Телефон
                 <input
+                  required
                   type="tel"
                   name="phone"
                   autoComplete="tel"
+                  inputMode="tel"
+                  maxLength={32}
+                  placeholder={phoneNumberPlaceholder}
                   className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"
                 />
               </label>

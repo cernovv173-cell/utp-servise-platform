@@ -31,24 +31,23 @@ const emailSchema = z
   .email()
   .max(320)
   .transform((value) => value.toLowerCase());
-const phoneValueSchema = z
-  .string()
+const isValidPhoneNumber = (value: string) =>
+  /^[+0-9().\-\s]+$/.test(value) &&
+  value.replace(/\D/g, "").length >= 7 &&
+  value.replace(/\D/g, "").length <= 15;
+const requiredPhoneNumberSchema = z
+  .string({ error: "Укажите номер телефона." })
   .trim()
-  .max(32)
-  .refine(
-    (value) =>
-      /^[+0-9().\-\s]+$/.test(value) &&
-      value.replace(/\D/g, "").length >= 7 &&
-      value.replace(/\D/g, "").length <= 15,
-  )
-  .nullable();
-const phoneNumberSchema = phoneValueSchema.optional();
+  .min(1, "Укажите номер телефона.")
+  .max(32, "Номер телефона слишком длинный.")
+  .refine(isValidPhoneNumber, "Введите корректный номер телефона.");
+const phoneValueSchema = requiredPhoneNumberSchema.nullable();
 const passwordSchema = z.string().min(8).max(128);
 const registerSchema = z
   .object({
     email: emailSchema,
     displayName: z.string().trim().min(2).max(120),
-    phoneNumber: phoneNumberSchema,
+    phoneNumber: requiredPhoneNumberSchema,
     password: passwordSchema,
     referralCode: referralCodeSchema,
   })
@@ -130,7 +129,7 @@ export const createAuthRouter = (
           createCustomerWithReferral(transaction, {
             email: input.email,
             displayName: input.displayName,
-            phoneNumber: input.phoneNumber?.trim() || null,
+            phoneNumber: input.phoneNumber,
             passwordHash,
             referralCode: input.referralCode,
           }),
@@ -341,6 +340,7 @@ export const createAuthRouter = (
       const user = getAuthenticatedUser(response);
       const { phoneNumber, gender, birthDate } =
         bodyOf<z.infer<typeof profileSchema>>(response);
+      const normalizedPhoneNumber = phoneNumber?.trim() || null;
       if (user.role !== "CUSTOMER" && (gender != null || birthDate != null)) {
         throw new HttpError(
           403,
@@ -348,10 +348,13 @@ export const createAuthRouter = (
           "Пол и дата рождения доступны только в профиле клиента.",
         );
       }
+      if (user.role === "CUSTOMER" && !normalizedPhoneNumber) {
+        throw new HttpError(400, "PHONE_REQUIRED", "Укажите номер телефона.");
+      }
       const updated = await database.user.update({
         where: { id: user.id },
         data: {
-          phoneNumber: phoneNumber?.trim() || null,
+          phoneNumber: normalizedPhoneNumber,
           ...(user.role === "CUSTOMER" && gender !== undefined
             ? { gender }
             : {}),

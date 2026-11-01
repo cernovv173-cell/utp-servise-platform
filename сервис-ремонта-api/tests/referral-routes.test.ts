@@ -74,6 +74,7 @@ test("registration attaches a valid referral code and creates a customer-only li
       body: JSON.stringify({
         email: "new@example.test",
         displayName: "Новый клиент",
+        phoneNumber: "+7 (999) 123-45-67",
         password: "ValidPassword123",
         referralCode: referralCode.toLowerCase(),
       }),
