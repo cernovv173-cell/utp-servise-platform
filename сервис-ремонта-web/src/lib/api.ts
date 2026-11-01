@@ -1,4 +1,6 @@
-import { requestJson } from "@/lib/request-json";
+import { ApiRequestError, requestJson } from "@/lib/request-json";
+
+export { ApiRequestError };
 
 const apiBase =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/u, "") ?? "";
@@ -716,17 +718,6 @@ export const loginRequest = (email: string, password: string, portal: Role) =>
     method: "POST",
     body: JSON.stringify({ email, password, portal }),
   });
-
-export class ApiRequestError extends Error {
-  constructor(
-    readonly code: string,
-    readonly status: number,
-    message: string,
-  ) {
-    super(message);
-    this.name = "ApiRequestError";
-  }
-}
 
 export const yandexLoginRequest = async (
   accessToken: string,

@@ -2,14 +2,22 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { type FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { Modal, ModalContent, ModalDescription, ModalFooter, ModalHeader, ModalTitle } from "@/components/modal";
+import {
+  Modal,
+  ModalContent,
+  ModalDescription,
+  ModalFooter,
+  ModalHeader,
+  ModalTitle,
+} from "@/components/modal";
 import { Select } from "@/components/select";
 
 import { useAuth } from "@/features/auth/auth-context";
 import {
-  createStockReceipt,
   type ProcurementSupplier,
+  createStockReceipt,
 } from "@/features/procurement/procurement-api";
+
 import type { RepairCatalogItem } from "@/lib/api";
 
 type StockReceiptDialogProps = {
@@ -35,7 +43,10 @@ export const StockReceiptDialog = ({
     () => items.filter((item) => item.active && item.type !== "SERVICE"),
     [items],
   );
-  const activeSuppliers = useMemo(() => suppliers.filter((supplier) => supplier.isActive), [suppliers]);
+  const activeSuppliers = useMemo(
+    () => suppliers.filter((supplier) => supplier.isActive),
+    [suppliers],
+  );
   const [itemId, setItemId] = useState(preselectedItemId ?? "");
   const [supplierId, setSupplierId] = useState("");
   const [quantity, setQuantity] = useState("1");
@@ -142,7 +153,8 @@ export const StockReceiptDialog = ({
               />
             </label>
             <label className="grid gap-1.5 text-sm font-medium">
-              Цена закупки за единицу, ₽ <span className="font-normal text-slate-500">(необязательно)</span>
+              Цена закупки за единицу, ₽{" "}
+              <span className="font-normal text-slate-500">(необязательно)</span>
               <input
                 className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
                 min={0}
@@ -155,7 +167,8 @@ export const StockReceiptDialog = ({
             </label>
           </div>
           <label className="grid gap-1.5 text-sm font-medium">
-            Номер накладной или комментарий <span className="font-normal text-slate-500">(необязательно)</span>
+            Номер накладной или комментарий{" "}
+            <span className="font-normal text-slate-500">(необязательно)</span>
             <input
               className="min-h-10 rounded-lg border border-slate-300 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
               maxLength={120}
@@ -165,7 +178,8 @@ export const StockReceiptDialog = ({
           </label>
           {selectedItem && selectedItem.stockQuantity !== null && (
             <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-              После поступления на складе будет {rubles.format(selectedItem.stockQuantity + (Number(quantity) || 0))} шт.
+              После поступления на складе будет{" "}
+              {rubles.format(selectedItem.stockQuantity + (Number(quantity) || 0))} шт.
             </p>
           )}
           <ModalFooter>

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Lock, Unlock, UserRound, X } from "lucide-react";
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";

@@ -1,4 +1,4 @@
-import { apiRequest, type RepairCatalogType } from "@/lib/api";
+import { type RepairCatalogType, apiRequest } from "@/lib/api";
 
 export type ProcurementSupplier = {
   id: string;

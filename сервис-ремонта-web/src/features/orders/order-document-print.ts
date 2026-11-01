@@ -51,39 +51,43 @@ export const printOrderDocument = async (
         : "Гарантийный талон";
   let body = "";
 
-  if (kind === "intake" && intake) {
-    const views = [
-      ["Передняя сторона", intake.frontCondition, intake.frontPhotoObjectId],
-      ["Задняя сторона", intake.backCondition, intake.backPhotoObjectId],
-      ["Левая сторона", intake.leftCondition, intake.leftPhotoObjectId],
-      ["Правая сторона", intake.rightCondition, intake.rightPhotoObjectId],
-    ] as const;
-    const photos = await Promise.all(
-      views.map(async ([label, condition, objectId]) => {
-        if (!objectId)
-          return `<div class="side"><b>${label}</b><p>${escapeHtml(condition)}</p></div>`;
-        const image = await fetchProtectedMedia(token, objectId);
-        return `<div class="side"><b>${label}</b><p>${escapeHtml(condition)}</p><img alt="${label}" src="${await dataUrl(image)}"></div>`;
-      }),
-    );
-    body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake.serialNumber)}</p><p>Заявленная неисправность: ${escapeHtml(order.problem)}</p><h2>Видимые повреждения по сторонам</h2><div class="sides">${photos.join("")}</div><p>Комплектность: ${escapeHtml(intake.includedAccessories)}</p><p>Дополнительные отметки: ${escapeHtml(intake.intakeNotes)}</p>`;
-  } else if (kind === "work-order") {
-    const rows = order.items
-      .map(
-        (item) =>
-          `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.quantity)}</td><td>${escapeHtml(item.unitPriceRub)} ₽</td><td>${escapeHtml(item.quantity * item.unitPriceRub)} ₽</td></tr>`,
-      )
-      .join("");
-    body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake?.serialNumber)}</p><p>Адрес: ${escapeHtml(order.address)}</p><p>Неисправность со слов клиента: ${escapeHtml(order.problem)}</p><p>Диагностика / выполненные работы: ${escapeHtml(order.items.map((item) => item.name).join(", ") || "Заполните состав работ в карточке заявки")}</p><table><thead><tr><th>Работа / материал</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table><p>Состояние при приёме: ${escapeHtml(intake ? [intake.frontCondition, intake.backCondition, intake.leftCondition, intake.rightCondition].join("; ") : "Акт приёма ещё не заполнен")}</p>`;
-  } else if (warranty) {
-    const warrantyPeriod =
-      warranty.warrantyDays === 365 || warranty.warrantyDays === 366
-        ? "1 год"
-        : `${warranty.warrantyDays} дней`;
-    body = `<p>Номер талона: ${escapeHtml(warranty.warrantyNumber)}</p><p>Клиент: ${escapeHtml(warranty.customerName)}</p><p>Устройство: ${escapeHtml(warranty.deviceType)}</p><p>Работы по заявке: ${escapeHtml(warranty.repairSummary)}</p><p>Срок гарантии: ${escapeHtml(warrantyPeriod)}</p><p>Выдан: ${escapeHtml(date(warranty.issuedAt))}</p><p>Действует до: ${escapeHtml(date(warranty.expiresAt))}</p><h2>Условия</h2><p style="white-space:pre-wrap">${escapeHtml(warranty.terms)}</p>`;
-  } else {
+  try {
+    if (kind === "intake" && intake) {
+      const views = [
+        ["Передняя сторона", intake.frontCondition, intake.frontPhotoObjectId],
+        ["Задняя сторона", intake.backCondition, intake.backPhotoObjectId],
+        ["Левая сторона", intake.leftCondition, intake.leftPhotoObjectId],
+        ["Правая сторона", intake.rightCondition, intake.rightPhotoObjectId],
+      ] as const;
+      const photos = await Promise.all(
+        views.map(async ([label, condition, objectId]) => {
+          if (!objectId)
+            return `<div class="side"><b>${label}</b><p>${escapeHtml(condition)}</p></div>`;
+          const image = await fetchProtectedMedia(token, objectId);
+          return `<div class="side"><b>${label}</b><p>${escapeHtml(condition)}</p><img alt="${label}" src="${escapeHtml(await dataUrl(image))}"></div>`;
+        }),
+      );
+      body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake.serialNumber)}</p><p>Заявленная неисправность: ${escapeHtml(order.problem)}</p><h2>Видимые повреждения по сторонам</h2><div class="sides">${photos.join("")}</div><p>Комплектность: ${escapeHtml(intake.includedAccessories)}</p><p>Дополнительные отметки: ${escapeHtml(intake.intakeNotes)}</p>`;
+    } else if (kind === "work-order") {
+      const rows = order.items
+        .map(
+          (item) =>
+            `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.quantity)}</td><td>${escapeHtml(item.unitPriceRub)} ₽</td><td>${escapeHtml(item.quantity * item.unitPriceRub)} ₽</td></tr>`,
+        )
+        .join("");
+      body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake?.serialNumber)}</p><p>Адрес: ${escapeHtml(order.address)}</p><p>Неисправность со слов клиента: ${escapeHtml(order.problem)}</p><p>Диагностика / выполненные работы: ${escapeHtml(order.items.map((item) => item.name).join(", ") || "Заполните состав работ в карточке заявки")}</p><table><thead><tr><th>Работа / материал</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table><p>Состояние при приёме: ${escapeHtml(intake ? [intake.frontCondition, intake.backCondition, intake.leftCondition, intake.rightCondition].join("; ") : "Акт приёма ещё не заполнен")}</p>`;
+    } else if (kind === "warranty" && warranty) {
+      const warrantyPeriod =
+        warranty.warrantyDays === 365 || warranty.warrantyDays === 366
+          ? "1 год"
+          : `${warranty.warrantyDays} дней`;
+      body = `<p>Номер талона: ${escapeHtml(warranty.warrantyNumber)}</p><p>Клиент: ${escapeHtml(warranty.customerName)}</p><p>Устройство: ${escapeHtml(warranty.deviceType)}</p><p>Работы по заявке: ${escapeHtml(warranty.repairSummary)}</p><p>Срок гарантии: ${escapeHtml(warrantyPeriod)}</p><p>Выдан: ${escapeHtml(date(warranty.issuedAt))}</p><p>Действует до: ${escapeHtml(date(warranty.expiresAt))}</p><h2>Условия</h2><p style="white-space:pre-wrap">${escapeHtml(warranty.terms)}</p>`;
+    } else {
+      throw new Error("Этот документ пока не сформирован.");
+    }
+  } catch (error) {
     printWindow.close();
-    throw new Error("Этот документ пока не сформирован.");
+    throw error;
   }
 
   printWindow.document.open();

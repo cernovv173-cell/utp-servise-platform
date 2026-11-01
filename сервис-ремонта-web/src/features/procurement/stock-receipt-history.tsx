@@ -35,7 +35,9 @@ export const StockReceiptHistory = ({ receipts }: { receipts: StockReceipt[] }) 
             <div className="sm:text-right">
               <p className="font-semibold">
                 +{rubles.format(receipt.quantity)} шт.
-                {receipt.unitCostRub === null ? "" : ` · ${rubles.format(receipt.unitCostRub)} ₽/шт.`}
+                {receipt.unitCostRub === null
+                  ? ""
+                  : ` · ${rubles.format(receipt.unitCostRub)} ₽/шт.`}
               </p>
               <time className="text-xs text-slate-500" dateTime={receipt.receivedAt}>
                 {dateTime.format(new Date(receipt.receivedAt))}

@@ -6,13 +6,10 @@ import { useState } from "react";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { getProcurementSuppliers, getStockReceipts } from "@/features/procurement/procurement-api";
 import { ProcurementSuppliers } from "@/features/procurement/procurement-suppliers";
-import {
-  getProcurementSuppliers,
-  getStockReceipts,
-} from "@/features/procurement/procurement-api";
-import { StockReceiptHistory } from "@/features/procurement/stock-receipt-history";
 import { StockReceiptDialog } from "@/features/procurement/stock-receipt-dialog";
+import { StockReceiptHistory } from "@/features/procurement/stock-receipt-history";
 
 import { getProcurementList, getRepairCatalog } from "@/lib/api";
 
@@ -156,9 +153,7 @@ const ProcurementPage = () => {
           </p>
         </SectionCard>
       ) : (
-        !suppliers.isLoading && (
-          <ProcurementSuppliers suppliers={suppliers.data?.suppliers ?? []} />
-        )
+        !suppliers.isLoading && <ProcurementSuppliers suppliers={suppliers.data?.suppliers ?? []} />
       )}
       {receipts.isError ? (
         <SectionCard>
@@ -167,9 +162,7 @@ const ProcurementPage = () => {
           </p>
         </SectionCard>
       ) : (
-        !receipts.isLoading && (
-          <StockReceiptHistory receipts={receipts.data?.receipts ?? []} />
-        )
+        !receipts.isLoading && <StockReceiptHistory receipts={receipts.data?.receipts ?? []} />
       )}
       {receiptItemId !== null && (
         <StockReceiptDialog

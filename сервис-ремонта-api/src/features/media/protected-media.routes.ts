@@ -190,9 +190,7 @@ export const createProtectedMediaRouter = (
                       },
                     });
                     if (intake) {
-                      if (
-                        !canViewRepairOrder(user.role, user.id, intake.order)
-                      )
+                      if (!canViewRepairOrder(user.role, user.id, intake.order))
                         invalidMedia();
                     } else {
                       const catalogProduct =

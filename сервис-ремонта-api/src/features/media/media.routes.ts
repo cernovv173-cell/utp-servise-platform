@@ -76,13 +76,13 @@ export const createMediaRouter = (
       const { orderId, photoId } =
         paramsOf<z.infer<typeof orderPhotoConsentParams>>(response);
       const user = getAuthenticatedUser(response);
-    const order = await database.repairOrder.findFirst({
-      where: {
-        id: orderId,
-        customerId: user.id,
-        status: "COMPLETED",
-        assignedTechnicianId: { not: null },
-      },
+      const order = await database.repairOrder.findFirst({
+        where: {
+          id: orderId,
+          customerId: user.id,
+          status: "COMPLETED",
+          assignedTechnicianId: { not: null },
+        },
         select: { id: true },
       });
       if (!order)
@@ -92,7 +92,7 @@ export const createMediaRouter = (
           "Завершённая заявка не найдена.",
         );
       const { consent } = bodyOf<{ consent: boolean }>(response);
-    const updated = await database.repairOrderPhoto.updateMany({
+      const updated = await database.repairOrderPhoto.updateMany({
         where: { id: photoId, orderId },
         data: { portfolioConsentAt: consent ? new Date() : null },
       });

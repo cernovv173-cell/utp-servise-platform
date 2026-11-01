@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ReactNode, useEffect, useMemo, useSyncExternalStore } from "react";
 
 import { type User, apiRequest } from "@/lib/api";
+import { isRejectedSessionError } from "@/lib/request-json";
 
 import { AuthContext, type AuthContextValue } from "./auth-context";
 import {
@@ -17,15 +18,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     queryKey: ["auth", "me", token],
     queryFn: ({ signal }) => apiRequest<{ user: User }>("/auth/me", token, { signal }),
     enabled: Boolean(token),
-    retry: false,
+    // A rejected session ends at once; temporary network or server failures may retry.
+    retry: (failureCount, error) => !isRejectedSessionError(error) && failureCount < 2,
   });
 
+  const sessionRejected = isRejectedSessionError(me.error);
   useEffect(() => {
-    if (me.isError && token) {
+    if (sessionRejected && token) {
       updateSessionToken(null);
       queryClient.clear();
     }
-  }, [me.isError, queryClient, token]);
+  }, [queryClient, sessionRejected, token]);
 
   const value = useMemo<AuthContextValue>(
     () => ({

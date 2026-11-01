@@ -3,6 +3,7 @@ import { Building2, Pencil, Plus, Power } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
+import { SectionCard } from "@/components/app-shell";
 import {
   Modal,
   ModalContent,
@@ -11,13 +12,12 @@ import {
   ModalHeader,
   ModalTitle,
 } from "@/components/modal";
-import { SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 import {
-  createProcurementSupplier,
   type ProcurementSupplier,
   type ProcurementSupplierInput,
+  createProcurementSupplier,
   updateProcurementSupplier,
 } from "@/features/procurement/procurement-api";
 
@@ -221,7 +221,9 @@ export const ProcurementSuppliers = ({ suppliers }: SupplierManagementProps) => 
                           .join(" · ")}
                       </p>
                     )}
-                    {supplier.note && <p className="mt-1 text-sm text-slate-500">{supplier.note}</p>}
+                    {supplier.note && (
+                      <p className="mt-1 text-sm text-slate-500">{supplier.note}</p>
+                    )}
                     <div className="mt-2 flex flex-wrap gap-2">
                       <button
                         className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-slate-200 px-2 text-xs font-semibold dark:border-slate-700"

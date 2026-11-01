@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { requestJson as request } from "./request-json";
+import { ApiRequestError, isRejectedSessionError, requestJson as request } from "./request-json";
 
 describe("request transport", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -16,7 +16,7 @@ describe("request transport", () => {
 
   it("rejects HTTP errors instead of caching an error response as successful data", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Unavailable", { status: 503 })));
-    await expect(request("/api/items")).rejects.toThrow("Request failed (503)");
+    await expect(request("/api/items")).rejects.toThrow("Не удалось выполнить запрос (503).");
   });
 
   it("shows a safe server-provided error message for rejected requests", async () => {
@@ -32,6 +32,36 @@ describe("request transport", () => {
         ),
     );
     await expect(request("/api/items")).rejects.toThrow("Сначала завершите заказ.");
+  });
+
+  it("keeps the HTTP status and server error code on rejected requests", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json(
+            { error: { code: "CONFLICT", message: "Сначала завершите заказ." } },
+            { status: 409 },
+          ),
+        ),
+    );
+    const failure = await request("/api/items").catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(ApiRequestError);
+    expect(failure).toMatchObject({ code: "CONFLICT", status: 409 });
+  });
+
+  it("treats only rejected sessions as sign-out events", () => {
+    expect(
+      isRejectedSessionError(new ApiRequestError("AUTHENTICATION_REQUIRED", 401, "Войдите.")),
+    ).toBe(true);
+    expect(isRejectedSessionError(new ApiRequestError("FORBIDDEN", 403, "Нет доступа."))).toBe(
+      true,
+    );
+    expect(isRejectedSessionError(new ApiRequestError("REQUEST_FAILED", 503, "Недоступно."))).toBe(
+      false,
+    );
+    expect(isRejectedSessionError(new TypeError("Failed to fetch"))).toBe(false);
   });
 
   it("accepts mutations with no response body", async () => {

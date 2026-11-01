@@ -20,6 +20,8 @@ describe("deleteOwnAccount", () => {
   it.each([401, 409, 503])("surfaces a failed deletion response (%i)", async (status) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status })));
 
-    await expect(deleteOwnAccount("session-token")).rejects.toThrow(`Request failed (${status})`);
+    await expect(deleteOwnAccount("session-token")).rejects.toThrow(
+      `Не удалось выполнить запрос (${status}).`,
+    );
   });
 });

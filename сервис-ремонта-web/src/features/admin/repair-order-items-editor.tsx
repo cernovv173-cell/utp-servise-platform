@@ -103,17 +103,17 @@ const ItemQuantityRow = ({
               Сохранить
             </button>
           </form>
-            <button
-              type="button"
-              disabled={update.isPending || remove.isPending}
-              aria-label={`Удалить позицию ${item.name}`}
-              title="Удалить позицию"
-              onClick={() => {
-                if (window.confirm(`Удалить позицию «${item.name}» из заказа?`)) remove.mutate();
-              }}
-              className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
-            >
-              <X size={16} aria-hidden="true" />
+          <button
+            type="button"
+            disabled={update.isPending || remove.isPending}
+            aria-label={`Удалить позицию ${item.name}`}
+            title="Удалить позицию"
+            onClick={() => {
+              if (window.confirm(`Удалить позицию «${item.name}» из заказа?`)) remove.mutate();
+            }}
+            className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
+          >
+            <X size={16} aria-hidden="true" />
           </button>
         </div>
       ) : (
