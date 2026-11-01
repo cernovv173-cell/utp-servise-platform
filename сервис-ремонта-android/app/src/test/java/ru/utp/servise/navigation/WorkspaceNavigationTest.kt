@@ -52,6 +52,8 @@ class WorkspaceNavigationTest {
         assertTrue(customerRoutes.contains("customer/devices"))
         assertTrue(customerRoutes.contains("customer/offers"))
         assertTrue(customerRoutes.contains("customer/news"))
+        assertTrue(customerRoutes.contains("customer/guides"))
+        assertTrue(customerRoutes.contains("customer/chats"))
         assertTrue(customerRoutes.contains("customer/support-chat"))
         assertFalse(customerRoutes.contains("customer/shop"))
         assertFalse(customerRoutes.contains("customer/loyalty"))
@@ -61,6 +63,7 @@ class WorkspaceNavigationTest {
         assertFalse(technicianRoutes.contains("technician/profile"))
         assertTrue(workspaceNavigationForRole("TECHNICIAN").primaryDestinations.any { it.route == "technician/profile" })
         assertFalse(technicianRoutes.contains("customer/shop"))
+        assertTrue(technicianRoutes.contains("technician/chats"))
     }
 
     @Test
@@ -70,10 +73,16 @@ class WorkspaceNavigationTest {
         val administrator = workspaceNavigationForRole("ADMIN")
 
         assertEquals("customer/profile", customer.selectedTabRoute("customer/history"))
+        assertEquals("customer/profile", customer.selectedTabRoute("customer/guides/prepare-laptop"))
+        assertEquals("customer/profile", customer.selectedTabRoute("customer/chats"))
         assertEquals("customer/profile", customer.selectedTabRoute("sections"))
         assertEquals("technician/profile", technician.selectedTabRoute("technician/reviews"))
         assertEquals("technician/catalog", technician.selectedTabRoute("technician/catalog"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/schedule"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("admin/order-chats"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("admin/offers"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("admin/banners"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("admin/loyalty"))
         assertEquals("admin/catalog", administrator.selectedTabRoute("admin/catalog"))
         assertEquals(null, customer.selectedTabRoute("customer/new-order"))
         assertEquals("admin/seasonal", administrator.selectedTabRoute("admin/seasonal"))

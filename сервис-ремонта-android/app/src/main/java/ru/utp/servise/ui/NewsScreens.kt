@@ -71,10 +71,14 @@ fun AdminManagementScreen(
     onReviews: () -> Unit,
     onCrafts: () -> Unit,
     onAbout: () -> Unit,
+    onOrderChats: () -> Unit,
     onSupportChats: () -> Unit,
     onCustomers: () -> Unit,
     onShopOrders: () -> Unit,
     onSalary: () -> Unit,
+    onOffers: () -> Unit,
+    onBanners: () -> Unit,
+    onLoyalty: () -> Unit,
 ) {
     val groups = listOf(
         ManagementActionGroup(
@@ -94,8 +98,10 @@ fun AdminManagementScreen(
             listOf(
                 ManagementAction("База клиентов", "Поиск, контакты и удаление записей", Icons.Filled.Person, onCustomers),
                 ManagementAction("Сотрудники", "Мастера и административные аккаунты", Icons.Filled.Person, onStaff),
+                ManagementAction("Чаты по заявкам", "Переписки клиентов и мастеров по ремонтам", Icons.Filled.Info, onOrderChats),
                 ManagementAction("Чаты с запросом помощи", "Подключение администратора к беседе", Icons.Filled.Info, onChats),
                 ManagementAction("Чаты клиентов", "Ответы клиентам напрямую", Icons.Filled.Info, onSupportChats),
+                ManagementAction("История бонусов", "Балансы и операции по клиентам", Icons.Filled.Star, onLoyalty),
                 ManagementAction("Отзывы", "Отзывы клиентов о ремонтах", Icons.Filled.Star, onReviews),
                 ManagementAction("Зарплата мастеров", "Начисления и индивидуальные ставки", Icons.Filled.Star, onSalary),
             ),
@@ -118,6 +124,8 @@ fun AdminManagementScreen(
             "Реклама",
             listOf(
                 ManagementAction("Новости", "Создание черновиков и публикаций", Icons.Filled.Info, onNews),
+                ManagementAction("Акции и розыгрыши", "Публикации, участники и результаты", Icons.Filled.Star, onOffers),
+                ManagementAction("Баннеры", "Изображения и размещение кампаний", Icons.Filled.Info, onBanners),
                 ManagementAction("О компании", "Описание, контакты, услуги и медиа", Icons.Filled.Info, onAbout),
             ),
         ),

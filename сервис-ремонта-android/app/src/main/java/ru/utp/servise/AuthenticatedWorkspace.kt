@@ -58,6 +58,10 @@ import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.SupportChat
 import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.navigation.workspaceNavigationForRole
+import ru.utp.servise.registerAdminOrderChatsRoute
+import ru.utp.servise.registerAdminCampaignRoutes
+import ru.utp.servise.registerCustomerHelpRoutes
+import ru.utp.servise.registerTechnicianChatRoute
 import ru.utp.servise.ui.AdminChatInboxScreen
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminOrderCreationScreen
@@ -218,6 +222,13 @@ internal fun AuthenticatedWorkspace(
                 ) {
                     when (user.role) {
                         "CUSTOMER" -> {
+                            registerCustomerHelpRoutes(
+                                orders = orders,
+                                refresh = refresh,
+                                onOpenChat = { navController.navigate("chat/$it") },
+                                onOpenGuide = { slug -> navController.navigate("customer/guides/$slug") },
+                                onBack = { navController.popBackStack() },
+                            )
                             composable("technician/profile/{technicianId}") { entry ->
                                 TechnicianProfileScreen(
                                     technicianId = entry.arguments?.getString("technicianId").orEmpty(),
@@ -354,6 +365,12 @@ internal fun AuthenticatedWorkspace(
                             }
                         }
                         "TECHNICIAN" -> {
+                            registerTechnicianChatRoute(
+                                orders = orders,
+                                refresh = refresh,
+                                onOpenChat = { navController.navigate("chat/$it") },
+                                onBack = { navController.popBackStack() },
+                            )
                             composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}) }
                             composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}) }
                             composable("technician/catalog") { TechnicianCatalogScreen(catalogItems) }
@@ -415,6 +432,19 @@ internal fun AuthenticatedWorkspace(
                             }
                         }
                         else -> {
+                            registerAdminOrderChatsRoute(
+                                orders = orders,
+                                refresh = refresh,
+                                onOpenChat = { navController.navigate("chat/$it") },
+                                onBack = { navController.popBackStack() },
+                            )
+                            registerAdminCampaignRoutes(
+                                token = token,
+                                busy = busy,
+                                runAction = runAction,
+                                onError = onError,
+                                onBack = { navController.popBackStack() },
+                            )
                             composable("admin/orders") {
                                 RepairOrdersScreen(
                                     "Управление заказами", orders, user.role, token, staff,
@@ -459,10 +489,14 @@ internal fun AuthenticatedWorkspace(
                                     onReviews = { navController.navigate("admin/reviews") },
                                     onCrafts = { navController.navigate("admin/crafts") },
                                     onAbout = { navController.navigate("admin/about") },
+                                    onOrderChats = { navController.navigate("admin/order-chats") },
                                     onSupportChats = { navController.navigate("admin/support-chats") },
                                     onCustomers = { navController.navigate("admin/customers") },
                                     onShopOrders = { navController.navigate("admin/shop-orders") },
                                     onSalary = { navController.navigate("admin/salary") },
+                                    onOffers = { navController.navigate("admin/offers") },
+                                    onBanners = { navController.navigate("admin/banners") },
+                                    onLoyalty = { navController.navigate("admin/loyalty") },
                                 )
                             }
                             composable("admin/overview") { ServiceDashboardScreen(token, onError) }

@@ -49,13 +49,13 @@ object ApiClient {
         email: String,
         displayName: String,
         password: String,
-        phoneNumber: String?,
+        phoneNumber: String,
         referralCode: String? = null,
     ): AuthResult {
         val body = JSONObject()
             .put("email", email)
             .put("displayName", displayName)
-            .put("phoneNumber", phoneNumber ?: JSONObject.NULL)
+            .put("phoneNumber", phoneNumber.trim())
             .put("password", password)
         referralCode?.trim()?.takeIf { it.isNotEmpty() }?.let { body.put("referralCode", it.uppercase()) }
         return authResult(request("POST", "/auth/register", body = body))
@@ -77,8 +77,12 @@ object ApiClient {
             .toUser()
     }
 
-    fun updatePhoneNumber(token: String, phoneNumber: String?): AppUser =
-        updateProfile(token, phoneNumber, null, null)
+    fun updatePhoneNumber(token: String, phoneNumber: String): AppUser = request(
+        "PATCH",
+        "/auth/profile",
+        token,
+        JSONObject().put("phoneNumber", phoneNumber.trim()),
+    ).getJSONObject("user").toUser()
     fun updateAvatar(token: String, image: ByteArray): AppUser = MediaApiClient
         .binaryRequest("POST", "/media/avatar", token, image)
         .getJSONObject("user")

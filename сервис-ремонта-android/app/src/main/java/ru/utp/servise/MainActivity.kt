@@ -68,10 +68,12 @@ import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.notifications.NotificationChannels
 import ru.utp.servise.ui.AuthNavigation
 import ru.utp.servise.ui.ChangeTemporaryPasswordScreen
+import ru.utp.servise.ui.CustomerPhoneGateScreen
 import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.UtpBlue
 import ru.utp.servise.ui.UtpPale
 import ru.utp.servise.ui.UtpServiseTheme
+import ru.utp.servise.data.phoneNumberValidationError
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -189,6 +191,43 @@ private fun UtpServiseApp(
                 busy = false
             }
         }
+    }
+
+    val onLogout: () -> Unit = {
+        val activeToken = token
+        scope.launch {
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    if (FirebaseApp.getApps(context).isNotEmpty()) {
+                        val pushToken = Tasks.await(PushTokenManager.fetchToken())
+                        ApiClient.unregisterPushToken(activeToken, pushToken)
+                    }
+                }
+                runCatching { ApiClient.logout(activeToken) }
+            }
+        }
+        tokenStore.clear()
+        token = ""
+        user = null
+        orders = emptyList()
+        staff = emptyList()
+        reviews = emptyList()
+        customerDevices = emptyList()
+        customerOffers = emptyList()
+        customerServicePrices = emptyList()
+        catalogItems = emptyList()
+        craftItems = emptyList()
+        craftOrders = emptyList()
+        news = emptyList()
+        technologyFact = null
+        banners = emptyList()
+        loyalty = LoyaltyAccount(0, emptyList())
+        referralProgram = ReferralProgram()
+        adminChats = emptyList()
+        activeChat = null
+        supportChats = emptyList()
+        activeSupportChat = null
+        errorMessage = null
     }
 
     LaunchedEffect(token, user?.id, revision) {
@@ -334,6 +373,21 @@ private fun UtpServiseApp(
                 },
                 busy = busy,
             )
+            user!!.role == "CUSTOMER" && phoneNumberValidationError(user!!.phoneNumber.orEmpty()) != null ->
+                CustomerPhoneGateScreen(
+                    busy = busy,
+                    errorMessage = errorMessage,
+                    onDismissError = { errorMessage = null },
+                    onSave = { phoneNumber ->
+                        runAction({ ApiClient.updatePhoneNumber(token, phoneNumber) }) { value ->
+                            (value as? AppUser)?.let {
+                                user = it
+                                errorMessage = null
+                            }
+                        }
+                    },
+                    onLogout = onLogout,
+                )
             else -> AuthenticatedWorkspace(
             user = user!!,
             token = token,
@@ -391,42 +445,7 @@ private fun UtpServiseApp(
             onDismissError = { errorMessage = null },
             runAction = runAction,
             refresh = { revision += 1 },
-            onLogout = {
-                val activeToken = token
-                scope.launch {
-                    withContext(Dispatchers.IO) {
-                        runCatching {
-                            if (FirebaseApp.getApps(context).isNotEmpty()) {
-                                val pushToken = Tasks.await(PushTokenManager.fetchToken())
-                                ApiClient.unregisterPushToken(activeToken, pushToken)
-                            }
-                        }
-                        runCatching { ApiClient.logout(activeToken) }
-                    }
-                }
-                tokenStore.clear()
-                token = ""
-                user = null
-                orders = emptyList()
-                staff = emptyList()
-                reviews = emptyList()
-                customerDevices = emptyList()
-                customerOffers = emptyList()
-                customerServicePrices = emptyList()
-                catalogItems = emptyList()
-                craftItems = emptyList()
-                craftOrders = emptyList()
-                news = emptyList()
-                technologyFact = null
-                banners = emptyList()
-                loyalty = LoyaltyAccount(0, emptyList())
-                referralProgram = ReferralProgram()
-                adminChats = emptyList()
-                activeChat = null
-                supportChats = emptyList()
-                activeSupportChat = null
-                errorMessage = null
-            },
+            onLogout = onLogout,
             )
         }
     }

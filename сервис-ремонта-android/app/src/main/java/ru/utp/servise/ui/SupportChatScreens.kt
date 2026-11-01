@@ -28,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -108,7 +109,8 @@ fun SupportChatScreen(
     onSendMessage: (String, () -> Unit) -> Unit,
     onBack: () -> Unit,
 ) {
-    var draft by remember(customerId) { mutableStateOf("") }
+    var draft by remember(customerId) { mutableStateOf(TextFieldValue("")) }
+    var showEmojiPicker by remember(customerId) { mutableStateOf(false) }
     val refreshLatest by rememberUpdatedState(onRefresh)
     LaunchedEffect(customerId, isAdministrator) {
         refreshLatest()
@@ -177,21 +179,32 @@ fun SupportChatScreen(
             }
         }
         Spacer(Modifier.height(8.dp))
+        ChatEmojiPicker(
+            visible = showEmojiPicker,
+            onEmojiSelected = { emoji ->
+                draft = insertChatEmoji(draft, emoji)
+                showEmojiPicker = false
+            },
+            onDismiss = { showEmojiPicker = false },
+        )
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
                 value = draft,
-                onValueChange = { draft = it.take(2000) },
+                onValueChange = { draft = limitChatDraft(it) },
                 label = { Text("Сообщение") },
                 modifier = Modifier.weight(1f),
                 maxLines = 4,
                 shape = RoundedCornerShape(14.dp),
+                trailingIcon = {
+                    ChatEmojiToggleButton(showEmojiPicker) { showEmojiPicker = !showEmojiPicker }
+                },
             )
             Button(
                 onClick = {
-                    val content = draft.trim()
-                    onSendMessage(content) { draft = "" }
+                    val content = draft.text.trim()
+                    onSendMessage(content) { draft = TextFieldValue("") }
                 },
-                enabled = !busy && draft.trim().isNotEmpty(),
+                enabled = !busy && draft.text.trim().isNotEmpty(),
                 shape = RoundedCornerShape(12.dp),
             ) { Text("Отправить") }
         }

@@ -263,6 +263,14 @@ data class LoyaltyTransaction(
 
 data class LoyaltyAccount(val balance: Int, val transactions: List<LoyaltyTransaction>)
 
+data class AdminLoyaltyCustomer(
+    val id: String,
+    val displayName: String,
+    val email: String,
+    val balance: Int,
+    val transactions: List<LoyaltyTransaction>,
+)
+
 data class ReferralEntry(
     val id: String,
     val status: String,

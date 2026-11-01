@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -233,7 +234,8 @@ private fun CraftOrderChatPanel(
     var chat by remember(craftOrderId) {
         mutableStateOf<CraftOrderChat?>(null)
     }
-    var message by remember(craftOrderId) { mutableStateOf("") }
+    var message by remember(craftOrderId) { mutableStateOf(TextFieldValue("")) }
+    var showEmojiPicker by remember(craftOrderId) { mutableStateOf(false) }
     val context = LocalContext.current
 
     LaunchedEffect(status, craftOrderId) {
@@ -304,14 +306,25 @@ private fun CraftOrderChatPanel(
                         }
                     }
                 }
+                ChatEmojiPicker(
+                    visible = showEmojiPicker,
+                    onEmojiSelected = { emoji ->
+                        message = insertChatEmoji(message, emoji)
+                        showEmojiPicker = false
+                    },
+                    onDismiss = { showEmojiPicker = false },
+                )
                 OutlinedTextField(
                     value = message,
-                    onValueChange = { message = it.take(2000) },
+                    onValueChange = { message = limitChatDraft(it) },
                     label = { Text("Сообщение") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 1,
                     maxLines = 4,
                     shape = RoundedCornerShape(12.dp),
+                    trailingIcon = {
+                        ChatEmojiToggleButton(showEmojiPicker) { showEmojiPicker = !showEmojiPicker }
+                    },
                 )
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -331,7 +344,7 @@ private fun CraftOrderChatPanel(
                     }
                     Button(
                         onClick = {
-                            val content = message.trim()
+                            val content = message.text.trim()
                             if (content.isNotEmpty()) {
                                 runAction({
                                     ApiClient.sendCraftOrderChatMessage(
@@ -341,11 +354,11 @@ private fun CraftOrderChatPanel(
                                     )
                                 }) {
                                     chat = it as? CraftOrderChat
-                                    message = ""
+                                    message = TextFieldValue("")
                                 }
                             }
                         },
-                        enabled = message.isNotBlank(),
+                        enabled = message.text.isNotBlank(),
                     ) { Text("Отправить") }
                 }
             }

@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.BuildConfig
 import ru.utp.servise.data.AppUser
+import ru.utp.servise.data.phoneNumberValidationError
 
 @Composable
 fun AuthNavigation(onAuthenticated: (String, AppUser) -> Unit, onBusy: (Boolean) -> Unit, onError: (String?) -> Unit) {
@@ -354,6 +355,7 @@ private fun RegisterScreen(
     var phoneNumber by remember { mutableStateOf("") }
     var referralCode by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val phoneError = phoneNumberValidationError(phoneNumber)
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(22.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
         Text("Аккаунт клиента", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
@@ -364,14 +366,21 @@ private fun RegisterScreen(
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
             value = phoneNumber,
-            onValueChange = { phoneNumber = it },
-            label = { Text("Телефон (необязательно)") },
+            onValueChange = { phoneNumber = it.take(40) },
+            label = { Text("Телефон *") },
+            placeholder = { Text("+7 999 123-45-67") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
+            isError = phoneNumber.isNotBlank() && phoneError != null,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
             shape = RoundedCornerShape(16.dp),
         )
-        Text("Контакт будет доступен только участникам вашей заявки.", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
+        Text(
+            phoneError ?: "Номер нужен для связи по заявке.",
+            fontSize = 11.sp,
+            color = if (phoneNumber.isNotBlank() && phoneError != null) androidx.compose.material3.MaterialTheme.colorScheme.error else UtpMuted,
+            modifier = Modifier.padding(top = 5.dp),
+        )
         Spacer(Modifier.height(10.dp))
         OutlinedTextField(
             value = referralCode,
@@ -398,11 +407,11 @@ private fun RegisterScreen(
                     email.trim(),
                     name.trim(),
                     password,
-                    phoneNumber.trim().takeIf { it.isNotEmpty() },
+                    phoneNumber.trim(),
                     referralCode.trim().takeIf { it.isNotEmpty() },
                 )
             }
-        }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2 && email.isNotBlank() && password.length >= 8, shape = RoundedCornerShape(18.dp)) { Text("Зарегистрироваться") }
+        }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = name.trim().length >= 2 && email.isNotBlank() && password.length >= 8 && phoneError == null && phoneNumber.isNotBlank(), shape = RoundedCornerShape(18.dp)) { Text("Зарегистрироваться") }
         PrivacyPolicyLink(modifier = Modifier.fillMaxWidth())
     }
 }

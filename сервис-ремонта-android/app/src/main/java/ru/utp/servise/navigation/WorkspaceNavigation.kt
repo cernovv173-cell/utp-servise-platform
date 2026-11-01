@@ -39,7 +39,10 @@ internal data class WorkspaceNavigation(
     fun selectedTabRoute(currentRoute: String?): String? {
         if (currentRoute == null) return null
         if (currentRoute in primaryRoutes) return currentRoute
-        if (sectionParentRoute != null && (currentRoute == sectionHubRoute || currentRoute in sectionRoutes)) {
+        val isSectionRoute = sectionRoutes.any { route ->
+            currentRoute == route || currentRoute.startsWith("$route/")
+        }
+        if (sectionParentRoute != null && (currentRoute == sectionHubRoute || isSectionRoute)) {
             return sectionParentRoute
         }
         if ("admin/manage" in primaryRoutes && currentRoute in managementRoutes) return "admin/manage"
@@ -97,6 +100,18 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                         "Объявления сервиса и публикации.",
                     ),
                     WorkspaceDestination(
+                        "customer/guides",
+                        "Полезные памятки",
+                        Icons.Filled.Info,
+                        "Советы перед обращением в сервис.",
+                    ),
+                    WorkspaceDestination(
+                        "customer/chats",
+                        "Чаты по заявкам",
+                        Icons.AutoMirrored.Filled.List,
+                        "Переписки по активным и завершённым ремонтам.",
+                    ),
+                    WorkspaceDestination(
                         "customer/about",
                         "О компании",
                         Icons.Filled.Info,
@@ -144,6 +159,12 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                 "Дополнительно",
                 listOf(
                     WorkspaceDestination(
+                        "technician/chats",
+                        "Чаты по заявкам",
+                        Icons.AutoMirrored.Filled.List,
+                        "Переписки по назначенным заказам.",
+                    ),
+                    WorkspaceDestination(
                         "technician/reviews",
                         "Отзывы о работе",
                         Icons.Filled.Star,
@@ -180,6 +201,7 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
             "admin/salary",
             "admin/overview",
             "admin/schedule",
+            "admin/order-chats",
             "admin/procurement",
             "admin/about",
             "admin/crafts",
@@ -192,6 +214,9 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
             "admin/reviews",
             "admin/support-chats",
             "admin/support-chat/{customerId}",
+            "admin/offers",
+            "admin/banners",
+            "admin/loyalty",
         ),
     )
 }
