@@ -52,8 +52,8 @@ android {
         applicationId = "ru.utp.servise"
         minSdk = 26
         targetSdk = 35
-        versionCode = 65
-        versionName = "1.5.31"
+        versionCode = 66
+        versionName = "1.5.32"
     }
 
     buildFeatures {
