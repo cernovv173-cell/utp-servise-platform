@@ -27,8 +27,6 @@ export const AndroidApkManagement = () => {
   const queryClient = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [versionName, setVersionName] = useState("");
-  const [versionCode, setVersionCode] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -48,21 +46,19 @@ export const AndroidApkManagement = () => {
   };
 
   const upload = useMutation({
-    mutationFn: (release: { file: File; versionCode: number; versionName: string }) =>
-      uploadAndroidApk(token!, release.file, {
-        versionCode: release.versionCode,
-        versionName: release.versionName,
-      }),
+    mutationFn: (selectedFile: File) => uploadAndroidApk(token!, selectedFile),
     onSuccess: async (result) => {
       setFile(null);
-      setVersionName("");
-      setVersionCode("");
       if (inputRef.current) inputRef.current.value = "";
       setError("");
+      const versionSummary =
+        result.apk.versionName && result.apk.versionCode !== null
+          ? `Версия ${result.apk.versionName}, сборка ${result.apk.versionCode}. `
+          : "APK загружен. ";
       setNotice(
         result.cleanupPending
-          ? "Новая версия APK доступна на сайте, но удаление одной из предыдущих копий не завершилось. Повторите очистку ниже."
-          : "Новая версия APK доступна на сайте. Приложения с проверкой обновлений предложат её при следующем открытии; push-уведомление не отправлено.",
+          ? `${versionSummary}Предыдущую копию не удалось удалить; повторите очистку ниже.`
+          : `${versionSummary}Приложения с проверкой обновлений предложат её при следующем открытии; push-уведомление не отправлено.`,
       );
       await refresh();
     },
@@ -144,21 +140,7 @@ export const AndroidApkManagement = () => {
       setError("Сначала выберите APK-файл.");
       return;
     }
-    const normalizedVersionName = versionName.trim();
-    const normalizedVersionCode = Number(versionCode);
-    if (!normalizedVersionName) {
-      setError("Укажите название версии, которое записано в APK.");
-      return;
-    }
-    if (!Number.isSafeInteger(normalizedVersionCode) || normalizedVersionCode < 1) {
-      setError("Укажите положительный целый номер сборки из APK.");
-      return;
-    }
-    upload.mutate({
-      file,
-      versionCode: normalizedVersionCode,
-      versionName: normalizedVersionName,
-    });
+    upload.mutate(file);
   };
 
   const apk = query.data?.apk;
@@ -172,9 +154,8 @@ export const AndroidApkManagement = () => {
         <div>
           <h2 className="font-semibold">Android-приложение — APK</h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-500">
-            Загрузите подписанный APK и укажите его версию и номер сборки. Приложение с проверкой
-            обновлений предложит установить его при следующем открытии. При замене предыдущий файл
-            удаляется из хранилища.
+            Выберите подписанный APK: сайт сам прочитает из файла версию и номер сборки. Приложение
+            с проверкой обновлений предложит установить его при следующем открытии.
           </p>
         </div>
         {canDownload && (
@@ -208,7 +189,8 @@ export const AndroidApkManagement = () => {
                 </p>
               ) : (
                 <p className="mt-1 text-amber-700 dark:text-amber-300">
-                  Для автоматической проверки этой APK загрузите файл повторно, указав его версию.
+                  Для автоматической проверки загрузите APK повторно — версия будет считана из
+                  файла.
                 </p>
               )}
             </div>
@@ -235,58 +217,26 @@ export const AndroidApkManagement = () => {
         onSubmit={submit}
         className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"
       >
-        <div className="grid gap-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="grid gap-2 text-sm font-medium">
-              Название версии
-              <input
-                type="text"
-                maxLength={100}
-                value={versionName}
-                onChange={(event) => setVersionName(event.currentTarget.value)}
-                placeholder="Например, 1.5.33"
-                autoComplete="off"
-                className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950"
-              />
-            </label>
-            <label className="grid gap-2 text-sm font-medium">
-              Номер сборки
-              <input
-                type="number"
-                min={1}
-                max={2147483647}
-                step={1}
-                value={versionCode}
-                onChange={(event) => setVersionCode(event.currentTarget.value)}
-                placeholder="Например, 67"
-                inputMode="numeric"
-                className="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950"
-              />
-            </label>
-          </div>
-          <label className="grid gap-2 text-sm font-medium">
-            Новый APK (до 100 МБ)
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".apk,application/vnd.android.package-archive"
-              onChange={(event) => chooseFile(event.currentTarget.files?.[0] ?? null)}
-              className="min-h-11 w-full rounded-xl border border-slate-200 bg-white text-sm file:mr-3 file:min-h-11 file:border-0 file:bg-slate-100 file:px-4 file:font-semibold dark:border-slate-700 dark:bg-slate-950 dark:file:bg-slate-800"
-            />
-            <span className="text-xs font-normal text-slate-500">
-              Укажите versionName и versionCode именно этой APK. Номер сборки должен быть больше
-              опубликованного.
-              {file
-                ? ` Выбран файл: ${file.name} · ${formatBytes(file.size)}.`
-                : " Формат файла: .apk."}
-            </span>
-          </label>
-        </div>
+        <label className="grid gap-2 text-sm font-medium">
+          Новый APK (до 100 МБ)
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".apk,application/vnd.android.package-archive"
+            onChange={(event) => chooseFile(event.currentTarget.files?.[0] ?? null)}
+            className="min-h-11 w-full rounded-xl border border-slate-200 bg-white text-sm file:mr-3 file:min-h-11 file:border-0 file:bg-slate-100 file:px-4 file:font-semibold dark:border-slate-700 dark:bg-slate-950 dark:file:bg-slate-800"
+          />
+          <span className="text-xs font-normal text-slate-500">
+            Версия и номер сборки считываются из APK автоматически; номер сборки должен быть больше
+            опубликованного.
+            {file
+              ? ` Выбран файл: ${file.name} · ${formatBytes(file.size)}.`
+              : " Формат файла: .apk."}
+          </span>
+        </label>
         <button
           type="submit"
-          disabled={
-            !file || !versionName.trim() || !versionCode || upload.isPending || query.isLoading
-          }
+          disabled={!file || upload.isPending || query.isLoading}
           className="min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {upload.isPending

@@ -8,6 +8,10 @@ import { HttpError } from "../../lib/http/http-error.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
 import { sendPushNotification } from "../notifications/push-notifications.js";
 import {
+  type AndroidApkMetadataReader,
+  readAndroidApkMetadata,
+} from "./android-apk-metadata.js";
+import {
   deleteProjectApk,
   getProjectApkDownloadUrl,
   uploadProjectApk,
@@ -18,6 +22,7 @@ export const MAX_APK_BYTES = 100 * 1024 * 1024;
 
 const APK_SETTING_KEY = "android_app_apk";
 const APK_FILE_NAME = "UTP-Servise.apk";
+const ANDROID_APP_PACKAGE_NAME = "ru.utp.servise";
 const appVersionMetadataSchema = z.object({
   versionCode: z.number().int().positive().max(2_147_483_647),
   versionName: z.string().trim().min(1).max(100),
@@ -265,6 +270,7 @@ export const createAndroidAppRouter = (
   database: DatabaseClient,
   storage: AndroidApkStorage = projectApkStorage,
   sendUpdateNotification: AndroidAppUpdateNotificationSender = sendPushNotification,
+  readApkMetadata: AndroidApkMetadataReader = readAndroidApkMetadata,
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
@@ -360,15 +366,23 @@ export const createAndroidAppRouter = (
     apkBody,
     async (request, response) => {
       const bytes = cleanRequestBody(request);
+      const apkMetadata = await readApkMetadata(bytes);
+      if (apkMetadata.packageName !== ANDROID_APP_PACKAGE_NAME) {
+        throw new HttpError(
+          400,
+          "WRONG_APK_PACKAGE",
+          "Выбран APK другого приложения. Загрузите UTP Servise.",
+        );
+      }
       const versionMetadata = appVersionMetadataSchema.safeParse({
-        versionCode: Number(request.header("x-app-version-code")),
-        versionName: request.header("x-app-version-name"),
+        versionCode: apkMetadata.versionCode,
+        versionName: apkMetadata.versionName,
       });
       if (!versionMetadata.success) {
         throw new HttpError(
           400,
           "INVALID_APP_VERSION",
-          "Укажите номер и название версии, соответствующие загружаемому APK.",
+          "Не удалось прочитать версию из APK. Проверьте файл и попробуйте ещё раз.",
         );
       }
       const previous = await findRecord(database);

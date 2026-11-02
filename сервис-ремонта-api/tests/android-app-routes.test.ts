@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import test from "node:test";
 
+import type { AndroidApkMetadataReader } from "../src/features/android-app/android-apk-metadata.js";
 import {
   APK_CONTENT_TYPE,
   type AndroidApkStorage,
@@ -14,6 +15,28 @@ import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
 const zipFixture = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0, 0, 0]);
+const testApkMetadataReader: AndroidApkMetadataReader = async (bytes) => {
+  const release = bytes.subarray(zipFixture.length).toString();
+  if (release === "release-one") {
+    return {
+      packageName: "ru.utp.servise",
+      versionCode: 67,
+      versionName: "1.5.33",
+    };
+  }
+  if (release === "release-two") {
+    return {
+      packageName: "ru.utp.servise",
+      versionCode: 68,
+      versionName: "1.5.34",
+    };
+  }
+  return {
+    packageName: "wrong.package",
+    versionCode: 1,
+    versionName: "invalid",
+  };
+};
 
 test("public APK link follows the current upload and administrators can replace or delete it", async (t) => {
   const tokens = {
@@ -159,6 +182,7 @@ test("public APK link follows the current upload and administrators can replace 
         sentNotification = notification;
         return notificationDeliverySucceeded;
       },
+      testApkMetadataReader,
     ),
   );
   app.use(errorHandler);
@@ -169,15 +193,9 @@ test("public APK link follows the current upload and administrators can replace 
   assert.ok(address && typeof address !== "string");
   const baseUrl = `http://127.0.0.1:${address.port}/api`;
   const authHeaders = (token: string) => ({ authorization: `Bearer ${token}` });
-  const apkUploadHeaders = (
-    token: string,
-    versionCode: number,
-    versionName: string,
-  ) => ({
+  const apkUploadHeaders = (token: string) => ({
     ...authHeaders(token),
     "content-type": APK_CONTENT_TYPE,
-    "x-app-version-code": String(versionCode),
-    "x-app-version-name": versionName,
   });
 
   const legacy = await fetch(`${baseUrl}/android-app/download`, {
@@ -214,7 +232,7 @@ test("public APK link follows the current upload and administrators can replace 
 
   const invalidUpload = await fetch(`${baseUrl}/admin/android-app`, {
     method: "POST",
-    headers: apkUploadHeaders(tokens.admin, 67, "1.5.33"),
+    headers: apkUploadHeaders(tokens.admin),
     body: Buffer.from("not an APK"),
   });
   assert.equal(invalidUpload.status, 400);
@@ -230,7 +248,7 @@ test("public APK link follows the current upload and administrators can replace 
   const firstBytes = Buffer.concat([zipFixture, Buffer.from("release-one")]);
   const firstUpload = await fetch(`${baseUrl}/admin/android-app`, {
     method: "POST",
-    headers: apkUploadHeaders(tokens.admin, 67, "1.5.33"),
+    headers: apkUploadHeaders(tokens.admin),
     body: firstBytes,
   });
   assert.equal(firstUpload.status, 200);
@@ -253,7 +271,7 @@ test("public APK link follows the current upload and administrators can replace 
 
   const staleUpload = await fetch(`${baseUrl}/admin/android-app`, {
     method: "POST",
-    headers: apkUploadHeaders(tokens.admin, 67, "1.5.33-repacked"),
+    headers: apkUploadHeaders(tokens.admin),
     body: firstBytes,
   });
   assert.equal(staleUpload.status, 409);
@@ -314,7 +332,7 @@ test("public APK link follows the current upload and administrators can replace 
   const secondBytes = Buffer.concat([zipFixture, Buffer.from("release-two")]);
   const replacement = await fetch(`${baseUrl}/admin/android-app`, {
     method: "POST",
-    headers: apkUploadHeaders(tokens.admin, 68, "1.5.34"),
+    headers: apkUploadHeaders(tokens.admin),
     body: secondBytes,
   });
   assert.equal(replacement.status, 200);

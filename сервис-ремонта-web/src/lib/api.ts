@@ -1736,17 +1736,11 @@ export const setSeasonalTheme = (token: string, season: SeasonalSeasonChoice) =>
 export const getAdminAndroidApk = (token: string, signal?: AbortSignal) =>
   apiRequest<{ apk: AndroidApkInfo }>("/admin/android-app", token, { signal });
 
-export const uploadAndroidApk = (
-  token: string,
-  file: File,
-  version: { versionCode: number; versionName: string },
-) =>
+export const uploadAndroidApk = (token: string, file: File) =>
   apiRequest<{ apk: AndroidApkInfo; cleanupPending: boolean }>("/admin/android-app", token, {
     method: "POST",
     headers: {
       "Content-Type": "application/vnd.android.package-archive",
-      "X-App-Version-Code": String(version.versionCode),
-      "X-App-Version-Name": version.versionName,
     },
     body: file,
   });
