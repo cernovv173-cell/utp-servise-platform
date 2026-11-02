@@ -332,12 +332,21 @@ const LoginPage = () => {
               </label>
             )}
             {recoverySent && recovering && (
-              <p
+              <div
                 role="status"
                 className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
               >
-                Если аккаунт с таким адресом существует, письмо с инструкциями уже отправлено.
-              </p>
+                <p>
+                  Если аккаунт с таким адресом существует, код отправлен на почту и в привязанный
+                  MAX.
+                </p>
+                <Link
+                  to="/reset-password"
+                  className="mt-2 inline-flex font-semibold underline underline-offset-4"
+                >
+                  Перейти к вводу кода
+                </Link>
+              </div>
             )}
             {error && (
               <p role="alert" className="text-sm text-rose-600">
@@ -351,7 +360,7 @@ const LoginPage = () => {
               {busy
                 ? "Подождите…"
                 : recovering
-                  ? "Отправить ссылку"
+                  ? "Отправить код"
                   : registering
                     ? "Зарегистрироваться"
                     : "Войти"}

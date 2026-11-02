@@ -34,11 +34,13 @@ import { HttpError } from "./lib/http/http-error.js";
 type CreateApiRouterOptions = {
   readonly database?: Database;
   readonly onPasswordResetEmailFailure?: () => void;
+  readonly onPasswordResetMaxFailure?: () => void;
 };
 
 export const createApiRouter = ({
   database,
   onPasswordResetEmailFailure,
+  onPasswordResetMaxFailure,
 }: CreateApiRouterOptions): Router => {
   const router = Router();
 
@@ -70,6 +72,7 @@ export const createApiRouter = ({
     router.use(
       createPasswordResetRouter(database.client, {
         onDeliveryFailure: onPasswordResetEmailFailure,
+        onMaxDeliveryFailure: onPasswordResetMaxFailure,
       }),
     );
     router.use(createAuthRouter(database.client));

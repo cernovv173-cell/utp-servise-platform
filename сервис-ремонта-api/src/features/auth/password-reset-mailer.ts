@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 
 export type PasswordResetEmail = {
   readonly to: string;
+  readonly resetCode: string;
   readonly resetUrl: string;
   readonly messageId: string;
 };
@@ -48,7 +49,7 @@ const escapeHtml = (value: string): string =>
 
 export const createPasswordResetEmailSender =
   (environment: MailEnvironment = process.env): PasswordResetEmailSender =>
-  async ({ to, resetUrl, messageId }) => {
+  async ({ to, resetCode, resetUrl, messageId }) => {
     const email = environment.MAIL_RU_EMAIL?.trim();
     const password = environment.MAIL_RU_APP_PASSWORD;
     if (!email || !password) {
@@ -65,13 +66,14 @@ export const createPasswordResetEmailSender =
       socketTimeout: 20_000,
     });
     const safeUrl = escapeHtml(resetUrl);
+    const safeCode = escapeHtml(resetCode);
     const message = {
       from: email,
       to,
-      subject: "Восстановление пароля UTP Servise",
+      subject: "Код для восстановления пароля UTP Servise",
       messageId,
-      text: `Чтобы задать новый пароль, откройте ссылку: ${resetUrl}\n\nСсылка действует 30 минут и может быть использована один раз. Если вы не запрашивали восстановление, проигнорируйте это письмо.`,
-      html: `<p>Мы получили запрос на восстановление пароля UTP Servise.</p><p><a href="${safeUrl}">Задать новый пароль</a></p><p>Ссылка действует 30 минут и может быть использована один раз. Если вы не запрашивали восстановление, проигнорируйте это письмо.</p>`,
+      text: `Код для восстановления пароля: ${resetCode}\n\nОткройте страницу восстановления и введите код вместе с новым паролем: ${resetUrl}\n\nКод действует 30 минут и может быть использован один раз. Если вы не запрашивали восстановление, проигнорируйте это письмо.`,
+      html: `<p>Мы получили запрос на восстановление пароля UTP Servise.</p><p>Код для восстановления: <strong>${safeCode}</strong></p><p><a href="${safeUrl}">Открыть страницу восстановления</a> и ввести код вместе с новым паролем.</p><p>Код действует 30 минут и может быть использован один раз. Если вы не запрашивали восстановление, проигнорируйте это письмо.</p>`,
     };
 
     try {

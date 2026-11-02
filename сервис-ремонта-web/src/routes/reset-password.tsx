@@ -2,7 +2,7 @@ import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Wrench } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { confirmPasswordReset } from "@/lib/api";
+import { confirmPasswordReset, confirmPasswordResetWithCode } from "@/lib/api";
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -36,7 +36,15 @@ const ResetPasswordPage = () => {
     setBusy(true);
     setError("");
     try {
-      await confirmPasswordReset(token, password);
+      if (token) {
+        await confirmPasswordReset(token, password);
+      } else {
+        await confirmPasswordResetWithCode(
+          String(values.get("email")).trim(),
+          String(values.get("code")).trim(),
+          password,
+        );
+      }
       setDone(true);
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Не удалось изменить пароль.");
@@ -54,7 +62,7 @@ const ResetPasswordPage = () => {
           </span>
           UTP Servise
         </Link>
-        <h1 className="mt-8 text-2xl font-semibold">Новый пароль</h1>
+        <h1 className="mt-8 text-2xl font-semibold">Восстановление пароля</h1>
         {done ? (
           <div className="mt-4 grid gap-4">
             <p role="status" className="text-sm leading-6 text-emerald-700 dark:text-emerald-300">
@@ -67,17 +75,48 @@ const ResetPasswordPage = () => {
               Перейти ко входу
             </button>
           </div>
-        ) : !token ? (
-          <p role="alert" className="mt-4 text-sm leading-6 text-rose-600">
-            В ссылке отсутствует код восстановления. Запросите новую ссылку на странице входа.
-          </p>
         ) : (
           <>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Придумайте пароль длиной не менее 8 символов. Ссылка действует 30 минут и используется
-              один раз.
+              {token
+                ? "Старая ссылка действует 30 минут и используется один раз."
+                : "Введите адрес аккаунта и шестизначный код из письма или MAX. Код действует 30 минут; после пяти неверных попыток запросите новый."}{" "}
+              Придумайте пароль длиной не менее 8 символов.
             </p>
             <form onSubmit={submit} className="mt-6 grid gap-4">
+              {!token && (
+                <>
+                  <label className="grid gap-1.5 text-sm font-medium">
+                    Электронная почта аккаунта
+                    <input
+                      required
+                      type="email"
+                      name="email"
+                      maxLength={320}
+                      autoComplete="email"
+                      className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                    />
+                  </label>
+                  <label className="grid gap-1.5 text-sm font-medium">
+                    Код из сообщения
+                    <input
+                      required
+                      type="text"
+                      name="code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      minLength={6}
+                      maxLength={6}
+                      aria-describedby="reset-code-help"
+                      className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal tracking-[0.3em] outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
+                    />
+                    <span id="reset-code-help" className="text-xs font-normal text-slate-500">
+                      Код отправлен на привязанные к аккаунту каналы.
+                    </span>
+                  </label>
+                </>
+              )}
               <label className="grid gap-1.5 text-sm font-medium">
                 Новый пароль
                 <input

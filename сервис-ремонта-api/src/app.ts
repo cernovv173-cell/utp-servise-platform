@@ -68,6 +68,8 @@ export const createApp = ({ database, logger }: CreateAppOptions): Express => {
       database,
       onPasswordResetEmailFailure: () =>
         logger.error("Password reset email delivery failed"),
+      onPasswordResetMaxFailure: () =>
+        logger.error("Password reset MAX delivery failed"),
     }),
   );
 

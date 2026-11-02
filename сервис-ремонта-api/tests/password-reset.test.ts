@@ -1,6 +1,6 @@
 import express from "express";
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { once } from "node:events";
 import test from "node:test";
 
@@ -12,11 +12,12 @@ import {
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("password reset emails a one-time token, changes the password and revokes sessions", async (t) => {
+test("password reset sends a one-time code to email and linked MAX", async (t) => {
   const user = {
     id: "f8d491f0-1639-4ab9-a70f-90f0a88f0001",
     email: "customer@example.test",
     active: true,
+    maxUserId: "123456789",
     passwordHash: await hashPassword("Old-password-123"),
     mustChangePassword: true,
   };
@@ -27,10 +28,14 @@ test("password reset emails a one-time token, changes the password and revokes s
       userId: string;
       tokenHash: string;
       expiresAt: Date;
+      failedAttempts: number;
     }
   >();
   let sentMessage:
-    { to: string; resetUrl: string; messageId: string } | undefined;
+    | { to: string; resetCode: string; resetUrl: string; messageId: string }
+    | undefined;
+  const maxMessages: { userId: string; text: string }[] = [];
+  const codeSecret = "test-password-reset-code-secret-32-bytes";
   let deletedSessionsFor: string | undefined;
   let nextId = 0;
   const client = {
@@ -46,7 +51,13 @@ test("password reset emails a one-time token, changes the password and revokes s
       deleteMany: async ({
         where,
       }: {
-        where: { userId?: string; tokenHash?: string; id?: string };
+        where: {
+          userId?: string;
+          tokenHash?: string;
+          id?: string;
+          expiresAt?: { gt: Date };
+          failedAttempts?: { lt: number };
+        };
       }) => {
         let count = 0;
         for (const [key, token] of resetTokens) {
@@ -54,7 +65,11 @@ test("password reset emails a one-time token, changes the password and revokes s
             (where.userId === undefined || token.userId === where.userId) &&
             (where.tokenHash === undefined ||
               token.tokenHash === where.tokenHash) &&
-            (where.id === undefined || token.id === where.id)
+            (where.id === undefined || token.id === where.id) &&
+            (where.expiresAt === undefined ||
+              token.expiresAt > where.expiresAt.gt) &&
+            (where.failedAttempts === undefined ||
+              token.failedAttempts < where.failedAttempts.lt)
           ) {
             resetTokens.delete(key);
             count += 1;
@@ -65,7 +80,12 @@ test("password reset emails a one-time token, changes the password and revokes s
       create: async ({
         data,
       }: {
-        data: { userId: string; tokenHash: string; expiresAt: Date };
+        data: {
+          userId: string;
+          tokenHash: string;
+          expiresAt: Date;
+          failedAttempts: number;
+        };
       }) => {
         const token = { ...data, id: `reset-${++nextId}` };
         resetTokens.set(token.tokenHash, token);
@@ -74,12 +94,45 @@ test("password reset emails a one-time token, changes the password and revokes s
       findFirst: async ({
         where,
       }: {
-        where: { tokenHash: string; expiresAt: { gt: Date } };
+        where: {
+          tokenHash?: string;
+          userId?: string;
+          expiresAt: { gt: Date };
+        };
       }) => {
-        const candidate = resetTokens.get(where.tokenHash);
+        const candidate = [...resetTokens.values()].find(
+          (token) =>
+            (where.tokenHash === undefined ||
+              token.tokenHash === where.tokenHash) &&
+            (where.userId === undefined || token.userId === where.userId),
+        );
         return candidate && candidate.expiresAt > where.expiresAt.gt
           ? candidate
           : null;
+      },
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: {
+          id: string;
+          expiresAt: { gt: Date };
+          failedAttempts: { lt: number };
+        };
+        data: { failedAttempts: { increment: number } };
+      }) => {
+        const token = [...resetTokens.values()].find(
+          (candidate) => candidate.id === where.id,
+        );
+        if (
+          !token ||
+          token.expiresAt <= where.expiresAt.gt ||
+          token.failedAttempts >= where.failedAttempts.lt
+        ) {
+          return { count: 0 };
+        }
+        token.failedAttempts += data.failedAttempts.increment;
+        return { count: 1 };
       },
     },
     session: {
@@ -97,8 +150,12 @@ test("password reset emails a one-time token, changes the password and revokes s
     "/api",
     createPasswordResetRouter(client as unknown as DatabaseClient, {
       webAppOrigins: "https://service.example.test",
+      codeSecret,
       sendEmail: async (message) => {
         sentMessage = message;
+      },
+      sendMaxMessage: async (userId, text) => {
+        maxMessages.push({ userId, text });
       },
     }),
   );
@@ -118,9 +175,18 @@ test("password reset emails a one-time token, changes the password and revokes s
   assert.equal(missingAccount.status, 202);
   assert.deepEqual(await missingAccount.json(), {
     message:
-      "Если аккаунт с таким адресом существует, мы отправили письмо с инструкциями.",
+      "Если аккаунт с таким адресом существует, мы отправили инструкции по восстановлению.",
   });
   assert.equal(sentMessage, undefined);
+
+  for (let index = 1; index < 5; index += 1) {
+    const unknown = await fetch(`${baseUrl}/request`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: `unknown-${index}@example.test` }),
+    });
+    assert.equal(unknown.status, 202);
+  }
 
   const requested = await fetch(`${baseUrl}/request`, {
     method: "POST",
@@ -138,28 +204,55 @@ test("password reset emails a one-time token, changes the password and revokes s
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.ok(sentMessage);
   assert.equal(sentMessage.to, user.email);
+  assert.match(sentMessage.resetCode, /^\d{6}$/);
   assert.equal(sentMessage.messageId.includes("password-reset-"), true);
   const resetUrl = new URL(sentMessage.resetUrl);
   assert.equal(resetUrl.origin, "https://service.example.test");
   assert.equal(resetUrl.pathname, "/reset-password");
-  const token = new URLSearchParams(resetUrl.hash.slice(1)).get("token");
-  assert.ok(token);
+  assert.equal(resetUrl.hash, "");
+  assert.equal(maxMessages.length, 1);
+  assert.equal(maxMessages[0]?.userId, user.maxUserId);
+  assert.ok(maxMessages[0]?.text.includes(sentMessage.resetCode));
+  assert.ok(maxMessages[0]?.text.includes(sentMessage.resetUrl));
   assert.equal(resetTokens.size, 1);
-  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const tokenHash = createHmac("sha256", codeSecret)
+    .update(`password-reset-code:v1:${user.id}:${sentMessage.resetCode}`)
+    .digest("hex");
   assert.equal(resetTokens.has(tokenHash), true);
-  assert.equal(resetTokens.has(token), false);
+  assert.equal(resetTokens.has(sentMessage.resetCode), false);
 
   const tooShort = await fetch(`${baseUrl}/confirm`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ token, newPassword: "short7" }),
+    body: JSON.stringify({
+      email: user.email,
+      code: sentMessage.resetCode,
+      newPassword: "short7",
+    }),
   });
   assert.equal(tooShort.status, 400);
+
+  const wrongCode = sentMessage.resetCode === "000000" ? "000001" : "000000";
+  const wrongCodeResponse = await fetch(`${baseUrl}/confirm`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email: user.email,
+      code: wrongCode,
+      newPassword: "New-password-8",
+    }),
+  });
+  assert.equal(wrongCodeResponse.status, 400);
+  assert.equal([...resetTokens.values()][0]?.failedAttempts, 1);
 
   const confirmed = await fetch(`${baseUrl}/confirm`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ token, newPassword: "New-password-8" }),
+    body: JSON.stringify({
+      email: user.email,
+      code: sentMessage.resetCode,
+      newPassword: "New-password-8",
+    }),
   });
   assert.equal(confirmed.status, 200);
   assert.equal(await verifyPassword("New-password-8", user.passwordHash), true);
@@ -170,8 +263,76 @@ test("password reset emails a one-time token, changes the password and revokes s
   const reused = await fetch(`${baseUrl}/confirm`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ token, newPassword: "Another-password-8" }),
+    body: JSON.stringify({
+      email: user.email,
+      code: sentMessage.resetCode,
+      newPassword: "Another-password-8",
+    }),
   });
   assert.equal(reused.status, 400);
   assert.equal(await verifyPassword("New-password-8", user.passwordHash), true);
+
+  const legacyToken = "A".repeat(43);
+  const legacyTokenHash = createHash("sha256")
+    .update(legacyToken)
+    .digest("hex");
+  resetTokens.set(legacyTokenHash, {
+    id: "legacy-reset",
+    userId: user.id,
+    tokenHash: legacyTokenHash,
+    expiresAt: new Date(Date.now() + 60_000),
+    failedAttempts: 0,
+  });
+  const legacyConfirm = await fetch(`${baseUrl}/confirm`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      token: legacyToken,
+      newPassword: "Legacy-password-9",
+    }),
+  });
+  assert.equal(legacyConfirm.status, 200);
+
+  for (let index = 0; index < 4; index += 1) {
+    const followUp = await fetch(`${baseUrl}/request`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: user.email }),
+    });
+    assert.equal(followUp.status, 202);
+  }
+  assert.ok(sentMessage);
+  const finalCode = sentMessage.resetCode;
+  const limited = await fetch(`${baseUrl}/request`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: user.email }),
+  });
+  assert.equal(limited.status, 429);
+  assert.ok(Number(limited.headers.get("retry-after")) > 0);
+
+  const incorrectCode = finalCode === "000000" ? "000001" : "000000";
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const rejected = await fetch(`${baseUrl}/confirm`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: user.email,
+        code: incorrectCode,
+        newPassword: "Locked-password-8",
+      }),
+    });
+    assert.equal(rejected.status, 400);
+  }
+  assert.equal([...resetTokens.values()][0]?.failedAttempts, 5);
+  const lockedCode = await fetch(`${baseUrl}/confirm`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email: user.email,
+      code: finalCode,
+      newPassword: "Locked-password-8",
+    }),
+  });
+  assert.equal(lockedCode.status, 400);
 });

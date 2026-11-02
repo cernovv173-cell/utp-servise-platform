@@ -772,6 +772,12 @@ export const confirmPasswordReset = (token: string, newPassword: string) =>
     body: JSON.stringify({ token, newPassword }),
   });
 
+export const confirmPasswordResetWithCode = (email: string, code: string, newPassword: string) =>
+  apiRequest<{ message: string }>("/auth/password-reset/confirm", null, {
+    method: "POST",
+    body: JSON.stringify({ email, code, newPassword }),
+  });
+
 export const registerRequest = (
   displayName: string,
   email: string,
