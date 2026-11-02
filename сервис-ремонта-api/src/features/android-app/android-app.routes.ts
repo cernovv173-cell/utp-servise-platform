@@ -18,6 +18,10 @@ export const MAX_APK_BYTES = 100 * 1024 * 1024;
 
 const APK_SETTING_KEY = "android_app_apk";
 const APK_FILE_NAME = "UTP-Servise.apk";
+const appVersionMetadataSchema = z.object({
+  versionCode: z.number().int().positive().max(2_147_483_647),
+  versionName: z.string().trim().min(1).max(100),
+});
 
 const activeApkSchema = z
   .object({
@@ -25,12 +29,19 @@ const activeApkSchema = z
     objectId: z.string().trim().min(1).max(255),
     sizeBytes: z.number().int().positive().max(MAX_APK_BYTES),
     sha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    versionCode: z.number().int().positive().max(2_147_483_647).optional(),
+    versionName: z.string().trim().min(1).max(100).optional(),
     uploadedAt: z.string().datetime(),
     pendingDeletionObjectIds: z
       .array(z.string().trim().min(1).max(255))
       .max(100),
   })
-  .strict();
+  .strict()
+  .refine(
+    (record) =>
+      (record.versionCode === undefined) === (record.versionName === undefined),
+    "Version code and name must be stored together.",
+  );
 
 const deletedApkSchema = z
   .object({
@@ -140,6 +151,9 @@ const publicStatus = async (database: DatabaseClient) => {
       state: "available" as const,
       fileName: APK_FILE_NAME,
       sizeBytes: record.sizeBytes,
+      versionCode: record.versionCode ?? null,
+      versionName: record.versionName ?? null,
+      sha256: record.sha256,
       uploadedAt: record.uploadedAt,
       downloadPath: "/android-app/download",
     };
@@ -149,6 +163,9 @@ const publicStatus = async (database: DatabaseClient) => {
       state: "deleted" as const,
       fileName: null,
       sizeBytes: null,
+      versionCode: null,
+      versionName: null,
+      sha256: null,
       uploadedAt: null,
     };
   }
@@ -156,6 +173,9 @@ const publicStatus = async (database: DatabaseClient) => {
     state: legacyApkUrl() ? ("legacy" as const) : ("unavailable" as const),
     fileName: legacyApkUrl() ? APK_FILE_NAME : null,
     sizeBytes: null,
+    versionCode: null,
+    versionName: null,
+    sha256: null,
     uploadedAt: null,
   };
 };
@@ -167,6 +187,8 @@ const apkInfo = (record: ApkRecord | null) => {
       fileName: legacyApkUrl() ? APK_FILE_NAME : null,
       sizeBytes: null,
       sha256: null,
+      versionCode: null,
+      versionName: null,
       uploadedAt: null,
       pendingDeletionCount: 0,
     };
@@ -177,6 +199,8 @@ const apkInfo = (record: ApkRecord | null) => {
       fileName: null,
       sizeBytes: null,
       sha256: null,
+      versionCode: null,
+      versionName: null,
       uploadedAt: record.deletedAt,
       pendingDeletionCount: record.pendingDeletionObjectIds.length,
     };
@@ -186,6 +210,8 @@ const apkInfo = (record: ApkRecord | null) => {
     fileName: APK_FILE_NAME,
     sizeBytes: record.sizeBytes,
     sha256: record.sha256,
+    versionCode: record.versionCode ?? null,
+    versionName: record.versionName ?? null,
     uploadedAt: record.uploadedAt,
     pendingDeletionCount: record.pendingDeletionObjectIds.length,
   };
@@ -245,6 +271,7 @@ export const createAndroidAppRouter = (
   const requireAdmin = requireRoles("ADMIN");
 
   router.get("/android-app", async (_request, response) => {
+    response.setHeader("Cache-Control", "no-store");
     response.json({ apk: await publicStatus(database) });
   });
 
@@ -310,7 +337,7 @@ export const createAndroidAppRouter = (
         recipientUserIds,
         {
           title: "Доступно обновление UTP Servise",
-          body: "Загружена новая версия приложения. Откройте сайт UTP Servise и скачайте обновление.",
+          body: "Откройте приложение — оно предложит скачать и установить новую версию.",
           data: {
             type: "app_update",
             notificationId: `android-app-update-${record.sha256}`,
@@ -333,7 +360,29 @@ export const createAndroidAppRouter = (
     apkBody,
     async (request, response) => {
       const bytes = cleanRequestBody(request);
+      const versionMetadata = appVersionMetadataSchema.safeParse({
+        versionCode: Number(request.header("x-app-version-code")),
+        versionName: request.header("x-app-version-name"),
+      });
+      if (!versionMetadata.success) {
+        throw new HttpError(
+          400,
+          "INVALID_APP_VERSION",
+          "Укажите номер и название версии, соответствующие загружаемому APK.",
+        );
+      }
       const previous = await findRecord(database);
+      if (
+        previous?.status === "available" &&
+        previous.versionCode !== undefined &&
+        versionMetadata.data.versionCode <= previous.versionCode
+      ) {
+        throw new HttpError(
+          409,
+          "APP_VERSION_NOT_NEWER",
+          "Номер сборки нового APK должен быть больше текущего.",
+        );
+      }
       const objectId = await storage.upload(bytes);
       const pendingDeletionObjectIds = [
         ...new Set([
@@ -347,6 +396,8 @@ export const createAndroidAppRouter = (
         objectId,
         sizeBytes: bytes.length,
         sha256: createHash("sha256").update(bytes).digest("hex"),
+        versionCode: versionMetadata.data.versionCode,
+        versionName: versionMetadata.data.versionName,
         uploadedAt,
         pendingDeletionObjectIds,
       };

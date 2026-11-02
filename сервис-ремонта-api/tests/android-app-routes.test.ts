@@ -169,6 +169,16 @@ test("public APK link follows the current upload and administrators can replace 
   assert.ok(address && typeof address !== "string");
   const baseUrl = `http://127.0.0.1:${address.port}/api`;
   const authHeaders = (token: string) => ({ authorization: `Bearer ${token}` });
+  const apkUploadHeaders = (
+    token: string,
+    versionCode: number,
+    versionName: string,
+  ) => ({
+    ...authHeaders(token),
+    "content-type": APK_CONTENT_TYPE,
+    "x-app-version-code": String(versionCode),
+    "x-app-version-name": versionName,
+  });
 
   const legacy = await fetch(`${baseUrl}/android-app/download`, {
     redirect: "manual",
@@ -204,21 +214,50 @@ test("public APK link follows the current upload and administrators can replace 
 
   const invalidUpload = await fetch(`${baseUrl}/admin/android-app`, {
     method: "POST",
-    headers: { ...authHeaders(tokens.admin), "content-type": APK_CONTENT_TYPE },
+    headers: apkUploadHeaders(tokens.admin, 67, "1.5.33"),
     body: Buffer.from("not an APK"),
   });
   assert.equal(invalidUpload.status, 400);
 
+  const missingVersion = await fetch(`${baseUrl}/admin/android-app`, {
+    method: "POST",
+    headers: { ...authHeaders(tokens.admin), "content-type": APK_CONTENT_TYPE },
+    body: zipFixture,
+  });
+  assert.equal(missingVersion.status, 400);
+  assert.equal(storedObjects.size, 0);
+
   const firstBytes = Buffer.concat([zipFixture, Buffer.from("release-one")]);
   const firstUpload = await fetch(`${baseUrl}/admin/android-app`, {
     method: "POST",
-    headers: { ...authHeaders(tokens.admin), "content-type": APK_CONTENT_TYPE },
+    headers: apkUploadHeaders(tokens.admin, 67, "1.5.33"),
     body: firstBytes,
   });
   assert.equal(firstUpload.status, 200);
-  assert.equal((await firstUpload.json()).apk.state, "available");
+  const firstUploadResult = await firstUpload.json();
+  assert.equal(firstUploadResult.apk.state, "available");
+  assert.equal(firstUploadResult.apk.versionCode, 67);
+  assert.equal(firstUploadResult.apk.versionName, "1.5.33");
   assert.deepEqual(storedObjects.get("apk-1"), firstBytes);
   assert.equal(notificationSendCount, 0);
+
+  const currentAppVersion = await fetch(`${baseUrl}/android-app`);
+  assert.equal(currentAppVersion.headers.get("cache-control"), "no-store");
+  const currentAppVersionResult = await currentAppVersion.json();
+  assert.equal(currentAppVersionResult.apk.versionCode, 67);
+  assert.equal(currentAppVersionResult.apk.versionName, "1.5.33");
+  assert.equal(
+    currentAppVersionResult.apk.sha256,
+    firstUploadResult.apk.sha256,
+  );
+
+  const staleUpload = await fetch(`${baseUrl}/admin/android-app`, {
+    method: "POST",
+    headers: apkUploadHeaders(tokens.admin, 67, "1.5.33-repacked"),
+    body: firstBytes,
+  });
+  assert.equal(staleUpload.status, 409);
+  assert.equal(storedObjects.size, 1);
 
   const forbiddenNotification = await fetch(
     `${baseUrl}/admin/android-app/notify`,
@@ -275,11 +314,14 @@ test("public APK link follows the current upload and administrators can replace 
   const secondBytes = Buffer.concat([zipFixture, Buffer.from("release-two")]);
   const replacement = await fetch(`${baseUrl}/admin/android-app`, {
     method: "POST",
-    headers: { ...authHeaders(tokens.admin), "content-type": APK_CONTENT_TYPE },
+    headers: apkUploadHeaders(tokens.admin, 68, "1.5.34"),
     body: secondBytes,
   });
   assert.equal(replacement.status, 200);
-  assert.equal((await replacement.json()).cleanupPending, true);
+  const replacementResult = await replacement.json();
+  assert.equal(replacementResult.cleanupPending, true);
+  assert.equal(replacementResult.apk.versionCode, 68);
+  assert.equal(replacementResult.apk.versionName, "1.5.34");
   assert.equal(storedObjects.has("apk-1"), true);
   assert.equal(deletedObjects.includes("apk-1"), false);
 

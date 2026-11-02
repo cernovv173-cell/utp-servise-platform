@@ -58,6 +58,8 @@ export type AndroidApkInfo = {
   fileName: string | null;
   sizeBytes: number | null;
   sha256?: string | null;
+  versionCode: number | null;
+  versionName: string | null;
   uploadedAt: string | null;
   pendingDeletionCount?: number;
 };
@@ -1734,10 +1736,18 @@ export const setSeasonalTheme = (token: string, season: SeasonalSeasonChoice) =>
 export const getAdminAndroidApk = (token: string, signal?: AbortSignal) =>
   apiRequest<{ apk: AndroidApkInfo }>("/admin/android-app", token, { signal });
 
-export const uploadAndroidApk = (token: string, file: File) =>
+export const uploadAndroidApk = (
+  token: string,
+  file: File,
+  version: { versionCode: number; versionName: string },
+) =>
   apiRequest<{ apk: AndroidApkInfo; cleanupPending: boolean }>("/admin/android-app", token, {
     method: "POST",
-    headers: { "Content-Type": "application/vnd.android.package-archive" },
+    headers: {
+      "Content-Type": "application/vnd.android.package-archive",
+      "X-App-Version-Code": String(version.versionCode),
+      "X-App-Version-Name": version.versionName,
+    },
     body: file,
   });
 

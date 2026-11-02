@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -67,6 +68,7 @@ import ru.utp.servise.data.SupportChat
 import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.notifications.NotificationChannels
 import ru.utp.servise.ui.AuthNavigation
+import ru.utp.servise.ui.AndroidAppUpdateGate
 import ru.utp.servise.ui.ChangeTemporaryPasswordScreen
 import ru.utp.servise.ui.CustomerPhoneGateScreen
 import ru.utp.servise.ui.RunAction
@@ -76,17 +78,24 @@ import ru.utp.servise.ui.UtpServiseTheme
 import ru.utp.servise.data.phoneNumberValidationError
 
 class MainActivity : ComponentActivity() {
+    private var updateCheckTrigger by mutableIntStateOf(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         clearRetiredGameCache(this)
         if (BuildConfig.VK_ID_APP_ID.isNotBlank()) VKID.init(this)
         NotificationChannels.ensureCreated(this)
-        setContent { SeasonalThemeHost() }
+        setContent { SeasonalThemeHost(updateCheckTrigger) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateCheckTrigger += 1
     }
 }
 
 @Composable
-private fun SeasonalThemeHost() {
+private fun SeasonalThemeHost(updateCheckTrigger: Int) {
     var seasonalTheme by remember { mutableStateOf(SeasonalThemeState()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -99,6 +108,7 @@ private fun SeasonalThemeHost() {
         UtpServiseApp(
             seasonalTheme = seasonalTheme,
             onSeasonalThemeChanged = { seasonalTheme = it },
+            updateCheckTrigger = updateCheckTrigger,
         )
     }
 }
@@ -107,6 +117,7 @@ private fun SeasonalThemeHost() {
 private fun UtpServiseApp(
     seasonalTheme: SeasonalThemeState,
     onSeasonalThemeChanged: (SeasonalThemeState) -> Unit,
+    updateCheckTrigger: Int,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -448,6 +459,7 @@ private fun UtpServiseApp(
             onLogout = onLogout,
             )
         }
+        AndroidAppUpdateGate(updateCheckTrigger)
     }
 }
 

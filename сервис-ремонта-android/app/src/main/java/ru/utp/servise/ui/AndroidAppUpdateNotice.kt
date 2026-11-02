@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 @Composable
-fun OfficialStoreUpdateNotice() {
+fun AndroidAppUpdateNotice() {
     Card(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
@@ -22,9 +22,9 @@ fun OfficialStoreUpdateNotice() {
         ),
     ) {
         Column(Modifier.fillMaxWidth().padding(18.dp)) {
-            Text("Обновление приложения", fontWeight = FontWeight.SemiBold, color = UtpInk)
+            Text("Проверка обновлений", fontWeight = FontWeight.SemiBold, color = UtpInk)
             Text(
-                "Для безопасности устанавливайте обновления через официальный магазин, из которого вы скачали приложение.",
+                "При открытии приложения проверяется новая версия на сайте. Если обновление доступно, появится предложение скачать и установить его; установку нужно подтвердить в Android.",
                 modifier = Modifier.padding(top = 5.dp),
                 fontSize = 12.sp,
                 color = UtpMuted,

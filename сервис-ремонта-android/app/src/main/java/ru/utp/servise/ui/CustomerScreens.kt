@@ -300,7 +300,7 @@ fun ProfileScreen(
             }
         }
         Spacer(Modifier.height(12.dp))
-        OfficialStoreUpdateNotice()
+        AndroidAppUpdateNotice()
         Spacer(Modifier.height(12.dp))
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
