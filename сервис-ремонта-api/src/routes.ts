@@ -2,6 +2,7 @@ import { Router } from "express";
 
 import { createAndroidAppRouter } from "./features/android-app/android-app.routes.js";
 import { createAuthRouter } from "./features/auth/auth.routes.js";
+import { createMaxEmailLoginRouter } from "./features/auth/max-email-login.routes.js";
 import { createPasswordResetRouter } from "./features/auth/password-reset.routes.js";
 import { createBannersRouter } from "./features/banners/banners.routes.js";
 import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
@@ -77,6 +78,7 @@ export const createApiRouter = ({
       }),
     );
     router.use(createAuthRouter(database.client));
+    router.use(createMaxEmailLoginRouter(database.client));
     router.use(createMaxLoginRouter(database.client));
     router.use(createMaxRouter(database.client));
     router.use(createTelegramRouter(database.client));

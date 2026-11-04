@@ -157,74 +157,75 @@ model AppSetting {
 }
 
 model User {
-  id                      String                         @id @default(uuid()) @db.Uuid
-  email                   String?                        @unique @db.VarChar(320)
-  displayName             String                         @map("display_name") @db.VarChar(120)
-  phoneNumber             String?                        @map("phone_number") @db.VarChar(32)
-  gender                  CustomerGender?
-  birthDate               DateTime?                      @map("birth_date") @db.Date
-  avatarObjectId          String?                        @map("avatar_object_id") @db.VarChar(255)
-  passwordHash            String                         @map("password_hash") @db.VarChar(255)
-  yandexId                String?                        @unique @map("yandex_id") @db.VarChar(128)
-  vkId                    String?                        @unique @map("vk_id") @db.VarChar(128)
-  telegramChatId          String?                        @unique @map("telegram_chat_id") @db.VarChar(64)
-  maxUserId               String?                        @unique @map("max_user_id") @db.VarChar(64)
-  referralCode            String?                        @unique @map("referral_code") @db.VarChar(16)
-  role                    UserRole                       @default(CUSTOMER)
-  salaryRatePercent       Int                            @default(75) @map("salary_rate_percent") @db.SmallInt
-  active                  Boolean                        @default(true)
-  mustChangePassword      Boolean                        @default(false) @map("must_change_password")
-  createdAt               DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt               DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions                Session[]
-  passwordResetTokens     PasswordResetToken[]
-  customerOrders          RepairOrder[]                  @relation("CustomerOrders")
-  shopOrders              ShopOrder[]                    @relation("ShopOrderCustomer")
-  assignedOrders          RepairOrder[]                  @relation("AssignedOrders")
-  statusChanges           RepairStatusEvent[]            @relation("StatusActor")
-  createdRepairEstimates  RepairEstimate[]               @relation("RepairEstimateCreator")
-  repairDeadlineChanges   RepairOrderDeadlineChange[]    @relation("RepairDeadlineChangeActor")
-  reviews                 Review[]
-  addedOrderItems         RepairOrderItem[]              @relation("OrderItemAdder")
-  catalogItemsCreated     RepairCatalogItem[]            @relation("CatalogItemCreator")
-  newsArticlesCreated     NewsArticle[]                  @relation("NewsArticleCreator")
-  orderChatMessages       OrderChatMessage[]             @relation("OrderChatMessageSender")
-  craftOrderChatMessages  CraftOrderChatMessage[]        @relation("CraftOrderChatMessageSender")
-  requestedChats          OrderChat[]                    @relation("ChatEscalationRequester")
-  joinedChats             OrderChat[]                    @relation("ChatAdministratorJoiner")
-  repairChatReadReceipts  OrderChatAdminRead[]           @relation("RepairChatReadAdministrator")
-  pushDeviceTokens        PushDeviceToken[]
-  orderPhotos             RepairOrderPhoto[]
-  technicianProfile       TechnicianProfile?
-  createdIntakes          RepairOrderIntake[]            @relation("IntakeCreator")
-  updatedIntakes          RepairOrderIntake[]            @relation("IntakeUpdater")
-  issuedRepairWarranties  RepairWarranty[]               @relation("WarrantyIssuer")
-  craftItemsCreated       CraftItem[]                    @relation("CraftItemCreator")
-  craftOrders             CraftOrder[]                   @relation("CraftOrderCustomer")
-  handledCraftOrders      CraftOrder[]                   @relation("CraftOrderHandler")
-  assignedCraftOrders     CraftOrder[]                   @relation("CraftOrderTechnician")
-  craftSalaryEntries      CraftOrderSalaryEntry[]        @relation("CraftTechnicianSalaryEntries")
-  bonusTransactions       LoyaltyTransaction[]           @relation("BonusCustomer")
-  bonusActions            LoyaltyTransaction[]           @relation("BonusActor")
-  createdBanners          SiteBanner[]                   @relation("BannerCreator")
-  issuedReceipts          RepairReceipt[]                @relation("ReceiptIssuer")
-  issuedCraftReceipts     CraftOrderReceipt[]            @relation("CraftReceiptIssuer")
-  technicianSalaryEntries TechnicianSalaryEntry[]        @relation("TechnicianSalaryEntries")
-  supportConversations    SupportConversation[]          @relation("SupportConversationCustomer")
-  supportMessages         SupportChatMessage[]           @relation("SupportChatMessageSender")
-  birthdayPushDeliveries  BirthdayPushDelivery[]
-  birthdayBonusAwards     BirthdayBonusAward[]
-  customerDevices         CustomerDevice[]
-  telegramLinkTokens      TelegramLinkToken[]
-  telegramNotifications   TelegramNotificationDelivery[]
-  maxLinkTokens           MaxLinkToken[]
-  maxNotifications        MaxNotificationDelivery[]
-  maxLoginRequests        MaxLoginRequest[]
-  referralsSent           CustomerReferral[]             @relation("ReferralInviter")
-  referralReceived        CustomerReferral?              @relation("ReferralInvitee")
-  referralPromoCodes      CustomerReferralCode[]         @relation("ReferralPromoCodeOwner")
-  createdCustomerOffers   CustomerOffer[]                @relation("CustomerOfferCreator")
-  customerOfferEntries    CustomerOfferParticipation[]   @relation("CustomerOfferParticipant")
+  id                        String                         @id @default(uuid()) @db.Uuid
+  email                     String?                        @unique @db.VarChar(320)
+  displayName               String                         @map("display_name") @db.VarChar(120)
+  phoneNumber               String?                        @map("phone_number") @db.VarChar(32)
+  gender                    CustomerGender?
+  birthDate                 DateTime?                      @map("birth_date") @db.Date
+  avatarObjectId            String?                        @map("avatar_object_id") @db.VarChar(255)
+  passwordHash              String                         @map("password_hash") @db.VarChar(255)
+  yandexId                  String?                        @unique @map("yandex_id") @db.VarChar(128)
+  vkId                      String?                        @unique @map("vk_id") @db.VarChar(128)
+  telegramChatId            String?                        @unique @map("telegram_chat_id") @db.VarChar(64)
+  maxUserId                 String?                        @unique @map("max_user_id") @db.VarChar(64)
+  referralCode              String?                        @unique @map("referral_code") @db.VarChar(16)
+  role                      UserRole                       @default(CUSTOMER)
+  salaryRatePercent         Int                            @default(75) @map("salary_rate_percent") @db.SmallInt
+  active                    Boolean                        @default(true)
+  mustChangePassword        Boolean                        @default(false) @map("must_change_password")
+  createdAt                 DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions                  Session[]
+  passwordResetTokens       PasswordResetToken[]
+  maxEmailLoginVerification MaxEmailLoginVerification?
+  customerOrders            RepairOrder[]                  @relation("CustomerOrders")
+  shopOrders                ShopOrder[]                    @relation("ShopOrderCustomer")
+  assignedOrders            RepairOrder[]                  @relation("AssignedOrders")
+  statusChanges             RepairStatusEvent[]            @relation("StatusActor")
+  createdRepairEstimates    RepairEstimate[]               @relation("RepairEstimateCreator")
+  repairDeadlineChanges     RepairOrderDeadlineChange[]    @relation("RepairDeadlineChangeActor")
+  reviews                   Review[]
+  addedOrderItems           RepairOrderItem[]              @relation("OrderItemAdder")
+  catalogItemsCreated       RepairCatalogItem[]            @relation("CatalogItemCreator")
+  newsArticlesCreated       NewsArticle[]                  @relation("NewsArticleCreator")
+  orderChatMessages         OrderChatMessage[]             @relation("OrderChatMessageSender")
+  craftOrderChatMessages    CraftOrderChatMessage[]        @relation("CraftOrderChatMessageSender")
+  requestedChats            OrderChat[]                    @relation("ChatEscalationRequester")
+  joinedChats               OrderChat[]                    @relation("ChatAdministratorJoiner")
+  repairChatReadReceipts    OrderChatAdminRead[]           @relation("RepairChatReadAdministrator")
+  pushDeviceTokens          PushDeviceToken[]
+  orderPhotos               RepairOrderPhoto[]
+  technicianProfile         TechnicianProfile?
+  createdIntakes            RepairOrderIntake[]            @relation("IntakeCreator")
+  updatedIntakes            RepairOrderIntake[]            @relation("IntakeUpdater")
+  issuedRepairWarranties    RepairWarranty[]               @relation("WarrantyIssuer")
+  craftItemsCreated         CraftItem[]                    @relation("CraftItemCreator")
+  craftOrders               CraftOrder[]                   @relation("CraftOrderCustomer")
+  handledCraftOrders        CraftOrder[]                   @relation("CraftOrderHandler")
+  assignedCraftOrders       CraftOrder[]                   @relation("CraftOrderTechnician")
+  craftSalaryEntries        CraftOrderSalaryEntry[]        @relation("CraftTechnicianSalaryEntries")
+  bonusTransactions         LoyaltyTransaction[]           @relation("BonusCustomer")
+  bonusActions              LoyaltyTransaction[]           @relation("BonusActor")
+  createdBanners            SiteBanner[]                   @relation("BannerCreator")
+  issuedReceipts            RepairReceipt[]                @relation("ReceiptIssuer")
+  issuedCraftReceipts       CraftOrderReceipt[]            @relation("CraftReceiptIssuer")
+  technicianSalaryEntries   TechnicianSalaryEntry[]        @relation("TechnicianSalaryEntries")
+  supportConversations      SupportConversation[]          @relation("SupportConversationCustomer")
+  supportMessages           SupportChatMessage[]           @relation("SupportChatMessageSender")
+  birthdayPushDeliveries    BirthdayPushDelivery[]
+  birthdayBonusAwards       BirthdayBonusAward[]
+  customerDevices           CustomerDevice[]
+  telegramLinkTokens        TelegramLinkToken[]
+  telegramNotifications     TelegramNotificationDelivery[]
+  maxLinkTokens             MaxLinkToken[]
+  maxNotifications          MaxNotificationDelivery[]
+  maxLoginRequests          MaxLoginRequest[]
+  referralsSent             CustomerReferral[]             @relation("ReferralInviter")
+  referralReceived          CustomerReferral?              @relation("ReferralInvitee")
+  referralPromoCodes        CustomerReferralCode[]         @relation("ReferralPromoCodeOwner")
+  createdCustomerOffers     CustomerOffer[]                @relation("CustomerOfferCreator")
+  customerOfferEntries      CustomerOfferParticipation[]   @relation("CustomerOfferParticipant")
 
   @@index([role, active])
   @@map("users")
@@ -253,6 +254,22 @@ model PasswordResetToken {
 
   @@index([userId, expiresAt])
   @@map("password_reset_tokens")
+}
+
+model MaxEmailLoginVerification {
+  id                     String   @id @default(uuid()) @db.Uuid
+  userId                 String   @unique @map("user_id") @db.Uuid
+  email                  String   @db.VarChar(320)
+  codeHash               String   @map("code_hash") @db.Char(64)
+  expiresAt              DateTime @map("expires_at") @db.Timestamptz(3)
+  failedAttempts         Int      @default(0) @map("failed_attempts")
+  requestCount           Int      @default(1) @map("request_count")
+  requestWindowStartedAt DateTime @default(now()) @map("request_window_started_at") @db.Timestamptz(3)
+  requestedAt            DateTime @default(now()) @map("requested_at") @db.Timestamptz(3)
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("max_email_login_verifications")
 }
 
 model PushDeviceToken {
