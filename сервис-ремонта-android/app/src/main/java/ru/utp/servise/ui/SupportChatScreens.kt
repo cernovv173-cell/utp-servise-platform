@@ -87,7 +87,12 @@ fun SupportChatInboxScreen(
             ) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     Text(chat.customerName.ifBlank { "Клиент" }, fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text(chat.customerEmail, fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
+                    Text(
+                        chat.customerEmail ?: "вход через МАКС",
+                        fontSize = 11.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
                     Text(chat.lastMessage, fontSize = 13.sp, color = UtpInk, modifier = Modifier.padding(top = 7.dp))
                     formatSupportChatTimestamp(chat.updatedAt)?.let { timestamp ->
                         Text("Последнее сообщение · $timestamp", fontSize = 10.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))

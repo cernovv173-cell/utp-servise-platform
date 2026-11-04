@@ -41,7 +41,7 @@ export type RepairOrderDeadlineChange = {
 
 export type User = {
   id: string;
-  email: string;
+  email: string | null;
   displayName: string;
   phoneNumber?: string | null;
   gender?: "MALE" | "FEMALE" | null;
@@ -79,6 +79,24 @@ export type AuthResponse = {
   referralApplied?: boolean;
   user: User;
 };
+
+export type MaxLoginStart = {
+  url: string;
+  pollToken: string;
+  expiresAt: string;
+};
+
+export type MaxLoginPoll =
+  | { status: "pending" | "awaiting_contact"; expiresAt: string }
+  | { status: "failed" | "expired"; message: string }
+  | {
+      status: "completed";
+      accessToken: string;
+      expiresAt: string;
+      accountCreated?: boolean;
+      referralApplied?: boolean;
+      user: User;
+    };
 
 export type RepairOrder = {
   id: string;
@@ -147,7 +165,7 @@ export type RepairOrder = {
   customer?: {
     id: string;
     displayName: string;
-    email: string;
+    email: string | null;
     phoneNumber?: string | null;
     avatarObjectId?: string | null;
   };
@@ -266,7 +284,7 @@ export type SupportChat = {
   customer: {
     id: string;
     displayName: string;
-    email: string;
+    email: string | null;
     phoneNumber: string | null;
   };
   messages: SupportChatMessage[];
@@ -274,7 +292,7 @@ export type SupportChat = {
 
 export type SupportChatInboxItem = {
   id: string;
-  customer: { id: string; displayName: string; email: string };
+  customer: { id: string; displayName: string; email: string | null };
   updatedAt: string;
   messages: Array<{
     id: string;
@@ -459,7 +477,7 @@ export type ShopOrder = {
   customer?: {
     id: string;
     displayName: string;
-    email: string;
+    email: string | null;
     phoneNumber: string | null;
   };
 };
@@ -468,7 +486,7 @@ export type CustomerServicePrice = Pick<RepairCatalogItem, "id" | "name" | "unit
 
 export type AdminCustomer = {
   id: string;
-  email: string;
+  email: string | null;
   displayName: string;
   phoneNumber: string | null;
   active: boolean;
@@ -603,7 +621,7 @@ export type ReferralProgram = {
   }>;
 };
 export type LoyaltyCustomer = {
-  customer: { id: string; displayName: string; email: string };
+  customer: { id: string; displayName: string; email: string | null };
   balance: number;
   transactions: LoyaltyTransaction[];
 };
@@ -730,37 +748,22 @@ export const loginRequest = (email: string, password: string, portal: Role) =>
     body: JSON.stringify({ email, password, portal }),
   });
 
-export const yandexLoginRequest = async (
-  accessToken: string,
-  portal: Role,
-  password?: string,
-  referralCode?: string,
-): Promise<AuthResponse> => {
+export const maxLoginConfigRequest = () =>
+  apiRequest<{ available: boolean }>("/auth/max/config", null);
+
+export const startMaxLoginRequest = (referralCode?: string) => {
   const normalizedReferralCode = referralCode?.trim().toUpperCase();
-  const response = await fetch(`${apiBase}/auth/yandex`, {
+  return apiRequest<MaxLoginStart>("/auth/max/login", null, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({
-      accessToken,
-      portal,
-      ...(password ? { password } : {}),
-      ...(normalizedReferralCode ? { referralCode: normalizedReferralCode } : {}),
-    }),
+    body: JSON.stringify(normalizedReferralCode ? { referralCode: normalizedReferralCode } : {}),
   });
-  const body: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    const error =
-      typeof body === "object" && body !== null && "error" in body
-        ? (body as { error?: { code?: unknown; message?: unknown } }).error
-        : undefined;
-    throw new ApiRequestError(
-      typeof error?.code === "string" ? error.code : "REQUEST_FAILED",
-      response.status,
-      typeof error?.message === "string" ? error.message : "Не удалось войти через Яндекс ID.",
-    );
-  }
-  return body as AuthResponse;
 };
+
+export const pollMaxLoginRequest = (pollToken: string) =>
+  apiRequest<MaxLoginPoll>("/auth/max/login/poll", null, {
+    method: "POST",
+    body: JSON.stringify({ pollToken }),
+  });
 
 export const requestPasswordReset = (email: string) =>
   apiRequest<{ message: string }>("/auth/password-reset/request", null, {
@@ -1188,7 +1191,7 @@ export const createAdminCustomer = (
 export const updateAdminCustomer = (
   token: string,
   customerId: string,
-  input: { email: string; displayName: string; phoneNumber?: string | null },
+  input: { email?: string; displayName: string; phoneNumber?: string | null },
 ) =>
   apiRequest<{ customer: AdminCustomer }>(`/admin/customers/${customerId}`, token, {
     method: "PATCH",

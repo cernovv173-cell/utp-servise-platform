@@ -11,12 +11,12 @@ const invalidReferralCode = () =>
   );
 
 type CustomerRegistrationInput = {
-  readonly email: string;
+  readonly email: string | null;
   readonly displayName: string;
   readonly phoneNumber: string | null;
   readonly passwordHash: string;
-  readonly yandexId?: string | undefined;
   readonly vkId?: string | undefined;
+  readonly maxUserId?: string | undefined;
   readonly referralCode?: string | undefined;
 };
 
@@ -119,8 +119,8 @@ export const createCustomerWithReferral = async (
       displayName: input.displayName,
       phoneNumber: input.phoneNumber,
       passwordHash: input.passwordHash,
-      ...(input.yandexId ? { yandexId: input.yandexId } : {}),
       ...(input.vkId ? { vkId: input.vkId } : {}),
+      ...(input.maxUserId ? { maxUserId: input.maxUserId } : {}),
       role: "CUSTOMER",
     },
   });

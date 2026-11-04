@@ -12,6 +12,7 @@ import { createCustomerOffersRouter } from "./features/customer-offers/customer-
 import { createCustomerAdminRouter } from "./features/customers/customer.routes.js";
 import { createCustomerDevicesRouter } from "./features/customers/devices.routes.js";
 import { createLoyaltyRouter } from "./features/loyalty/loyalty.routes.js";
+import { createMaxLoginRouter } from "./features/max/max-login.routes.js";
 import { createMaxRouter } from "./features/max/max.routes.js";
 import { createMediaRouter } from "./features/media/media.routes.js";
 import { createNewsRouter } from "./features/news/news.routes.js";
@@ -76,6 +77,7 @@ export const createApiRouter = ({
       }),
     );
     router.use(createAuthRouter(database.client));
+    router.use(createMaxLoginRouter(database.client));
     router.use(createMaxRouter(database.client));
     router.use(createTelegramRouter(database.client));
     router.use(createAndroidAppRouter(database.client));

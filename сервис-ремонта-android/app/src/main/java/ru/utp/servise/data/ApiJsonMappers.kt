@@ -5,7 +5,7 @@ import org.json.JSONObject
 
 internal fun JSONObject.toUser() = AppUser(
     id = getString("id"),
-    email = getString("email"),
+    email = nullableString("email"),
     displayName = getString("displayName"),
     phoneNumber = nullableString("phoneNumber"),
     gender = nullableString("gender"),
@@ -328,7 +328,7 @@ internal fun JSONObject.toShopOrder(): ShopOrder {
         ShopOrderCustomer(
             id = it.optString("id"),
             displayName = it.optString("displayName", "Клиент"),
-            email = it.optString("email"),
+            email = it.nullableString("email"),
             phoneNumber = it.nullableString("phoneNumber"),
         )
     }
@@ -545,7 +545,7 @@ internal fun JSONObject.toSupportChat(): SupportChat {
         id = nullableString("id"),
         customerId = getString("customerId"),
         customerName = customer?.optString("displayName").orEmpty(),
-        customerEmail = customer?.optString("email").orEmpty(),
+        customerEmail = customer?.nullableString("email"),
         messages = optJSONArray("messages").mapObjects { message ->
             val sender = message.optJSONObject("sender")
             SupportChatMessage(
@@ -566,7 +566,7 @@ internal fun JSONObject.toSupportChatInboxItem(): SupportChatInboxItem {
     return SupportChatInboxItem(
         customerId = customer.optString("id"),
         customerName = customer.optString("displayName"),
-        customerEmail = customer.optString("email"),
+        customerEmail = customer.nullableString("email"),
         lastMessage = lastMessage?.optString("content").orEmpty(),
         updatedAt = optString("updatedAt"),
     )
@@ -574,7 +574,7 @@ internal fun JSONObject.toSupportChatInboxItem(): SupportChatInboxItem {
 
 internal fun JSONObject.toAdminCustomer() = AdminCustomer(
     id = getString("id"),
-    email = getString("email"),
+    email = nullableString("email"),
     displayName = getString("displayName"),
     phoneNumber = nullableString("phoneNumber"),
     active = optBoolean("active", true),

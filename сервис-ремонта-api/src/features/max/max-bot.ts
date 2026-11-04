@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import https from "node:https";
 
@@ -148,6 +148,56 @@ export const sendMaxMessage = async (
   });
 };
 
+export const sendMaxContactRequest = async (
+  userId: string,
+  text: string,
+): Promise<void> => {
+  await maxRequest(`/messages?user_id=${encodeURIComponent(userId)}`, {
+    method: "POST",
+    body: {
+      text,
+      attachments: [
+        {
+          type: "inline_keyboard",
+          payload: {
+            buttons: [
+              [{ type: "request_contact", text: "Поделиться контактом" }],
+            ],
+          },
+        },
+      ],
+    },
+  });
+};
+
+const normalizeVcfInfo = (value: string): string =>
+  value.replace(/\\r\\n/gu, "\r\n").replace(/\\n/gu, "\n");
+
+export const isMaxContactHashValid = (
+  vcfInfo: string,
+  hash: string,
+): boolean => {
+  const normalizedHash = hash.trim();
+  if (!normalizedHash) return false;
+  const normalizedVcfInfo = normalizeVcfInfo(vcfInfo);
+  const expected = [
+    createHmac("sha256", getBotToken()).update(normalizedVcfInfo).digest("hex"),
+    createHmac("sha256", getBotToken())
+      .update(normalizedVcfInfo)
+      .digest("base64"),
+  ];
+  return expected.some((candidate) => {
+    const actualBytes = Buffer.from(normalizedHash);
+    const expectedBytes = Buffer.from(candidate);
+    return (
+      actualBytes.length === expectedBytes.length &&
+      timingSafeEqual(actualBytes, expectedBytes)
+    );
+  });
+};
+
+export const normalizeMaxVcfInfo = normalizeVcfInfo;
+
 export const getMaxWebhookSubscriptions = (): Promise<{
   readonly subscriptions: readonly MaxWebhookSubscription[];
 }> => maxRequest("/subscriptions");
@@ -159,7 +209,7 @@ export const registerMaxWebhook = async (url: string): Promise<void> => {
       method: "POST",
       body: {
         url,
-        update_types: ["bot_started", "bot_stopped"],
+        update_types: ["bot_started", "bot_stopped", "message_created"],
         secret: maxWebhookSecret(),
       },
     },

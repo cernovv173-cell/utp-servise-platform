@@ -84,7 +84,7 @@ export const AdminOrderCreate = ({
       toast.success("Заявка создана и добавлена в общий список.");
       if (newCustomer) {
         setCredentials({
-          login: newCustomer.customer.email,
+          login: newCustomer.customer.email ?? "вход через МАКС",
           password: newCustomer.temporaryPassword,
           orderCreated: true,
         });
@@ -98,7 +98,7 @@ export const AdminOrderCreate = ({
     } catch {
       if (newCustomer) {
         setCredentials({
-          login: newCustomer.customer.email,
+          login: newCustomer.customer.email ?? "вход через МАКС",
           password: newCustomer.temporaryPassword,
           orderCreated: false,
         });
@@ -217,7 +217,8 @@ export const AdminOrderCreate = ({
                       >
                         <span className="block font-semibold">{entry.displayName}</span>
                         <span className="mt-1 block text-xs text-slate-500">
-                          {entry.email} · {entry.phoneNumber || "телефон не указан"}
+                          {entry.email || "вход через МАКС"} ·{" "}
+                          {entry.phoneNumber || "телефон не указан"}
                         </span>
                       </button>
                     ))}
@@ -229,7 +230,8 @@ export const AdminOrderCreate = ({
               <div className="min-w-0">
                 <p className="font-semibold">{customer.displayName}</p>
                 <p className="truncate text-xs text-slate-500">
-                  {customer.email} · {customer.phoneNumber || "телефон не указан"}
+                  {customer.email || "вход через МАКС"} ·{" "}
+                  {customer.phoneNumber || "телефон не указан"}
                 </p>
               </div>
               <button

@@ -95,7 +95,7 @@ export const CraftOrderCard = ({
           )}
           {isAdmin && order.customer && (
             <p className="mt-2 text-xs text-slate-500">
-              {order.customer.displayName} · {order.customer.email} ·{" "}
+              {order.customer.displayName} · {order.customer.email || "вход через МАКС"} ·{" "}
               {order.customer.phoneNumber || "телефон не указан"}
             </p>
           )}

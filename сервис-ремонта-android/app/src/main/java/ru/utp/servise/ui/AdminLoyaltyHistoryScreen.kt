@@ -66,7 +66,7 @@ fun AdminLoyaltyHistoryScreen(
     LaunchedEffect(token) { load() }
     val visibleCustomers = customers.filter {
         it.displayName.contains(search, ignoreCase = true) ||
-            it.email.contains(search, ignoreCase = true)
+            it.email?.contains(search, ignoreCase = true) == true
     }
 
     LazyColumn(
@@ -120,7 +120,7 @@ fun AdminLoyaltyHistoryScreen(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(Modifier.weight(1f)) {
                             Text(customer.displayName, fontWeight = FontWeight.SemiBold, color = UtpInk)
-                            Text(customer.email, fontSize = 11.sp, color = UtpMuted)
+                            Text(customer.email ?: "Почта не указана", fontSize = 11.sp, color = UtpMuted)
                         }
                         Text("${customer.balance} баллов", fontWeight = FontWeight.Bold, color = UtpBlue)
                     }

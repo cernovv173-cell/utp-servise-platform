@@ -30,7 +30,6 @@ import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SalaryRouteImport } from './routes/salary'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SupportRouteImport } from './routes/support'
-import { Route as YandexTokenRouteImport } from './routes/yandex-token'
 import { Route as AdminApkRouteImport } from './routes/admin.apk'
 import { Route as AdminCompanyRouteImport } from './routes/admin.company'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
@@ -156,11 +155,6 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
-const YandexTokenRoute = YandexTokenRouteImport.update({
-  id: '/yandex-token',
-  path: '/yandex-token',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminApkRoute = AdminApkRouteImport.update({
   id: '/apk',
   path: '/apk',
@@ -279,7 +273,6 @@ export interface FileRoutesByFullPath {
   '/salary': typeof SalaryRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
-  '/yandex-token': typeof YandexTokenRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -322,7 +315,6 @@ export interface FileRoutesByTo {
   '/salary': typeof SalaryRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
-  '/yandex-token': typeof YandexTokenRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -366,7 +358,6 @@ export interface FileRoutesById {
   '/salary': typeof SalaryRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
-  '/yandex-token': typeof YandexTokenRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -411,7 +402,6 @@ export interface FileRouteTypes {
     | '/salary'
     | '/shop'
     | '/support'
-    | '/yandex-token'
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
@@ -454,7 +444,6 @@ export interface FileRouteTypes {
     | '/salary'
     | '/shop'
     | '/support'
-    | '/yandex-token'
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
@@ -497,7 +486,6 @@ export interface FileRouteTypes {
     | '/salary'
     | '/shop'
     | '/support'
-    | '/yandex-token'
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
@@ -541,7 +529,6 @@ export interface RootRouteChildren {
   SalaryRoute: typeof SalaryRoute
   ShopRoute: typeof ShopRoute
   SupportRoute: typeof SupportRouteWithChildren
-  YandexTokenRoute: typeof YandexTokenRoute
   StaffTechnicianIdRoute: typeof StaffTechnicianIdRoute
 }
 
@@ -692,13 +679,6 @@ declare module '@tanstack/react-router' {
       path: '/support'
       fullPath: '/support'
       preLoaderRoute: typeof SupportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/yandex-token': {
-      id: '/yandex-token'
-      path: '/yandex-token'
-      fullPath: '/yandex-token'
-      preLoaderRoute: typeof YandexTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/apk': {
@@ -931,7 +911,6 @@ const rootRouteChildren: RootRouteChildren = {
   SalaryRoute: SalaryRoute,
   ShopRoute: ShopRoute,
   SupportRoute: SupportRouteWithChildren,
-  YandexTokenRoute: YandexTokenRoute,
   StaffTechnicianIdRoute: StaffTechnicianIdRoute,
 }
 export const routeTree = rootRouteImport

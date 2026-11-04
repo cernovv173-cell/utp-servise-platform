@@ -238,12 +238,14 @@ export const createPasswordResetRouter = (
         const messageId = `<password-reset-${tokenHash}@${mailboxDomain}>`;
         response.status(202).json(genericRequestResponse);
 
-        const emailDelivery = sendEmail({
-          to: user.email,
-          resetCode: code,
-          resetUrl,
-          messageId,
-        });
+        const emailDelivery = user.email
+          ? sendEmail({
+              to: user.email,
+              resetCode: code,
+              resetUrl,
+              messageId,
+            })
+          : Promise.resolve();
         const maxDelivery = user.maxUserId
           ? sendMax(
               user.maxUserId,
@@ -253,11 +255,15 @@ export const createPasswordResetRouter = (
 
         void Promise.allSettled([emailDelivery, maxDelivery]).then(
           async ([emailResult, maxResult]) => {
-            const emailFailed = emailResult.status === "rejected";
+            const emailFailed =
+              Boolean(user.email) && emailResult.status === "rejected";
             const maxFailed = maxResult.status === "rejected";
             if (emailFailed) options.onDeliveryFailure?.();
             if (maxFailed) options.onMaxDeliveryFailure?.();
-            if (emailFailed && (!user.maxUserId || maxFailed)) {
+            if (
+              (!user.email || emailFailed) &&
+              (!user.maxUserId || maxFailed)
+            ) {
               await database.passwordResetToken
                 .deleteMany({ where: { tokenHash } })
                 .catch(() => undefined);

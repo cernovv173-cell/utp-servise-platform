@@ -281,7 +281,12 @@ fun ProfileScreen(
                     )
                     Column(Modifier.padding(start = 12.dp)) {
                         Text(user.displayName, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = UtpInk)
-                        Text(user.email, fontSize = 13.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+                        Text(
+                            user.email ?: "Почта не привязана — вход через МАКС",
+                            fontSize = 13.sp,
+                            color = UtpMuted,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
                     }
                 }
                 Text(user.role.roleLabel(), fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 9.dp))

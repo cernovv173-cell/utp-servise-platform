@@ -118,7 +118,7 @@ object AdminMarketingApi {
         AdminLoyaltyCustomer(
             id = customer.getString("id"),
             displayName = customer.optString("displayName", "Клиент"),
-            email = customer.optString("email"),
+            email = customer.nullableString("email"),
             balance = item.optInt("balance"),
             transactions = (item.optJSONArray("transactions") ?: JSONArray()).toObjects { transaction ->
                 LoyaltyTransaction(

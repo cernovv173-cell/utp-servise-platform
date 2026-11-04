@@ -2,7 +2,7 @@ package ru.utp.servise.data
 
 data class AppUser(
     val id: String,
-    val email: String,
+    val email: String? = null,
     val displayName: String,
     val phoneNumber: String? = null,
     val gender: String? = null,
@@ -266,7 +266,7 @@ data class LoyaltyAccount(val balance: Int, val transactions: List<LoyaltyTransa
 data class AdminLoyaltyCustomer(
     val id: String,
     val displayName: String,
-    val email: String,
+    val email: String?,
     val balance: Int,
     val transactions: List<LoyaltyTransaction>,
 )
@@ -364,7 +364,7 @@ data class ShopOrderItem(
 data class ShopOrderCustomer(
     val id: String,
     val displayName: String,
-    val email: String,
+    val email: String?,
     val phoneNumber: String?,
 )
 
@@ -576,21 +576,21 @@ data class SupportChat(
     val id: String?,
     val customerId: String,
     val customerName: String,
-    val customerEmail: String,
+    val customerEmail: String?,
     val messages: List<SupportChatMessage>,
 )
 
 data class SupportChatInboxItem(
     val customerId: String,
     val customerName: String,
-    val customerEmail: String,
+    val customerEmail: String?,
     val lastMessage: String,
     val updatedAt: String,
 )
 
 data class AdminCustomer(
     val id: String,
-    val email: String,
+    val email: String?,
     val displayName: String,
     val phoneNumber: String?,
     val active: Boolean,
@@ -669,3 +669,19 @@ data class PublicReview(
 
 data class AuthResult(val accessToken: String, val user: AppUser)
 data class NewStaffResult(val staff: StaffMember, val temporaryPassword: String)
+
+data class MaxLoginStart(
+    val url: String,
+    val pollToken: String,
+    val expiresAt: String,
+)
+
+sealed interface MaxLoginPoll {
+    data class Pending(val awaitingContact: Boolean) : MaxLoginPoll
+    data class Failed(val message: String, val expired: Boolean) : MaxLoginPoll
+    data class Completed(
+        val result: AuthResult,
+        val accountCreated: Boolean,
+        val referralApplied: Boolean,
+    ) : MaxLoginPoll
+}

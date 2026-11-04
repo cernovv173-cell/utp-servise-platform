@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { randomBytes } from "node:crypto";
 import { z } from "zod";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
@@ -23,7 +22,6 @@ import {
   type VkAuthRouterOptions,
   createVkAuthRouter,
 } from "./vk-auth.routes.js";
-import { type YandexIdentity, getYandexIdentity } from "./yandex-id.js";
 
 const emailSchema = z
   .string()
@@ -59,14 +57,6 @@ const loginSchema = z
     portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"]),
   })
   .strict();
-const yandexLoginSchema = z
-  .object({
-    accessToken: z.string().trim().min(20).max(4096),
-    password: z.string().min(1).max(128).optional(),
-    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"]),
-    referralCode: referralCodeSchema,
-  })
-  .strict();
 const changePasswordSchema = z
   .object({
     currentPassword: z.string().min(1).max(128),
@@ -99,13 +89,7 @@ type Body<T> = { readonly body: T };
 const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as Body<T>).body;
 
-type AuthRouterOptions = VkAuthRouterOptions & {
-  readonly yandexClientId?: string | undefined;
-  readonly fetchYandexIdentity?: (
-    accessToken: string,
-    clientId: string,
-  ) => Promise<YandexIdentity>;
-};
+type AuthRouterOptions = VkAuthRouterOptions;
 
 export const createAuthRouter = (
   database: DatabaseClient,
@@ -113,9 +97,6 @@ export const createAuthRouter = (
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
-  const yandexClientId =
-    options.yandexClientId ?? process.env.YANDEX_CLIENT_ID?.trim();
-  const fetchYandexIdentity = options.fetchYandexIdentity ?? getYandexIdentity;
   router.use(createVkAuthRouter(database, options));
 
   router.post(
@@ -181,150 +162,6 @@ export const createAuthRouter = (
         expiresAt: session.expiresAt,
         user: publicUser(user),
       });
-    },
-  );
-
-  router.post(
-    "/auth/yandex",
-    validateRequest({ body: yandexLoginSchema }),
-    async (_request, response, next) => {
-      if (!yandexClientId) {
-        next(
-          new HttpError(
-            503,
-            "YANDEX_NOT_CONFIGURED",
-            "Вход через Яндекс ID пока не настроен.",
-          ),
-        );
-        return;
-      }
-
-      const input = bodyOf<z.infer<typeof yandexLoginSchema>>(response);
-      try {
-        const identity = await fetchYandexIdentity(
-          input.accessToken,
-          yandexClientId,
-        );
-        let accountCreated = false;
-        let referralApplied = false;
-        let user = await database.user.findUnique({
-          where: { yandexId: identity.id },
-        });
-
-        if (!user) {
-          const emailAccount = await database.user.findUnique({
-            where: { email: identity.email },
-          });
-
-          if (emailAccount) {
-            if (!input.password) {
-              next(
-                new HttpError(
-                  409,
-                  "YANDEX_PASSWORD_REQUIRED",
-                  "Для защиты существующего аккаунта подтвердите его паролем один раз.",
-                ),
-              );
-              return;
-            }
-            if (
-              !(await verifyPassword(input.password, emailAccount.passwordHash))
-            ) {
-              next(
-                new HttpError(
-                  401,
-                  "INVALID_CREDENTIALS",
-                  "Неверный пароль существующего аккаунта.",
-                ),
-              );
-              return;
-            }
-            if (!emailAccount.active) {
-              next(
-                new HttpError(
-                  403,
-                  "ACCOUNT_DISABLED",
-                  "Эта учётная запись отключена.",
-                ),
-              );
-              return;
-            }
-            user = await database.user.update({
-              where: { id: emailAccount.id },
-              data: { yandexId: identity.id },
-            });
-          } else {
-            if (input.portal !== "CUSTOMER") {
-              next(
-                new HttpError(
-                  403,
-                  "ROLE_MISMATCH",
-                  "Новый аккаунт через Яндекс ID создаётся только для клиента.",
-                ),
-              );
-              return;
-            }
-            const passwordHash = await hashPassword(
-              randomBytes(32).toString("base64url"),
-            );
-            const created = await database.$transaction((transaction) =>
-              createCustomerWithReferral(transaction, {
-                email: identity.email,
-                displayName: identity.displayName,
-                phoneNumber: null,
-                passwordHash,
-                yandexId: identity.id,
-                referralCode: input.referralCode,
-              }),
-            );
-            user = created.user;
-            accountCreated = true;
-            referralApplied = created.referralApplied;
-          }
-        }
-
-        if (!user.active) {
-          next(
-            new HttpError(
-              403,
-              "ACCOUNT_DISABLED",
-              "Эта учётная запись отключена.",
-            ),
-          );
-          return;
-        }
-        if (user.role !== input.portal) {
-          next(
-            new HttpError(
-              403,
-              "ROLE_MISMATCH",
-              "Выберите в приложении роль, указанную для этого аккаунта.",
-            ),
-          );
-          return;
-        }
-
-        const session = await createSession(database, user.id);
-        response.json({
-          accessToken: session.accessToken,
-          expiresAt: session.expiresAt,
-          accountCreated,
-          referralApplied,
-          user: publicUser(user),
-        });
-      } catch (error) {
-        if (isUniqueViolation(error)) {
-          next(
-            new HttpError(
-              409,
-              "YANDEX_ACCOUNT_CONFLICT",
-              "Не удалось связать этот Яндекс ID с аккаунтом. Войдите с прежним способом и повторите попытку.",
-            ),
-          );
-          return;
-        }
-        next(error);
-      }
     },
   );
 

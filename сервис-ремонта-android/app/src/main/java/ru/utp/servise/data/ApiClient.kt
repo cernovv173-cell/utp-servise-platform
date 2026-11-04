@@ -17,18 +17,6 @@ object ApiClient {
         request("POST", "/auth/login", body = JSONObject().put("email", email).put("password", password).put("portal", portal))
     )
 
-    fun loginWithYandex(
-        accessToken: String,
-        portal: String,
-        password: String? = null,
-        referralCode: String? = null,
-    ): AuthResult {
-        val body = JSONObject().put("accessToken", accessToken).put("portal", portal)
-        password?.let { body.put("password", it) }
-        referralCode?.trim()?.takeIf { it.isNotEmpty() }?.let { body.put("referralCode", it.uppercase()) }
-        return authResult(request("POST", "/auth/yandex", body = body))
-    }
-
     fun loginWithVk(
         accessToken: String,
         portal: String,
@@ -39,6 +27,37 @@ object ApiClient {
         password?.let { body.put("password", it) }
         referralCode?.trim()?.takeIf { it.isNotEmpty() }?.let { body.put("referralCode", it.uppercase()) }
         return authResult(request("POST", "/auth/vk", body = body))
+    }
+
+    fun maxLoginAvailable(): Boolean = request("GET", "/auth/max/config").optBoolean("available")
+
+    fun startMaxLogin(referralCode: String? = null): MaxLoginStart {
+        val body = JSONObject()
+        referralCode?.trim()?.takeIf { it.isNotEmpty() }?.let { body.put("referralCode", it.uppercase()) }
+        val json = request("POST", "/auth/max/login", body = body)
+        return MaxLoginStart(
+            url = json.getString("url"),
+            pollToken = json.getString("pollToken"),
+            expiresAt = json.getString("expiresAt"),
+        )
+    }
+
+    fun pollMaxLogin(pollToken: String): MaxLoginPoll {
+        val json = request("POST", "/auth/max/login/poll", body = JSONObject().put("pollToken", pollToken))
+        return when (val status = json.optString("status")) {
+            "completed" -> MaxLoginPoll.Completed(
+                result = authResult(json),
+                accountCreated = json.optBoolean("accountCreated"),
+                referralApplied = json.optBoolean("referralApplied"),
+            )
+            "failed", "expired" -> MaxLoginPoll.Failed(
+                message = json.optString("message").takeIf { it.isNotBlank() }
+                    ?: "Не удалось войти через МАКС. Попробуйте ещё раз.",
+                expired = status == "expired",
+            )
+            "awaiting_contact" -> MaxLoginPoll.Pending(awaitingContact = true)
+            else -> MaxLoginPoll.Pending(awaitingContact = false)
+        }
     }
 
     fun requestPasswordReset(email: String) {
@@ -636,9 +655,9 @@ object ApiClient {
     fun updateAdministratorCustomer(token: String, customer: AdminCustomer): AdminCustomer = request(
         "PATCH", "/admin/customers/${customer.id}", token,
         JSONObject()
-            .put("email", customer.email)
             .put("displayName", customer.displayName)
-            .put("phoneNumber", customer.phoneNumber ?: JSONObject.NULL),
+            .put("phoneNumber", customer.phoneNumber ?: JSONObject.NULL)
+            .apply { customer.email?.takeIf { it.isNotBlank() }?.let { put("email", it) } },
     ).getJSONObject("customer").toAdminCustomer()
 
     fun deleteAdministratorCustomer(token: String, customerId: String) {

@@ -54,7 +54,9 @@ export const AdminSupportInbox = () => {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <h3 className="text-sm font-semibold">{chat.customer.displayName}</h3>
-                  <p className="mt-1 text-xs text-slate-500">{chat.customer.email}</p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {chat.customer.email || "вход через МАКС"}
+                  </p>
                 </div>
                 <time className="text-xs text-slate-400">
                   {new Date(chat.updatedAt).toLocaleString("ru-RU")}

@@ -47,7 +47,7 @@ signed-in home screen. Clients pass the previously shown `previousFactId` to rec
 on a page/app refresh. Both routes share the same curated list; selection is stateless and creates
 no database records.
 
-Customer registration accepts an optional one-use referral code from Web, Android, or Yandex/VK
+Customer registration accepts an optional one-use referral code from Web, Android, MAX, or VK
 signup. Each active customer can issue three codes, valid for six calendar months. After the invited
 customer's first repair is completed and an administrator confirms its receipt as paid, the same
 transaction records 250 personal bonus points for both customers and marks the referral rewarded. A
@@ -275,11 +275,17 @@ and takes precedence over the optional integration-provided `MAX_WEBHOOK_SECRET`
 registered the webhook and each customer links MAX in their profile, MAX notifications are not delivered;
 Telegram remains operational independently.
 
-Yandex ID login accepts an OAuth access token at `POST /auth/yandex`; the server verifies it with
-Yandex ID and checks the returned OAuth client ID against `YANDEX_CLIENT_ID`. The OAuth app needs
-`login:info` and `login:email` permissions. New provider accounts are created as customers only.
-An existing account is linked only after the user confirms its current password; the provider token
-is never stored. Use the same public Yandex OAuth Client ID in the API, Web, and Android apps.
+MAX login and registration replace the former Yandex ID sign-in. `GET /auth/max/config` reports
+whether the bot is configured. `POST /auth/max/login` creates a single-use request (10-minute TTL)
+and returns the `https://max.ru/<botName>?start=<payload>` deep link plus a poll token;
+`POST /auth/max/login/poll` returns `pending`, `awaiting_contact`, `failed`, `expired`, or
+`completed` with a session. The webhook handles `bot_started` and the `request_contact` reply:
+the contact signature (`vcf_info` HMAC-SHA256 with the bot token) is verified server-side, the
+customer is matched by the last ten phone digits, and a missing customer is created in the
+`CUSTOMER` role with no email. Referral codes from the web login screen are applied on creation.
+Poll tokens are stored only as SHA-256 hashes, a request can be consumed once, and MAX contact
+data is used only for sign-in and order communication. Staff accounts still sign in with
+email and password.
 
 VK ID login accepts a VK ID access token at `POST /auth/vk` and verifies the profile server-side
 using the public `VK_ID_APP_ID`. The Web widget uses `VITE_VK_ID_APP_ID`, asks for email access, and

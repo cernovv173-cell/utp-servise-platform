@@ -32,7 +32,7 @@ const CustomerEditor = ({
 }: {
   customer: AdminCustomer;
   saving: boolean;
-  onSave: (input: { email: string; displayName: string; phoneNumber: string | null }) => void;
+  onSave: (input: { email?: string; displayName: string; phoneNumber: string | null }) => void;
   onCancel: () => void;
 }) => (
   <form
@@ -40,9 +40,10 @@ const CustomerEditor = ({
     onSubmit={(event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       const data = new FormData(event.currentTarget);
+      const email = String(data.get("email")).trim();
       onSave({
         displayName: String(data.get("displayName")).trim(),
-        email: String(data.get("email")).trim(),
+        email: email || undefined,
         phoneNumber: String(data.get("phoneNumber")).trim() || null,
       });
     }}
@@ -60,13 +61,12 @@ const CustomerEditor = ({
       />
     </label>
     <label className="grid gap-1 text-sm font-medium">
-      Электронная почта{"\u00a0"}
-      <span aria-hidden="true">*</span>
+      Электронная почта
       <input
         name="email"
         type="email"
-        defaultValue={customer.email}
-        required
+        defaultValue={customer.email ?? ""}
+        placeholder="Можно оставить пустой"
         maxLength={320}
         className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
       />
@@ -135,7 +135,7 @@ export const CustomerManagement = () => {
       input,
     }: {
       id: string;
-      input: { email: string; displayName: string; phoneNumber: string | null };
+      input: { email?: string; displayName: string; phoneNumber: string | null };
     }) => updateAdminCustomer(token!, id, input),
     onSuccess: async () => {
       setEditingId(null);
@@ -251,7 +251,7 @@ export const CustomerManagement = () => {
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-slate-500">Почта</dt>
-              <dd className="font-medium">{createdCustomer.customer.email}</dd>
+              <dd className="font-medium">{createdCustomer.customer.email ?? "не указана"}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Временный пароль</dt>
@@ -308,7 +308,8 @@ export const CustomerManagement = () => {
                   <div>
                     <h3 className="font-semibold">{customer.displayName}</h3>
                     <p className="mt-1 text-sm text-slate-500">
-                      {customer.email} · {customer.phoneNumber || "телефон не указан"}
+                      {customer.email || "вход через МАКС"} ·{" "}
+                      {customer.phoneNumber || "телефон не указан"}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">
                       {customer.active ? "Активен" : "Отключён"}
@@ -403,10 +404,12 @@ export const CustomerManagement = () => {
           {deletingCustomer && (
             <div className="mt-4 grid gap-2">
               <p className="text-sm font-medium">
-                {deletingCustomer.displayName} · {deletingCustomer.email}
+                {deletingCustomer.displayName} · {deletingCustomer.email || "без почты"}
               </p>
               <label className="grid gap-1 text-sm font-medium">
-                Для подтверждения введите электронную почту клиента
+                {deletingCustomer.email
+                  ? "Для подтверждения введите электронную почту клиента"
+                  : "Для подтверждения введите имя клиента"}
                 <input
                   autoComplete="off"
                   autoFocus
@@ -434,7 +437,7 @@ export const CustomerManagement = () => {
               disabled={
                 remove.isPending ||
                 !deletingCustomer ||
-                deleteConfirmation !== deletingCustomer.email
+                deleteConfirmation !== (deletingCustomer.email ?? deletingCustomer.displayName)
               }
               onClick={() => {
                 if (deletingCustomer) remove.mutate(deletingCustomer.id);

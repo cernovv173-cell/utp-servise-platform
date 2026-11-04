@@ -7,7 +7,7 @@ import { HttpError } from "../../lib/http/http-error.js";
 
 export type AuthenticatedUser = {
   readonly id: string;
-  readonly email: string;
+  readonly email: string | null;
   readonly displayName: string;
   readonly phoneNumber: string | null;
   readonly gender?: "MALE" | "FEMALE" | null;

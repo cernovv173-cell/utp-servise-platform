@@ -5,15 +5,14 @@ import { type FormEvent, useState } from "react";
 import { AppInstallButton } from "@/components/app-install-button";
 
 import { useAuth } from "@/features/auth/auth-context";
-import { YandexIdLogin } from "@/features/auth/yandex-id-login";
+import { MaxLogin } from "@/features/auth/max-login";
 
 import {
-  ApiRequestError,
+  type AuthResponse,
   type Role,
   loginRequest,
   registerRequest,
   requestPasswordReset,
-  yandexLoginRequest,
 } from "@/lib/api";
 import { getPhoneNumberError, phoneNumberPlaceholder } from "@/lib/phone";
 
@@ -42,36 +41,15 @@ const LoginPage = () => {
   const [password, setPassword] = useState("");
   const [registeredName, setRegisteredName] = useState<string | null>(null);
   const [joinedWithReferral, setJoinedWithReferral] = useState(false);
-  const [pendingYandexToken, setPendingYandexToken] = useState<string | null>(null);
 
-  const authenticateWithYandex = async (accessToken: string, linkPassword?: string) => {
-    setBusy(true);
-    setError("");
-    try {
-      const session = await yandexLoginRequest(
-        accessToken,
-        registering ? "CUSTOMER" : role,
-        linkPassword,
-        referralCode,
-      );
-      setPendingYandexToken(null);
-      setSession(session);
-      if (session.accountCreated) {
-        setJoinedWithReferral(Boolean(session.referralApplied));
-        setRegisteredName(session.user.displayName);
-        return;
-      }
-      await navigate({ to: safeNextPath });
-    } catch (failure) {
-      if (failure instanceof ApiRequestError && failure.code === "YANDEX_PASSWORD_REQUIRED") {
-        setPendingYandexToken(accessToken);
-        setError("Для защиты существующего аккаунта введите его пароль и подтвердите привязку.");
-      } else {
-        setError(failure instanceof Error ? failure.message : "Не удалось выполнить вход.");
-      }
-    } finally {
-      setBusy(false);
+  const completeMaxLogin = (session: AuthResponse) => {
+    setSession(session);
+    if (session.accountCreated) {
+      setJoinedWithReferral(Boolean(session.referralApplied));
+      setRegisteredName(session.user.displayName);
+      return;
     }
+    void navigate({ to: safeNextPath });
   };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -233,7 +211,25 @@ const LoginPage = () => {
           <div className="mt-4">
             <AppInstallButton />
           </div>
-          <form onSubmit={submit} className="mt-8 grid gap-4">
+          {!recovering && (registering || role === "CUSTOMER") && (
+            <div className="mt-6">
+              <MaxLogin
+                referralCode={referralCode}
+                disabled={busy}
+                onError={() => setError("")}
+                onSuccess={completeMaxLogin}
+              />
+              <div className="my-6 flex items-center gap-3 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+                <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+                или по почте
+                <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              </div>
+            </div>
+          )}
+          <form
+            onSubmit={submit}
+            className={`${!recovering && (registering || role === "CUSTOMER") ? "" : "mt-8"} grid gap-4`}
+          >
             {registering && !recovering && (
               <label className="grid gap-1.5 text-sm font-medium">
                 Имя
@@ -366,24 +362,10 @@ const LoginPage = () => {
                     : "Войти"}
             </button>
           </form>
-          {!recovering && (
-            <div className="mt-4 grid gap-3">
-              <YandexIdLogin
-                busy={busy}
-                onError={setError}
-                onToken={(accessToken) => void authenticateWithYandex(accessToken)}
-              />
-              {pendingYandexToken && (
-                <button
-                  type="button"
-                  disabled={busy || !password}
-                  onClick={() => void authenticateWithYandex(pendingYandexToken, password)}
-                  className="min-h-11 rounded-xl border border-red-300 px-4 text-sm font-semibold text-red-700 disabled:opacity-50 dark:border-red-900 dark:text-red-300"
-                >
-                  Подтвердить привязку существующего аккаунта
-                </button>
-              )}
-            </div>
+          {!registering && !recovering && (
+            <p className="mt-4 text-xs leading-5 text-slate-500 dark:text-slate-400">
+              Аккаунт, созданный через МАКС, не имеет почты — входите через бота выше.
+            </p>
           )}
           {recovering ? (
             <button

@@ -140,7 +140,11 @@ fun AdminOrderCreationScreen(
                     )
                 } else selectedCustomer?.let { customer ->
                     Text(customer.displayName, fontWeight = FontWeight.Medium, color = UtpInk)
-                    Text("${customer.email} · ${customer.phoneNumber ?: "телефон не указан"}", fontSize = 12.sp, color = UtpMuted)
+                    Text(
+                        "${customer.email ?: "вход через МАКС"} · ${customer.phoneNumber ?: "телефон не указан"}",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                    )
                     TextButton(onClick = { selectedCustomer = null }) { Text("Выбрать другого") }
                 } ?: run {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -167,7 +171,10 @@ fun AdminOrderCreationScreen(
                         ) {
                             Column(Modifier.fillMaxWidth()) {
                                 Text(customer.displayName, fontWeight = FontWeight.SemiBold)
-                                Text("${customer.email} · ${customer.phoneNumber ?: "без телефона"}", fontSize = 11.sp)
+                                Text(
+                                    "${customer.email ?: "вход через МАКС"} · ${customer.phoneNumber ?: "без телефона"}",
+                                    fontSize = 11.sp,
+                                )
                             }
                         }
                     }
@@ -302,7 +309,10 @@ fun AdminOrderCreationScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SelectionContainer {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Логин: ${credentials.customer.email}", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Логин: ${credentials.customer.email ?: "вход через МАКС"}",
+                                fontWeight = FontWeight.SemiBold,
+                            )
                             Text("Временный пароль: ${credentials.temporaryPassword}", fontWeight = FontWeight.SemiBold)
                         }
                     }

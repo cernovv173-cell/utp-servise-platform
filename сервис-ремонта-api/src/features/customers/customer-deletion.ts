@@ -257,7 +257,7 @@ export const deleteCustomerAndData = async (
   storage: MediaStorage,
   customerId: string,
   options: { disableAccountBeforeCleanup?: boolean } = {},
-): Promise<{ id: string; email: string; displayName: string }> => {
+): Promise<{ id: string; email: string | null; displayName: string }> => {
   const disableAccountBeforeCleanup =
     options.disableAccountBeforeCleanup ?? true;
 

@@ -115,7 +115,12 @@ fun CustomerManagementScreen(
                         Text(customer.displayName, fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.weight(1f))
                         Text(if (customer.active) "Активен" else "Отключён", fontSize = 11.sp, color = if (customer.active) UtpBlue else UtpMuted)
                     }
-                    Text(customer.email, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 4.dp))
+                    Text(
+                        customer.email ?: "Почта не указана — вход через МАКС",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
                     Text(customer.phoneNumber?.ifBlank { null } ?: "Телефон не указан", fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
                     TextButton(onClick = { editingCustomer = customer }, modifier = Modifier.align(Alignment.End)) {
                         Text("Изменить данные")
@@ -219,11 +224,19 @@ private fun DeleteCustomerDialog(
                     "Аккаунт и связанные заявки, чеки, устройства, фото, переписки, отзывы, бонусы, рефералы и участия в акциях будут удалены безвозвратно.",
                     fontSize = 12.sp,
                 )
-                Text("${customer.displayName} · ${customer.email}", fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${customer.displayName} · ${customer.email ?: "без почты"}",
+                    fontWeight = FontWeight.SemiBold,
+                )
                 OutlinedTextField(
                     value = confirmation,
                     onValueChange = onConfirmationChange,
-                    label = { Text("Введите почту клиента для подтверждения") },
+                    label = {
+                        Text(
+                            if (customer.email != null) "Введите почту клиента для подтверждения"
+                            else "Введите имя клиента для подтверждения",
+                        )
+                    },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                     modifier = Modifier.fillMaxWidth(),
@@ -234,7 +247,7 @@ private fun DeleteCustomerDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                enabled = !busy && confirmation.trim() == customer.email,
+                enabled = !busy && confirmation.trim() == (customer.email ?: customer.displayName),
             ) { Text(if (busy) "Удаляем…" else "Удалить навсегда", color = androidx.compose.material3.MaterialTheme.colorScheme.error) }
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text("Отмена") } },
@@ -282,7 +295,7 @@ private fun NewCustomerCredentialsDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Передайте данные клиенту безопасным способом. После закрытия пароль больше не будет показан.", fontSize = 12.sp, color = UtpMuted)
                 Text("Клиент: ${result.customer.displayName}", fontWeight = FontWeight.SemiBold)
-                Text("Почта: ${result.customer.email}")
+                Text("Почта: ${result.customer.email ?: "не указана"}")
                 Text("Временный пароль: ${result.temporaryPassword}", fontWeight = FontWeight.Bold)
             }
         },
@@ -297,7 +310,7 @@ private fun EditCustomerDialog(
     onSave: (AdminCustomer) -> Unit,
 ) {
     var displayName by remember(customer.id) { mutableStateOf(customer.displayName) }
-    var email by remember(customer.id) { mutableStateOf(customer.email) }
+    var email by remember(customer.id) { mutableStateOf(customer.email.orEmpty()) }
     var phoneNumber by remember(customer.id) { mutableStateOf(customer.phoneNumber.orEmpty()) }
 
     AlertDialog(
@@ -316,7 +329,7 @@ private fun EditCustomerDialog(
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it.take(320) },
-                    label = { Text("Электронная почта для входа") },
+                    label = { Text("Электронная почта для входа (можно оставить пустой)") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -338,11 +351,11 @@ private fun EditCustomerDialog(
                 onClick = {
                     onSave(customer.copy(
                         displayName = displayName.trim(),
-                        email = email.trim(),
+                        email = email.trim().takeIf { it.isNotEmpty() },
                         phoneNumber = phoneNumber.trim().takeIf { it.isNotEmpty() },
                     ))
                 },
-                enabled = displayName.trim().length >= 2 && email.contains("@"),
+                enabled = displayName.trim().length >= 2 && (email.isBlank() || email.contains("@")),
             ) { Text("Сохранить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },

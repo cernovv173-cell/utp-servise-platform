@@ -27,7 +27,9 @@ export const LoyaltyManagement = () => {
             <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3">
               <span>
                 <strong className="text-sm">{entry.customer.displayName}</strong>
-                <span className="ml-2 text-xs text-slate-400">{entry.customer.email}</span>
+                <span className="ml-2 text-xs text-slate-400">
+                  {entry.customer.email || "вход через МАКС"}
+                </span>
               </span>
               <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                 {entry.balance.toLocaleString("ru-RU")} баллов

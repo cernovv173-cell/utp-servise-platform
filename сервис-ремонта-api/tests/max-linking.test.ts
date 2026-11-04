@@ -75,6 +75,9 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
   };
 
   const database = {
+    maxLoginRequest: {
+      findUnique: async () => null,
+    },
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) =>
         where.tokenHash === hashSessionToken(sessionToken)

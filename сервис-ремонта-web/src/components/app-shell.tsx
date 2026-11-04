@@ -83,7 +83,9 @@ export const AppShell = ({ active, children }: { active: string; children: React
         <DnsConfiguratorLink />
         <div className="mt-auto border-t border-slate-100 pt-4 dark:border-[#26365f]">
           <p className="truncate px-3 text-sm font-semibold">{user.displayName}</p>
-          <p className="truncate px-3 pt-1 text-xs text-slate-500">{user.email}</p>
+          <p className="truncate px-3 pt-1 text-xs text-slate-500">
+            {user.email ?? "вход через МАКС"}
+          </p>
           <button
             onClick={logout}
             className="mt-4 flex min-h-10 w-full items-center gap-3 rounded-xl px-3 text-sm text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"

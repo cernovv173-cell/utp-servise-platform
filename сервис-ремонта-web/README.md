@@ -140,13 +140,16 @@ returns a different entry from the shared curated list. The feed also refreshes 
 `nextUpdateAt` and when the page regains focus.
 This is a curated fact collection, not a live external-news feed.
 
-When `YANDEX_CLIENT_ID` is configured, `/login` also supports Yandex ID. The Yandex OAuth callback
-page is `/yandex-token`; add that exact path for both development and production Web origins in the
-Yandex OAuth app. If the Yandex email matches an existing account, its current password is required
-once before the provider identity is linked.
+The Web `/login` page offers MAX sign-in and registration for customers. The card asks the API for
+the bot configuration, opens the `https://max.ru/<botName>?start=<payload>` chat link, and polls
+every two seconds (and on window focus) until the bot confirms the phone number. New accounts are
+created automatically in the customer role; the referral code from the login screen is applied at
+creation. Accounts created this way have no email, so administrators see "вход через МАКС" instead
+of an address, and the customer signs in through the bot rather than by email.
 
-The Web `/login` page supports password and Yandex ID sign-in. VK ID sign-in is intentionally not
-offered in the Web client; the server-side VK endpoint remains available to other clients.
+The Web `/login` page supports password and MAX sign-in. Yandex ID sign-in was removed; its callback
+page and client component no longer exist. VK ID sign-in is intentionally not offered in the Web
+client; the server-side VK endpoint remains available to other clients.
 
 The shared app-install controls offer the Android APK and instructions for adding the website to an
 iPhone or iPad Home Screen from Safari as a web app. The iOS control creates a website shortcut; it

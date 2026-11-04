@@ -152,7 +152,7 @@ const AccountPage = () => {
         <SectionCard>
           <h2 className="font-semibold">Профиль</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {user?.displayName} · {user?.email}
+            {user?.displayName} · {user?.email ?? "вход через МАКС"}
           </p>
           <form onSubmit={submit} className="mt-5 grid gap-4">
             <label className="grid gap-1.5 text-sm font-medium">
