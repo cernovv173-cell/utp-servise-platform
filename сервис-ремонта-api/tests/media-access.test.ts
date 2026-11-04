@@ -10,17 +10,28 @@ import {
 } from "../src/features/media/media.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
-import { validateImage } from "../src/lib/storage/project-images.js";
+import {
+  validateImage,
+  validateMedia,
+} from "../src/lib/storage/project-images.js";
 
 const jpegFixture = Buffer.from([0xff, 0xd8, 0xff, 0x01]);
+const mp4Fixture = Buffer.from("0000ftypisom", "ascii");
 
-test("media accepts real image signatures and rejects mislabeled or empty uploads", () => {
+test("media accepts real image and MP4 signatures and rejects mislabeled or empty uploads", () => {
   assert.equal(validateImage(jpegFixture, "image/jpeg"), "image/jpeg");
   assert.throws(() => validateImage(jpegFixture, "image/png"), {
     code: "INVALID_IMAGE",
   });
   assert.throws(() => validateImage(Buffer.alloc(0), "image/jpeg"), {
     code: "INVALID_IMAGE",
+  });
+  assert.equal(validateMedia(mp4Fixture, "video/mp4"), "video/mp4");
+  assert.throws(() => validateMedia(mp4Fixture, "video/quicktime"), {
+    code: "INVALID_MEDIA",
+  });
+  assert.throws(() => validateMedia(Buffer.from("not an mp4"), "video/mp4"), {
+    code: "INVALID_MEDIA",
   });
 });
 

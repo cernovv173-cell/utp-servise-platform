@@ -24,7 +24,14 @@ fun CustomerNewsCard(article: NewsArticle, token: String) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(Modifier.padding(15.dp)) {
-            article.imageObjectId?.let { imageId ->
+            article.videoObjectId?.let { videoId ->
+                RemoteProjectVideo(
+                    videoId,
+                    token,
+                    Modifier.fillMaxWidth().height(180.dp).padding(bottom = 10.dp),
+                    "Видео к новости ${article.title}",
+                )
+            } ?: article.imageObjectId?.let { imageId ->
                 RemoteProjectImage(
                     imageId,
                     token,

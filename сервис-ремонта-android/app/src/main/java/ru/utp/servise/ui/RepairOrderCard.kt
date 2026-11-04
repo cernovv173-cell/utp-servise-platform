@@ -69,7 +69,7 @@ internal fun RepairOrderCard(
     var showAddItem by remember { mutableStateOf(false) }
     var showEdit by remember { mutableStateOf(false) }
     var showPaperwork by remember { mutableStateOf(false) }
-    var showPickupScanner by remember { mutableStateOf(false) }
+    var showReleaseDialog by remember { mutableStateOf(false) }
     var showOrderDetails by remember(order.id) { mutableStateOf(false) }
     var itemPendingRemoval by remember(order.id) { mutableStateOf<RepairOrderItem?>(null) }
 
@@ -322,10 +322,10 @@ internal fun RepairOrderCard(
             ) { Text("Акт приёма · заказ-наряд · гарантия") }
             if (role in listOf("ADMIN", "TECHNICIAN") && order.status == "READY_FOR_PICKUP") {
                 Button(
-                    onClick = { showPickupScanner = true },
+                    onClick = { showReleaseDialog = true },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     shape = RoundedCornerShape(12.dp),
-                ) { Text("Сканировать QR и выдать заказ") }
+                ) { Text("Выдать заказ") }
             }
 
             val actions = mutableListOf<Pair<String, String>>()
@@ -430,7 +430,9 @@ internal fun RepairOrderCard(
     }
     if (showAddItem) {
         OrderItemPickerDialog(
-            catalogItems = catalogItems.filter { it.active },
+            catalogItems = catalogItems.filter { item ->
+                item.active && (item.type == "PRODUCT" || order.deviceType in item.deviceTypes)
+            },
             onDismiss = { showAddItem = false },
             onAdd = { catalogItemId, quantity ->
                 runAction({ ApiClient.addOrderItem(token, order.id, catalogItemId, quantity) }) {
@@ -453,8 +455,8 @@ internal fun RepairOrderCard(
     if (showPaperwork) {
         OrderPaperworkDialog(order, role, token, runAction) { showPaperwork = false }
     }
-    if (showPickupScanner) {
-        PickupQrScannerDialog(order.serviceNumber, token, runAction) { showPickupScanner = false }
+    if (showReleaseDialog) {
+        RepairOrderReleaseDialog(order, token, runAction) { showReleaseDialog = false }
     }
     itemPendingRemoval?.let { item ->
         AlertDialog(

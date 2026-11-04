@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { createHash, randomBytes, randomInt } from "node:crypto";
 import { z } from "zod";
 
 import type { UserRole } from "../../generated/prisma/client.js";
@@ -31,7 +30,7 @@ import {
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "./order-policy.js";
-import { createPickupPinCredential, verifyPickupPin } from "./pickup-pin.js";
+import { createRepairOrderReleaseRouter } from "./repair-order-release.routes.js";
 import {
   REPAIR_WARRANTY_DAYS,
   REPAIR_WARRANTY_TERMS,
@@ -125,42 +124,12 @@ const statusBody = z
   .strict();
 const intakeBody = z
   .object({
-    frontCondition: z.string().trim().min(2).max(1000),
-    backCondition: z.string().trim().min(2).max(1000),
-    leftCondition: z.string().trim().min(2).max(1000),
-    rightCondition: z.string().trim().min(2).max(1000),
+    conditionSummary: z.string().trim().min(2).max(3000),
     serialNumber: z.string().trim().max(160).optional(),
     includedAccessories: z.string().trim().max(1000).optional(),
     intakeNotes: z.string().trim().max(2000).optional(),
   })
   .strict();
-const closeWithQrBody = z
-  .object({
-    qrPayload: z.string().trim().min(20).max(200).optional(),
-    serviceNumber: z.string().trim().min(1).max(32).optional(),
-    pickupPin: z
-      .string()
-      .regex(/^\d{4}$/u)
-      .optional(),
-    // Accepted temporarily for installed older clients; warranty policy is server-owned.
-    warrantyDays: z.number().int().min(1).max(3650).optional(),
-    warrantyTerms: z.string().trim().min(5).max(2000).optional(),
-  })
-  .strict()
-  .superRefine(({ qrPayload, serviceNumber, pickupPin }, context) => {
-    const hasQrPayload = Boolean(qrPayload);
-    const hasCompleteFallback = Boolean(serviceNumber && pickupPin);
-    const hasPartialFallback = Boolean(serviceNumber) !== Boolean(pickupPin);
-    if (hasPartialFallback || hasQrPayload === hasCompleteFallback) {
-      context.addIssue({
-        code: "custom",
-        path: ["pickupPin"],
-        message: "Укажите QR-код либо номер заявки и 4-значный код.",
-      });
-    }
-  });
-
-const MAX_PICKUP_PIN_ATTEMPTS = 5;
 const expectedCompletionBody = z
   .object({
     expectedCompletionAt: z.string().datetime({ offset: true }).nullable(),
@@ -307,6 +276,9 @@ const orderDetails = (role: UserRole) => ({
       leftPhotoObjectId: true,
       rightCondition: true,
       rightPhotoObjectId: true,
+      conditionSummary: true,
+      intakeMediaObjectId: true,
+      intakeMediaType: true,
       serialNumber: true,
       includedAccessories: true,
       intakeNotes: true,
@@ -1425,22 +1397,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       const existing = await database.repairOrderIntake.findUnique({
         where: { orderId },
         select: {
-          frontPhotoObjectId: true,
-          backPhotoObjectId: true,
-          leftPhotoObjectId: true,
-          rightPhotoObjectId: true,
+          intakeMediaObjectId: true,
         },
       });
-      if (
-        !existing?.frontPhotoObjectId ||
-        !existing.backPhotoObjectId ||
-        !existing.leftPhotoObjectId ||
-        !existing.rightPhotoObjectId
-      ) {
+      if (!existing?.intakeMediaObjectId) {
         throw new HttpError(
           409,
-          "INTAKE_PHOTOS_REQUIRED",
-          "Для акта приёма загрузите фотографии всех четырёх сторон устройства.",
+          "INTAKE_MEDIA_REQUIRED",
+          "Для акта приёма добавьте одно фото или видео устройства.",
         );
       }
       const intake = await database.repairOrderIntake.update({
@@ -1454,248 +1418,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         },
       });
       response.json({ intake });
-    },
-  );
-
-  router.post(
-    "/orders/:orderId/pickup-code",
-    requireAuth,
-    requireRoles("CUSTOMER"),
-    validateRequest({ params: orderIdParams }),
-    async (_request, response) => {
-      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
-      const user = getAuthenticatedUser(response);
-      const order = await database.repairOrder.findFirst({
-        where: { id: orderId, customerId: user.id },
-        select: { id: true, status: true },
-      });
-      if (!order)
-        throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
-      if (order.status !== "READY_FOR_PICKUP") {
-        throw new HttpError(
-          409,
-          "ORDER_NOT_READY_FOR_PICKUP",
-          "QR-код станет доступен, когда сервис отметит заказ готовым к выдаче.",
-        );
-      }
-      const rawToken = randomBytes(32).toString("base64url");
-      const qrPayload = `UTP-PICKUP:${rawToken}`;
-      const tokenHash = createHash("sha256").update(rawToken).digest("hex");
-      const fallbackPin = randomInt(0, 10_000).toString().padStart(4, "0");
-      const { hash: fallbackCodeHash, salt: fallbackCodeSalt } =
-        await createPickupPinCredential(fallbackPin);
-      const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000);
-      await database.repairOrderPickupCode.upsert({
-        where: { orderId },
-        create: {
-          orderId,
-          tokenHash,
-          fallbackCodeHash,
-          fallbackCodeSalt,
-          fallbackCodeAttempts: 0,
-          expiresAt,
-        },
-        update: {
-          tokenHash,
-          fallbackCodeHash,
-          fallbackCodeSalt,
-          fallbackCodeAttempts: 0,
-          expiresAt,
-          usedAt: null,
-        },
-      });
-      response.status(201).json({ qrPayload, fallbackPin, expiresAt });
-    },
-  );
-
-  router.post(
-    "/orders/close-by-qr",
-    requireAuth,
-    requireRoles("TECHNICIAN", "ADMIN"),
-    validateRequest({ body: closeWithQrBody }),
-    async (_request, response) => {
-      const user = getAuthenticatedUser(response);
-      const input = bodyOf<z.infer<typeof closeWithQrBody>>(response);
-      const tokenMatch = input.qrPayload
-        ? /^UTP-PICKUP:([A-Za-z0-9_-]{40,60})$/u.exec(input.qrPayload)
-        : null;
-      if (input.qrPayload && !tokenMatch)
-        throw new HttpError(
-          404,
-          "PICKUP_CODE_INVALID",
-          "QR-код недействителен или уже использован.",
-        );
-      const tokenHash = tokenMatch
-        ? createHash("sha256").update(tokenMatch[1]!).digest("hex")
-        : null;
-      const orderId = tokenHash
-        ? (
-            await database.repairOrderPickupCode.findUnique({
-              where: { tokenHash },
-              select: { orderId: true },
-            })
-          )?.orderId
-        : (
-            await database.repairOrder.findUnique({
-              where: { serviceNumber: input.serviceNumber! },
-              select: { id: true },
-            })
-          )?.id;
-      if (!orderId)
-        throw new HttpError(
-          404,
-          "PICKUP_CODE_INVALID",
-          "Код выдачи недействителен или уже использован.",
-        );
-
-      const result = await database.$transaction(async (transaction) => {
-        await transaction.$queryRaw`
-          SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
-        `;
-        const code = await transaction.repairOrderPickupCode.findUnique({
-          where: { orderId },
-          include: {
-            order: {
-              include: { customer: { select: { displayName: true } } },
-            },
-          },
-        });
-        const now = new Date();
-        if (
-          !code ||
-          (tokenHash !== null && code.tokenHash !== tokenHash) ||
-          code.usedAt ||
-          code.expiresAt <= now
-        ) {
-          throw new HttpError(
-            404,
-            "PICKUP_CODE_INVALID",
-            "QR-код недействителен, истёк или уже использован.",
-          );
-        }
-        const order = code.order;
-        if (!canViewRepairOrder(user.role, user.id, order)) {
-          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
-        }
-        if (order.status !== "READY_FOR_PICKUP") {
-          throw new HttpError(
-            409,
-            "ORDER_NOT_READY_FOR_PICKUP",
-            "Заказ больше не ожидает выдачи.",
-          );
-        }
-        if (input.pickupPin) {
-          if (code.fallbackCodeAttempts >= MAX_PICKUP_PIN_ATTEMPTS) {
-            return { invalidPin: true as const };
-          }
-          const isValidPin =
-            code.fallbackCodeSalt && code.fallbackCodeHash
-              ? await verifyPickupPin(
-                  input.pickupPin,
-                  code.fallbackCodeSalt,
-                  code.fallbackCodeHash,
-                )
-              : false;
-          if (!isValidPin) {
-            await transaction.repairOrderPickupCode.update({
-              where: { id: code.id },
-              data: { fallbackCodeAttempts: { increment: 1 } },
-            });
-            return { invalidPin: true as const };
-          }
-        }
-        const changed = await transaction.repairOrder.updateMany({
-          where: { id: order.id, status: "READY_FOR_PICKUP" },
-          data: { status: "COMPLETED", bonusDiscountRub: 0 },
-        });
-        if (changed.count !== 1) {
-          throw new HttpError(
-            409,
-            "ORDER_CHANGED",
-            "Заявка уже изменилась. Обновите список.",
-          );
-        }
-        await transaction.repairOrderPickupCode.update({
-          where: { id: code.id },
-          data: { usedAt: now },
-        });
-        await transaction.repairStatusEvent.create({
-          data: {
-            orderId: order.id,
-            actorId: user.id,
-            from: "READY_FOR_PICKUP",
-            to: "COMPLETED",
-            note: input.pickupPin
-              ? "Заказ выдан клиенту по резервному коду"
-              : "Заказ выдан клиенту по QR-коду",
-          },
-        });
-        const warranty = await transaction.repairWarranty.create({
-          data: {
-            orderId: order.id,
-            warrantyNumber: `WTY-${order.serviceNumber}`,
-            customerName: order.customer.displayName,
-            deviceType: order.deviceType,
-            repairSummary: order.problem,
-            warrantyDays: REPAIR_WARRANTY_DAYS,
-            terms: REPAIR_WARRANTY_TERMS,
-            issuedAt: now,
-            expiresAt: getRepairWarrantyExpiresAt(now),
-            issuedById: user.id,
-          },
-        });
-        if (order.assignedTechnicianId) {
-          const technician = await transaction.user.findUnique({
-            where: { id: order.assignedTechnicianId },
-            select: { salaryRatePercent: true },
-          });
-          const ratePercent =
-            technician?.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT;
-          const serviceItems = await transaction.repairOrderItem.findMany({
-            where: { orderId: order.id, type: "SERVICE" },
-            select: { quantity: true, unitPriceRub: true },
-          });
-          const serviceTotalRub = serviceItems.reduce(
-            (total, item) => total + item.quantity * item.unitPriceRub,
-            0,
-          );
-          await transaction.technicianSalaryEntry.create({
-            data: {
-              orderId: order.id,
-              technicianId: order.assignedTechnicianId,
-              serviceTotalRub,
-              salaryRub: calculateTechnicianSalaryRub(
-                serviceTotalRub,
-                ratePercent,
-              ),
-              ratePercent,
-              earnedAt: now,
-            },
-          });
-        }
-        return {
-          warranty,
-          order: await transaction.repairOrder.findUniqueOrThrow({
-            where: { id: order.id },
-            include: orderDetails(user.role),
-          }),
-        };
-      });
-      if ("invalidPin" in result) {
-        throw new HttpError(
-          404,
-          "PICKUP_CODE_INVALID",
-          "4-значный код неверен или исчерпаны попытки. Запросите новый QR у клиента.",
-        );
-      }
-      await sendRepairOrderNotification(
-        database,
-        result.order,
-        user.id,
-        `Ремонт по заявке ${result.order.serviceNumber} завершён, техника выдана клиенту.`,
-        "Ремонт завершён",
-      );
-      response.json(result);
     },
   );
 
@@ -1847,32 +1569,17 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         if (status === "READY_FOR_PICKUP") {
           const intake = await transaction.repairOrderIntake.findUnique({
             where: { orderId },
-            select: {
-              frontCondition: true,
-              frontPhotoObjectId: true,
-              backCondition: true,
-              backPhotoObjectId: true,
-              leftCondition: true,
-              leftPhotoObjectId: true,
-              rightCondition: true,
-              rightPhotoObjectId: true,
-            },
+            select: { conditionSummary: true, intakeMediaObjectId: true },
           });
           if (
             !intake ||
-            !intake.frontCondition ||
-            !intake.frontPhotoObjectId ||
-            !intake.backCondition ||
-            !intake.backPhotoObjectId ||
-            !intake.leftCondition ||
-            !intake.leftPhotoObjectId ||
-            !intake.rightCondition ||
-            !intake.rightPhotoObjectId
+            !intake.conditionSummary.trim() ||
+            !intake.intakeMediaObjectId
           ) {
             throw new HttpError(
               409,
               "INTAKE_REQUIRED",
-              "Перед выдачей заполните акт приёма и сохраните фотографии всех сторон.",
+              "Перед выдачей заполните акт приёма и добавьте одно фото или видео.",
             );
           }
         }
@@ -1961,7 +1668,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         `;
         const existing = await transaction.repairOrder.findUnique({
           where: { id: orderId },
-          select: { id: true, assignedTechnicianId: true, status: true },
+          select: {
+            id: true,
+            assignedTechnicianId: true,
+            status: true,
+            deviceType: true,
+          },
         });
         if (!existing || !canAddRepairOrderItem(user.role, user.id, existing))
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
@@ -1992,6 +1704,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             name: true,
             unitPriceRub: true,
             stockQuantity: true,
+            deviceTypes: true,
           },
         });
         if (!catalogItem)
@@ -2000,6 +1713,18 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "CATALOG_ITEM_NOT_AVAILABLE",
             "Позиция больше недоступна в каталоге. Обновите список.",
           );
+        if (
+          catalogItem.type !== "PRODUCT" &&
+          !catalogItem.deviceTypes.includes(
+            existing.deviceType as (typeof catalogItem.deviceTypes)[number],
+          )
+        ) {
+          throw new HttpError(
+            409,
+            "CATALOG_ITEM_DEVICE_TYPE_MISMATCH",
+            "Эта услуга или запчасть не относится к типу устройства в заявке.",
+          );
+        }
         if (
           isInventoryCatalogItem(catalogItem.type) &&
           catalogItem.stockQuantity !== null
@@ -2361,5 +2086,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  router.use(createRepairOrderReleaseRouter(database));
   return router;
 };

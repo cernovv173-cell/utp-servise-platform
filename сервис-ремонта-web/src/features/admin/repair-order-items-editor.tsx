@@ -7,6 +7,7 @@ import { Select } from "@/components/select";
 
 import {
   type RepairCatalogItem,
+  type RepairDeviceType,
   type RepairOrder,
   addRepairOrderItem,
   removeRepairOrderItem,
@@ -162,7 +163,11 @@ export const RepairOrderItemsEditor = ({
     onError: (error) =>
       toast.error(error instanceof Error ? error.message : "Не удалось добавить позицию."),
   });
-  const availableItems = catalogItems.filter((item) => item.active);
+  const availableItems = catalogItems.filter(
+    (item) =>
+      item.active &&
+      (item.type === "PRODUCT" || item.deviceTypes.includes(order.deviceType as RepairDeviceType)),
+  );
 
   const addItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

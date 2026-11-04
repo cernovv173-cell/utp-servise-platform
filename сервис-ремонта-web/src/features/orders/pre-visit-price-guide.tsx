@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import type { CustomerServicePrice } from "@/lib/api";
+import type { CustomerServicePrice, RepairDeviceType } from "@/lib/api";
 
 type PreVisitPriceGuideProps = {
   prices: CustomerServicePrice[];
@@ -51,12 +51,15 @@ export const PreVisitPriceGuide = ({
 }: PreVisitPriceGuideProps) => {
   const [expanded, setExpanded] = useState(false);
   const [search, setSearch] = useState("");
-  const visitPrices = prices.filter(isVisitPrice);
-  const diagnosticPrices = prices.filter((price) => isMatchingDiagnostic(price, deviceType));
+  const devicePrices = prices.filter((price) =>
+    price.deviceTypes.includes(deviceType as RepairDeviceType),
+  );
+  const visitPrices = devicePrices.filter(isVisitPrice);
+  const diagnosticPrices = devicePrices.filter((price) => isMatchingDiagnostic(price, deviceType));
   const featuredPrices = [...visitPrices, ...diagnosticPrices].filter(
     (price, index, all) => all.findIndex(({ id }) => id === price.id) === index,
   );
-  const matchingPrices = prices.filter((price) =>
+  const matchingPrices = devicePrices.filter((price) =>
     price.name.toLocaleLowerCase("ru-RU").includes(search.trim().toLocaleLowerCase("ru-RU")),
   );
 
@@ -77,7 +80,7 @@ export const PreVisitPriceGuide = ({
           Не удалось загрузить прайс. Мы не показываем приблизительные цены вместо действующих
           тарифов.
         </p>
-      ) : prices.length === 0 ? (
+      ) : devicePrices.length === 0 ? (
         <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">
           В прайсе пока нет активных тарифов для показа.
         </p>

@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { ArrowRight, ShoppingBag, Sparkles, UsersRound } from "lucide-react";
+import { ArrowRight, Phone, ShoppingBag, Sparkles, UsersRound } from "lucide-react";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { RaccoonIcon } from "@/components/raccoon-icon";
@@ -16,7 +16,7 @@ import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { PublicHome } from "@/features/public/public-home";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 
-import { getBanners, getOrders } from "@/lib/api";
+import { getBanners, getCompany, getOrders } from "@/lib/api";
 
 const HomePage = () => {
   const { ready, token, user } = useAuth();
@@ -24,6 +24,11 @@ const HomePage = () => {
     queryKey: ["orders", token],
     queryFn: ({ signal }) => getOrders(token!, signal),
     enabled: Boolean(token),
+  });
+  const company = useQuery({
+    queryKey: ["company-info", token],
+    queryFn: ({ signal }) => getCompany(signal),
+    enabled: Boolean(token && user),
   });
   const news = useQuery({
     queryKey: ["news", token],
@@ -75,6 +80,16 @@ const HomePage = () => {
           >
             Создать заявку <ArrowRight size={17} />
           </Link>
+          {company.data?.company.phone && (
+            <a
+              href={`tel:${company.data.company.phone.replace(/[^\d+]/gu, "")}`}
+              aria-label={`Позвонить в сервис: ${company.data.company.phone}`}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/35 px-4 font-semibold text-white hover:bg-white/10"
+            >
+              <Phone size={17} aria-hidden="true" />
+              Позвонить {company.data.company.phone}
+            </a>
+          )}
         </div>
       </SectionCard>
       {user?.role === "CUSTOMER" && <CustomerOfferHomeBanners isCustomer />}

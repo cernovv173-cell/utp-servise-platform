@@ -44,6 +44,18 @@ enum RepairOrderItemType {
   PRODUCT
 }
 
+enum RepairDeviceType {
+  COMPUTER
+  LAPTOP
+  PHONE
+  TABLET
+}
+
+enum RepairIntakeMediaType {
+  IMAGE
+  VIDEO
+}
+
 enum ShopOrderStatus {
   PENDING
   CONFIRMED
@@ -490,26 +502,29 @@ model TechnicianProfile {
 }
 
 model RepairOrderIntake {
-  id                  String      @id @default(uuid()) @db.Uuid
-  orderId             String      @unique @map("order_id") @db.Uuid
-  frontCondition      String      @default("") @map("front_condition") @db.VarChar(1000)
-  frontPhotoObjectId  String?     @map("front_photo_object_id") @db.VarChar(255)
-  backCondition       String      @default("") @map("back_condition") @db.VarChar(1000)
-  backPhotoObjectId   String?     @map("back_photo_object_id") @db.VarChar(255)
-  leftCondition       String      @default("") @map("left_condition") @db.VarChar(1000)
-  leftPhotoObjectId   String?     @map("left_photo_object_id") @db.VarChar(255)
-  rightCondition      String      @default("") @map("right_condition") @db.VarChar(1000)
-  rightPhotoObjectId  String?     @map("right_photo_object_id") @db.VarChar(255)
-  serialNumber        String?     @map("serial_number") @db.VarChar(160)
-  includedAccessories String      @default("") @map("included_accessories") @db.VarChar(1000)
-  intakeNotes         String      @default("") @map("intake_notes") @db.VarChar(2000)
-  createdById         String?     @map("created_by_id") @db.Uuid
-  updatedById         String?     @map("updated_by_id") @db.Uuid
-  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
-  order               RepairOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  createdBy           User?       @relation("IntakeCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy           User?       @relation("IntakeUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  id                  String                 @id @default(uuid()) @db.Uuid
+  orderId             String                 @unique @map("order_id") @db.Uuid
+  frontCondition      String                 @default("") @map("front_condition") @db.VarChar(1000)
+  frontPhotoObjectId  String?                @map("front_photo_object_id") @db.VarChar(255)
+  backCondition       String                 @default("") @map("back_condition") @db.VarChar(1000)
+  backPhotoObjectId   String?                @map("back_photo_object_id") @db.VarChar(255)
+  leftCondition       String                 @default("") @map("left_condition") @db.VarChar(1000)
+  leftPhotoObjectId   String?                @map("left_photo_object_id") @db.VarChar(255)
+  rightCondition      String                 @default("") @map("right_condition") @db.VarChar(1000)
+  rightPhotoObjectId  String?                @map("right_photo_object_id") @db.VarChar(255)
+  conditionSummary    String                 @default("") @map("condition_summary") @db.VarChar(3000)
+  intakeMediaObjectId String?                @map("intake_media_object_id") @db.VarChar(255)
+  intakeMediaType     RepairIntakeMediaType? @map("intake_media_type")
+  serialNumber        String?                @map("serial_number") @db.VarChar(160)
+  includedAccessories String                 @default("") @map("included_accessories") @db.VarChar(1000)
+  intakeNotes         String                 @default("") @map("intake_notes") @db.VarChar(2000)
+  createdById         String?                @map("created_by_id") @db.Uuid
+  updatedById         String?                @map("updated_by_id") @db.Uuid
+  createdAt           DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order               RepairOrder            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy           User?                  @relation("IntakeCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy           User?                  @relation("IntakeUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
 
   @@map("repair_order_intakes")
 }
@@ -575,6 +590,7 @@ model RepairCatalogItem {
   type                 RepairOrderItemType
   name                 String                  @db.VarChar(160)
   description          String?                 @db.VarChar(2000)
+  deviceTypes          RepairDeviceType[]      @default([COMPUTER, LAPTOP, PHONE, TABLET]) @map("device_types")
   imageObjectIds       String[]                @default([]) @map("image_object_ids")
   unitPriceRub         Int                     @map("unit_price_rub")
   stockQuantity        Int?                    @map("stock_quantity")
@@ -677,6 +693,7 @@ model NewsArticle {
   title         String            @db.VarChar(160)
   content       String            @db.VarChar(8000)
   imageObjectId String?           @map("image_object_id") @db.VarChar(255)
+  videoObjectId String?           @map("video_object_id") @db.VarChar(255)
   isPublished   Boolean           @default(false) @map("is_published")
   startsAt      DateTime?         @map("starts_at") @db.Timestamptz(3)
   endsAt        DateTime?         @map("ends_at") @db.Timestamptz(3)
@@ -841,23 +858,23 @@ model MaxLinkToken {
 }
 
 model MaxLoginRequest {
-  id               String         @id @default(uuid()) @db.Uuid
-  tokenHash        String         @unique @map("token_hash") @db.Char(64)
-  pollTokenHash    String         @unique @map("poll_token_hash") @db.Char(64)
-  status           MaxLoginStatus @default(PENDING)
-  userId           String?        @map("user_id") @db.Uuid
-  maxUserId        String?        @map("max_user_id") @db.VarChar(64)
-  maxDisplayName   String?        @map("max_display_name") @db.VarChar(120)
-  referralCode     String?        @map("referral_code") @db.VarChar(16)
-  accountCreated   Boolean        @default(false) @map("account_created")
-  referralApplied  Boolean        @default(false) @map("referral_applied")
-  failureCode      String?        @map("failure_code") @db.VarChar(64)
-  failureMessage   String?        @map("failure_message") @db.VarChar(500)
-  expiresAt        DateTime       @map("expires_at") @db.Timestamptz(3)
-  confirmedAt      DateTime?      @map("confirmed_at") @db.Timestamptz(3)
-  consumedAt       DateTime?      @map("consumed_at") @db.Timestamptz(3)
-  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  user             User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  id              String         @id @default(uuid()) @db.Uuid
+  tokenHash       String         @unique @map("token_hash") @db.Char(64)
+  pollTokenHash   String         @unique @map("poll_token_hash") @db.Char(64)
+  status          MaxLoginStatus @default(PENDING)
+  userId          String?        @map("user_id") @db.Uuid
+  maxUserId       String?        @map("max_user_id") @db.VarChar(64)
+  maxDisplayName  String?        @map("max_display_name") @db.VarChar(120)
+  referralCode    String?        @map("referral_code") @db.VarChar(16)
+  accountCreated  Boolean        @default(false) @map("account_created")
+  referralApplied Boolean        @default(false) @map("referral_applied")
+  failureCode     String?        @map("failure_code") @db.VarChar(64)
+  failureMessage  String?        @map("failure_message") @db.VarChar(500)
+  expiresAt       DateTime       @map("expires_at") @db.Timestamptz(3)
+  confirmedAt     DateTime?      @map("confirmed_at") @db.Timestamptz(3)
+  consumedAt      DateTime?      @map("consumed_at") @db.Timestamptz(3)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([expiresAt])
   @@index([maxUserId, status])
@@ -1075,6 +1092,7 @@ model SiteBanner {
   title         String    @db.VarChar(160)
   content       String    @db.VarChar(1000)
   imageObjectId String?   @map("image_object_id") @db.VarChar(255)
+  videoObjectId String?   @map("video_object_id") @db.VarChar(255)
   targetUrl     String?   @map("target_url") @db.VarChar(1000)
   placements    String[]  @default(["HOME"])
   startsAt      DateTime? @map("starts_at") @db.Timestamptz(3)

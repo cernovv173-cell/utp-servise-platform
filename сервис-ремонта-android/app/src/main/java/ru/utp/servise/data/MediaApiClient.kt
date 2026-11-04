@@ -10,7 +10,8 @@ object MediaApiClient {
         method: String,
         path: String,
         token: String,
-        image: ByteArray,
+        content: ByteArray,
+        contentType: String = "image/jpeg",
     ): JSONObject {
         val baseUrl = requireSecureBaseUrl()
         val connection = URL("$baseUrl/api$path").openConnection() as HttpURLConnection
@@ -21,8 +22,8 @@ object MediaApiClient {
             connection.doOutput = true
             connection.setRequestProperty("Accept", "application/json")
             connection.setRequestProperty("Authorization", "Bearer $token")
-            connection.setRequestProperty("Content-Type", "image/jpeg")
-            connection.outputStream.use { it.write(image) }
+            connection.setRequestProperty("Content-Type", contentType)
+            connection.outputStream.use { it.write(content) }
             val statusCode = connection.responseCode
             val stream = if (statusCode in 200..299) connection.inputStream else connection.errorStream
             val responseText = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()

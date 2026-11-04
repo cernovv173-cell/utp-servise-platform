@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CatalogItem
+import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.orderItemTypeLabel
 
 internal const val DEFAULT_MINIMUM_STOCK_QUANTITY = 3
@@ -141,6 +142,8 @@ fun CatalogManagementScreen(
     var minimumStockText by remember {
         mutableStateOf(DEFAULT_MINIMUM_STOCK_QUANTITY.toString())
     }
+    var selectedDeviceTypes by remember { mutableStateOf(repairDeviceTypes.toSet()) }
+    var deviceTypeFilter by remember { mutableStateOf(ALL_REPAIR_DEVICE_TYPES) }
     var editedItem by remember { mutableStateOf<CatalogItem?>(null) }
     var pendingDeleteItem by remember { mutableStateOf<CatalogItem?>(null) }
     val price = priceText.toIntOrNull()
@@ -155,10 +158,12 @@ fun CatalogManagementScreen(
         isRestockNeeded(it.stockQuantity, it.minimumStockQuantity)
     }
     val restockItemIds = restockItems.mapTo(mutableSetOf()) { it.id }
-    val visibleCatalogItems = if (showRestockOnly) {
+    val visibleCatalogItems = (if (showRestockOnly) {
         catalogItems.filter { it.id in restockItemIds }
     } else {
         catalogItems
+    }).filter { item ->
+        item.type == "PRODUCT" || deviceTypeFilter == ALL_REPAIR_DEVICE_TYPES || deviceTypeFilter in item.deviceTypes
     }
 
     Column(
@@ -215,6 +220,16 @@ fun CatalogManagementScreen(
                     else OutlinedButton(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
                     if (type == "PRODUCT") Button(onClick = { type = "PRODUCT" }) { Text("Товар") }
                     else OutlinedButton(onClick = { type = "PRODUCT" }) { Text("Товар") }
+                }
+                if (type != "PRODUCT") {
+                    Text("Подходит для устройств", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = UtpInk)
+                    RepairDeviceTypePicker(selectedDeviceTypes) { deviceType ->
+                        selectedDeviceTypes = if (deviceType in selectedDeviceTypes) {
+                            selectedDeviceTypes - deviceType
+                        } else {
+                            selectedDeviceTypes + deviceType
+                        }
+                    }
                 }
                 OutlinedTextField(
                     value = name,
@@ -277,6 +292,7 @@ fun CatalogManagementScreen(
                                 if (type != "SERVICE") stockText.toIntOrNull() ?: 0 else null,
                                 if (type != "SERVICE") minimumStock else null,
                                 if (type == "PRODUCT") description.trim().takeIf { it.isNotEmpty() } else null,
+                                if (type == "PRODUCT") repairDeviceTypes else selectedDeviceTypes.toList(),
                             )
                         }) {
                             name = ""
@@ -284,11 +300,13 @@ fun CatalogManagementScreen(
                             priceText = ""
                             stockText = "0"
                             minimumStockText = DEFAULT_MINIMUM_STOCK_QUANTITY.toString()
+                            selectedDeviceTypes = repairDeviceTypes.toSet()
                         }
                     },
                     enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
                         (type == "SERVICE" ||
-                            (stockText.toIntOrNull() != null && minimumStock != null)),
+                            (stockText.toIntOrNull() != null && minimumStock != null)) &&
+                        (type == "PRODUCT" || selectedDeviceTypes.isNotEmpty()),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Добавить в каталог") }
@@ -304,6 +322,8 @@ fun CatalogManagementScreen(
             )
             TextButton(onClick = refresh) { Text("Обновить") }
         }
+        Text("Показывать услуги и запчасти для устройства", fontSize = 12.sp, color = UtpMuted)
+        RepairDeviceTypeFilter(deviceTypeFilter) { deviceTypeFilter = it }
         if (catalogItems.isEmpty()) Text("Каталог пока пуст. Добавьте первую позицию.", color = UtpMuted)
         else if (visibleCatalogItems.isEmpty()) {
             Text(
@@ -318,6 +338,13 @@ fun CatalogManagementScreen(
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
                     Text("${item.type.orderItemTypeLabel()} · ${item.name}", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    if (item.type == "SERVICE" || item.type == "SPARE_PART") {
+                        Text(
+                            "Подходит для: ${item.deviceTypes.joinToString { it.deviceLabel() }}",
+                            fontSize = 11.sp,
+                            color = UtpMuted,
+                        )
+                    }
                     Text(
                         "${item.unitPriceRub} ₽ · ${if (item.active) "Активна" else "Скрыта из выбора"}" +
                             if (item.type != "SERVICE") {

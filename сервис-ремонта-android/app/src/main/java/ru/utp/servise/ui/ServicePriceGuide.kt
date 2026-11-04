@@ -29,16 +29,17 @@ internal fun ServicePriceGuide(
 ) {
     var expanded by remember { mutableStateOf(false) }
     var search by remember { mutableStateOf("") }
+    val applicablePrices = prices.filter { deviceType in it.deviceTypes }
     val diagnosticTerms = when (deviceType) {
         "COMPUTER" -> listOf("диагностика пк", "диагностика комплектующих")
         "LAPTOP" -> listOf("диагностика ноутбука")
         else -> emptyList()
     }
-    val featured = prices.filter { price ->
+    val featured = applicablePrices.filter { price ->
         price.name.startsWith("Вызов к заказчику", ignoreCase = true) ||
             diagnosticTerms.any { term -> price.name.contains(term, ignoreCase = true) }
     }
-    val visiblePrices = if (search.isBlank()) prices else prices.filter {
+    val visiblePrices = if (search.isBlank()) applicablePrices else applicablePrices.filter {
         it.name.contains(search.trim(), ignoreCase = true)
     }
 
@@ -63,6 +64,8 @@ internal fun ServicePriceGuide(
                 }
             } else if (prices.isEmpty()) {
                 Text("Не удалось загрузить активный прайс; мы не подменяем его придуманными ценами.", fontSize = 12.sp, color = UtpMuted)
+            } else if (applicablePrices.isEmpty()) {
+                Text("В прайсе нет услуг, предназначенных для этого типа устройства.", fontSize = 12.sp, color = UtpMuted)
             } else {
                 Text("Для этого типа устройства в прайсе нет отдельной позиции диагностики.", fontSize = 12.sp, color = UtpMuted)
             }

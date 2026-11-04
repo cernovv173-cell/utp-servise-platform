@@ -200,6 +200,9 @@ internal fun JSONObject.toRepairEstimate() = RepairEstimate(
 )
 
 internal fun JSONObject.toRepairOrderIntake() = RepairOrderIntake(
+    conditionSummary = optString("conditionSummary"),
+    intakeMediaObjectId = nullableString("intakeMediaObjectId"),
+    intakeMediaType = nullableString("intakeMediaType"),
     frontCondition = optString("frontCondition"),
     frontPhotoObjectId = nullableString("frontPhotoObjectId"),
     backCondition = optString("backCondition"),
@@ -300,6 +303,9 @@ internal fun JSONObject.toCatalogItem() = CatalogItem(
     imageObjectIds = optJSONArray("imageObjectIds")?.let { images ->
         List(images.length()) { index -> images.getString(index) }
     }.orEmpty(),
+    deviceTypes = optJSONArray("deviceTypes")?.let { values ->
+        List(values.length()) { index -> values.getString(index) }
+    } ?: listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET"),
 )
 
 internal fun JSONObject.toShopProduct() = ShopProduct(
@@ -442,6 +448,20 @@ internal fun JSONObject.toNewsArticle() = NewsArticle(
     startsAt = nullableString("startsAt"),
     endsAt = nullableString("endsAt"),
     isFeatured = optBoolean("isFeatured"),
+    videoObjectId = nullableString("videoObjectId"),
+)
+
+internal fun JSONObject.toRepairOrderReleaseSummary() = RepairOrderReleaseSummary(
+    orderId = getString("orderId"),
+    serviceNumber = getString("serviceNumber"),
+    totalRub = getInt("totalRub"),
+    bonusDiscountRub = getInt("bonusDiscountRub"),
+    amountDueRub = getInt("amountDueRub"),
+    paymentStatus = optString("paymentStatus", "PENDING"),
+    paymentMethod = nullableString("paymentMethod"),
+    paymentMethods = optJSONArray("paymentMethods")?.let { values ->
+        List(values.length()) { index -> values.getString(index) }
+    }.orEmpty(),
 )
 
 internal fun JSONObject.toTechnologyFact() = TechnologyFact(
@@ -638,7 +658,7 @@ internal fun JSONObject.nullableString(key: String): String? =
     optString(key).takeUnless { it.isBlank() || it == "null" }
 
 fun String.deviceLabel(): String = when (this) {
-    "COMPUTER" -> "Компьютер"
+    "COMPUTER" -> "ПК"
     "LAPTOP" -> "Ноутбук"
     "PHONE" -> "Телефон"
     "TABLET" -> "Планшет"

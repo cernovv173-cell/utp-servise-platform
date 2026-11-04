@@ -14,12 +14,12 @@ import {
 } from "@/features/orders/order-list-view";
 import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
-import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
 import { RepairDeadlineEditor } from "@/features/orders/repair-deadline";
 import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
+import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
@@ -141,7 +141,6 @@ export const OrderManagement = ({
           </Link>
         ) : (
           <div className="flex flex-wrap gap-2">
-            {token && <PickupQrScanner token={token} />}
             <AdminOrderCreate onCreated={refresh} />
           </div>
         )}
@@ -278,12 +277,23 @@ export const OrderManagement = ({
                 />
               </label>
               <div className="grid content-end">
+                {order.status === "READY_FOR_PICKUP" && token && (
+                  <RepairOrderReleaseButton order={order} token={token} onRefresh={refresh} />
+                )}
                 <button
-                  disabled={order.status !== "COMPLETED" || mutate.isPending}
+                  disabled={
+                    order.status !== "COMPLETED" ||
+                    mutate.isPending ||
+                    order.receipt?.paymentStatus === "PAID"
+                  }
                   onClick={() => mutate.mutate({ kind: "receipt", id: order.id })}
                   className="h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
                 >
-                  {order.receipt ? "Обновить документ" : "Создать документ"}
+                  {order.receipt?.paymentStatus === "PAID"
+                    ? "Чек оплачен"
+                    : order.receipt
+                      ? "Обновить документ"
+                      : "Создать документ"}
                 </button>
                 {["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
                   !order.diagnosisCompletedAt && (

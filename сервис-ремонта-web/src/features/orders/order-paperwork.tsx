@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, ImagePlus, Printer, ShieldCheck } from "lucide-react";
-import { type ChangeEvent, useCallback, useState } from "react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/modal";
@@ -12,85 +12,77 @@ import {
   type RepairOrderIntake,
   fetchProtectedMedia,
   saveOrderIntake,
-  uploadIntakePhoto,
+  uploadIntakeMedia,
 } from "@/lib/api";
 
-type Side = "front" | "back" | "left" | "right";
-const sideFields: Array<{
-  side: Side;
-  label: string;
-  condition: keyof Pick<
-    RepairOrderIntake,
-    "frontCondition" | "backCondition" | "leftCondition" | "rightCondition"
-  >;
-  photo: keyof Pick<
-    RepairOrderIntake,
-    "frontPhotoObjectId" | "backPhotoObjectId" | "leftPhotoObjectId" | "rightPhotoObjectId"
-  >;
-}> = [
-  {
-    side: "front",
-    label: "Передняя сторона",
-    condition: "frontCondition",
-    photo: "frontPhotoObjectId",
-  },
-  { side: "back", label: "Задняя сторона", condition: "backCondition", photo: "backPhotoObjectId" },
-  { side: "left", label: "Левая сторона", condition: "leftCondition", photo: "leftPhotoObjectId" },
-  {
-    side: "right",
-    label: "Правая сторона",
-    condition: "rightCondition",
-    photo: "rightPhotoObjectId",
-  },
-];
-
 const defaults = (intake: RepairOrderIntake | null | undefined) => ({
-  frontCondition: intake?.frontCondition ?? "",
-  backCondition: intake?.backCondition ?? "",
-  leftCondition: intake?.leftCondition ?? "",
-  rightCondition: intake?.rightCondition ?? "",
+  conditionSummary:
+    intake?.conditionSummary ||
+    [intake?.frontCondition, intake?.backCondition, intake?.leftCondition, intake?.rightCondition]
+      .filter(Boolean)
+      .join("\n"),
+  intakeMediaObjectId: intake?.intakeMediaObjectId ?? null,
+  intakeMediaType: intake?.intakeMediaType ?? null,
   serialNumber: intake?.serialNumber ?? "",
   includedAccessories: intake?.includedAccessories ?? "",
   intakeNotes: intake?.intakeNotes ?? "",
-  frontPhotoObjectId: intake?.frontPhotoObjectId ?? null,
-  backPhotoObjectId: intake?.backPhotoObjectId ?? null,
-  leftPhotoObjectId: intake?.leftPhotoObjectId ?? null,
-  rightPhotoObjectId: intake?.rightPhotoObjectId ?? null,
 });
 
-const ProtectedOrderPhoto = ({
+const ProtectedOrderMedia = ({
   token,
   objectId,
+  mediaType,
   label,
 }: {
   token: string;
   objectId: string | null;
+  mediaType: "IMAGE" | "VIDEO" | null;
   label: string;
 }) => {
-  const image = useQuery({
+  const media = useQuery({
     queryKey: ["order-document-photo", token, objectId],
     queryFn: () => fetchProtectedMedia(token, objectId!),
     enabled: Boolean(objectId),
   });
-  const imageData = image.data;
-  const imageRef = useCallback(
-    (element: HTMLImageElement | null) => {
-      if (!element || !imageData) return;
-      const objectUrl = URL.createObjectURL(imageData);
-      element.src = objectUrl;
-      return () => URL.revokeObjectURL(objectUrl);
-    },
-    [imageData],
-  );
-  return imageData ? (
-    <img
-      ref={imageRef}
-      alt={label}
-      className="mt-2 aspect-video w-full rounded-lg border border-slate-200 object-contain dark:border-slate-700"
-    />
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const isVideo = mediaType === "VIDEO" || media.data?.type.startsWith("video/");
+  useEffect(() => {
+    if (!media.data) return;
+    const objectUrl = URL.createObjectURL(media.data);
+    const video = videoRef.current;
+    const image = imageRef.current;
+    if (isVideo && video) video.src = objectUrl;
+    if (!isVideo && image) image.src = objectUrl;
+    return () => {
+      if (video?.src === objectUrl) {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+      }
+      if (image?.src === objectUrl) image.removeAttribute("src");
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [isVideo, media.data]);
+  return media.data ? (
+    isVideo ? (
+      <video
+        ref={videoRef}
+        controls
+        playsInline
+        aria-label={label}
+        className="mt-2 aspect-video w-full rounded-lg border border-slate-200 bg-black object-contain dark:border-slate-700"
+      />
+    ) : (
+      <img
+        ref={imageRef}
+        alt={label}
+        className="mt-2 aspect-video w-full rounded-lg border border-slate-200 object-contain dark:border-slate-700"
+      />
+    )
   ) : (
     <div className="mt-2 grid aspect-video place-items-center rounded-lg bg-slate-100 text-xs text-slate-500 dark:bg-slate-800">
-      {image.isLoading ? "Загружаем фото…" : "Фото пока не добавлено"}
+      {media.isLoading ? "Загружаем медиа…" : "Фото или видео пока не добавлено"}
     </div>
   );
 };
@@ -115,12 +107,14 @@ export const OrderPaperwork = ({
   }
   const invalidateOrders = () => queryClient.invalidateQueries({ queryKey: ["orders", token] });
   const upload = useMutation({
-    mutationFn: ({ side, file }: { side: Side; file: File }) =>
-      uploadIntakePhoto(token, order.id, side, file),
-    onSuccess: async ({ intake }, { side }) => {
-      const photoKey = sideFields.find((entry) => entry.side === side)!.photo;
-      setDraft((value) => ({ ...value, [photoKey]: intake[photoKey] }));
-      toast.success("Фото стороны добавлено в акт.");
+    mutationFn: (file: File) => uploadIntakeMedia(token, order.id, file),
+    onSuccess: async ({ intake }) => {
+      setDraft((value) => ({
+        ...value,
+        intakeMediaObjectId: intake.intakeMediaObjectId,
+        intakeMediaType: intake.intakeMediaType,
+      }));
+      toast.success("Фото или видео добавлено в акт.");
       await invalidateOrders();
     },
     onError: () =>
@@ -129,10 +123,7 @@ export const OrderPaperwork = ({
   const save = useMutation({
     mutationFn: () =>
       saveOrderIntake(token, order.id, {
-        frontCondition: draft.frontCondition,
-        backCondition: draft.backCondition,
-        leftCondition: draft.leftCondition,
-        rightCondition: draft.rightCondition,
+        conditionSummary: draft.conditionSummary,
         serialNumber: draft.serialNumber,
         includedAccessories: draft.includedAccessories,
         intakeNotes: draft.intakeNotes,
@@ -141,8 +132,7 @@ export const OrderPaperwork = ({
       toast.success("Акт приёма сохранён.");
       await invalidateOrders();
     },
-    onError: () =>
-      toast.error("Для сохранения добавьте фотографии всех четырёх сторон и заполните описание."),
+    onError: () => toast.error("Проверьте описание состояния и добавьте одно фото или видео."),
   });
   const print = (kind: OrderDocumentKind) => {
     void printOrderDocument(kind, order, order.intake ?? null, order.warranty ?? null, token).catch(
@@ -153,9 +143,9 @@ export const OrderPaperwork = ({
       },
     );
   };
-  const changePhoto = (side: Side, event: ChangeEvent<HTMLInputElement>) => {
+  const changeMedia = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];
-    if (file) upload.mutate({ side, file });
+    if (file) upload.mutate(file);
     event.currentTarget.value = "";
   };
   const inputClass =
@@ -176,7 +166,7 @@ export const OrderPaperwork = ({
           <ModalTitle>Документы · {order.serviceNumber}</ModalTitle>
           <ModalDescription className="dark:text-slate-400">
             Акт приёма фиксирует комплектность и внешнее состояние устройства; заказ-наряд
-            использует данные ремонта, гарантийный талон формируется при выдаче по QR.
+            использует данные ремонта, гарантийный талон формируется при выдаче заказа.
           </ModalDescription>
         </ModalHeader>
         <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Документы заявки">
@@ -202,46 +192,46 @@ export const OrderPaperwork = ({
 
         {document === "intake" && (
           <section className="mt-4 grid gap-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {sideFields.map(({ side, label, condition, photo }) => (
-                <div
-                  key={side}
-                  className="rounded-xl border border-slate-200 p-3 dark:border-slate-700"
-                >
-                  <label className="grid gap-1 text-sm font-semibold">
-                    {label} · видимые повреждения{"\u00a0"}
-                    <span aria-hidden="true">*</span>
-                    <textarea
-                      required
-                      minLength={2}
-                      maxLength={1000}
-                      rows={2}
-                      disabled={!canEditIntake}
-                      value={draft[condition]}
-                      onChange={(event) =>
-                        setDraft((value) => ({ ...value, [condition]: event.target.value }))
-                      }
-                      className="rounded-lg border border-slate-200 bg-white p-2 text-sm font-normal dark:border-slate-700 dark:bg-slate-950"
-                      placeholder="Опишите царапины, сколы, трещины или укажите «не обнаружены»"
-                    />
-                  </label>
-                  <ProtectedOrderPhoto token={token} objectId={draft[photo]} label={label} />
-                  {canEditIntake && (
-                    <label className="mt-2 inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700">
-                      <ImagePlus size={14} aria-hidden="true" />
-                      {draft[photo] ? "Заменить фото" : "Сфотографировать сторону"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        className="sr-only"
-                        onChange={(event) => changePhoto(side, event)}
-                        disabled={upload.isPending}
-                      />
-                    </label>
-                  )}
-                </div>
-              ))}
+            <label className="grid gap-1 text-sm font-semibold">
+              Внешнее состояние и видимые повреждения
+              <textarea
+                required
+                minLength={2}
+                maxLength={3000}
+                rows={4}
+                disabled={!canEditIntake}
+                value={draft.conditionSummary}
+                onChange={(event) =>
+                  setDraft((value) => ({ ...value, conditionSummary: event.target.value }))
+                }
+                className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-normal dark:border-slate-700 dark:bg-slate-950"
+                placeholder="Кратко опишите состояние устройства и обнаруженные повреждения"
+              />
+            </label>
+            <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+              <p className="text-sm font-semibold">Фото или видео устройства</p>
+              <ProtectedOrderMedia
+                token={token}
+                objectId={draft.intakeMediaObjectId}
+                mediaType={draft.intakeMediaType}
+                label="Фото или видео состояния устройства"
+              />
+              {canEditIntake && (
+                <label className="mt-3 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700">
+                  <ImagePlus size={14} aria-hidden="true" />
+                  {draft.intakeMediaObjectId ? "Заменить файл" : "Добавить фото или видео"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,video/mp4"
+                    className="sr-only"
+                    onChange={changeMedia}
+                    disabled={upload.isPending}
+                  />
+                </label>
+              )}
+              <p className="mt-2 text-xs text-slate-500">
+                Один файл: фото до 5 МБ или видео MP4 до 20 МБ.
+              </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm font-medium">
@@ -339,15 +329,7 @@ export const OrderPaperwork = ({
               <p className="text-sm text-slate-500">Состав работ пока не указан.</p>
             )}
             <p className="text-sm">
-              Состояние при приёме:{" "}
-              {order.intake
-                ? [
-                    order.intake.frontCondition,
-                    order.intake.backCondition,
-                    order.intake.leftCondition,
-                    order.intake.rightCondition,
-                  ].join(" · ")
-                : "акт приёма не заполнен"}
+              Состояние при приёме: {order.intake?.conditionSummary || "акт приёма не заполнен"}
             </p>
             <button
               type="button"

@@ -9,6 +9,7 @@ export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
 export type StaffRole = Exclude<Role, "CUSTOMER">;
 export type OrderArchiveView = "active" | "archived";
 export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
+export type RepairDeviceType = "COMPUTER" | "LAPTOP" | "PHONE" | "TABLET";
 export type RepairEstimate = {
   id: string;
   orderId: string;
@@ -306,14 +307,17 @@ export type SupportChatInboxItem = {
 export type RepairOrderIntake = {
   id: string;
   orderId: string;
-  frontCondition: string;
-  frontPhotoObjectId: string | null;
-  backCondition: string;
-  backPhotoObjectId: string | null;
-  leftCondition: string;
-  leftPhotoObjectId: string | null;
-  rightCondition: string;
-  rightPhotoObjectId: string | null;
+  conditionSummary: string;
+  intakeMediaObjectId: string | null;
+  intakeMediaType: "IMAGE" | "VIDEO" | null;
+  frontCondition?: string;
+  frontPhotoObjectId?: string | null;
+  backCondition?: string;
+  backPhotoObjectId?: string | null;
+  leftCondition?: string;
+  leftPhotoObjectId?: string | null;
+  rightCondition?: string;
+  rightPhotoObjectId?: string | null;
   serialNumber: string | null;
   includedAccessories: string;
   intakeNotes: string;
@@ -403,6 +407,7 @@ export type NewsArticle = {
   endsAt: string | null;
   isFeatured: boolean;
   imageObjectId?: string | null;
+  videoObjectId?: string | null;
 };
 
 export type PersonalBirthdayGreeting = {
@@ -427,6 +432,7 @@ export type RepairCatalogItem = {
   type: RepairCatalogType;
   name: string;
   description: string | null;
+  deviceTypes: RepairDeviceType[];
   imageObjectIds: string[];
   unitPriceRub: number;
   stockQuantity: number | null;
@@ -482,7 +488,10 @@ export type ShopOrder = {
   };
 };
 
-export type CustomerServicePrice = Pick<RepairCatalogItem, "id" | "name" | "unitPriceRub">;
+export type CustomerServicePrice = Pick<
+  RepairCatalogItem,
+  "id" | "name" | "unitPriceRub" | "deviceTypes"
+>;
 
 export type AdminCustomer = {
   id: string;
@@ -646,6 +655,7 @@ export type SiteBanner = {
   title: string;
   content: string;
   imageObjectId: string | null;
+  videoObjectId: string | null;
   targetUrl: string | null;
   startsAt: string | null;
   endsAt: string | null;
@@ -1109,15 +1119,27 @@ export const updateShopOrderStatus = (
     body: JSON.stringify({ status }),
   });
 
-export const getCustomerServicePrices = (token: string, signal?: AbortSignal) =>
-  apiRequest<{ prices: CustomerServicePrice[] }>("/customer/service-prices", token, {
-    signal,
-  });
+export const getCustomerServicePrices = (
+  token: string,
+  signal?: AbortSignal,
+  deviceType?: RepairDeviceType,
+) =>
+  apiRequest<{ prices: CustomerServicePrice[] }>(
+    `/customer/service-prices${deviceType ? `?deviceType=${deviceType}` : ""}`,
+    token,
+    {
+      signal,
+    },
+  );
 
-export const getPublicServicePrices = (signal?: AbortSignal) =>
-  apiRequest<{ prices: CustomerServicePrice[] }>("/public/service-prices", null, {
-    signal,
-  });
+export const getPublicServicePrices = (signal?: AbortSignal, deviceType?: RepairDeviceType) =>
+  apiRequest<{ prices: CustomerServicePrice[] }>(
+    `/public/service-prices${deviceType ? `?deviceType=${deviceType}` : ""}`,
+    null,
+    {
+      signal,
+    },
+  );
 
 export const getAdminCustomers = (
   token: string,
@@ -1132,13 +1154,8 @@ export const getAdminCustomers = (
     { signal },
   );
 
-export const uploadIntakePhoto = (
-  token: string,
-  orderId: string,
-  side: "front" | "back" | "left" | "right",
-  file: File,
-) =>
-  apiRequest<{ intake: RepairOrderIntake }>(`/orders/${orderId}/intake-photos/${side}`, token, {
+export const uploadIntakeMedia = (token: string, orderId: string, file: File) =>
+  apiRequest<{ intake: RepairOrderIntake }>(`/orders/${orderId}/intake/media`, token, {
     method: "POST",
     headers: { "Content-Type": file.type || "image/jpeg" },
     body: file,
@@ -1149,13 +1166,7 @@ export const saveOrderIntake = (
   orderId: string,
   input: Pick<
     RepairOrderIntake,
-    | "frontCondition"
-    | "backCondition"
-    | "leftCondition"
-    | "rightCondition"
-    | "serialNumber"
-    | "includedAccessories"
-    | "intakeNotes"
+    "conditionSummary" | "serialNumber" | "includedAccessories" | "intakeNotes"
   >,
 ) =>
   apiRequest<{ intake: RepairOrderIntake }>(`/orders/${orderId}/intake`, token, {
@@ -1163,21 +1174,33 @@ export const saveOrderIntake = (
     body: JSON.stringify(input),
   });
 
-export const createOrderPickupCode = (token: string, orderId: string) =>
-  apiRequest<{ qrPayload: string; fallbackPin: string; expiresAt: string }>(
-    `/orders/${orderId}/pickup-code`,
-    token,
-    { method: "POST" },
-  );
+export type RepairOrderReleaseSummary = {
+  orderId: string;
+  serviceNumber: string;
+  totalRub: number;
+  bonusDiscountRub: number;
+  amountDueRub: number;
+  paymentStatus: "PENDING" | "PAID";
+  paymentMethod: RepairReceipt["paymentMethod"];
+  paymentMethods: NonNullable<RepairReceipt["paymentMethod"]>[];
+};
 
-export const closeOrderByQr = (
+export const getRepairOrderReleaseSummary = (token: string, orderId: string) =>
+  apiRequest<RepairOrderReleaseSummary>(`/orders/${orderId}/release-summary`, token);
+
+export const releaseRepairOrder = (
   token: string,
-  input: { qrPayload: string } | { serviceNumber: string; pickupPin: string },
+  orderId: string,
+  input: {
+    expectedAmountRub: number;
+    paymentMethod?: NonNullable<RepairReceipt["paymentMethod"]>;
+  },
 ) =>
-  apiRequest<{ order: RepairOrder; warranty: RepairWarranty }>("/orders/close-by-qr", token, {
-    method: "POST",
-    body: JSON.stringify(input),
-  });
+  apiRequest<{ order: RepairOrder; receipt: RepairReceipt; warranty: RepairWarranty }>(
+    `/orders/${orderId}/release`,
+    token,
+    { method: "POST", body: JSON.stringify(input) },
+  );
 
 export const createAdminCustomer = (
   token: string,
@@ -1206,6 +1229,7 @@ export const deleteAdminCustomer = (token: string, customerId: string) =>
 export const createRepairCatalogItem = (
   token: string,
   input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
+    deviceTypes?: RepairDeviceType[];
     description?: string | null;
     stockQuantity?: number;
     minimumStockQuantity?: number;
@@ -1223,6 +1247,7 @@ export const updateRepairCatalogItem = (
     Pick<
       RepairCatalogItem,
       | "type"
+      | "deviceTypes"
       | "name"
       | "description"
       | "unitPriceRub"
@@ -1686,7 +1711,10 @@ export const publishAdminCustomerOfferResults = (token: string, offerId: string)
     method: "POST",
   });
 
-export const createBanner = (token: string, banner: Omit<SiteBanner, "id" | "imageObjectId">) =>
+export const createBanner = (
+  token: string,
+  banner: Omit<SiteBanner, "id" | "imageObjectId" | "videoObjectId">,
+) =>
   apiRequest<{ banner: SiteBanner }>("/banners", token, {
     method: "POST",
     body: JSON.stringify(banner),
@@ -1701,15 +1729,17 @@ export const updateBanner = (token: string, id: string, banner: Partial<SiteBann
 export const deleteBanner = (token: string, id: string) =>
   apiRequest<void>(`/banners/${id}`, token, { method: "DELETE" });
 
-export const uploadAdminImage = async (path: string, token: string, file: File) => {
+export const uploadAdminMedia = async (path: string, token: string, file: File) => {
   const response = await fetch(`${apiBase}${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": file.type },
     body: file,
   });
-  if (!response.ok) throw new Error(`Не удалось загрузить изображение (${response.status}).`);
+  if (!response.ok) throw new Error(`Не удалось загрузить медиафайл (${response.status}).`);
   return response.json() as Promise<unknown>;
 };
+
+export const uploadAdminImage = uploadAdminMedia;
 
 export const fetchProtectedMedia = async (
   token: string,

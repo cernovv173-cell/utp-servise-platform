@@ -168,7 +168,7 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
       const nextContent = input.content ?? current.content;
       if (
         input.isActive &&
-        (!current.imageObjectId ||
+        (!(current.imageObjectId || current.videoObjectId) ||
           !nextTargetUrl ||
           !nextTitle.trim() ||
           !nextContent.trim())
@@ -176,7 +176,7 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
         throw new HttpError(
           409,
           "BANNER_CONTENT_REQUIRED",
-          "Для показа кампании нужны изображение, заголовок, текст и ссылка.",
+          "Для показа кампании нужны фото или видео, заголовок, текст и ссылка.",
         );
       }
       const banner = await database.siteBanner.update({

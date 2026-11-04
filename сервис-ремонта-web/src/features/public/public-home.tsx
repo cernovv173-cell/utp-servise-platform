@@ -85,6 +85,16 @@ export const PublicHome = () => {
               >
                 Услуги сервиса
               </a>
+              {company?.phone && (
+                <a
+                  href={`tel:${company.phone.replace(/[^\d+]/gu, "")}`}
+                  aria-label={`Позвонить в сервис: ${company.phone}`}
+                  className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-emerald-200 bg-white/80 px-5 font-semibold text-emerald-800 hover:bg-emerald-50 dark:border-emerald-300/30 dark:bg-emerald-400/10 dark:text-emerald-100 dark:hover:bg-emerald-300/20"
+                >
+                  <Phone size={17} aria-hidden="true" />
+                  Позвонить
+                </a>
+              )}
             </div>
             <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
               {serviceName} · аккаунт понадобится только при отправке заявки.

@@ -4,7 +4,10 @@ import { z } from "zod";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
-import { validateImage } from "../../lib/storage/project-images.js";
+import {
+  validateImage,
+  validateMedia,
+} from "../../lib/storage/project-images.js";
 import {
   createRequireAuth,
   getAuthenticatedUser,
@@ -25,6 +28,10 @@ const imageBody: RequestHandler = express.raw({
   type: "image/*",
   limit: "5mb",
 });
+const mediaBody: RequestHandler = express.raw({
+  type: ["image/jpeg", "image/png", "image/webp", "video/mp4"],
+  limit: "20mb",
+});
 const newsParams = z.object({ articleId: z.string().uuid() });
 const craftItemParams = z.object({ itemId: z.string().uuid() });
 const craftOrderParams = z.object({ craftOrderId: z.string().uuid() });
@@ -35,10 +42,7 @@ const orderPhotoConsentParams = z.object({
   orderId: z.string().uuid(),
   photoId: z.string().uuid(),
 });
-const intakePhotoParams = z.object({
-  orderId: z.string().uuid(),
-  side: z.enum(["front", "back", "left", "right"]),
-});
+const intakeMediaParams = z.object({ orderId: z.string().uuid() });
 
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
@@ -53,6 +57,12 @@ const imageOf = (request: Request) => {
   const contentType = request.header("content-type") ?? "";
   const bytes = Buffer.isBuffer(request.body) ? request.body : Buffer.alloc(0);
   return { bytes, contentType: validateImage(bytes, contentType) };
+};
+
+const mediaOf = (request: Request) => {
+  const contentType = request.header("content-type") ?? "";
+  const bytes = Buffer.isBuffer(request.body) ? request.body : Buffer.alloc(0);
+  return { bytes, contentType: validateMedia(bytes, contentType) };
 };
 
 export const createMediaRouter = (
@@ -170,7 +180,7 @@ export const createMediaRouter = (
       const { articleId } = paramsOf<z.infer<typeof newsParams>>(response);
       const article = await database.newsArticle.findUnique({
         where: { id: articleId },
-        select: { id: true, imageObjectId: true },
+        select: { id: true, imageObjectId: true, videoObjectId: true },
       });
       if (!article)
         throw new HttpError(
@@ -183,10 +193,57 @@ export const createMediaRouter = (
       try {
         const updated = await database.newsArticle.update({
           where: { id: articleId },
-          data: { imageObjectId: objectId },
+          data: { imageObjectId: objectId, videoObjectId: null },
         });
         if (article.imageObjectId) {
           await storage.delete(article.imageObjectId).catch(() => undefined);
+        }
+        if (article.videoObjectId) {
+          await storage.delete(article.videoObjectId).catch(() => undefined);
+        }
+        response.json({ article: updated });
+      } catch (error) {
+        await storage.delete(objectId).catch(() => undefined);
+        throw error;
+      }
+    },
+  );
+
+  router.post(
+    "/news/:articleId/media",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: newsParams }),
+    mediaBody,
+    async (request, response) => {
+      const { articleId } = paramsOf<z.infer<typeof newsParams>>(response);
+      const article = await database.newsArticle.findUnique({
+        where: { id: articleId },
+        select: { id: true, imageObjectId: true, videoObjectId: true },
+      });
+      if (!article)
+        throw new HttpError(
+          404,
+          "NEWS_ARTICLE_NOT_FOUND",
+          "Новость не найдена.",
+        );
+      const media = mediaOf(request);
+      const objectId = await storage.upload(media.bytes, media.contentType);
+      const video = media.contentType.startsWith("video/");
+      try {
+        const updated = await database.newsArticle.update({
+          where: { id: articleId },
+          data: {
+            imageObjectId: video ? null : objectId,
+            videoObjectId: video ? objectId : null,
+          },
+        });
+        for (const previousId of [
+          article.imageObjectId,
+          article.videoObjectId,
+        ]) {
+          if (previousId && previousId !== objectId)
+            await storage.delete(previousId).catch(() => undefined);
         }
         response.json({ article: updated });
       } catch (error) {
@@ -293,7 +350,7 @@ export const createMediaRouter = (
       const { bannerId } = paramsOf<z.infer<typeof bannerParams>>(response);
       const banner = await database.siteBanner.findUnique({
         where: { id: bannerId },
-        select: { id: true, imageObjectId: true },
+        select: { id: true, imageObjectId: true, videoObjectId: true },
       });
       if (!banner)
         throw new HttpError(404, "BANNER_NOT_FOUND", "Баннер не найден.");
@@ -302,10 +359,49 @@ export const createMediaRouter = (
       try {
         const updated = await database.siteBanner.update({
           where: { id: bannerId },
-          data: { imageObjectId: objectId },
+          data: { imageObjectId: objectId, videoObjectId: null },
         });
         if (banner.imageObjectId)
           await storage.delete(banner.imageObjectId).catch(() => undefined);
+        if (banner.videoObjectId)
+          await storage.delete(banner.videoObjectId).catch(() => undefined);
+        response.json({ banner: updated });
+      } catch (error) {
+        await storage.delete(objectId).catch(() => undefined);
+        throw error;
+      }
+    },
+  );
+
+  router.post(
+    "/banners/:bannerId/media",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: bannerParams }),
+    mediaBody,
+    async (request, response) => {
+      const { bannerId } = paramsOf<z.infer<typeof bannerParams>>(response);
+      const banner = await database.siteBanner.findUnique({
+        where: { id: bannerId },
+        select: { id: true, imageObjectId: true, videoObjectId: true },
+      });
+      if (!banner)
+        throw new HttpError(404, "BANNER_NOT_FOUND", "Баннер не найден.");
+      const media = mediaOf(request);
+      const objectId = await storage.upload(media.bytes, media.contentType);
+      const video = media.contentType.startsWith("video/");
+      try {
+        const updated = await database.siteBanner.update({
+          where: { id: bannerId },
+          data: {
+            imageObjectId: video ? null : objectId,
+            videoObjectId: video ? objectId : null,
+          },
+        });
+        for (const previousId of [banner.imageObjectId, banner.videoObjectId]) {
+          if (previousId && previousId !== objectId)
+            await storage.delete(previousId).catch(() => undefined);
+        }
         response.json({ banner: updated });
       } catch (error) {
         await storage.delete(objectId).catch(() => undefined);
@@ -405,17 +501,13 @@ export const createMediaRouter = (
   );
 
   router.post(
-    "/orders/:orderId/intake-photos/:side",
+    "/orders/:orderId/intake/media",
     requireAuth,
     requireRoles("TECHNICIAN", "ADMIN"),
-    validateRequest({ params: intakePhotoParams }),
-    imageBody,
+    validateRequest({ params: intakeMediaParams }),
+    mediaBody,
     async (request, response) => {
-      const { orderId, side } = (
-        response.locals.input as {
-          readonly params: z.infer<typeof intakePhotoParams>;
-        }
-      ).params;
+      const { orderId } = paramsOf<z.infer<typeof intakeMediaParams>>(response);
       const user = getAuthenticatedUser(response);
       const order = await database.repairOrder.findUnique({
         where: { id: orderId },
@@ -423,27 +515,8 @@ export const createMediaRouter = (
       });
       if (!order || !canViewRepairOrder(user.role, user.id, order))
         return invalidMedia();
-      const photoField = {
-        front: "frontPhotoObjectId",
-        back: "backPhotoObjectId",
-        left: "leftPhotoObjectId",
-        right: "rightPhotoObjectId",
-      }[side] as
-        | "frontPhotoObjectId"
-        | "backPhotoObjectId"
-        | "leftPhotoObjectId"
-        | "rightPhotoObjectId";
-      const previous = await database.repairOrderIntake.findUnique({
-        where: { orderId },
-        select: {
-          frontPhotoObjectId: true,
-          backPhotoObjectId: true,
-          leftPhotoObjectId: true,
-          rightPhotoObjectId: true,
-        },
-      });
-      const image = imageOf(request);
-      const objectId = await storage.upload(image.bytes, image.contentType);
+      const media = mediaOf(request);
+      const objectId = await storage.upload(media.bytes, media.contentType);
       try {
         const intake = await database.repairOrderIntake.upsert({
           where: { orderId },
@@ -451,13 +524,19 @@ export const createMediaRouter = (
             orderId,
             createdById: user.id,
             updatedById: user.id,
-            [photoField]: objectId,
+            intakeMediaObjectId: objectId,
+            intakeMediaType: media.contentType.startsWith("video/")
+              ? "VIDEO"
+              : "IMAGE",
           },
-          update: { updatedById: user.id, [photoField]: objectId },
+          update: {
+            updatedById: user.id,
+            intakeMediaObjectId: objectId,
+            intakeMediaType: media.contentType.startsWith("video/")
+              ? "VIDEO"
+              : "IMAGE",
+          },
         });
-        const previousObjectId = previous?.[photoField];
-        if (previousObjectId)
-          await storage.delete(previousObjectId).catch(() => undefined);
         response.status(201).json({ intake });
       } catch (error) {
         await storage.delete(objectId).catch(() => undefined);

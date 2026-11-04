@@ -39,7 +39,14 @@ fun CampaignBannerCard(
         colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
     ) {
         Column {
-            banner.imageObjectId?.let { objectId ->
+            banner.videoObjectId?.let { videoId ->
+                RemoteProjectVideo(
+                    videoId,
+                    token,
+                    Modifier.fillMaxWidth().height(190.dp),
+                    "Видео рекламного баннера ${banner.title}",
+                )
+            } ?: banner.imageObjectId?.let { objectId ->
                 RemoteProjectImage(
                     objectId,
                     token,
@@ -71,7 +78,7 @@ fun CampaignBannerCarousel(
     val publishedBanners = banners.filter { banner ->
         banner.placements.contains(placement) &&
             isCampaignBannerVisible(banner, currentTime) &&
-            (!requireImage || banner.imageObjectId != null)
+            (!requireImage || banner.imageObjectId != null || banner.videoObjectId != null)
     }
 
     TimedCarousel(

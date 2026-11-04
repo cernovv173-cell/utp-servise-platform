@@ -98,7 +98,7 @@ export const createProtectedMediaRouter = (
         if (!review) {
           const article = await database.newsArticle.findFirst({
             where: {
-              imageObjectId: objectId,
+              OR: [{ imageObjectId: objectId }, { videoObjectId: objectId }],
               ...(user.role === "ADMIN"
                 ? {}
                 : {
@@ -122,7 +122,10 @@ export const createProtectedMediaRouter = (
             if (!craftItem) {
               const banner = await database.siteBanner.findFirst({
                 where: {
-                  imageObjectId: objectId,
+                  OR: [
+                    { imageObjectId: objectId },
+                    { videoObjectId: objectId },
+                  ],
                   ...(user.role === "ADMIN"
                     ? {}
                     : {
@@ -178,6 +181,7 @@ export const createProtectedMediaRouter = (
                           { backPhotoObjectId: objectId },
                           { leftPhotoObjectId: objectId },
                           { rightPhotoObjectId: objectId },
+                          { intakeMediaObjectId: objectId },
                         ],
                       },
                       select: {
@@ -212,12 +216,12 @@ export const createProtectedMediaRouter = (
         }
       }
 
-      const image = await storage.download(objectId);
+      const media = await storage.download(objectId);
       response
-        .setHeader("Content-Type", image.contentType)
+        .setHeader("Content-Type", media.contentType)
         .setHeader("Cache-Control", "private, max-age=300")
         .setHeader("X-Content-Type-Options", "nosniff")
-        .send(image.bytes);
+        .send(media.bytes);
     },
   );
 

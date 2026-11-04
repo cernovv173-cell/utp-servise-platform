@@ -12,6 +12,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +38,7 @@ internal fun CatalogItemEditDialog(
     var minimumStockText by remember(item.id) {
         mutableStateOf((item.minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY).toString())
     }
+    var selectedDeviceTypes by remember(item.id) { mutableStateOf(item.deviceTypes.toSet()) }
     val price = priceText.toIntOrNull()
     val minimumStock = minimumStockText.toIntOrNull()
 
@@ -52,6 +54,16 @@ internal fun CatalogItemEditDialog(
                     else OutlinedButton(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
                     if (type == "PRODUCT") Button(onClick = { type = "PRODUCT" }) { Text("Товар") }
                     else OutlinedButton(onClick = { type = "PRODUCT" }) { Text("Товар") }
+                }
+                if (type != "PRODUCT") {
+                    Text("Подходит для устройств", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = UtpInk)
+                    RepairDeviceTypePicker(selectedDeviceTypes) { deviceType ->
+                        selectedDeviceTypes = if (deviceType in selectedDeviceTypes) {
+                            selectedDeviceTypes - deviceType
+                        } else {
+                            selectedDeviceTypes + deviceType
+                        }
+                    }
                 }
                 OutlinedTextField(
                     value = name,
@@ -125,11 +137,13 @@ internal fun CatalogItemEditDialog(
                             unitPriceRub = price!!,
                             stockQuantity = if (type != "SERVICE") stockText.toIntOrNull() else null,
                             minimumStockQuantity = if (type != "SERVICE") minimumStock else null,
+                            deviceTypes = if (type == "PRODUCT") repairDeviceTypes else selectedDeviceTypes.toList(),
                         ),
                     )
                 },
                 enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
-                    (type == "SERVICE" || (stockText.toIntOrNull() != null && minimumStock != null)),
+                    (type == "SERVICE" || (stockText.toIntOrNull() != null && minimumStock != null)) &&
+                    (type == "PRODUCT" || selectedDeviceTypes.isNotEmpty()),
             ) { Text("Сохранить") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },

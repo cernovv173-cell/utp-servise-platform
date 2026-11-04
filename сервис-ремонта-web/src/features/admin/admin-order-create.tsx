@@ -247,7 +247,7 @@ export const AdminOrderCreate = ({
             Тип устройства{"\u00a0"}
             <span aria-hidden="true">*</span>
             <select name="deviceType" required className={fieldClassName}>
-              <option value="COMPUTER">Компьютер</option>
+              <option value="COMPUTER">ПК</option>
               <option value="LAPTOP">Ноутбук</option>
               <option value="PHONE">Телефон</option>
               <option value="TABLET">Планшет</option>

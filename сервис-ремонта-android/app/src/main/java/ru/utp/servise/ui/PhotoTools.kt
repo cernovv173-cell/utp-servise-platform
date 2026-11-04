@@ -6,9 +6,15 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.graphics.ImageDecoder
+import android.media.MediaPlayer
+import android.widget.MediaController
+import android.widget.VideoView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -31,12 +37,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.io.IOException
 import kotlin.math.max
 import kotlin.math.min
 
 private const val MAX_EDGE = 1600
 private const val MAX_IMAGE_BYTES = 5 * 1024 * 1024
+private const val MAX_VIDEO_BYTES = 20 * 1024 * 1024
+
+data class SelectedMedia(val bytes: ByteArray, val contentType: String) {
+    val isVideo: Boolean get() = contentType == "video/mp4"
+}
 
 @Composable
 fun PhotoPickerButton(
@@ -58,6 +70,52 @@ fun PhotoPickerButton(
     ) {
         Text(label)
     }
+}
+
+@Composable
+fun MediaPickerButton(
+    label: String,
+    enabled: Boolean = true,
+    onMediaSelected: (Uri) -> Unit,
+) {
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(onMediaSelected)
+    }
+    OutlinedButton(
+        onClick = {
+            picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
+        },
+        enabled = enabled,
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Text(label)
+    }
+}
+
+fun readSelectedMedia(context: Context, uri: Uri): SelectedMedia {
+    val type = context.contentResolver.getType(uri)?.lowercase().orEmpty()
+    if (type.startsWith("video/")) {
+        if (type != "video/mp4") throw IOException("Поддерживается видео в формате MP4.")
+        val input = context.contentResolver.openInputStream(uri)
+            ?: throw IOException("Не удалось открыть выбранное видео.")
+        input.use { stream ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(16 * 1024)
+            var total = 0
+            while (true) {
+                val count = stream.read(buffer)
+                if (count < 0) break
+                total += count
+                if (total > MAX_VIDEO_BYTES) throw IOException("Видео должно быть не больше 20 МБ.")
+                output.write(buffer, 0, count)
+            }
+            return SelectedMedia(output.toByteArray(), "video/mp4")
+        }
+    }
+    if (type !in setOf("image/jpeg", "image/png", "image/webp")) {
+        throw IOException("Выберите фото JPG, PNG или WebP либо видео MP4.")
+    }
+    return SelectedMedia(compressSelectedImage(context, uri), "image/jpeg")
 }
 
 @Composable
@@ -96,6 +154,58 @@ fun RemoteProjectImage(
             Text("Фото", fontSize = 11.sp, color = UtpMuted)
         }
     }
+}
+
+@Composable
+fun RemoteProjectVideo(
+    objectId: String?,
+    token: String,
+    modifier: Modifier = Modifier,
+    contentDescription: String = "Видео",
+) {
+    val context = LocalContext.current
+    val videoFile by produceState<File?>(null, objectId, token) {
+        value = if (objectId.isNullOrBlank()) null else withContext(Dispatchers.IO) {
+            runCatching {
+                File(context.cacheDir, "protected-video-${objectId.hashCode()}.mp4").apply {
+                    if (!exists() || length() == 0L) writeBytes(ApiClient.downloadMedia(token, objectId))
+                }
+            }.getOrNull()
+        }
+    }
+    val file = videoFile
+    if (file == null) {
+        Box(
+            modifier = modifier.clip(RoundedCornerShape(12.dp)).background(UtpMint),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("Видео недоступно", fontSize = 11.sp, color = UtpMuted)
+        }
+        return
+    }
+    val videoView = remember(file) {
+        VideoView(context).apply {
+            tag = file.absolutePath
+            setVideoPath(file.absolutePath)
+            setOnPreparedListener { player: MediaPlayer ->
+                player.isLooping = false
+                val controls = MediaController(context)
+                controls.setAnchorView(this)
+                setMediaController(controls)
+            }
+        }
+    }
+    DisposableEffect(videoView) {
+        onDispose { videoView.stopPlayback() }
+    }
+    AndroidView(
+        factory = { videoView },
+        modifier = modifier.clip(RoundedCornerShape(12.dp)),
+        update = { view -> if (view.tag != file.absolutePath) {
+            view.tag = file.absolutePath
+            view.setVideoPath(file.absolutePath)
+        } },
+    )
 }
 
 fun compressSelectedImage(context: Context, uri: Uri): ByteArray {

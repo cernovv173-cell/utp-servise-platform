@@ -11,14 +11,21 @@ import {
 } from "@/components/modal";
 import { ProtectedImage } from "@/components/protected-image";
 
-import type { RepairCatalogItem } from "@/lib/api";
+import type { RepairCatalogItem, RepairDeviceType } from "@/lib/api";
 
-import { defaultMinimumStockQuantity, itemTypeLabels, tracksStock } from "./catalog-model";
+import {
+  defaultMinimumStockQuantity,
+  itemTypeLabels,
+  repairDeviceTypeLabels,
+  repairDeviceTypes,
+  tracksStock,
+} from "./catalog-model";
 
 type CatalogItemUpdate = Partial<
   Pick<
     RepairCatalogItem,
     | "type"
+    | "deviceTypes"
     | "name"
     | "description"
     | "unitPriceRub"
@@ -50,6 +57,7 @@ export const CatalogItemRow = ({
   onSave: (input: CatalogItemUpdate) => void;
 }) => {
   const [type, setType] = useState(item.type);
+  const [deviceTypes, setDeviceTypes] = useState<RepairDeviceType[]>(item.deviceTypes);
   const [showEditor, setShowEditor] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -58,6 +66,7 @@ export const CatalogItemRow = ({
     const data = new FormData(event.currentTarget);
     onSave({
       type,
+      ...(type !== "PRODUCT" ? { deviceTypes } : {}),
       name: String(data.get("name")).trim(),
       ...(type === "PRODUCT"
         ? { description: String(data.get("description")).trim() || null }
@@ -98,6 +107,18 @@ export const CatalogItemRow = ({
                 : ""}
               {` · ${item.active ? "Активна" : "Скрыта"}`}
             </p>
+            {item.type !== "PRODUCT" && (
+              <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Подходит для устройств">
+                {item.deviceTypes.map((deviceType) => (
+                  <span
+                    key={deviceType}
+                    className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-medium text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-200"
+                  >
+                    {repairDeviceTypeLabels[deviceType]}
+                  </span>
+                ))}
+              </div>
+            )}
             {item.active &&
               tracksStock(item.type) &&
               item.stockQuantity !== null &&
@@ -217,6 +238,36 @@ export const CatalogItemRow = ({
                 </button>
               ))}
             </div>
+            {type !== "PRODUCT" && (
+              <fieldset className="grid gap-2 md:col-span-2">
+                <legend className="text-sm font-medium">Подходит для устройств</legend>
+                <div className="flex flex-wrap gap-2">
+                  {repairDeviceTypes.map((deviceType) => {
+                    const selected = deviceTypes.includes(deviceType);
+                    return (
+                      <button
+                        key={deviceType}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() =>
+                          setDeviceTypes((current) =>
+                            selected
+                              ? current.filter((value) => value !== deviceType)
+                              : [...current, deviceType],
+                          )
+                        }
+                        className={`min-h-9 rounded-lg border px-3 text-xs font-medium ${selected ? "border-cyan-600 bg-cyan-50 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-200" : "border-slate-200 dark:border-slate-700"}`}
+                      >
+                        {repairDeviceTypeLabels[deviceType]}
+                      </button>
+                    );
+                  })}
+                </div>
+                {deviceTypes.length === 0 && (
+                  <p className="text-xs text-rose-600">Выберите хотя бы один тип устройства.</p>
+                )}
+              </fieldset>
+            )}
             <label className="grid gap-1 text-sm font-medium">
               Название
               <input
@@ -301,7 +352,7 @@ export const CatalogItemRow = ({
             )}
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || (type !== "PRODUCT" && deviceTypes.length === 0)}
               className="min-h-10 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white disabled:opacity-60 md:col-span-2 md:justify-self-start"
             >
               Сохранить изменения

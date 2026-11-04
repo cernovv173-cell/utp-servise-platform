@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
-import { ProtectedImage } from "@/components/protected-image";
+import { ProtectedMedia } from "@/components/protected-media";
 
 import { useAuth } from "@/features/auth/auth-context";
 import {
@@ -29,44 +29,43 @@ const CampaignBannerCard = ({ banner }: { banner: SiteBanner }) => {
     ? appRoutes[internalRoute.toLowerCase()]
     : (banner.targetUrl ?? undefined);
   const isExternal = Boolean(href && !internalRoute);
-  const content = (
-    <div className="flex min-h-20 items-center gap-3">
-      <ProtectedImage
-        objectId={banner.imageObjectId}
-        alt={banner.title}
-        loading="lazy"
-        className="h-16 w-20 shrink-0 rounded-lg object-cover sm:h-[4.5rem] sm:w-28"
-      />
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-semibold tracking-wide text-blue-600 uppercase">Реклама</p>
-        <h2 className="mt-0.5 line-clamp-1 text-sm font-semibold sm:text-base">{banner.title}</h2>
-        <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-slate-500 sm:text-sm">
-          {banner.content}
-        </p>
-      </div>
-      {href && (
-        <span className="hidden shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold sm:inline dark:border-slate-700">
-          Подробнее
-        </span>
-      )}
-    </div>
-  );
-
   return (
     <SectionCard className="overflow-hidden !p-2 sm:!p-2.5">
-      {href ? (
-        <a
-          href={href}
-          target={isExternal ? "_blank" : undefined}
-          rel={isExternal ? "noreferrer" : undefined}
-          className="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-          aria-label={`Реклама: ${banner.title}`}
-        >
-          {content}
-        </a>
-      ) : (
-        content
-      )}
+      <div className="flex min-h-20 items-center gap-3">
+        <ProtectedMedia
+          objectId={banner.videoObjectId || banner.imageObjectId}
+          alt={banner.title}
+          className="h-16 w-20 shrink-0 rounded-lg object-cover sm:h-[4.5rem] sm:w-28"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-semibold tracking-wide text-blue-600 uppercase">Реклама</p>
+          {href ? (
+            <a
+              href={href}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noreferrer" : undefined}
+              className="rounded-sm focus-visible:outline-2 focus-visible:outline-blue-600"
+            >
+              <h2 className="mt-0.5 line-clamp-1 text-sm font-semibold sm:text-base">
+                {banner.title}
+              </h2>
+              <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-slate-500 sm:text-sm">
+                {banner.content}
+              </p>
+            </a>
+          ) : (
+            <>
+              <h2 className="mt-0.5 line-clamp-1 text-sm font-semibold sm:text-base">
+                {banner.title}
+              </h2>
+              <p className="mt-0.5 line-clamp-2 text-xs leading-4 text-slate-500 sm:text-sm">
+                {banner.content}
+              </p>
+            </>
+          )}
+        </div>
+        {href && <span className="shrink-0 text-xs font-semibold text-blue-700">Подробнее</span>}
+      </div>
     </SectionCard>
   );
 };

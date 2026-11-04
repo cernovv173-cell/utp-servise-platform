@@ -4,9 +4,9 @@
 
 На главной странице размещены рекламные места MyTarget (в отдельной AMP-странице) и Mail.ru (`ad-2087473`, асинхронная загрузка). Фактический показ зависит от доступности рекламной сети, её настроек и блокировщиков. Русскоязычная политика конфиденциальности опубликована как статическая страница `/privacy-policy.html` и связана с публичным подвалом, экраном входа и личным кабинетом; она раскрывает категории данных сервиса, внешние сервисы и удаление аккаунта.
 
-На главной приоритетные новости стоят выше рекламных блоков и при наличии нескольких публикаций сменяются раз в 10 секунд; карусель приостанавливается при наведении, фокусе или вручную. Внутренние рекламные баннеры показываются компактной каруселью: активные публикации обновляются с сервера раз в 10 секунд, и текущий слайд меняется каждые 10 секунд. Новости и баннеры плавно перемещаются при смене; анимация перехода отключается при системной настройке уменьшения движения. В меню, логотипе и карточках главной используются еноты, которые двигаются только при наведении мышью; анимации отключаются при системной настройке уменьшения движения.
+На главной приоритетные новости стоят выше рекламных блоков и при наличии нескольких публикаций сменяются раз в 10 секунд; карусель приостанавливается при наведении, фокусе или вручную. Внутренние рекламные баннеры показываются компактной каруселью: активные публикации обновляются с сервера раз в 10 секунд, и текущий слайд меняется каждые 10 секунд. Новости и баннеры поддерживают загруженное фото или видео MP4. Новости и баннеры плавно перемещаются при смене; анимация перехода отключается при системной настройке уменьшения движения. На главной есть кнопка звонка, использующая сохранённый телефон компании. В меню, логотипе и карточках главной используются еноты, которые двигаются только при наведении мышью; анимации отключаются при системной настройке уменьшения движения.
 
-Публичная гостевая главная сокращена до заявки, услуг, трёх шагов ремонта, одного опубликованного отзыва и контактов; стоимость не выдумывается и показывается только при наличии подтверждённых данных. Лента цен на работы собирается из активных услуг действующего прайса через `GET /public/service-prices`: популярные работы идут первыми, отсутствующие в прайсе позиции не подставляются, а при пустом ответе лента скрыта. Лента прокручивается автоматически и останавливается по кнопке, при наведении и при системной настройке уменьшения движения; на уменьшенном движении цены остаются доступны горизонтальной прокруткой. Полный список опубликованных отзывов доступен по `/reviews` и использует публичную выдачу завершённых ремонтов. Карточка факта о технологиях показывается на авторизованной главной и в `/news`; браузер сохраняет ID последнего факта в `sessionStorage` и передаёт его API, чтобы при обновлении страницы получить следующий факт. Дополнительно карточка обновляется раз в два часа по серверному времени и при возврате вкладки в фокус.
+Публичная гостевая главная сокращена до заявки, услуг, трёх шагов ремонта, одного опубликованного отзыва и контактов; телефон компании доступен по кнопке звонка. Стоимость не выдумывается и показывается только при наличии подтверждённых данных. Лента цен на работы собирается из активных услуг действующего прайса через `GET /public/service-prices`: популярные работы идут первыми, отсутствующие в прайсе позиции не подставляются, а при пустом ответе лента скрыта. Лента прокручивается автоматически и останавливается по кнопке, при наведении и при системной настройке уменьшения движения; на уменьшенном движении цены остаются доступны горизонтальной прокруткой. Полный список опубликованных отзывов доступен по `/reviews` и использует публичную выдачу завершённых ремонтов. Карточка факта о технологиях показывается на авторизованной главной и в `/news`; браузер сохраняет ID последнего факта в `sessionStorage` и передаёт его API, чтобы при обновлении страницы получить следующий факт. Дополнительно карточка обновляется раз в два часа по серверному времени и при возврате вкладки в фокус.
 
 Основная навигация короткая и зависит от роли: клиент — главная, ремонты, магазин, бонусы и профиль; мастер — заявки, каталог, зарплата и профиль; закупки — закупки, товары и профиль; администратор — заявки, управление, каталог и профиль. Вспомогательные клиентские и мастерские экраны собраны в быстрых ссылках профиля; администраторские операции сгруппированы в шесть направлений управления. Прямые адреса дополнительных страниц остаются доступны.
 
@@ -190,8 +190,8 @@ customer's first completed repair is confirmed as paid, both people receive 250 
 alone never issues the reward; points remain non-cash and follow the normal redemption rules.
 
 Customer and administrator order cards show a Code 128 barcode generated from the order's existing
-unique service number. The barcode is derived at display time, so it adds no database field and does
-not replace the separate pickup QR code.
+unique service number. The barcode is derived at display time, so it adds no database field and is
+not used to confirm payment or release an order.
 
 Administrators can also start a repair order from the fixed “СТАРТ / СТОП — Создать заявку” action.
 The form supports an existing client or registering a new client with their email as the login;
@@ -222,20 +222,24 @@ preserves the order and its status. The dark interface uses the existing `repair
 background asset.
 
 Order cards expose the intake act, work-order summary, and any issued warranty card. Administrators
-and assigned technicians record front/back/left/right condition notes and upload a protected photo
-for each side; the service will not mark an order ready for pickup until the act is complete. A
-customer can create a short-lived, one-time pickup QR from their own ready order. Staff scan the
-customer's code and enter the applicable warranty duration and terms to close the repair and issue
-its warranty card. The QR is not a password; only the server-side hashed token is retained.
+and assigned technicians record one condition summary and attach one protected photo or video, plus
+the serial number, included accessories, and notes. Before release, the API requires the saved act and
+its single media file. An administrator or assigned technician uses the ordinary “Выдать заказ”
+action; it shows the amount due and payment options, checks the confirmed amount again, records the
+payment method, closes the order, and issues its warranty card. QR pickup codes and scanning are not
+part of the release flow; old act data and attached media remain available for history.
 
 The `/orders` and `/admin/orders` lists separate active requests, completed/cancelled repair history,
 and the automatically archived requests. The Android-aligned order cards expose structured address
 and contact details, assigned technician contact, protected request photos, status history, itemized
-services/parts/products and totals, repair paperwork, and pickup QR actions. Customers can edit or
-cancel their own requests only while they are new, and may leave one review with an optional photo
-after completion. Assigned technicians can advance their assigned repair through the allowed status
-steps, prepare and send a versioned estimate, update the intake act, upload photos, scan pickup QR
-codes, and use the order chat. The estimate is surfaced before the collapsible contact, photo and
+services/parts/products and totals, repair paperwork, and a standard release action with payment
+confirmation. Each service and spare part is tagged for one or more of PC, laptop, phone, or tablet;
+requests and estimates show only matching catalog entries, and a selected saved device supplies its
+type automatically. Customers can edit or cancel their own requests only while they are new, and may
+leave one review with an optional photo after completion. Assigned technicians can advance their
+assigned repair through the allowed status steps, prepare and send a versioned estimate, update the
+intake act, upload its single photo or video, release a ready order with the confirmed payment method,
+and use the order chat. The estimate is surfaced before the collapsible contact, photo and
 history details; paperwork and chat are grouped separately. Administrators can create and edit
 requests, assign technicians, prepare estimates from the active catalog, manage receipts, search by
 service number, and manage paperwork and repair chat. Customers approve or decline the displayed

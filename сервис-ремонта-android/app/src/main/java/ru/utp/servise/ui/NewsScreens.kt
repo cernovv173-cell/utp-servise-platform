@@ -270,7 +270,14 @@ fun NewsManagementScreen(
         articles.forEach { article ->
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                    article.imageObjectId?.let { imageId ->
+                    article.videoObjectId?.let { videoId ->
+                        RemoteProjectVideo(
+                            videoId,
+                            token,
+                            Modifier.fillMaxWidth().height(190.dp),
+                            "Видео к новости ${article.title}",
+                        )
+                    } ?: article.imageObjectId?.let { imageId ->
                         RemoteProjectImage(
                             imageId,
                             token,
@@ -298,16 +305,22 @@ fun NewsManagementScreen(
                             onClick = { runAction({ ApiClient.updateNews(token, article.copy(isPublished = !article.isPublished)) }) {} },
                         ) { Text(if (article.isPublished) "Снять" else "Опубликовать") }
                     }
-                    PhotoPickerButton(
-                        label = if (article.imageObjectId == null) "Добавить фото" else "Заменить фото",
+                    MediaPickerButton(
+                        label = if (article.imageObjectId == null && article.videoObjectId == null) {
+                            "Добавить фото или видео"
+                        } else {
+                            "Заменить фото или видео"
+                        },
                     ) { uri ->
                         runAction({
-                            ApiClient.uploadNewsImage(
+                            val media = readSelectedMedia(context, uri)
+                            ApiClient.uploadNewsMedia(
                                 token,
                                 article.id,
-                                compressSelectedImage(context, uri),
+                                media.bytes,
+                                media.contentType,
                             )
-                        }) {}
+                        }) { refresh() }
                     }
                 }
             }

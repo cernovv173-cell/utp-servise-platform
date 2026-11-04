@@ -82,7 +82,7 @@ export const RepairRequestForm = ({
           disabled={Boolean(selectedDevice)}
           className="h-11 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900"
         >
-          <option value="COMPUTER">Компьютер</option>
+          <option value="COMPUTER">ПК</option>
           <option value="LAPTOP">Ноутбук</option>
           <option value="PHONE">Телефон</option>
           <option value="TABLET">Планшет</option>

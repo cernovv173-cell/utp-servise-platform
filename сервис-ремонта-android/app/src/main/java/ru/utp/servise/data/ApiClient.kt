@@ -241,6 +241,9 @@ object ApiClient {
             id = price.getString("id"),
             name = price.getString("name"),
             unitPriceRub = price.getInt("unitPriceRub"),
+            deviceTypes = price.optJSONArray("deviceTypes")?.let { values ->
+                List(values.length()) { index -> values.getString(index) }
+            } ?: listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET"),
         )
     }
 
@@ -273,8 +276,13 @@ object ApiClient {
         stockQuantity: Int? = null,
         minimumStockQuantity: Int? = null,
         description: String? = null,
+        deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET"),
     ): CatalogItem {
-        val body = JSONObject().put("type", type).put("name", name).put("unitPriceRub", unitPriceRub)
+        val body = JSONObject()
+            .put("type", type)
+            .put("name", name)
+            .put("unitPriceRub", unitPriceRub)
+            .put("deviceTypes", JSONArray().apply { deviceTypes.forEach(::put) })
         if (type == "PRODUCT") body.put("description", description ?: JSONObject.NULL)
         if (type != "SERVICE") {
             body.put("stockQuantity", stockQuantity ?: 0)
@@ -290,6 +298,7 @@ object ApiClient {
             .put("name", item.name)
             .put("unitPriceRub", item.unitPriceRub)
             .put("active", item.active)
+            .put("deviceTypes", JSONArray().apply { item.deviceTypes.forEach(::put) })
             .apply {
                 if (item.type == "PRODUCT") {
                     put("description", item.description ?: JSONObject.NULL)
@@ -586,6 +595,10 @@ object ApiClient {
         MediaApiClient.binaryRequest("POST", "/news/$articleId/image", token, image)
     }
 
+    fun uploadNewsMedia(token: String, articleId: String, content: ByteArray, contentType: String) {
+        MediaApiClient.binaryRequest("POST", "/news/$articleId/media", token, content, contentType)
+    }
+
     fun orderChat(token: String, orderId: String): OrderChat = request(
         "GET", "/orders/$orderId/chat", token,
     ).getJSONObject("chat").toOrderChat()
@@ -825,50 +838,43 @@ object ApiClient {
         MediaApiClient.binaryRequest("POST", "/orders/$orderId/photos", token, image)
     }
 
-    fun uploadIntakePhoto(token: String, orderId: String, side: String, image: ByteArray) {
-        require(side in setOf("front", "back", "left", "right"))
-        MediaApiClient.binaryRequest("POST", "/orders/$orderId/intake-photos/$side", token, image)
-    }
+    fun uploadIntakeMedia(
+        token: String,
+        orderId: String,
+        content: ByteArray,
+        contentType: String,
+    ): RepairOrderIntake = MediaApiClient.binaryRequest(
+        "POST", "/orders/$orderId/intake/media", token, content, contentType,
+    ).getJSONObject("intake").toRepairOrderIntake()
 
     fun saveOrderIntake(
         token: String,
         orderId: String,
-        frontCondition: String,
-        backCondition: String,
-        leftCondition: String,
-        rightCondition: String,
+        conditionSummary: String,
         serialNumber: String,
         includedAccessories: String,
         intakeNotes: String,
     ): RepairOrderIntake = request(
         "PUT", "/orders/$orderId/intake", token,
-        JSONObject().put("frontCondition", frontCondition).put("backCondition", backCondition)
-            .put("leftCondition", leftCondition).put("rightCondition", rightCondition)
+        JSONObject().put("conditionSummary", conditionSummary)
             .put("serialNumber", serialNumber).put("includedAccessories", includedAccessories)
             .put("intakeNotes", intakeNotes),
     ).getJSONObject("intake").toRepairOrderIntake()
 
-    fun createPickupCode(token: String, orderId: String): PickupCode {
-        val response = request("POST", "/orders/$orderId/pickup-code", token)
-        return PickupCode(
-            response.getString("qrPayload"),
-            response.getString("fallbackPin"),
-            response.getString("expiresAt"),
-        )
-    }
+    fun repairOrderReleaseSummary(token: String, orderId: String): RepairOrderReleaseSummary = request(
+        "GET", "/orders/$orderId/release-summary", token,
+    ).toRepairOrderReleaseSummary()
 
-    fun closeOrderByQr(token: String, qrPayload: String): RepairOrder = request(
-        "POST", "/orders/close-by-qr", token,
-        JSONObject().put("qrPayload", qrPayload),
-    ).getJSONObject("order").toOrder()
-
-    fun closeOrderByPickupPin(
+    fun releaseRepairOrder(
         token: String,
-        serviceNumber: String,
-        pickupPin: String,
+        orderId: String,
+        expectedAmountRub: Int,
+        paymentMethod: String?,
     ): RepairOrder = request(
-        "POST", "/orders/close-by-qr", token,
-        JSONObject().put("serviceNumber", serviceNumber).put("pickupPin", pickupPin)
+        "POST", "/orders/$orderId/release", token,
+        JSONObject().put("expectedAmountRub", expectedAmountRub).apply {
+            paymentMethod?.let { put("paymentMethod", it) }
+        },
     ).getJSONObject("order").toOrder()
 
     fun downloadMedia(token: String, objectId: String): ByteArray =

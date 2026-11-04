@@ -106,6 +106,13 @@ fun PublicHomeScreen(
                 Button(onClick = onRequest, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp)) {
                     Text("Оформить заявку")
                 }
+                company?.phone?.takeIf(String::isNotBlank)?.let { phone ->
+                    CompanyCallButton(
+                        phone = phone,
+                        modifier = Modifier.fillMaxWidth(),
+                        label = "Позвонить $phone",
+                    )
+                }
                 Text("Регистрация понадобится только при оформлении заявки.", color = Color.White.copy(alpha = 0.82f), fontSize = 12.sp)
             }
         }

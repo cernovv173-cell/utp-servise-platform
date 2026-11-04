@@ -56,8 +56,22 @@ test("only admins and the assigned technician can append order items", async (t)
     },
   ];
   const orders = new Map([
-    [assignedOrderId, { id: assignedOrderId, assignedTechnicianId: "tech-1" }],
-    [unassignedOrderId, { id: unassignedOrderId, assignedTechnicianId: null }],
+    [
+      assignedOrderId,
+      {
+        id: assignedOrderId,
+        assignedTechnicianId: "tech-1",
+        deviceType: "COMPUTER",
+      },
+    ],
+    [
+      unassignedOrderId,
+      {
+        id: unassignedOrderId,
+        assignedTechnicianId: null,
+        deviceType: "COMPUTER",
+      },
+    ],
   ]);
   const items: Array<Record<string, unknown>> = [];
   const catalog = [
@@ -66,6 +80,7 @@ test("only admins and the assigned technician can append order items", async (t)
       type: "SERVICE",
       name: "Диагностика",
       unitPriceRub: 1800,
+      deviceTypes: ["COMPUTER"],
       active: true,
     },
   ];

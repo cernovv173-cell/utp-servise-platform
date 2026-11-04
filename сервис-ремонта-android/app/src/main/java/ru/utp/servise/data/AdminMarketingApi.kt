@@ -111,6 +111,10 @@ object AdminMarketingApi {
         MediaApiClient.binaryRequest("POST", "/banners/$bannerId/image", token, image)
     }
 
+    fun uploadBannerMedia(token: String, bannerId: String, content: ByteArray, contentType: String) {
+        MediaApiClient.binaryRequest("POST", "/banners/$bannerId/media", token, content, contentType)
+    }
+
     fun loyaltyCustomers(token: String): List<AdminLoyaltyCustomer> = ApiClient.request(
         "GET", "/admin/loyalty", token,
     ).getJSONArray("customers").toObjects { item ->
@@ -139,6 +143,7 @@ object AdminMarketingApi {
         title = getString("title"),
         content = optString("content"),
         imageObjectId = nullableString("imageObjectId"),
+        videoObjectId = nullableString("videoObjectId"),
         targetUrl = nullableString("targetUrl"),
         placements = optJSONArray("placements")?.let { values ->
             List(values.length()) { index -> values.getString(index) }

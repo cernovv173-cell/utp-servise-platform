@@ -9,6 +9,10 @@ export const supportedImageTypes = [
 export type SupportedImageType = (typeof supportedImageTypes)[number];
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
+export const supportedVideoTypes = ["video/mp4"] as const;
+export type SupportedVideoType = (typeof supportedVideoTypes)[number];
+export type SupportedMediaType = SupportedImageType | SupportedVideoType;
 
 type StorageConfig = {
   readonly apiUrl: string;
@@ -64,6 +68,28 @@ export const validateImage = (
   return normalized as SupportedImageType;
 };
 
+export const validateMedia = (
+  bytes: Buffer,
+  contentType: string,
+): SupportedMediaType => {
+  const normalized = contentType.split(";", 1)[0]?.trim().toLowerCase();
+  if (supportedImageTypes.includes(normalized as SupportedImageType)) {
+    return validateImage(bytes, normalized!);
+  }
+  const validMp4 =
+    normalized === "video/mp4" &&
+    bytes.length >= 12 &&
+    bytes.toString("ascii", 4, 8) === "ftyp";
+  if (!validMp4 || bytes.length === 0 || bytes.length > MAX_VIDEO_BYTES) {
+    throw new HttpError(
+      400,
+      "INVALID_MEDIA",
+      "Выберите фото JPEG, PNG, WebP (до 5 МБ) или видео MP4 (до 20 МБ).",
+    );
+  }
+  return "video/mp4";
+};
+
 const storageRequest = async (
   path: string,
   init: RequestInit = {},
@@ -86,15 +112,15 @@ const storageRequest = async (
   }
 };
 
-export const uploadProjectImage = async (
+export const uploadProjectMedia = async (
   bytes: Buffer,
-  contentType: SupportedImageType,
+  contentType: SupportedMediaType,
 ): Promise<string> => {
   const form = new FormData();
   form.append(
     "file",
     new Blob([new Uint8Array(bytes)], { type: contentType }),
-    "image",
+    contentType.startsWith("video/") ? "video" : "image",
   );
   const response = await storageRequest("/uploads", {
     method: "POST",
@@ -167,11 +193,11 @@ const resolveDownloadResponse = async (objectId: string): Promise<Response> => {
   return response;
 };
 
-export const downloadProjectImage = async (
+export const downloadProjectMedia = async (
   objectId: string,
 ): Promise<{
   readonly bytes: Buffer;
-  readonly contentType: SupportedImageType;
+  readonly contentType: SupportedMediaType;
 }> => {
   const response = await resolveDownloadResponse(objectId);
   if (!response.ok) {
@@ -181,8 +207,12 @@ export const downloadProjectImage = async (
     ?.get("content-type")
     ?.split(";", 1)[0]
     ?.trim()
-    .toLowerCase() as SupportedImageType | undefined;
-  if (!contentType || !supportedImageTypes.includes(contentType)) {
+    .toLowerCase() as SupportedMediaType | undefined;
+  if (
+    !contentType ||
+    (!supportedImageTypes.includes(contentType as SupportedImageType) &&
+      !supportedVideoTypes.includes(contentType as SupportedVideoType))
+  ) {
     throw new HttpError(
       502,
       "IMAGE_STORAGE_ERROR",
@@ -190,13 +220,41 @@ export const downloadProjectImage = async (
     );
   }
   const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length === 0 || bytes.length > MAX_IMAGE_BYTES) {
+  const maxBytes = contentType.startsWith("video/")
+    ? MAX_VIDEO_BYTES
+    : MAX_IMAGE_BYTES;
+  if (bytes.length === 0 || bytes.length > maxBytes) {
     throw new HttpError(
       502,
       "IMAGE_STORAGE_ERROR",
-      "Фотография повреждена или превышает допустимый размер.",
+      "Файл повреждён или превышает допустимый размер.",
     );
   }
-  validateImage(bytes, contentType);
+  validateMedia(bytes, contentType);
   return { bytes, contentType };
+};
+
+export const uploadProjectImage = async (
+  bytes: Buffer,
+  contentType: SupportedImageType,
+): Promise<string> => uploadProjectMedia(bytes, contentType);
+
+export const downloadProjectImage = async (
+  objectId: string,
+): Promise<{
+  readonly bytes: Buffer;
+  readonly contentType: SupportedImageType;
+}> => {
+  const file = await downloadProjectMedia(objectId);
+  if (!supportedImageTypes.includes(file.contentType as SupportedImageType)) {
+    throw new HttpError(
+      502,
+      "IMAGE_STORAGE_ERROR",
+      "Файл не является фотографией.",
+    );
+  }
+  return {
+    bytes: file.bytes,
+    contentType: file.contentType as SupportedImageType,
+  };
 };

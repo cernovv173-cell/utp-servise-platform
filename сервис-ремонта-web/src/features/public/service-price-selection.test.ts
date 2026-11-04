@@ -11,6 +11,7 @@ const price = (name: string, unitPriceRub: number): CustomerServicePrice => ({
   id: name,
   name,
   unitPriceRub,
+  deviceTypes: ["COMPUTER"],
 });
 
 describe("home service price selection", () => {

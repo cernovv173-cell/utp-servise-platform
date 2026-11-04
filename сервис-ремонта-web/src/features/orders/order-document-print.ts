@@ -53,21 +53,16 @@ export const printOrderDocument = async (
 
   try {
     if (kind === "intake" && intake) {
-      const views = [
-        ["Передняя сторона", intake.frontCondition, intake.frontPhotoObjectId],
-        ["Задняя сторона", intake.backCondition, intake.backPhotoObjectId],
-        ["Левая сторона", intake.leftCondition, intake.leftPhotoObjectId],
-        ["Правая сторона", intake.rightCondition, intake.rightPhotoObjectId],
-      ] as const;
-      const photos = await Promise.all(
-        views.map(async ([label, condition, objectId]) => {
-          if (!objectId)
-            return `<div class="side"><b>${label}</b><p>${escapeHtml(condition)}</p></div>`;
-          const image = await fetchProtectedMedia(token, objectId);
-          return `<div class="side"><b>${label}</b><p>${escapeHtml(condition)}</p><img alt="${label}" src="${escapeHtml(await dataUrl(image))}"></div>`;
-        }),
-      );
-      body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake.serialNumber)}</p><p>Заявленная неисправность: ${escapeHtml(order.problem)}</p><h2>Видимые повреждения по сторонам</h2><div class="sides">${photos.join("")}</div><p>Комплектность: ${escapeHtml(intake.includedAccessories)}</p><p>Дополнительные отметки: ${escapeHtml(intake.intakeNotes)}</p>`;
+      let attachment = "Фото или видео не приложено.";
+      if (intake.intakeMediaObjectId) {
+        const media = await fetchProtectedMedia(token, intake.intakeMediaObjectId);
+        if (intake.intakeMediaType === "VIDEO" || media.type.startsWith("video/")) {
+          attachment = "Видеозапись состояния сохранена в электронной карточке заявки.";
+        } else {
+          attachment = `<img alt="Фото состояния устройства" src="${escapeHtml(await dataUrl(media))}">`;
+        }
+      }
+      body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake.serialNumber)}</p><p>Заявленная неисправность: ${escapeHtml(order.problem)}</p><h2>Состояние при приёме</h2><p>${escapeHtml(intake.conditionSummary)}</p><div class="attachment">${attachment}</div><p>Комплектность: ${escapeHtml(intake.includedAccessories)}</p><p>Дополнительные отметки: ${escapeHtml(intake.intakeNotes)}</p>`;
     } else if (kind === "work-order") {
       const rows = order.items
         .map(
@@ -75,7 +70,7 @@ export const printOrderDocument = async (
             `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.quantity)}</td><td>${escapeHtml(item.unitPriceRub)} ₽</td><td>${escapeHtml(item.quantity * item.unitPriceRub)} ₽</td></tr>`,
         )
         .join("");
-      body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake?.serialNumber)}</p><p>Адрес: ${escapeHtml(order.address)}</p><p>Неисправность со слов клиента: ${escapeHtml(order.problem)}</p><p>Диагностика / выполненные работы: ${escapeHtml(order.items.map((item) => item.name).join(", ") || "Заполните состав работ в карточке заявки")}</p><table><thead><tr><th>Работа / материал</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table><p>Состояние при приёме: ${escapeHtml(intake ? [intake.frontCondition, intake.backCondition, intake.leftCondition, intake.rightCondition].join("; ") : "Акт приёма ещё не заполнен")}</p>`;
+      body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(order.deviceType)} · серийный номер: ${escapeHtml(intake?.serialNumber)}</p><p>Адрес: ${escapeHtml(order.address)}</p><p>Неисправность со слов клиента: ${escapeHtml(order.problem)}</p><p>Диагностика / выполненные работы: ${escapeHtml(order.items.map((item) => item.name).join(", ") || "Заполните состав работ в карточке заявки")}</p><table><thead><tr><th>Работа / материал</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table><p>Состояние при приёме: ${escapeHtml(intake?.conditionSummary ?? "Акт приёма ещё не заполнен")}</p>`;
     } else if (kind === "warranty" && warranty) {
       const warrantyPeriod =
         warranty.warrantyDays === 365 || warranty.warrantyDays === 366
@@ -92,7 +87,7 @@ export const printOrderDocument = async (
 
   printWindow.document.open();
   printWindow.document.write(
-    `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${heading} · ${escapeHtml(order.serviceNumber)}</title><style>@page{size:A4;margin:16mm}body{font:14px Arial,sans-serif;color:#162033;line-height:1.5}h1{font-size:24px}h2{font-size:17px;margin-top:24px}.meta{color:#526078;font-size:12px}.sides{display:grid;grid-template-columns:1fr 1fr;gap:12px}.side{break-inside:avoid;border:1px solid #ccd3df;padding:10px}.side img{display:block;width:100%;height:180px;object-fit:contain}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #ccd3df;padding:7px;text-align:left}.signatures{display:flex;justify-content:space-between;margin-top:48px}.signatures span{width:42%;border-top:1px solid #333;padding-top:6px}</style></head><body><h1>${heading}</h1><p class="meta">Сервисный номер ${escapeHtml(order.serviceNumber)} · дата ${escapeHtml(date(new Date().toISOString()))}</p>${body}<div class="signatures"><span>Клиент · подпись</span><span>Представитель сервиса · подпись</span></div><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),200));</script></body></html>`,
+    `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${heading} · ${escapeHtml(order.serviceNumber)}</title><style>@page{size:A4;margin:16mm}body{font:14px Arial,sans-serif;color:#162033;line-height:1.5}h1{font-size:24px}h2{font-size:17px;margin-top:24px}.meta{color:#526078;font-size:12px}.attachment{break-inside:avoid;border:1px solid #ccd3df;padding:10px;margin-top:12px}.attachment img{display:block;max-width:100%;max-height:420px;object-fit:contain}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #ccd3df;padding:7px;text-align:left}.signatures{display:flex;justify-content:space-between;margin-top:48px}.signatures span{width:42%;border-top:1px solid #333;padding-top:6px}</style></head><body><h1>${heading}</h1><p class="meta">Сервисный номер ${escapeHtml(order.serviceNumber)} · дата ${escapeHtml(date(new Date().toISOString()))}</p>${body}<div class="signatures"><span>Клиент · подпись</span><span>Представитель сервиса · подпись</span></div><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),200));</script></body></html>`,
   );
   printWindow.document.close();
 };

@@ -19,9 +19,14 @@ const catalogItemIdParams = z.object({
   catalogItemId: z.string().uuid(),
 });
 const itemType = z.enum(["SERVICE", "SPARE_PART", "PRODUCT"]);
+const deviceType = z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]);
+const servicePriceQuery = z
+  .object({ deviceType: deviceType.optional() })
+  .strict();
 const catalogCreateBody = z
   .object({
     type: itemType,
+    deviceTypes: z.array(deviceType).min(1).optional(),
     name: z.string().trim().min(2).max(160),
     description: z.string().trim().max(2000).nullable().optional(),
     unitPriceRub: z.number().int().min(0).max(10_000_000),
@@ -53,6 +58,7 @@ const catalogCreateBody = z
 const catalogUpdateBody = z
   .object({
     type: itemType.optional(),
+    deviceTypes: z.array(deviceType).min(1).optional(),
     name: z.string().trim().min(2).max(160).optional(),
     description: z.string().trim().max(2000).nullable().optional(),
     unitPriceRub: z.number().int().min(0).max(10_000_000).optional(),
@@ -101,25 +107,52 @@ export const createCatalogRouter = (
     "/customer/service-prices",
     requireAuth,
     requireRoles("CUSTOMER"),
+    validateRequest({ query: servicePriceQuery }),
     async (_request, response) => {
+      const { deviceType: requestedDeviceType } = (
+        response.locals.input as {
+          readonly query: z.infer<typeof servicePriceQuery>;
+        }
+      ).query;
       const prices = await database.repairCatalogItem.findMany({
-        where: { type: "SERVICE", active: true },
-        select: { id: true, name: true, unitPriceRub: true },
+        where: {
+          type: "SERVICE",
+          active: true,
+          ...(requestedDeviceType
+            ? { deviceTypes: { has: requestedDeviceType } }
+            : {}),
+        },
+        select: { id: true, name: true, unitPriceRub: true, deviceTypes: true },
         orderBy: { name: "asc" },
       });
       response.json({ prices });
     },
   );
 
-  router.get("/public/service-prices", async (_request, response) => {
-    const prices = await database.repairCatalogItem.findMany({
-      where: { type: "SERVICE", active: true },
-      select: { id: true, name: true, unitPriceRub: true },
-      orderBy: { name: "asc" },
-      take: 100,
-    });
-    response.json({ prices });
-  });
+  router.get(
+    "/public/service-prices",
+    validateRequest({ query: servicePriceQuery }),
+    async (_request, response) => {
+      const { deviceType: requestedDeviceType } = (
+        response.locals.input as {
+          readonly query: z.infer<typeof servicePriceQuery>;
+        }
+      ).query;
+      const prices = await database.repairCatalogItem.findMany({
+        where: {
+          type: "SERVICE",
+          active: true,
+          ...(requestedDeviceType
+            ? { deviceTypes: { has: requestedDeviceType } }
+            : {}),
+        },
+        select: { id: true, name: true, unitPriceRub: true, deviceTypes: true },
+        orderBy: { name: "asc" },
+        take: 100,
+      });
+      response.json({ prices });
+    },
+  );
 
   router.get(
     "/catalog",
@@ -193,6 +226,12 @@ export const createCatalogRouter = (
       const catalogItem = await database.repairCatalogItem.create({
         data: {
           ...input,
+          deviceTypes: input.deviceTypes ?? [
+            "COMPUTER",
+            "LAPTOP",
+            "PHONE",
+            "TABLET",
+          ],
           stockQuantity: isInventoryCatalogItem(input.type)
             ? (input.stockQuantity ?? 0)
             : null,

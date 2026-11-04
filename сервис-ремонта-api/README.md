@@ -237,11 +237,30 @@ Registration alone, craft orders, repeated payment confirmation, and later repai
 another referral reward. Referral points remain non-cash loyalty points and follow the existing
 repair-redemption cap.
 
-## Intake, work orders, and customer pickup
+## Device-specific repair catalog
 
-Administrators and the assigned technician maintain one intake act per repair order. It records the visible condition and a protected photo for the front, back, left, and right sides, plus the serial number, included accessories, and notes. The order cannot be marked ready for pickup until all four condition notes and photos are saved; the act becomes read-only once the order is ready, completed, or cancelled.
+Every service and spare part has one or more supported device types: `COMPUTER`, `LAPTOP`,
+`PHONE`, or `TABLET`. Repair requests store the selected device type; the Web and Android clients
+use it to filter the catalog, and the API rejects items that do not match the order. Products for
+the separate customer shop keep their existing workflow. Catalog managers can adjust the device
+types for each service or part.
 
-The service moves a repair from `IN_PROGRESS` to `READY_FOR_PICKUP`; staff cannot directly set `COMPLETED`. The customer requests a pickup QR code from their own ready order. The server stores only its SHA-256 token hash; the raw payload expires after two hours, and requesting a replacement invalidates the previous code. An administrator or assigned technician scans or enters the code and supplies the warranty duration and terms. One transaction consumes the code, closes the order, records the status event, issues the warranty card, and calculates technician salary. Expired or replayed codes do not close an order.
+## Intake, work orders, and order release
+
+Administrators and the assigned technician maintain one intake act per repair order. It records a
+condition summary, one protected photo or video, the serial number, included accessories, and notes.
+The API requires the saved summary and one media file before release; the act becomes read-only
+once the order is ready, completed, or cancelled. The old four-side fields remain readable for
+history; the additive migration carries their descriptions and first available photo into the new
+fields without deleting the original columns or stored files.
+
+The service moves a repair from `IN_PROGRESS` to `READY_FOR_PICKUP`; staff cannot directly set
+`COMPLETED`. An administrator or assigned technician uses the ordinary release action, which shows
+the current total and bonus discount and requires a payment method when money is due. The API checks
+the displayed amount again, then records the paid receipt and method, completes the order, records
+the status event, issues the warranty card, and calculates technician salary in one transaction.
+The former pickup-QR endpoints are no longer available; legacy code records and columns are retained
+for historical data.
 
 ## Repair notifications in Telegram and MAX
 
@@ -331,8 +350,10 @@ photo, and a preferred visit time. The preferred time is a request, not a confir
 service checks its weekly calendar and confirms or changes the time with the customer. The Web and
 Android forms label this distinction; administrators can edit the preferred time from the order and
 assign a technician through the existing order workflow. Request photos use the existing protected
-order-photo storage and access rules. Intake paperwork, four-sided condition photos, customer reviews,
-receipts, work orders, and warranties were already supported and remain on their existing workflows.
+order-photo storage and access rules. Intake paperwork, customer reviews, receipts, work orders, and
+warranties remain on their existing workflows; the intake act now accepts one image or MP4 video.
+News articles and site banners can also store either an image or an MP4 video, using protected media
+access for uploaded files.
 
 Customers can keep a private equipment list through `/customer/devices`. Each saved device belongs
 to its customer and can be linked to a repair request; the request stores a snapshot of the device
@@ -396,6 +417,6 @@ transaction; the worker sends it as soon as it is published, skips unpublished o
 and retries temporary Firebase delivery failures. An offer scheduled to start later can therefore
 be announced at publication; its Android notification expires at the configured end time. Repair-order status changes already notify the order's
 other participants; `READY_FOR_PICKUP` now explicitly says the repair is ready, and successful
-customer pickup-code confirmation sends a separate completion notification. Firebase delivery
+staff release confirmation sends a separate completion notification. Firebase delivery
 requires a registered device token and the relevant notification permission. The new additive
 `20261028190000_customer_offer_push_deliveries` migration adds only the delivery queue.

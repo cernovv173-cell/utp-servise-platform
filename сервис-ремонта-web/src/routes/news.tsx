@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { ProtectedImage } from "@/components/protected-image";
+import { ProtectedMedia } from "@/components/protected-media";
 
 import { NewsAdmin } from "@/features/admin/news-admin";
 import { useAuth } from "@/features/auth/auth-context";
@@ -53,6 +54,13 @@ const NewsPage = () => {
               key={item.id}
               className={item.isFeatured ? "border-blue-200 dark:border-blue-900" : ""}
             >
+              {(item.imageObjectId || item.videoObjectId) && (
+                <ProtectedMedia
+                  objectId={item.videoObjectId || item.imageObjectId}
+                  alt={item.title}
+                  className="mb-4 max-h-80 w-full rounded-xl object-contain"
+                />
+              )}
               {item.isFeatured && (
                 <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                   На главной

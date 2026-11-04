@@ -1,17 +1,21 @@
 import {
+  type SupportedMediaType,
   deleteProjectImage,
-  downloadProjectImage,
-  uploadProjectImage,
+  downloadProjectMedia,
+  uploadProjectMedia,
 } from "../../lib/storage/project-images.js";
 
 export type MediaStorage = {
-  readonly upload: typeof uploadProjectImage;
+  readonly upload: (
+    bytes: Buffer,
+    contentType: SupportedMediaType,
+  ) => Promise<string>;
   readonly delete: typeof deleteProjectImage;
-  readonly download: typeof downloadProjectImage;
+  readonly download: typeof downloadProjectMedia;
 };
 
 export const projectMediaStorage: MediaStorage = {
-  upload: uploadProjectImage,
+  upload: uploadProjectMedia,
   delete: deleteProjectImage,
-  download: downloadProjectImage,
+  download: downloadProjectMedia,
 };

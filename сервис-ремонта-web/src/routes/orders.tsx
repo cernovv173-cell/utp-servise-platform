@@ -11,20 +11,19 @@ import { RepairOrderItemsEditor } from "@/features/admin/repair-order-items-edit
 import { RepairOrderPriority } from "@/features/admin/repair-order-priority";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
-import { CustomerPickupQr } from "@/features/orders/customer-pickup-qr";
 import {
   archiveForOrderListView,
   filterOrdersForListView,
 } from "@/features/orders/order-list-view";
 import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
-import { PickupQrScanner } from "@/features/orders/pickup-qr-scanner";
 import { RepairCompletionCard } from "@/features/orders/repair-completion-card";
 import { RepairDeadlineHistory } from "@/features/orders/repair-deadline";
 import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
+import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
 import { RepairRequestForm } from "@/features/orders/repair-request-form";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
@@ -49,7 +48,7 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "Отменена",
 };
 const deviceLabels: Record<string, string> = {
-  COMPUTER: "Компьютер",
+  COMPUTER: "ПК",
   LAPTOP: "Ноутбук",
   PHONE: "Телефон",
   TABLET: "Планшет",
@@ -228,11 +227,6 @@ const OrdersPage = () => {
         </p>
       )}
       <RepairOrderListTabs value={listView} onChange={setListView} />
-      {(user?.role === "ADMIN" || user?.role === "TECHNICIAN") && token && (
-        <div className="mb-4">
-          <PickupQrScanner token={token} />
-        </div>
-      )}
       <div className="grid gap-4">
         {visibleOrders.map((order) => (
           <SectionCard key={order.id}>
@@ -270,6 +264,22 @@ const OrdersPage = () => {
               </p>
             )}
             <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
+            {(user?.role === "ADMIN" || user?.role === "TECHNICIAN") &&
+              order.status === "READY_FOR_PICKUP" &&
+              token && (
+                <div className="mt-3">
+                  <RepairOrderReleaseButton
+                    order={order}
+                    token={token}
+                    onRefresh={() =>
+                      Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                        queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                      ])
+                    }
+                  />
+                </div>
+              )}
             {order.archivedAt && (
               <p className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 dark:border-[#7855c7]/50 dark:bg-[#211841] dark:text-[#d4b7ff]">
                 В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}
@@ -319,9 +329,6 @@ const OrdersPage = () => {
                       (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id)
                     }
                   />
-                  {user?.role === "CUSTOMER" && order.status === "READY_FOR_PICKUP" && (
-                    <CustomerPickupQr token={token} orderId={order.id} />
-                  )}
                   {(user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
                     <RepairOrderChat token={token} orderId={order.id} />
                   )}

@@ -148,7 +148,9 @@ internal fun RepairEstimateSection(
 
     if (showComposer) {
         RepairEstimateComposerDialog(
-            catalogItems = catalogItems.filter { it.active },
+            catalogItems = catalogItems.filter { item ->
+                item.active && (item.type == "PRODUCT" || order.deviceType in item.deviceTypes)
+            },
             onDismiss = { showComposer = false },
             onSubmit = { diagnosis, lines ->
                 runAction(

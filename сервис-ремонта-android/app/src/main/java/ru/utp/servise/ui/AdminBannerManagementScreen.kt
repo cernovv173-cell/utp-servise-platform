@@ -58,7 +58,7 @@ private data class BannerConfirmation(
     val action: () -> Any?,
 )
 
-private data class BannerSaveResult(val banner: SiteBanner, val imageError: String?)
+private data class BannerSaveResult(val banner: SiteBanner, val mediaError: String?)
 
 @Composable
 fun AdminBannerManagementScreen(
@@ -79,7 +79,7 @@ fun AdminBannerManagementScreen(
     var startsAt by remember { mutableStateOf<String?>(null) }
     var endsAt by remember { mutableStateOf<String?>(null) }
     var placements by remember { mutableStateOf(setOf("HOME")) }
-    var selectedImage by remember { mutableStateOf<Uri?>(null) }
+    var selectedMedia by remember { mutableStateOf<Uri?>(null) }
     var confirmation by remember { mutableStateOf<BannerConfirmation?>(null) }
 
     fun reload() {
@@ -103,7 +103,7 @@ fun AdminBannerManagementScreen(
         startsAt = null
         endsAt = null
         placements = setOf("HOME")
-        selectedImage = null
+        selectedMedia = null
     }
 
     fun editBanner(banner: SiteBanner) {
@@ -114,7 +114,7 @@ fun AdminBannerManagementScreen(
         startsAt = banner.startsAt
         endsAt = banner.endsAt
         placements = banner.placements.toSet()
-        selectedImage = null
+        selectedMedia = null
     }
 
     LaunchedEffect(token) { reload() }
@@ -125,7 +125,7 @@ fun AdminBannerManagementScreen(
         start == null || end == null || start.isBefore(end)
     }.getOrDefault(false)
     val keepsActiveBannerValid = editing?.isActive != true ||
-        (editing?.imageObjectId != null || selectedImage != null) && targetUrl.isNotBlank()
+        (editing?.imageObjectId != null || editing?.videoObjectId != null || selectedMedia != null) && targetUrl.isNotBlank()
     val canSave = !busy && title.trim().length >= 2 && content.trim().isNotEmpty() &&
         placements.isNotEmpty() && validTarget && validSchedule && keepsActiveBannerValid
 
@@ -138,7 +138,7 @@ fun AdminBannerManagementScreen(
             TextButton(onClick = onBack) { Text("←  Управление") }
             Text("Баннеры и кампании", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = UtpInk)
             Text(
-                "Сохраните черновик, добавьте фото и ссылку перед включением.",
+                "Сохраните черновик, добавьте фото или видео и ссылку перед включением.",
                 fontSize = 12.sp,
                 color = UtpMuted,
             )
@@ -227,36 +227,35 @@ fun AdminBannerManagementScreen(
                         )
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        PhotoPickerButton(
+                        MediaPickerButton(
                             label = when {
-                                selectedImage != null -> "Фото выбрано"
-                                editing?.imageObjectId != null -> "Заменить фото"
-                                else -> "Выбрать фото"
+                                selectedMedia != null -> "Медиафайл выбран"
+                                editing?.imageObjectId != null || editing?.videoObjectId != null -> "Заменить фото или видео"
+                                else -> "Выбрать фото или видео"
                             },
                             enabled = !busy,
-                        ) { selectedImage = it }
-                        if (selectedImage != null) {
+                        ) { selectedMedia = it }
+                        if (selectedMedia != null) {
                             Text(
-                                "Фото загрузится при сохранении.",
+                                "Фото или видео загрузится при сохранении.",
                                 fontSize = 11.sp,
                                 color = UtpMuted,
                                 modifier = Modifier.padding(top = 12.dp),
                             )
                         }
                     }
-                    if (editing?.imageObjectId != null && selectedImage == null) {
-                        RemoteProjectImage(
-                            editing?.imageObjectId,
-                            token,
-                            Modifier.fillMaxWidth().height(140.dp),
-                            "Изображение баннера",
-                        )
+                    if (selectedMedia == null) {
+                        editing?.videoObjectId?.let { videoId ->
+                            RemoteProjectVideo(videoId, token, Modifier.fillMaxWidth().height(160.dp), "Видео баннера")
+                        } ?: editing?.imageObjectId?.let { imageId ->
+                            RemoteProjectImage(imageId, token, Modifier.fillMaxWidth().height(140.dp), "Изображение баннера")
+                        }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
                             onClick = {
                                 val currentEdit = editing
-                                val image = selectedImage
+                                val mediaUri = selectedMedia
                                 runAction({
                                     val saved = if (currentEdit == null) {
                                         AdminMarketingApi.createBanner(
@@ -280,24 +279,24 @@ fun AdminBannerManagementScreen(
                                             endsAt,
                                         )
                                     }
-                                    val imageError = image?.let { uri ->
+                                    val mediaError = mediaUri?.let { uri ->
                                         runCatching {
-                                            AdminMarketingApi.uploadBannerImage(
+                                            val media = readSelectedMedia(context, uri)
+                                            AdminMarketingApi.uploadBannerMedia(
                                                 token,
                                                 saved.id,
-                                                compressSelectedImage(context, uri),
+                                                media.bytes,
+                                                media.contentType,
                                             )
                                         }.exceptionOrNull()?.message
                                     }
-                                    BannerSaveResult(saved, imageError)
+                                    BannerSaveResult(saved, mediaError)
                                 }) { result ->
                                     val saveResult = result as? BannerSaveResult
                                     clearForm()
                                     reload()
-                                    saveResult?.imageError?.let {
-                                        onError(
-                                            "Сохранено, фото не загрузилось: $it",
-                                        )
+                                    saveResult?.mediaError?.let {
+                                        onError("Сохранено, но фото или видео не загрузилось: $it")
                                     }
                                 }
                             },
@@ -331,12 +330,14 @@ fun AdminBannerManagementScreen(
                 banner = banner,
                 token = token,
                 busy = busy,
-                onImageSelected = { uri ->
+                onMediaSelected = { uri ->
                     runAction({
-                        AdminMarketingApi.uploadBannerImage(
+                        val media = readSelectedMedia(context, uri)
+                        AdminMarketingApi.uploadBannerMedia(
                             token,
                             banner.id,
-                            compressSelectedImage(context, uri),
+                            media.bytes,
+                            media.contentType,
                         )
                     }) { reload() }
                 },
@@ -345,7 +346,7 @@ fun AdminBannerManagementScreen(
                     val shouldActivate = !banner.isActive
                     if (shouldActivate && !bannerCanBeActivated(banner)) {
                         onError(
-                            "Добавьте фото, заголовок, текст и ссылку перед включением.",
+                            "Добавьте фото или видео, заголовок, текст и ссылку перед включением.",
                         )
                     } else {
                         confirmation = BannerConfirmation(
@@ -403,7 +404,7 @@ private fun AdminBannerCard(
     banner: SiteBanner,
     token: String,
     busy: Boolean,
-    onImageSelected: (Uri) -> Unit,
+    onMediaSelected: (Uri) -> Unit,
     onEdit: () -> Unit,
     onToggle: () -> Unit,
     onDelete: () -> Unit,
@@ -430,23 +431,20 @@ private fun AdminBannerCard(
             }.joinToString()
             Text("Разделы: $placementLabels", color = UtpMuted, fontSize = 11.sp)
             Text("Ссылка: ${banner.targetUrl ?: "не задана"}", color = UtpMuted, fontSize = 11.sp)
-            banner.imageObjectId?.let { objectId ->
-                RemoteProjectImage(
-                    objectId,
-                    token,
-                    Modifier.fillMaxWidth().height(140.dp),
-                    "Баннер ${banner.title}",
-                )
+            banner.videoObjectId?.let { videoId ->
+                RemoteProjectVideo(videoId, token, Modifier.fillMaxWidth().height(160.dp), "Видео баннера ${banner.title}")
+            } ?: banner.imageObjectId?.let { objectId ->
+                RemoteProjectImage(objectId, token, Modifier.fillMaxWidth().height(140.dp), "Баннер ${banner.title}")
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                PhotoPickerButton(
-                    label = if (banner.imageObjectId == null) {
-                        "Загрузить фото"
+                MediaPickerButton(
+                    label = if (banner.imageObjectId == null && banner.videoObjectId == null) {
+                        "Загрузить фото или видео"
                     } else {
-                        "Заменить фото"
+                        "Заменить фото или видео"
                     },
                     enabled = !busy,
-                    onImageSelected = onImageSelected,
+                    onMediaSelected = onMediaSelected,
                 )
                 TextButton(
                     onClick = onEdit,
@@ -474,5 +472,6 @@ private fun isAllowedBannerTarget(value: String): Boolean =
         Regex("(?i)^app://(home|news|services|crafts|about|loyalty|checks)$").matches(value)
 
 private fun bannerCanBeActivated(banner: SiteBanner): Boolean =
-    banner.imageObjectId != null && banner.title.isNotBlank() && banner.content.isNotBlank() &&
+    (banner.imageObjectId != null || banner.videoObjectId != null) &&
+        banner.title.isNotBlank() && banner.content.isNotBlank() &&
         !banner.targetUrl.isNullOrBlank() && isAllowedBannerTarget(banner.targetUrl)

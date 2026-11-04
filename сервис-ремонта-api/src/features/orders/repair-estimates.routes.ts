@@ -124,6 +124,7 @@ export const createRepairEstimatesRouter = (
             assignedTechnicianId: true,
             serviceNumber: true,
             status: true,
+            deviceType: true,
             receipt: { select: { paymentStatus: true } },
             estimates: {
               orderBy: { version: "desc" },
@@ -169,6 +170,7 @@ export const createRepairEstimatesRouter = (
             name: true,
             unitPriceRub: true,
             stockQuantity: true,
+            deviceTypes: true,
           },
         });
         if (catalogItems.length !== body.items.length) {
@@ -182,6 +184,21 @@ export const createRepairEstimatesRouter = (
         const catalogById = new Map(
           catalogItems.map((item) => [item.id, item]),
         );
+        if (
+          catalogItems.some(
+            (item) =>
+              item.type !== "PRODUCT" &&
+              !item.deviceTypes.includes(
+                order.deviceType as (typeof item.deviceTypes)[number],
+              ),
+          )
+        ) {
+          throw new HttpError(
+            409,
+            "ESTIMATE_DEVICE_TYPE_MISMATCH",
+            "Выбранная услуга или запчасть не относится к типу устройства этой заявки.",
+          );
+        }
         const snapshot = body.items.map((requestedItem) => {
           const item = catalogById.get(requestedItem.catalogItemId);
           if (!item) {

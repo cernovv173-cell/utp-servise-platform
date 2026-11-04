@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Lock, Unlock, X } from "lucide-react";
+import { Lock, Unlock, Upload, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
+import { ProtectedMedia } from "@/components/protected-media";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { createNews, deleteNews, getNews, updateNews } from "@/lib/api";
+import { createNews, deleteNews, getNews, updateNews, uploadAdminMedia } from "@/lib/api";
 import { useCurrentTime } from "@/lib/current-time";
 
 export const NewsAdmin = () => {
@@ -37,6 +38,13 @@ export const NewsAdmin = () => {
     mutationFn: (id: string) => deleteNews(token!, id),
     onSuccess: () => client.invalidateQueries({ queryKey: ["news", token] }),
   });
+  const uploadMedia = useMutation({
+    mutationFn: ({ id, file }: { id: string; file: File }) =>
+      uploadAdminMedia(`/news/${id}/media`, token!, file),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["news", token] }),
+    onError: () =>
+      setError("Не удалось загрузить фото или видео. Выберите изображение или MP4 до 20 МБ."),
+  });
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
@@ -44,6 +52,9 @@ export const NewsAdmin = () => {
     const formElement = event.currentTarget;
     const startsAt = String(form.get("startsAt") || "");
     const endsAt = String(form.get("endsAt") || "");
+    const media = form.get("media");
+    const selectedMedia = media instanceof File && media.size ? media : null;
+    const publishAfterUpload = form.get("isPublished") === "on";
     if (startsAt && endsAt && new Date(startsAt) >= new Date(endsAt)) {
       setError("Дата окончания должна быть позже даты начала.");
       return;
@@ -52,12 +63,31 @@ export const NewsAdmin = () => {
       {
         title: String(form.get("title")),
         content: String(form.get("content")),
-        isPublished: form.get("isPublished") === "on",
+        isPublished: selectedMedia ? false : publishAfterUpload,
         startsAt: startsAt ? new Date(startsAt).toISOString() : null,
         endsAt: endsAt ? new Date(endsAt).toISOString() : null,
         isFeatured: form.get("isFeatured") === "on",
       },
-      { onSuccess: () => formElement.reset() },
+      {
+        onSuccess: async ({ article }) => {
+          if (selectedMedia) {
+            try {
+              await uploadMedia.mutateAsync({ id: article.id, file: selectedMedia });
+              if (publishAfterUpload) {
+                await updateNews(token!, article.id, { isPublished: true });
+              }
+            } catch {
+              setError(
+                "Черновик сохранён, но медиа не загрузилось. Добавьте файл к публикации ниже.",
+              );
+              await client.invalidateQueries({ queryKey: ["news", token] });
+              return;
+            }
+          }
+          formElement.reset();
+          await client.invalidateQueries({ queryKey: ["news", token] });
+        },
+      },
     );
   };
   return (
@@ -88,6 +118,18 @@ export const NewsAdmin = () => {
               rows={4}
               className="rounded-xl border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-950"
             />
+          </label>
+          <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
+            Фото или видео (необязательно)
+            <input
+              name="media"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,video/mp4"
+              className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-normal dark:border-slate-700 dark:bg-slate-950"
+            />
+            <span className="text-xs font-normal text-slate-500">
+              Фото до 5 МБ или видео MP4 до 20 МБ.
+            </span>
           </label>
           <label className="grid gap-1.5 text-sm font-medium">
             Начало показа
@@ -130,7 +172,7 @@ export const NewsAdmin = () => {
             </p>
           )}
           <button
-            disabled={save.isPending}
+            disabled={save.isPending || uploadMedia.isPending}
             className="min-h-11 justify-self-start rounded-xl bg-blue-600 px-5 text-sm font-semibold text-white disabled:opacity-60"
           >
             {save.isPending ? "Сохраняем…" : "Сохранить новость"}
@@ -153,6 +195,13 @@ export const NewsAdmin = () => {
                 key={item.id}
                 className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3 dark:border-slate-800"
               >
+                {(item.imageObjectId || item.videoObjectId) && (
+                  <ProtectedMedia
+                    objectId={item.videoObjectId || item.imageObjectId}
+                    alt={item.title}
+                    className="mb-3 max-h-56 w-full rounded-lg object-contain"
+                  />
+                )}
                 <div>
                   <h3 className="text-sm font-semibold">{item.title}</h3>
                   <p className="mt-1 text-xs text-slate-500">
@@ -162,6 +211,21 @@ export const NewsAdmin = () => {
                   </p>
                 </div>
                 <div className="flex gap-2">
+                  <label className="inline-flex min-h-9 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700">
+                    <Upload size={14} aria-hidden="true" />
+                    Медиа
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,video/mp4"
+                      className="sr-only"
+                      disabled={uploadMedia.isPending}
+                      onChange={(event) => {
+                        const file = event.currentTarget.files?.[0];
+                        if (file) uploadMedia.mutate({ id: item.id, file });
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
                   <button
                     type="button"
                     onClick={() =>

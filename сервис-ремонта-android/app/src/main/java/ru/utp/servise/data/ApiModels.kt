@@ -215,6 +215,9 @@ data class RepairEstimateItem(
 data class RepairEstimateDraftItem(val catalogItemId: String, val quantity: Int)
 
 data class RepairOrderIntake(
+    val conditionSummary: String = "",
+    val intakeMediaObjectId: String? = null,
+    val intakeMediaType: String? = null,
     val frontCondition: String = "",
     val frontPhotoObjectId: String? = null,
     val backCondition: String = "",
@@ -239,7 +242,16 @@ data class RepairWarranty(
     val expiresAt: String,
 )
 
-data class PickupCode(val qrPayload: String, val fallbackPin: String, val expiresAt: String)
+data class RepairOrderReleaseSummary(
+    val orderId: String,
+    val serviceNumber: String,
+    val totalRub: Int,
+    val bonusDiscountRub: Int,
+    val amountDueRub: Int,
+    val paymentStatus: String,
+    val paymentMethod: String?,
+    val paymentMethods: List<String> = emptyList(),
+)
 
 data class RepairOrderPhoto(val id: String, val objectId: String, val portfolioConsentAt: String? = null)
 
@@ -329,6 +341,7 @@ data class SiteBanner(
     val startsAt: String?,
     val endsAt: String?,
     val isActive: Boolean,
+    val videoObjectId: String? = null,
 )
 
 data class CatalogItem(
@@ -341,6 +354,7 @@ data class CatalogItem(
     val minimumStockQuantity: Int? = null,
     val description: String? = null,
     val imageObjectIds: List<String> = emptyList(),
+    val deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET"),
 )
 
 data class ShopProduct(
@@ -393,6 +407,7 @@ data class CustomerServicePrice(
     val id: String,
     val name: String,
     val unitPriceRub: Int,
+    val deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET"),
 )
 
 data class CraftItem(
@@ -469,6 +484,7 @@ data class NewsArticle(
     val startsAt: String?,
     val endsAt: String?,
     val isFeatured: Boolean,
+    val videoObjectId: String? = null,
 )
 
 data class TechnologyFact(

@@ -9,6 +9,7 @@ const banner = (overrides: Partial<SiteBanner> = {}): SiteBanner => ({
   title: "Предложение",
   content: "Описание",
   imageObjectId: null,
+  videoObjectId: null,
   targetUrl: null,
   startsAt: null,
   endsAt: null,

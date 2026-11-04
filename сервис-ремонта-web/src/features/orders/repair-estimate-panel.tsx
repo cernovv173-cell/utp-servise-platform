@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/auth-context";
 
 import {
   type RepairCatalogItem,
+  type RepairDeviceType,
   type RepairEstimate,
   type RepairOrder,
   respondToRepairEstimate,
@@ -47,7 +48,11 @@ export const RepairEstimatePanel = ({
   const [diagnosis, setDiagnosis] = useState("");
   const [draftItems, setDraftItems] = useState<DraftItem[]>([{ catalogItemId: "", quantity: "1" }]);
   const [declineNote, setDeclineNote] = useState("");
-  const activeCatalogItems = catalogItems.filter((item) => item.active);
+  const activeCatalogItems = catalogItems.filter(
+    (item) =>
+      item.active &&
+      (item.type === "PRODUCT" || item.deviceTypes.includes(order.deviceType as RepairDeviceType)),
+  );
   const canManage =
     user?.role === "ADMIN" ||
     (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id);

@@ -11,12 +11,15 @@ import { CatalogItemRow } from "@/features/catalog/catalog-item-row";
 import {
   defaultMinimumStockQuantity,
   itemTypeLabels,
+  repairDeviceTypeLabels,
+  repairDeviceTypes,
   tracksStock,
 } from "@/features/catalog/catalog-model";
 import { ProcurementInventoryEditor } from "@/features/procurement/procurement-inventory-editor";
 
 import {
   type RepairCatalogItem,
+  type RepairDeviceType,
   createRepairCatalogItem,
   deleteCatalogProductImage,
   deleteRepairCatalogItem,
@@ -39,6 +42,7 @@ const CatalogPage = () => {
   const create = useMutation({
     mutationFn: (
       input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
+        deviceTypes?: RepairDeviceType[];
         description?: string | null;
         stockQuantity?: number;
         minimumStockQuantity?: number;
@@ -60,6 +64,7 @@ const CatalogPage = () => {
         Pick<
           RepairCatalogItem,
           | "type"
+          | "deviceTypes"
           | "name"
           | "description"
           | "unitPriceRub"
@@ -104,6 +109,8 @@ const CatalogPage = () => {
     onError: () => toast.error("Не удалось удалить фото товара."),
   });
   const [newType, setNewType] = useState<RepairCatalogItem["type"]>("SERVICE");
+  const [newDeviceTypes, setNewDeviceTypes] = useState<RepairDeviceType[]>(repairDeviceTypes);
+  const [deviceFilter, setDeviceFilter] = useState<"ALL" | RepairDeviceType>("ALL");
 
   const submitNewItem = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -112,6 +119,7 @@ const CatalogPage = () => {
     create.mutate(
       {
         type: newType,
+        ...(newType !== "PRODUCT" ? { deviceTypes: newDeviceTypes } : {}),
         name: String(data.get("name")).trim(),
         ...(newType === "PRODUCT"
           ? { description: String(data.get("description")).trim() || null }
@@ -218,6 +226,36 @@ const CatalogPage = () => {
                     ))}
                   </div>
                 </fieldset>
+                {newType !== "PRODUCT" && (
+                  <fieldset className="grid gap-2 md:col-span-2">
+                    <legend className="text-sm font-medium">Для каких устройств подходит</legend>
+                    <div className="flex flex-wrap gap-2">
+                      {repairDeviceTypes.map((deviceType) => {
+                        const selected = newDeviceTypes.includes(deviceType);
+                        return (
+                          <button
+                            key={deviceType}
+                            type="button"
+                            aria-pressed={selected}
+                            onClick={() =>
+                              setNewDeviceTypes((current) =>
+                                selected
+                                  ? current.filter((value) => value !== deviceType)
+                                  : [...current, deviceType],
+                              )
+                            }
+                            className={`min-h-9 rounded-lg border px-3 text-xs font-medium ${selected ? "border-cyan-600 bg-cyan-50 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-200" : "border-slate-200 dark:border-slate-700"}`}
+                          >
+                            {repairDeviceTypeLabels[deviceType]}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {newDeviceTypes.length === 0 && (
+                      <p className="text-xs text-rose-600">Выберите хотя бы один тип устройства.</p>
+                    )}
+                  </fieldset>
+                )}
                 <label className="grid gap-1 text-sm font-medium">
                   Название{"\u00a0"}
                   <span aria-hidden="true">*</span>
@@ -290,7 +328,9 @@ const CatalogPage = () => {
                 )}
                 <button
                   type="submit"
-                  disabled={create.isPending}
+                  disabled={
+                    create.isPending || (newType !== "PRODUCT" && newDeviceTypes.length === 0)
+                  }
                   className="min-h-11 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60 md:col-span-2 md:justify-self-start"
                 >
                   {create.isPending ? "Сохраняем…" : "Добавить в каталог"}
@@ -307,8 +347,30 @@ const CatalogPage = () => {
               </p>
             </SectionCard>
           )}
+          <SectionCard>
+            <h2 className="font-semibold">Услуги и запчасти для устройства</h2>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(["ALL", ...repairDeviceTypes] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={deviceFilter === value}
+                  onClick={() => setDeviceFilter(value)}
+                  className={`min-h-9 rounded-lg border px-3 text-xs font-semibold ${deviceFilter === value ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "border-slate-200 dark:border-slate-700"}`}
+                >
+                  {value === "ALL" ? "Все устройства" : repairDeviceTypeLabels[value]}
+                </button>
+              ))}
+            </div>
+          </SectionCard>
           {(["SERVICE", "SPARE_PART", "PRODUCT"] as const).map((type) => {
-            const sectionItems = catalogItems.filter((item) => item.type === type);
+            const sectionItems = catalogItems.filter(
+              (item) =>
+                item.type === type &&
+                (type === "PRODUCT" ||
+                  deviceFilter === "ALL" ||
+                  item.deviceTypes.includes(deviceFilter)),
+            );
             const Icon = type === "SERVICE" ? Wrench : Package;
             return (
               <SectionCard key={type}>
@@ -324,7 +386,7 @@ const CatalogPage = () => {
                   <div className="mt-4 grid gap-3">
                     {sectionItems.map((item) => (
                       <CatalogItemRow
-                        key={item.id}
+                        key={`${item.id}:${item.type}:${item.deviceTypes.join(",")}`}
                         item={item}
                         editable={user?.role === "ADMIN"}
                         saving={update.isPending}

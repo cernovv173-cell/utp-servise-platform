@@ -54,6 +54,7 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
     id: orderId,
     customerId,
     assignedTechnicianId: technicianId,
+    deviceType: "COMPUTER",
     serviceNumber: "S-100",
     status: "ASSIGNED",
     receipt: null,
@@ -63,6 +64,7 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
     type: "SPARE_PART",
     name: "Экран",
     unitPriceRub: 12500,
+    deviceTypes: ["COMPUTER"],
     stockQuantity: 5,
     active: true,
   };

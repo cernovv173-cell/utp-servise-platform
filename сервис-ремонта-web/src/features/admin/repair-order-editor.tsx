@@ -136,7 +136,7 @@ export const RepairOrderEditor = ({
               value={deviceType}
               onValueChange={setDeviceType}
               options={[
-                { value: "COMPUTER", label: "Компьютер" },
+                { value: "COMPUTER", label: "ПК" },
                 { value: "LAPTOP", label: "Ноутбук" },
                 { value: "PHONE", label: "Телефон" },
                 { value: "TABLET", label: "Планшет" },

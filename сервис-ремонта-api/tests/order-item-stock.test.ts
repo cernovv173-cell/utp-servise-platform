@@ -38,6 +38,7 @@ test("tracked spare parts are decremented on add and restored on removal", async
       findUnique: async () => ({
         id: orderId,
         assignedTechnicianId: null,
+        deviceType: "COMPUTER",
         status: orderStatus,
       }),
       updateMany: async ({ data }: { data: { status: string } }) => {
@@ -47,6 +48,7 @@ test("tracked spare parts are decremented on add and restored on removal", async
       findUniqueOrThrow: async () => ({
         id: orderId,
         assignedTechnicianId: null,
+        deviceType: "COMPUTER",
         status: orderStatus,
         items: [...items],
       }),
@@ -59,6 +61,7 @@ test("tracked spare parts are decremented on add and restored on removal", async
         name:
           activeItemType === "PRODUCT" ? "Тестовый товар" : "Тестовая запчасть",
         unitPriceRub: 250,
+        deviceTypes: ["COMPUTER"],
         stockQuantity,
       }),
       updateMany: async ({

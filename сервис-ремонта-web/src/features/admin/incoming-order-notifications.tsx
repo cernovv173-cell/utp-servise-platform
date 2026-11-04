@@ -114,7 +114,7 @@ export const IncomingOrderNotifications = () => {
 
     if (repairOrders.data) {
       const deviceLabels: Record<string, string> = {
-        COMPUTER: "компьютер",
+        COMPUTER: "ПК",
         LAPTOP: "ноутбук",
         PHONE: "телефон",
         TABLET: "планшет",

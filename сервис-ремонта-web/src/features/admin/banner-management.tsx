@@ -3,11 +3,11 @@ import { Lock, Unlock, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { SectionCard } from "@/components/app-shell";
-import { ProtectedImage } from "@/components/protected-image";
+import { ProtectedMedia } from "@/components/protected-media";
 
 import { useAuth } from "@/features/auth/auth-context";
 
-import { createBanner, deleteBanner, getBanners, updateBanner, uploadAdminImage } from "@/lib/api";
+import { createBanner, deleteBanner, getBanners, updateBanner, uploadAdminMedia } from "@/lib/api";
 
 const iso = (value: string) => (value ? new Date(value).toISOString() : null);
 
@@ -43,10 +43,11 @@ export const BannerManagement = () => {
       setError("Дата окончания должна быть позже даты начала.");
       return;
     }
-    const image = values.get("image");
+    const mediaValue = values.get("media");
+    const media = mediaValue instanceof File && mediaValue.size ? mediaValue : null;
     const activateAfterUpload = values.get("isActive") === "on";
-    if (activateAfterUpload && (!(image instanceof File) || !image.size)) {
-      setError("Для активации выберите изображение баннера.");
+    if (activateAfterUpload && !media) {
+      setError("Для активации выберите фото или видео баннера.");
       return;
     }
     create.mutate(
@@ -63,8 +64,8 @@ export const BannerManagement = () => {
       },
       {
         onSuccess: async ({ banner }) => {
-          if (image instanceof File && image.size) {
-            await uploadAdminImage(`/banners/${banner.id}/image`, token!, image);
+          if (media) {
+            await uploadAdminMedia(`/banners/${banner.id}/media`, token!, media);
             if (activateAfterUpload) await updateBanner(token!, banner.id, { isActive: true });
           }
           form.reset();
@@ -77,7 +78,7 @@ export const BannerManagement = () => {
     <SectionCard>
       <h2 className="font-semibold">Рекламные баннеры</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Выберите места показа и период. Для включения кампании обязательны изображение и ссылка.
+        Выберите места показа и период. Для включения кампании обязательны фото или видео и ссылка.
       </p>
       <form onSubmit={submit} className="mt-4 grid gap-3 md:grid-cols-2">
         <label className="grid gap-1 text-sm font-medium">
@@ -152,17 +153,18 @@ export const BannerManagement = () => {
           />
         </label>
         <label className="grid gap-1 text-sm font-medium">
-          Изображение
+          Фото или видео
           <input
-            name="image"
+            name="media"
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/jpeg,image/png,image/webp,video/mp4"
             className="text-xs"
           />
+          <span className="text-xs font-normal text-slate-500">Фото до 5 МБ или MP4 до 20 МБ.</span>
         </label>
         <label className="flex items-center gap-2 self-center text-sm">
           <input type="checkbox" name="isActive" className="size-4 accent-blue-600" />
-          Активировать после загрузки изображения
+          Активировать после загрузки медиа
         </label>
         {error && (
           <p role="alert" className="text-sm text-rose-600">
@@ -192,9 +194,9 @@ export const BannerManagement = () => {
             key={banner.id}
             className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 p-3 dark:border-slate-800"
           >
-            <ProtectedImage
-              objectId={banner.imageObjectId}
-              alt=""
+            <ProtectedMedia
+              objectId={banner.videoObjectId || banner.imageObjectId}
+              alt={banner.title}
               className="size-16 rounded-lg object-cover"
             />
             <div className="min-w-40 flex-1">

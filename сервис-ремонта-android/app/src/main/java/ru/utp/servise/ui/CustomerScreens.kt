@@ -30,6 +30,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,12 +48,15 @@ import androidx.compose.ui.unit.sp
 import ru.utp.servise.R
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.AuthResult
+import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.clearShopCart
 import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.roleLabel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
@@ -75,6 +79,12 @@ fun CustomerHomeScreen(
     onContactAdministrator: () -> Unit,
     onOpenOffers: () -> Unit,
 ) {
+    var companyPhone by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) {
+        companyPhone = withContext(Dispatchers.IO) {
+            runCatching { ApiClient.companyInfo().phone }.getOrNull()
+        }
+    }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Image(painterResource(R.drawable.utp_servise_logo), "Логотип UTP Servise", Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
@@ -90,6 +100,11 @@ fun CustomerHomeScreen(
                 Text("Ремонт компьютеров и гаджетов", fontSize = 23.sp, lineHeight = 29.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("Опишите неисправность — мастер свяжется с вами и согласует стоимость.", fontSize = 13.sp, lineHeight = 19.sp, color = UtpMuted, modifier = Modifier.padding(top = 8.dp))
                 Button(onClick = onCreateRequest, modifier = Modifier.padding(top = 14.dp), shape = RoundedCornerShape(18.dp)) { Text("Оставить заявку  →") }
+                CompanyCallButton(
+                    phone = companyPhone,
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    label = companyPhone?.let { "Позвонить $it" } ?: "Позвонить в сервис",
+                )
             }
         }
         technologyFact?.let { fact ->
