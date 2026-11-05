@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import {
+  Activity,
   CalendarDays,
   ChartNoAxesColumnIncreasing,
   type LucideIcon,
@@ -18,6 +19,7 @@ const managementSections: Array<{
     | "/admin/customers"
     | "/admin/procurement"
     | "/admin/shop-orders"
+    | "/admin/analytics"
     | "/advertising";
   title: string;
   description: string;
@@ -28,6 +30,12 @@ const managementSections: Array<{
     title: "Обзор",
     description: "Сроки, нагрузка и итоги ремонта",
     icon: ChartNoAxesColumnIncreasing,
+  },
+  {
+    to: "/admin/analytics",
+    title: "Аналитика",
+    description: "Входы, регистрации и скачивания приложения",
+    icon: Activity,
   },
   {
     to: "/admin/schedule",

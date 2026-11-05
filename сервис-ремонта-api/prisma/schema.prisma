@@ -14,6 +14,19 @@ enum UserRole {
   PROCUREMENT
 }
 
+enum ProductAnalyticsMetric {
+  LOGIN
+  REGISTRATION
+  APP_DOWNLOAD
+}
+
+enum ProductAnalyticsChannel {
+  WEB
+  ANDROID
+  MAX
+  OTHER
+}
+
 enum CustomerGender {
   MALE
   FEMALE
@@ -154,6 +167,16 @@ model AppSetting {
   value     Json
 
   @@map("app_settings")
+}
+
+model ProductAnalyticsDailyMetric {
+  day     DateTime                @db.Date
+  metric  ProductAnalyticsMetric
+  channel ProductAnalyticsChannel
+  count   Int                     @default(0)
+
+  @@id([day, metric, channel])
+  @@map("product_analytics_daily_metrics")
 }
 
 model User {

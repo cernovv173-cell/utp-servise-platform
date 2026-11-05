@@ -49,6 +49,16 @@ after 10 minutes. Only a successfully verified, currently unused email is attach
 sets the customer's email-login password. The existing MAX identity and sign-in remain available. A
 new account created by MAX receives the welcome message “Спасибо что выбрали нас!” from the bot.
 
+## Product analytics
+
+Administrators can request `GET /admin/analytics?days=30` for a daily summary of successful logins,
+customer registrations, and Android APK download-link redirects. The requested period is limited to
+7–90 days. Data is grouped by Moscow calendar day and source (`WEB`, `ANDROID`, `MAX`, or `OTHER`)
+and stored only as aggregate counts; no customer identifiers, credentials, or request contents are
+recorded. A download is counted when the API resolves and issues an APK redirect, not when the file
+finishes downloading or is installed. Collection starts after the analytics database migration and
+API version are active; earlier events cannot be reconstructed.
+
 `GET /public/technology-fact` exposes only a curated technology fact and its source; it does not
 expose news articles, reviews, or user data. Authenticated `GET /news` also returns a fact for the
 signed-in home screen. Clients pass the previously shown `previousFactId` to receive the next fact

@@ -23,9 +23,9 @@ export const AppInstallButton = () => {
   });
   const apkState = apkQuery.data?.apk.state;
   const downloadUrl =
-    apkState === "available"
+    apkState === "available" || apkState === "legacy"
       ? getAndroidApkDownloadUrl()
-      : apkState === "legacy" || apkQuery.isError || apkQuery.isPending
+      : apkQuery.isError || apkQuery.isPending
         ? "/downloads/ru.utp.servise.apk"
         : null;
 

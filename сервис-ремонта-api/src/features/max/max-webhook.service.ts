@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
+import { recordProductAnalytics } from "../analytics/product-analytics.js";
 import { hashPassword } from "../auth/passwords.js";
 import { isUniqueViolation } from "../auth/session.js";
 import { createCustomerWithReferral } from "../referrals/customer-registration.js";
@@ -398,6 +399,9 @@ export const handleMaxContact = async (
       ? "Спасибо что выбрали нас!\n\nГотово! Аккаунт UTP Servise создан, номер подтверждён. Вернитесь на сайт или в приложение — вход уже выполнен."
       : "Вход уже подтверждён. Вернитесь на сайт или в приложение.",
   );
+  if (created) {
+    await recordProductAnalytics(database, "REGISTRATION", "MAX");
+  }
 };
 
 export const handleMaxBotStopped = async (

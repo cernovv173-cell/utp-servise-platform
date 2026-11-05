@@ -5,6 +5,10 @@ import { z } from "zod";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
+import {
+  productAnalyticsChannel,
+  recordProductAnalytics,
+} from "../analytics/product-analytics.js";
 import { createCustomerWithReferral } from "../referrals/customer-registration.js";
 import { referralCodeSchema } from "../referrals/referral-code.js";
 import { publicUser } from "./auth.middleware.js";
@@ -44,7 +48,7 @@ export const createVkAuthRouter = (
   router.post(
     "/auth/vk",
     validateRequest({ body: vkLoginSchema }),
-    async (_request, response, next) => {
+    async (request, response, next) => {
       if (!appId) {
         next(
           new HttpError(
@@ -153,7 +157,12 @@ export const createVkAuthRouter = (
           );
           return;
         }
+        const channel = productAnalyticsChannel(request);
+        if (accountCreated) {
+          await recordProductAnalytics(database, "REGISTRATION", channel);
+        }
         const session = await createSession(database, user.id);
+        await recordProductAnalytics(database, "LOGIN", channel);
         response.json({
           accessToken: session.accessToken,
           expiresAt: session.expiresAt,

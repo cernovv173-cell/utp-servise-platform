@@ -3,6 +3,10 @@ import { z } from "zod";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
+import {
+  productAnalyticsChannel,
+  recordProductAnalytics,
+} from "../analytics/product-analytics.js";
 import { referralCodeSchema } from "../referrals/referral-code.js";
 import { hasMaxBotToken, hasMaxWebhookSecret } from "./max-bot.js";
 import { pollMaxLogin, startMaxLogin } from "./max-login.service.js";
@@ -44,9 +48,17 @@ export const createMaxLoginRouter = (database: DatabaseClient): Router => {
   router.post(
     "/auth/max/login/poll",
     validateRequest({ body: pollSchema }),
-    async (_request, response) => {
+    async (request, response) => {
       const input = bodyOf<z.infer<typeof pollSchema>>(response);
-      response.json(await pollMaxLogin(database, input.pollToken));
+      const result = await pollMaxLogin(database, input.pollToken);
+      if (result.status === "completed") {
+        await recordProductAnalytics(
+          database,
+          "LOGIN",
+          productAnalyticsChannel(request),
+        );
+      }
+      response.json(result);
     },
   );
 

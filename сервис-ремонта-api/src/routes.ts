@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { createProductAnalyticsRouter } from "./features/analytics/product-analytics.routes.js";
 import { createAndroidAppRouter } from "./features/android-app/android-app.routes.js";
 import { createAuthRouter } from "./features/auth/auth.routes.js";
 import { createMaxEmailLoginRouter } from "./features/auth/max-email-login.routes.js";
@@ -78,6 +79,7 @@ export const createApiRouter = ({
       }),
     );
     router.use(createAuthRouter(database.client));
+    router.use(createProductAnalyticsRouter(database.client));
     router.use(createMaxEmailLoginRouter(database.client));
     router.use(createMaxLoginRouter(database.client));
     router.use(createMaxRouter(database.client));

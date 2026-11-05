@@ -95,6 +95,10 @@ test("public APK link follows the current upload and administrators can replace 
   const storedObjects = new Map<string, Buffer>();
   const deleteFailures = new Set<string>();
   const deletedObjects: string[] = [];
+  const recordedAnalyticsEvents: Array<{
+    metric: string;
+    channel: string;
+  }> = [];
   let sentRecipientIds: string[] = [];
   let sentNotification: PushNotification | undefined;
   let notificationSendCount = 0;
@@ -143,6 +147,19 @@ test("public APK link follows the current upload and administrators can replace 
           ),
         );
         return registeredDeviceCount;
+      },
+    },
+    productAnalyticsDailyMetric: {
+      upsert: async ({
+        create,
+      }: {
+        create: { metric: string; channel: string };
+      }) => {
+        recordedAnalyticsEvents.push({
+          metric: create.metric,
+          channel: create.channel,
+        });
+        return create;
       },
     },
   };
@@ -327,6 +344,12 @@ test("public APK link follows the current upload and administrators can replace 
     firstDownload.headers.get("location"),
     "https://files.example.test/apk-1?token=signed",
   );
+  assert.equal(recordedAnalyticsEvents.length, 2);
+  assert.ok(
+    recordedAnalyticsEvents.every(
+      ({ metric, channel }) => metric === "APP_DOWNLOAD" && channel === "OTHER",
+    ),
+  );
 
   deleteFailures.add("apk-1");
   const secondBytes = Buffer.concat([zipFixture, Buffer.from("release-two")]);
@@ -362,6 +385,7 @@ test("public APK link follows the current upload and administrators can replace 
     currentDownload.headers.get("location"),
     "https://files.example.test/apk-2?token=signed",
   );
+  assert.equal(recordedAnalyticsEvents.length, 3);
 
   const removed = await fetch(`${baseUrl}/admin/android-app`, {
     method: "DELETE",

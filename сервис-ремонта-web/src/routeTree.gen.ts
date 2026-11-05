@@ -30,6 +30,7 @@ import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SalaryRouteImport } from './routes/salary'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminApkRouteImport } from './routes/admin.apk'
 import { Route as AdminCompanyRouteImport } from './routes/admin.company'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
@@ -155,6 +156,11 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminApkRoute = AdminApkRouteImport.update({
   id: '/apk',
   path: '/apk',
@@ -273,6 +279,7 @@ export interface FileRoutesByFullPath {
   '/salary': typeof SalaryRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -315,6 +322,7 @@ export interface FileRoutesByTo {
   '/salary': typeof SalaryRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -358,6 +366,7 @@ export interface FileRoutesById {
   '/salary': typeof SalaryRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
+  '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
@@ -402,6 +411,7 @@ export interface FileRouteTypes {
     | '/salary'
     | '/shop'
     | '/support'
+    | '/admin/analytics'
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/salary'
     | '/shop'
     | '/support'
+    | '/admin/analytics'
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
@@ -486,6 +497,7 @@ export interface FileRouteTypes {
     | '/salary'
     | '/shop'
     | '/support'
+    | '/admin/analytics'
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
@@ -681,6 +693,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/apk': {
       id: '/admin/apk'
       path: '/apk'
@@ -830,6 +849,7 @@ const AdminOrdersRouteWithChildren = AdminOrdersRoute._addFileChildren(
 )
 
 interface AdminRouteChildren {
+  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
   AdminApkRoute: typeof AdminApkRoute
   AdminCompanyRoute: typeof AdminCompanyRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
@@ -846,6 +866,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAnalyticsRoute: AdminAnalyticsRoute,
   AdminApkRoute: AdminApkRoute,
   AdminCompanyRoute: AdminCompanyRoute,
   AdminCustomersRoute: AdminCustomersRoute,

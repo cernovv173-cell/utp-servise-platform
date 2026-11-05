@@ -65,6 +65,19 @@ export type AndroidApkInfo = {
   pendingDeletionCount?: number;
 };
 
+export type ProductAnalyticsMetricCounts = {
+  LOGIN: number;
+  REGISTRATION: number;
+  APP_DOWNLOAD: number;
+};
+
+export type AdminProductAnalytics = {
+  range: { days: number; from: string; to: string };
+  totals: ProductAnalyticsMetricCounts;
+  channels: Record<"WEB" | "ANDROID" | "MAX" | "OTHER", ProductAnalyticsMetricCounts>;
+  daily: Array<{ day: string } & ProductAnalyticsMetricCounts>;
+};
+
 export type SeasonalSeason = "SPRING" | "SUMMER" | "AUTUMN" | "WINTER";
 export type SeasonalSeasonChoice = SeasonalSeason | "NONE";
 
@@ -1819,6 +1832,9 @@ export const notifyAndroidApkUpdate = (token: string) =>
   }>("/admin/android-app/notify", token, { method: "POST" });
 
 export const getAndroidApkDownloadUrl = () => `${apiBase || "/api"}/android-app/download`;
+
+export const getAdminProductAnalytics = (token: string, days: number, signal?: AbortSignal) =>
+  apiRequest<AdminProductAnalytics>(`/admin/analytics?days=${days}`, token, { signal });
 
 export const moderateReview = (token: string, reviewId: string, isPublished: boolean) =>
   apiRequest<{ review: Review }>(`/reviews/${reviewId}`, token, {

@@ -4,6 +4,10 @@ import { z } from "zod";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
+import {
+  productAnalyticsChannel,
+  recordProductAnalytics,
+} from "../analytics/product-analytics.js";
 import { createCustomerWithReferral } from "../referrals/customer-registration.js";
 import { referralCodeSchema } from "../referrals/referral-code.js";
 import {
@@ -102,7 +106,7 @@ export const createAuthRouter = (
   router.post(
     "/auth/register",
     validateRequest({ body: registerSchema }),
-    async (_request, response, next) => {
+    async (request, response, next) => {
       const input = bodyOf<z.infer<typeof registerSchema>>(response);
       try {
         const passwordHash = await hashPassword(input.password);
@@ -115,7 +119,10 @@ export const createAuthRouter = (
             referralCode: input.referralCode,
           }),
         );
+        const channel = productAnalyticsChannel(request);
+        await recordProductAnalytics(database, "REGISTRATION", channel);
         const session = await createSession(database, user.id);
+        await recordProductAnalytics(database, "LOGIN", channel);
         response.status(201).json({
           accessToken: session.accessToken,
           expiresAt: session.expiresAt,
@@ -138,7 +145,7 @@ export const createAuthRouter = (
   router.post(
     "/auth/login",
     validateRequest({ body: loginSchema }),
-    async (_request, response, next) => {
+    async (request, response, next) => {
       const input = bodyOf<z.infer<typeof loginSchema>>(response);
       const user = await database.user.findUnique({
         where: { email: input.email },
@@ -157,6 +164,11 @@ export const createAuthRouter = (
         return;
       }
       const session = await createSession(database, user.id);
+      await recordProductAnalytics(
+        database,
+        "LOGIN",
+        productAnalyticsChannel(request),
+      );
       response.json({
         accessToken: session.accessToken,
         expiresAt: session.expiresAt,

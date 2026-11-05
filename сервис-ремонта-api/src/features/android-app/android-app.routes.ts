@@ -5,6 +5,10 @@ import { z } from "zod";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
+import {
+  productAnalyticsChannel,
+  recordProductAnalytics,
+} from "../analytics/product-analytics.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
 import { sendPushNotification } from "../notifications/push-notifications.js";
 import {
@@ -281,11 +285,16 @@ export const createAndroidAppRouter = (
     response.json({ apk: await publicStatus(database) });
   });
 
-  router.get("/android-app/download", async (_request, response) => {
+  router.get("/android-app/download", async (request, response) => {
     const record = await findRecord(database);
     if (!record) {
       const fallbackUrl = legacyApkUrl();
       if (fallbackUrl) {
+        await recordProductAnalytics(
+          database,
+          "APP_DOWNLOAD",
+          productAnalyticsChannel(request),
+        );
         response.redirect(302, fallbackUrl);
         return;
       }
@@ -295,6 +304,11 @@ export const createAndroidAppRouter = (
       throw new HttpError(404, "APK_NOT_FOUND", "APK пока не загружен.");
     }
     const url = await storage.downloadUrl(record.objectId);
+    await recordProductAnalytics(
+      database,
+      "APP_DOWNLOAD",
+      productAnalyticsChannel(request),
+    );
     response.redirect(302, url);
   });
 
