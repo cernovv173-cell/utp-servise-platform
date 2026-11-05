@@ -322,6 +322,13 @@ fun ProfileScreen(
         Spacer(Modifier.height(12.dp))
         AndroidAppUpdateNotice()
         Spacer(Modifier.height(12.dp))
+        if (user.role == "CUSTOMER" && user.maxLinked && user.email == null) {
+            MaxEmailLoginCard(
+                token = token,
+                runAction = runAction,
+                onUserUpdated = onUserUpdated,
+            )
+        }
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Text("Контактный телефон", fontWeight = FontWeight.SemiBold, color = UtpInk)

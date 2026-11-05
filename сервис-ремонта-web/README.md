@@ -144,8 +144,11 @@ The Web `/login` page offers MAX sign-in and registration for customers. The car
 the bot configuration, opens the `https://max.ru/<botName>?start=<payload>` chat link, and polls
 every two seconds (and on window focus) until the bot confirms the phone number. New accounts are
 created automatically in the customer role; the referral code from the login screen is applied at
-creation. Accounts created this way have no email, so administrators see "вход через МАКС" instead
-of an address, and the customer signs in through the bot rather than by email.
+creation. New customers receive “Спасибо что выбрали нас!” from the bot. Accounts created this way
+start without an email. A signed-in customer with a MAX-linked account can add a backup email in
+`/account`: the API sends a six-digit verification code, then the customer sets a password. Until the
+address is verified it is not attached; after confirmation the customer can continue to use MAX or
+sign in with the verified email and password.
 
 The Web `/login` page supports password and MAX sign-in. Yandex ID sign-in was removed; its callback
 page and client component no longer exist. VK ID sign-in is intentionally not offered in the Web

@@ -102,6 +102,31 @@ object ApiClient {
         token,
         JSONObject().put("phoneNumber", phoneNumber.trim()),
     ).getJSONObject("user").toUser()
+
+    fun requestMaxEmailLoginCode(token: String, email: String) {
+        request(
+            "POST",
+            "/auth/profile/email-login/request",
+            token,
+            JSONObject().put("email", email.trim()),
+        )
+    }
+
+    fun confirmMaxEmailLogin(
+        token: String,
+        email: String,
+        code: String,
+        newPassword: String,
+    ): AppUser = request(
+        "POST",
+        "/auth/profile/email-login/confirm",
+        token,
+        JSONObject()
+            .put("email", email.trim())
+            .put("code", code.trim())
+            .put("newPassword", newPassword),
+    ).getJSONObject("user").toUser()
+
     fun updateAvatar(token: String, image: ByteArray): AppUser = MediaApiClient
         .binaryRequest("POST", "/media/avatar", token, image)
         .getJSONObject("user")

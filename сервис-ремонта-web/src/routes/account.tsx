@@ -14,6 +14,7 @@ import {
 } from "@/components/modal";
 
 import { clearCustomerLocalData } from "@/features/account/account-local-data";
+import { MaxEmailLoginCard } from "@/features/account/max-email-login-card";
 import { useAuth } from "@/features/auth/auth-context";
 import { AccountQuickLinks } from "@/features/navigation/account-quick-links";
 import { TechnicianQuestionnaireCard } from "@/features/staff/technician-questionnaire-card";
@@ -217,6 +218,9 @@ const AccountPage = () => {
         </SectionCard>
         {user?.role === "TECHNICIAN" && user.id && (
           <TechnicianQuestionnaireCard technicianId={user.id} />
+        )}
+        {user?.role === "CUSTOMER" && user.maxLinked && !user.email && token && (
+          <MaxEmailLoginCard token={token} />
         )}
         {user?.role === "CUSTOMER" && (
           <SectionCard>

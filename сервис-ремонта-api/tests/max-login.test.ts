@@ -310,6 +310,74 @@ test("a verified contact links an existing customer by phone", async () => {
   });
 });
 
+test("a newly registered MAX customer receives the welcome message", async () => {
+  await withEnvironment(async () => {
+    const maxApiMock = mockMaxApiRequests(() => ({ body: { message: {} } }));
+    const vcfInfo = [
+      "BEGIN:VCARD",
+      "VERSION:3.0",
+      "TEL;TYPE=cell:79990000000",
+      "FN:Иван",
+      "END:VCARD",
+      "",
+    ].join("\r\n");
+    const hash = createHmac("sha256", botToken).update(vcfInfo).digest("hex");
+    const request = {
+      id: "55555555-5555-4555-8555-555555555555",
+      status: "AWAITING_CONTACT",
+      userId: null as string | null,
+      maxUserId: "987654321",
+      maxDisplayName: "Иван",
+      referralCode: null,
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: new Date(),
+    };
+    const createdUser = {
+      ...testUser,
+      id: "66666666-6666-4666-8666-666666666666",
+      displayName: "Иван",
+      phoneNumber: "+79990000000",
+      maxUserId: "987654321",
+    };
+    const database = {
+      maxLoginRequest: {
+        findFirst: async () => request,
+        updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+          Object.assign(request, data);
+          return { count: 1 };
+        },
+        update: async ({ data }: { data: Record<string, unknown> }) => {
+          Object.assign(request, data);
+          return request;
+        },
+      },
+      user: {
+        findUnique: async () => null,
+        create: async () => createdUser,
+      },
+      customerReferralCode: {},
+      customerReferral: {},
+      $queryRaw: async () => [],
+      $transaction: async (operation: unknown) =>
+        typeof operation === "function"
+          ? (operation as (transaction: unknown) => Promise<unknown>)(database)
+          : Promise.all(operation as Promise<unknown>[]),
+    };
+
+    await handleMaxContact(database as unknown as DatabaseClient, {
+      user: { id: "987654321", name: "Иван" },
+      vcfInfo,
+      hash,
+    });
+
+    assert.equal(request.accountCreated, true);
+    assert.equal(request.userId, createdUser.id);
+    assert.equal(maxApiMock.requests.length, 1);
+    assert.match(maxApiMock.requests[0]!.body, /Спасибо что выбрали нас!/u);
+    maxApiMock.restore();
+  });
+});
+
 test("MAX login request lifetime is ten minutes", () => {
   assert.equal(MAX_LOGIN_TTL_MILLISECONDS, 10 * 60 * 1_000);
 });

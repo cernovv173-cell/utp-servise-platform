@@ -41,6 +41,14 @@ Mail.ru application credentials (`MAIL_RU_EMAIL` and `MAIL_RU_APP_PASSWORD`) ove
 SMTP port 465. These credentials are assigned only to the API. Reset links are restricted to origins
 in `WEB_APP_ORIGIN`.
 
+Customers created through MAX can add a backup email from their signed-in profile with
+`POST /auth/profile/email-login/request` and `POST /auth/profile/email-login/confirm`. The API emails a
+six-digit code, stores only its HMAC-SHA-256 digest using `PASSWORD_RESET_CODE_SECRET`, limits codes to
+five attempts, applies a 60-second resend delay and five requests per 15 minutes, and expires each code
+after 10 minutes. Only a successfully verified, currently unused email is attached; confirmation also
+sets the customer's email-login password. The existing MAX identity and sign-in remain available. A
+new account created by MAX receives the welcome message “Спасибо что выбрали нас!” from the bot.
+
 `GET /public/technology-fact` exposes only a curated technology fact and its source; it does not
 expose news articles, reviews, or user data. Authenticated `GET /news` also returns a fact for the
 signed-in home screen. Clients pass the previously shown `previousFactId` to receive the next fact
@@ -304,7 +312,8 @@ customer is matched by the last ten phone digits, and a missing customer is crea
 `CUSTOMER` role with no email. Referral codes from the web login screen are applied on creation.
 Poll tokens are stored only as SHA-256 hashes, a request can be consumed once, and MAX contact
 data is used only for sign-in and order communication. Staff accounts still sign in with
-email and password.
+email and password. The bot sends new customers the message “Спасибо что выбрали нас!” after
+registration.
 
 VK ID login accepts a VK ID access token at `POST /auth/vk` and verifies the profile server-side
 using the public `VK_ID_APP_ID`. The Web widget uses `VITE_VK_ID_APP_ID`, asks for email access, and

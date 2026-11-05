@@ -1364,6 +1364,27 @@ export const updateProfile = (
     }),
   });
 
+export const requestMaxEmailLoginCode = (token: string, email: string) =>
+  apiRequest<{ message: string; expiresInSeconds: number }>(
+    "/auth/profile/email-login/request",
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    },
+  );
+
+export const confirmMaxEmailLogin = (
+  token: string,
+  email: string,
+  code: string,
+  newPassword: string,
+) =>
+  apiRequest<{ user: User }>("/auth/profile/email-login/confirm", token, {
+    method: "POST",
+    body: JSON.stringify({ email, code, newPassword }),
+  });
+
 export const getTelegramStatus = (token: string, signal?: AbortSignal) =>
   apiRequest<{ connected: boolean }>("/auth/telegram/status", token, { signal });
 
