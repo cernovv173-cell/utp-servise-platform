@@ -44,6 +44,7 @@ export type User = {
   id: string;
   email: string | null;
   displayName: string;
+  avatarObjectId?: string | null;
   phoneNumber?: string | null;
   gender?: "MALE" | "FEMALE" | null;
   birthDate?: string | null;

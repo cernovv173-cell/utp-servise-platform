@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -288,12 +289,21 @@ fun ProfileScreen(
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    RemoteProjectImage(
-                        user.avatarObjectId,
-                        token,
-                        Modifier.size(62.dp).clip(RoundedCornerShape(31.dp)),
-                        "Аватар ${user.displayName}",
-                    )
+                    if (user.role == "CUSTOMER" && user.avatarObjectId.isNullOrBlank()) {
+                        Image(
+                            painter = painterResource(R.drawable.customer_avatar_default),
+                            contentDescription = "Аватар по умолчанию для ${user.displayName}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(62.dp).clip(RoundedCornerShape(31.dp)),
+                        )
+                    } else {
+                        RemoteProjectImage(
+                            user.avatarObjectId,
+                            token,
+                            Modifier.size(62.dp).clip(RoundedCornerShape(31.dp)),
+                            "Аватар ${user.displayName}",
+                        )
+                    }
                     Column(Modifier.padding(start = 12.dp)) {
                         Text(user.displayName, fontWeight = FontWeight.SemiBold, fontSize = 17.sp, color = UtpInk)
                         Text(

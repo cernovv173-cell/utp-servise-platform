@@ -124,6 +124,12 @@ The `/login` screen can request a password-reset email. Its one-time link opens 
 where the account owner can set a new password. The API enforces the 8-character minimum and
 invalidates active sessions after a successful reset.
 
+Customers see the shared default raccoon avatar in `/account` until they upload a profile photo.
+They can replace it at any time with a JPEG, PNG or WEBP image up to 5 MB; uploaded photos stay
+protected and are visible to the owner, administrators and the technician assigned to that customer's
+repair. Existing custom avatars are preserved. The Android account profile uses the same default image
+and already supports replacing it.
+
 Customers can optionally save gender and date of birth in `/account`. The API sends one birthday
 push greeting per customer per year, using the Moscow calendar date and only to devices with a
 registered, permitted push token. In production, the birthday worker also grants 250 loyalty points

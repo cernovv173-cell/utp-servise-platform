@@ -14,6 +14,7 @@ import {
 } from "@/components/modal";
 
 import { clearCustomerLocalData } from "@/features/account/account-local-data";
+import { CustomerAvatarCard } from "@/features/account/customer-avatar-card";
 import { MaxEmailLoginCard } from "@/features/account/max-email-login-card";
 import { useAuth } from "@/features/auth/auth-context";
 import { AccountQuickLinks } from "@/features/navigation/account-quick-links";
@@ -150,6 +151,7 @@ const AccountPage = () => {
       />
       <AccountQuickLinks role={user?.role} />
       <div className="grid gap-5 lg:grid-cols-2">
+        {user?.role === "CUSTOMER" && token && <CustomerAvatarCard token={token} user={user} />}
         <SectionCard>
           <h2 className="font-semibold">Профиль</h2>
           <p className="mt-1 text-sm text-slate-500">
