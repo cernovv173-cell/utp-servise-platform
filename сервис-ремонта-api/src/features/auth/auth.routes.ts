@@ -323,7 +323,7 @@ export const ensureInitialAdmin = async (
     await transaction.user.create({
       data: {
         email,
-        displayName: "Администратор UTP Servise",
+        displayName: "Администратор ЕНОТ СЕРВИС",
         passwordHash: await hashPassword(password),
         role: "ADMIN",
         mustChangePassword: true,

@@ -115,10 +115,10 @@ fun LoyaltyScreen(
                                         val inviteLink = "https://xn----dtbhbq0ahshee.xn--p1ai/login?ref=${code.code}"
                                         val shareIntent = Intent(Intent.ACTION_SEND).apply {
                                             type = "text/plain"
-                                            putExtra(Intent.EXTRA_SUBJECT, "Приглашение в UTP Servise")
+                                            putExtra(Intent.EXTRA_SUBJECT, "Приглашение в ЕНОТ СЕРВИС")
                                             putExtra(
                                                 Intent.EXTRA_TEXT,
-                                                "Приглашаю в UTP Servise! Зарегистрируйся по ссылке $inviteLink или введи код ${code.code}. После первого завершённого и оплаченного ремонта нам обоим начислят по 250 бонусных баллов.",
+                                                "Приглашаю в ЕНОТ СЕРВИС! Зарегистрируйся по ссылке $inviteLink или введи код ${code.code}. После первого завершённого и оплаченного ремонта нам обоим начислят по 250 бонусных баллов.",
                                             )
                                         }
                                         context.startActivity(Intent.createChooser(shareIntent, "Пригласить друга"))

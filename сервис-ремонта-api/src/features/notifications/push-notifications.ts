@@ -258,7 +258,7 @@ export const sendNewsPublicationNotification = async (
       database,
       customers.map(({ id }) => id),
       {
-        title: "Новая новость UTP Servise",
+        title: "Новая новость ЕНОТ СЕРВИС",
         body: article.title,
         data: {
           type: "news_published",
@@ -283,8 +283,8 @@ export const customerOfferPublicationNotificationContent = (
 ): { readonly title: string; readonly body: string } => ({
   title:
     type === "GIVEAWAY"
-      ? "Опубликован новый розыгрыш UTP Servise"
-      : "Опубликована новая акция UTP Servise",
+      ? "Опубликован новый розыгрыш ЕНОТ СЕРВИС"
+      : "Опубликована новая акция ЕНОТ СЕРВИС",
   body: offerTitle,
 });
 

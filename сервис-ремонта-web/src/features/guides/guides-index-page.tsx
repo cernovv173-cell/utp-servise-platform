@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, BookOpenCheck, ShieldCheck } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
-import { PublicSiteShell, repairRequestHref } from "@/components/public-site-shell";
+import { PublicAuthTrigger, PublicSiteShell } from "@/components/public-site-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { GuideCardGrid } from "@/features/guides/guide-card-grid";
@@ -69,12 +69,13 @@ const GuideIndexContent = () => {
             Оставить заявку <ArrowRight size={17} aria-hidden="true" />
           </Link>
         ) : (
-          <a
-            href={repairRequestHref}
+          <PublicAuthTrigger
+            intent="register"
+            nextPath="/orders"
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
             Оставить заявку <ArrowRight size={17} aria-hidden="true" />
-          </a>
+          </PublicAuthTrigger>
         )}
       </section>
     </div>

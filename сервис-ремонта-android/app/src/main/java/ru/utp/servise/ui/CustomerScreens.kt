@@ -88,9 +88,9 @@ fun CustomerHomeScreen(
     }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Image(painterResource(R.drawable.utp_servise_logo), "Логотип UTP Servise", Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
+            Image(painterResource(R.drawable.utp_servise_logo), "Логотип ЕНОТ СЕРВИС", Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
             Column(Modifier.weight(1f).padding(start = 11.dp)) {
-                Text("UTP Servise", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text("ЕНОТ СЕРВИС", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("Сервисный центр", fontSize = 12.sp, color = UtpMuted)
             }
             Text("Привет, ${user.displayName.substringBefore(' ')}", color = UtpBlue, fontSize = 12.sp)
@@ -450,7 +450,7 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     shape = RoundedCornerShape(18.dp),
                 ) { Text("Сохранить телефон") }
-                Text("UTP Servise · защищённый вход по электронной почте", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 11.dp))
+                Text("ЕНОТ СЕРВИС · защищённый вход по электронной почте", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 11.dp))
             }
         }
         if (user.role == "CUSTOMER") {

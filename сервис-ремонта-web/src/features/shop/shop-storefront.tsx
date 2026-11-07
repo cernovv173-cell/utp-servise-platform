@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
-import { PublicSiteShell } from "@/components/public-site-shell";
+import { PublicAuthTrigger, PublicSiteShell } from "@/components/public-site-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -346,12 +346,13 @@ export const ShopStorefront = () => {
               : "Товары можно посмотреть без регистрации. Для оформления заказа потребуется войти в аккаунт клиента."}
           </p>
           {!user && (
-            <a
-              href="/login?register=1&next=%2Fshop"
+            <PublicAuthTrigger
+              intent="register"
+              nextPath="/shop"
               className="inline-flex min-h-10 shrink-0 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
             >
               Войти или зарегистрироваться
-            </a>
+            </PublicAuthTrigger>
           )}
         </SectionCard>
       )}
@@ -618,12 +619,13 @@ export const ShopStorefront = () => {
                   <span className="tabular-nums">{formatRub(cartTotal)}</span>
                 </p>
                 {!canOrder ? (
-                  <a
-                    href="/login?register=1&next=%2Fshop"
+                  <PublicAuthTrigger
+                    intent="register"
+                    nextPath="/shop"
                     className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
                   >
                     Войти, чтобы отправить заказ
-                  </a>
+                  </PublicAuthTrigger>
                 ) : (
                   <button
                     type="button"

@@ -60,7 +60,7 @@ const ResetPasswordPage = () => {
           <span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white">
             <Wrench size={20} />
           </span>
-          UTP Servise
+          ЕНОТ СЕРВИС
         </Link>
         <h1 className="mt-8 text-2xl font-semibold">Восстановление пароля</h1>
         {done ? (

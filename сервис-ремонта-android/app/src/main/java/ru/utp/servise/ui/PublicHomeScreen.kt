@@ -79,11 +79,11 @@ fun PublicHomeScreen(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter = painterResource(R.drawable.utp_servise_logo),
-                contentDescription = "Логотип UTP Servise",
+                contentDescription = "Логотип ЕНОТ СЕРВИС",
                 modifier = Modifier.size(54.dp).clip(RoundedCornerShape(16.dp)),
             )
             Column(modifier = Modifier.padding(start = 12.dp)) {
-                Text(company?.name?.takeIf(String::isNotBlank) ?: "UTP Servise", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text(company?.name?.takeIf(String::isNotBlank) ?: "ЕНОТ СЕРВИС", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 Text("Сервис ремонта техники", color = UtpMuted, fontSize = 13.sp)
             }
         }

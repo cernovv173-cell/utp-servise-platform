@@ -1,4 +1,4 @@
-# Паспорт релиза RuStore — UTP Servise
+# Паспорт релиза RuStore — ЕНОТ СЕРВИС
 
 - Дата сборки: 31 октября 2026 года
 - Android package: `ru.utp.servise`

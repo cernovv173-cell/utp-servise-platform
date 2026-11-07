@@ -1,4 +1,4 @@
-# Материалы RuStore — UTP Servise для Android
+# Материалы RuStore — ЕНОТ СЕРВИС для Android
 
 ## Версия приложения
 

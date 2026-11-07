@@ -52,7 +52,7 @@ export const createApiRouter = ({
     if (!database) {
       response.json({
         company: {
-          name: "UTP Servise",
+          name: "ЕНОТ СЕРВИС",
           description: "Ремонт компьютеров, ноутбуков, телефонов и планшетов.",
           history: "",
           services: [],

@@ -356,7 +356,7 @@ export const createAndroidAppRouter = (
         database,
         recipientUserIds,
         {
-          title: "Доступно обновление UTP Servise",
+          title: "Доступно обновление ЕНОТ СЕРВИС",
           body: "Откройте приложение — оно предложит скачать и установить новую версию.",
           data: {
             type: "app_update",
@@ -385,7 +385,7 @@ export const createAndroidAppRouter = (
         throw new HttpError(
           400,
           "WRONG_APK_PACKAGE",
-          "Выбран APK другого приложения. Загрузите UTP Servise.",
+          "Выбран APK другого приложения. Загрузите ЕНОТ СЕРВИС.",
         );
       }
       const versionMetadata = appVersionMetadataSchema.safeParse({

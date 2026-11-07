@@ -32,7 +32,7 @@ const companyInfoSchema = z
   .strict();
 
 const defaultCompanyInfo: z.infer<typeof companyInfoSchema> = {
-  name: "UTP Servise",
+  name: "ЕНОТ СЕРВИС",
   description: "Ремонт компьютеров, ноутбуков, телефонов и планшетов.",
   history: "",
   services: [

@@ -58,7 +58,7 @@ const HomePage = () => {
   return (
     <AppShell active="/">
       <PageTitle
-        eyebrow="UTP SERVISE"
+        eyebrow="ЕНОТ СЕРВИС"
         title={`Здравствуйте, ${user?.displayName ?? ""}!`}
         description="Рады видеть вас в сервисе ремонта техники."
       />

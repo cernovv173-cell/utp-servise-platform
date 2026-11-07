@@ -18,7 +18,7 @@ test("promotion and giveaway notifications have distinct titles", () => {
       "Скидка на ремонт",
     ),
     {
-      title: "Опубликована новая акция UTP Servise",
+      title: "Опубликована новая акция ЕНОТ СЕРВИС",
       body: "Скидка на ремонт",
     },
   );
@@ -28,7 +28,7 @@ test("promotion and giveaway notifications have distinct titles", () => {
       "Разыгрываем призы",
     ),
     {
-      title: "Опубликован новый розыгрыш UTP Servise",
+      title: "Опубликован новый розыгрыш ЕНОТ СЕРВИС",
       body: "Разыгрываем призы",
     },
   );

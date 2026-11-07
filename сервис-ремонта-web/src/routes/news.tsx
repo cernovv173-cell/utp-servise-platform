@@ -32,7 +32,7 @@ const NewsPage = () => {
       <PageTitle
         eyebrow="ОБНОВЛЕНИЯ"
         title="Новости сервиса"
-        description="Объявления и актуальные предложения UTP Servise."
+        description="Объявления и актуальные предложения ЕНОТ СЕРВИС."
       />
       {user?.role === "ADMIN" && <NewsAdmin />}
       {query.isLoading && <p className="text-sm text-slate-500">Загружаем новости…</p>}

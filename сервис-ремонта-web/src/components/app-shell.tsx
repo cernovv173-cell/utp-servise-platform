@@ -45,7 +45,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
             U
           </div>
           <h1 className="mt-5 text-2xl font-semibold text-slate-950 dark:text-white">
-            Войдите в UTP Servise
+            Войдите в ЕНОТ СЕРВИС
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
             Заявки, история ремонта и новости доступны после входа в аккаунт.
@@ -73,7 +73,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
           <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[#55e6ff] via-[#5580ff] to-[#ad65ff] text-xl text-white shadow-[0_0_24px_rgba(83,121,255,0.5)]">
             <RaccoonIcon motion="peek" />
           </span>
-          UTP Servise
+          ЕНОТ СЕРВИС
         </Link>
         <DesktopSectionNavigation
           active={active}
@@ -101,7 +101,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
             <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-[#55e6ff] via-[#5580ff] to-[#ad65ff] text-lg text-white shadow-[0_0_18px_rgba(83,121,255,0.45)]">
               <RaccoonIcon motion="peek" />
             </span>
-            UTP Servise
+            ЕНОТ СЕРВИС
           </Link>
           <div className="hidden text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase lg:block dark:text-[#91a5d6]">
             Сервис ремонта техники

@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft, ArrowRight, CircleAlert, ClipboardCheck, Printer } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
-import { PublicSiteShell, repairRequestHref } from "@/components/public-site-shell";
+import { PublicAuthTrigger, PublicSiteShell } from "@/components/public-site-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { GuideChecklist } from "@/features/guides/guide-checklist";
@@ -152,12 +152,13 @@ const GuideArticleContent = ({ slug }: { slug: GuideSlug }) => {
                 Оставить заявку <ArrowRight size={16} aria-hidden="true" />
               </Link>
             ) : (
-              <a
-                href={repairRequestHref}
+              <PublicAuthTrigger
+                intent="register"
+                nextPath="/orders"
                 className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
               >
                 Оставить заявку <ArrowRight size={16} aria-hidden="true" />
-              </a>
+              </PublicAuthTrigger>
             )}
           </section>
         </aside>

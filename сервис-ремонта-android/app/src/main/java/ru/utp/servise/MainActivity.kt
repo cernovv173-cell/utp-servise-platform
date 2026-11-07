@@ -468,7 +468,7 @@ private fun LoadingScreen() {
     Box(Modifier.fillMaxSize().background(UtpPale), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             CircularProgressIndicator(color = UtpBlue)
-            Text("UTP Servise", fontWeight = FontWeight.SemiBold)
+            Text("ЕНОТ СЕРВИС", fontWeight = FontWeight.SemiBold)
         }
     }
 }

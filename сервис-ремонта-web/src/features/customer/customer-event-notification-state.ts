@@ -38,7 +38,7 @@ export const collectCustomerNotifications = (
       if (knownNews.has(article.id)) continue;
       events.push({
         id: `news-${article.id}`,
-        title: "Новая новость UTP Servise",
+        title: "Новая новость ЕНОТ СЕРВИС",
         body: article.title,
         route: "/news",
       });
@@ -51,8 +51,8 @@ export const collectCustomerNotifications = (
         id: `offer-${offer.id}`,
         title:
           offer.type === "GIVEAWAY"
-            ? "Опубликован новый розыгрыш UTP Servise"
-            : "Опубликована новая акция UTP Servise",
+            ? "Опубликован новый розыгрыш ЕНОТ СЕРВИС"
+            : "Опубликована новая акция ЕНОТ СЕРВИС",
         body: offer.title,
         route: "/offers",
       });

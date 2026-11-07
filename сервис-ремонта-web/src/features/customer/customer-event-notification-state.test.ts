@@ -71,7 +71,7 @@ describe("customer event notifications", () => {
       now,
     );
     expect(beforeStart.events.map((event) => event.id)).toEqual(["offer-starts-later"]);
-    expect(beforeStart.events[0]?.title).toBe("Опубликован новый розыгрыш UTP Servise");
+    expect(beforeStart.events[0]?.title).toBe("Опубликован новый розыгрыш ЕНОТ СЕРВИС");
 
     const atStart = collectCustomerNotifications(
       [article("new-news")],

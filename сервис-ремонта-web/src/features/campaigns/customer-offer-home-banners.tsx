@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Gift, Trophy } from "lucide-react";
 
+import { PublicAuthTrigger } from "@/components/public-site-shell";
+
 import { getRunningCustomerOffers } from "@/features/campaigns/customer-offer-home-banner-state";
 
 import { getPublicCustomerOffers } from "@/lib/api";
@@ -99,13 +101,21 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
 
               <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-white/20 pt-4">
                 <p className="text-sm text-white/80">Действует до {formatEndDate(offer.endsAt)}</p>
-                <Link
-                  to={isCustomer ? "/offers" : "/login"}
-                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-slate-900 transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                >
-                  {isCustomer ? "Условия и участие" : "Войти и участвовать"}
-                  <ArrowRight size={17} aria-hidden="true" />
-                </Link>
+                {isCustomer ? (
+                  <Link
+                    to="/offers"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-slate-900 transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  >
+                    Условия и участие <ArrowRight size={17} aria-hidden="true" />
+                  </Link>
+                ) : (
+                  <PublicAuthTrigger
+                    intent="login"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-slate-900 transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  >
+                    Войти и участвовать <ArrowRight size={17} aria-hidden="true" />
+                  </PublicAuthTrigger>
+                )}
               </div>
             </article>
           );

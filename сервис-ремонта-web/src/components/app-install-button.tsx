@@ -35,7 +35,7 @@ export const AppInstallButton = () => {
         <a
           href={downloadUrl}
           download="UTP-Servise.apk"
-          aria-label="Скачать последнюю версию UTP Servise для Android"
+          aria-label="Скачать последнюю версию ЕНОТ СЕРВИС для Android"
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-red-600 px-5 text-sm font-semibold text-white shadow-md shadow-red-600/25 transition hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
         >
           <Bot size={18} aria-hidden="true" />
@@ -63,7 +63,7 @@ export const AppInstallButton = () => {
         </ModalTrigger>
         <ModalContent className="border-slate-200 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
           <ModalHeader>
-            <ModalTitle>Добавить UTP Servise на экран «Домой»</ModalTitle>
+            <ModalTitle>Добавить ЕНОТ СЕРВИС на экран «Домой»</ModalTitle>
             <ModalDescription className="dark:text-slate-300">
               Так вы создадите ярлык веб-версии на iPhone или iPad. Это не установка приложения из
               App Store.
