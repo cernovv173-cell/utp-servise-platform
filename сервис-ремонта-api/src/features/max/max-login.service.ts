@@ -41,6 +41,7 @@ const maxLoginUnavailable = () =>
 export const startMaxLogin = async (
   database: DatabaseClient,
   referralCode?: string,
+  targetUserId?: string,
 ): Promise<{
   readonly url: string;
   readonly pollToken: string;
@@ -82,6 +83,7 @@ export const startMaxLogin = async (
         tokenHash: hashMaxLoginToken(token),
         pollTokenHash: hashMaxLoginToken(pollToken),
         referralCode: referralCode ?? null,
+        ...(targetUserId ? { userId: targetUserId } : {}),
         expiresAt,
       },
     }),

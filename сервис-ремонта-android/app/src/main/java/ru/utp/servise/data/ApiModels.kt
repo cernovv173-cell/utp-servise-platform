@@ -3,6 +3,7 @@ package ru.utp.servise.data
 data class AppUser(
     val id: String,
     val email: String? = null,
+    val login: String? = null,
     val displayName: String,
     val phoneNumber: String? = null,
     val gender: String? = null,
@@ -607,6 +608,8 @@ data class SupportChatInboxItem(
 data class AdminCustomer(
     val id: String,
     val email: String?,
+    val login: String? = null,
+    val maxLinked: Boolean = false,
     val displayName: String,
     val phoneNumber: String?,
     val active: Boolean,
@@ -622,7 +625,8 @@ data class AdminCustomerPage(
 
 data class NewAdminCustomerResult(
     val customer: AdminCustomer,
-    val temporaryPassword: String,
+    val temporaryPassword: String?,
+    val credentialDeliveryPending: Boolean = false,
 )
 
 data class StaffMember(
@@ -689,6 +693,11 @@ data class NewStaffResult(val staff: StaffMember, val temporaryPassword: String)
 data class MaxLoginStart(
     val url: String,
     val pollToken: String,
+    val expiresAt: String,
+)
+
+data class MaxActivationLink(
+    val url: String,
     val expiresAt: String,
 )
 

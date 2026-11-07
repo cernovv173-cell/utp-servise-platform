@@ -8,6 +8,7 @@ import { HttpError } from "../../lib/http/http-error.js";
 export type AuthenticatedUser = {
   readonly id: string;
   readonly email: string | null;
+  readonly login?: string | null;
   readonly displayName: string;
   readonly phoneNumber: string | null;
   readonly gender?: "MALE" | "FEMALE" | null;
@@ -45,6 +46,7 @@ export const createRequireAuth =
           select: {
             id: true,
             email: true,
+            login: true,
             displayName: true,
             phoneNumber: true,
             gender: true,
@@ -110,6 +112,7 @@ export const requireRoles =
 export const publicUser = (user: AuthenticatedUser) => ({
   id: user.id,
   email: user.email,
+  login: user.login ?? null,
   displayName: user.displayName,
   phoneNumber: user.phoneNumber,
   gender: user.gender ?? null,

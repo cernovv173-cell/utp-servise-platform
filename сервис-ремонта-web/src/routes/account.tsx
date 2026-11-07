@@ -149,13 +149,22 @@ const AccountPage = () => {
         title="Личный кабинет"
         description="Ваши контактные данные и настройки доступа."
       />
+      {user?.mustChangePassword && (
+        <p
+          role="status"
+          className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+        >
+          Для продолжения смените временный пароль из сообщения MAX на свой постоянный пароль.
+        </p>
+      )}
       <AccountQuickLinks role={user?.role} />
       <div className="grid gap-5 lg:grid-cols-2">
         {user?.role === "CUSTOMER" && token && <CustomerAvatarCard token={token} user={user} />}
         <SectionCard>
           <h2 className="font-semibold">Профиль</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {user?.displayName} · {user?.email ?? "вход через МАКС"}
+            {user?.displayName} ·{" "}
+            {user?.email ?? (user?.login ? `логин ${user.login}` : "вход через МАКС")}
           </p>
           <form onSubmit={submit} className="mt-5 grid gap-4">
             <label className="grid gap-1.5 text-sm font-medium">
@@ -371,7 +380,7 @@ const AccountPage = () => {
           </p>
           <form onSubmit={submitPassword} className="mt-4 grid gap-3">
             <label className="grid gap-1.5 text-sm font-medium">
-              Текущий пароль
+              {user?.mustChangePassword ? "Временный пароль из сообщения MAX" : "Текущий пароль"}
               <input
                 type="password"
                 autoComplete="current-password"

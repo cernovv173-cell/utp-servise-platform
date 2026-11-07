@@ -33,6 +33,12 @@ const emailSchema = z
   .email()
   .max(320)
   .transform((value) => value.toLowerCase());
+const loginIdentifierSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(320)
+  .transform((value) => value.toLowerCase());
 const isValidPhoneNumber = (value: string) =>
   /^[+0-9().\-\s]+$/.test(value) &&
   value.replace(/\D/g, "").length >= 7 &&
@@ -56,7 +62,7 @@ const registerSchema = z
   .strict();
 const loginSchema = z
   .object({
-    email: emailSchema,
+    email: loginIdentifierSchema,
     password: z.string().min(1).max(128),
     portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"]),
   })
@@ -148,7 +154,9 @@ export const createAuthRouter = (
     async (request, response, next) => {
       const input = bodyOf<z.infer<typeof loginSchema>>(response);
       const user = await database.user.findUnique({
-        where: { email: input.email },
+        where: input.email.includes("@")
+          ? { email: input.email }
+          : { login: input.email },
       });
       const valid = user
         ? await verifyPassword(input.password, user.passwordHash)
@@ -158,7 +166,7 @@ export const createAuthRouter = (
           new HttpError(
             401,
             "INVALID_CREDENTIALS",
-            "Неверный адрес или пароль.",
+            "Неверный логин или пароль.",
           ),
         );
         return;

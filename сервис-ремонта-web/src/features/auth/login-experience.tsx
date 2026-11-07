@@ -57,6 +57,11 @@ export const LoginExperience = ({
 
   const completeMaxLogin = (session: AuthResponse) => {
     setSession(session);
+    if (session.user.mustChangePassword) {
+      if (isDialog) onClose?.();
+      void navigate({ to: "/account" });
+      return;
+    }
     if (session.accountCreated) {
       if (isDialog) {
         onClose?.();
@@ -113,7 +118,7 @@ export const LoginExperience = ({
       }
       setSession(session);
       if (isDialog) onClose?.();
-      await navigate({ to: safeNextPath });
+      await navigate({ to: session.user.mustChangePassword ? "/account" : safeNextPath });
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Не удалось выполнить вход.");
     } finally {
@@ -262,7 +267,7 @@ export const LoginExperience = ({
               />
               <div className="my-6 flex items-center gap-3 text-xs font-semibold tracking-wide text-slate-400 uppercase">
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-                или по почте
+                {registering ? "или по почте" : "или по почте/логину"}
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               </div>
             </div>
@@ -285,12 +290,12 @@ export const LoginExperience = ({
               </label>
             )}
             <label className="grid gap-1.5 text-sm font-medium">
-              Электронная почта
+              {registering || recovering ? "Электронная почта" : "Электронная почта или логин"}
               <input
                 required
-                type="email"
+                type={registering || recovering ? "email" : "text"}
                 name="email"
-                autoComplete="email"
+                autoComplete={registering || recovering ? "email" : "username"}
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"
               />
             </label>

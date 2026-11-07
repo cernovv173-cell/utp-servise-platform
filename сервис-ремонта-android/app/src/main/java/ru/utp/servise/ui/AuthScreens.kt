@@ -135,7 +135,7 @@ private fun LoginScreen(
         Text(if (recovering) "Восстановление пароля" else "Вход: ${portal.roleLabel()}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text(
             if (recovering) "Укажите адрес аккаунта — мы отправим ссылку для создания нового пароля."
-            else "Введите выданный для этой роли адрес и пароль.",
+            else "Введите адрес электронной почты или логин и пароль.",
             color = UtpMuted,
             modifier = Modifier.padding(top = 6.dp, bottom = 22.dp),
         )
@@ -148,13 +148,20 @@ private fun LoginScreen(
                 onAuthenticated = onAuthenticated,
             )
             Text(
-                "или по почте",
+                "или по почте/логину",
                 fontSize = 12.sp,
                 color = UtpMuted,
                 modifier = Modifier.padding(top = 14.dp, bottom = 10.dp),
             )
         }
-        OutlinedTextField(email, { email = it }, label = { Text("Электронная почта") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(14.dp))
+        OutlinedTextField(
+            email,
+            { email = it },
+            label = { Text(if (recovering) "Электронная почта" else "Электронная почта или логин") },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            shape = RoundedCornerShape(14.dp),
+        )
         if (recovering) {
             recoveryMessage?.let {
                 Text(it, color = UtpBlue, modifier = Modifier.padding(top = 12.dp))

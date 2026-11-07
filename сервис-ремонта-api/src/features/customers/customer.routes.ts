@@ -16,10 +16,16 @@ import {
 } from "../auth/auth.middleware.js";
 import { generateTemporaryPassword, hashPassword } from "../auth/passwords.js";
 import {
+  findCustomersByNationalPhone,
+  startMaxLogin,
+} from "../max/max-login.service.js";
+import { normalizeMaxPhone } from "../max/max-phone.js";
+import {
   type MediaStorage,
   projectMediaStorage,
 } from "../media/media-storage.js";
 import { deleteCustomerAndData } from "./customer-deletion.js";
+import { createCustomerWithTemporaryLogin } from "./customer-login-credentials.js";
 
 const customerQuery = paginationQuerySchema.extend({
   search: z.string().trim().max(120).default(""),
@@ -53,7 +59,7 @@ const updateCustomerBody = z
   .refine((body) => Object.keys(body).length > 0);
 const createCustomerBody = z
   .object({
-    email: emailSchema,
+    email: emailSchema.nullable().optional(),
     displayName: z.string().trim().min(2).max(120),
     phoneNumber: phoneNumberSchema,
   })
@@ -113,19 +119,111 @@ export const createCustomerAdminRouter = (
   );
 
   router.post(
+    "/admin/customers/:customerId/max-activation",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: customerIdParams }),
+    async (_request, response) => {
+      const { customerId } =
+        paramsOf<z.infer<typeof customerIdParams>>(response);
+      const customer = await database.user.findFirst({
+        where: {
+          id: customerId,
+          role: "CUSTOMER",
+          active: true,
+          email: null,
+        },
+        select: { id: true },
+      });
+      if (!customer) {
+        throw new HttpError(
+          404,
+          "CUSTOMER_NOT_FOUND",
+          "Клиент без электронной почты не найден.",
+        );
+      }
+      const activation = await startMaxLogin(database, undefined, customer.id);
+      response.status(201).json({
+        url: activation.url,
+        expiresAt: activation.expiresAt,
+      });
+    },
+  );
+
+  router.post(
     "/admin/customers",
     requireAuth,
     requireRoles("ADMIN"),
     validateRequest({ body: createCustomerBody }),
     async (_request, response, next) => {
       const input = bodyOf<z.infer<typeof createCustomerBody>>(response);
+      const phoneNumber = input.phoneNumber?.trim() || null;
+
+      if (!input.email) {
+        const normalizedPhone = phoneNumber
+          ? normalizeMaxPhone(phoneNumber)
+          : null;
+        if (!normalizedPhone) {
+          next(
+            new HttpError(
+              400,
+              "CUSTOMER_PHONE_REQUIRED",
+              "Без электронной почты укажите полный номер телефона, привязанный к МАКС.",
+            ),
+          );
+          return;
+        }
+
+        try {
+          const customer = await database.$transaction(async (transaction) => {
+            const matches = await findCustomersByNationalPhone(
+              transaction,
+              normalizedPhone.nationalDigits,
+            );
+            if (matches.length > 0) {
+              throw new HttpError(
+                409,
+                "CUSTOMER_PHONE_IN_USE",
+                "Клиент с таким номером уже есть в базе. Найдите его и выберите вместо создания нового.",
+              );
+            }
+            const created = await createCustomerWithTemporaryLogin(
+              transaction,
+              {
+                displayName: input.displayName,
+                phoneNumber: normalizedPhone.phone,
+              },
+            );
+            return created.customer;
+          });
+          const { maxUserId, ...publicCustomer } = customer;
+          response.status(201).json({
+            customer: { ...publicCustomer, maxLinked: Boolean(maxUserId) },
+            credentialDelivery: { channel: "MAX", status: "PENDING" },
+          });
+        } catch (error) {
+          if (isUniqueViolation(error)) {
+            next(
+              new HttpError(
+                409,
+                "CUSTOMER_LOGIN_CONFLICT",
+                "Не удалось создать логин клиента. Повторите попытку.",
+              ),
+            );
+          } else {
+            next(error);
+          }
+        }
+        return;
+      }
+
       const temporaryPassword = generateTemporaryPassword();
       try {
         const customer = await database.user.create({
           data: {
             email: input.email,
             displayName: input.displayName,
-            phoneNumber: input.phoneNumber?.trim() || null,
+            phoneNumber,
             role: "CUSTOMER",
             passwordHash: await hashPassword(temporaryPassword),
             mustChangePassword: true,
@@ -135,11 +233,17 @@ export const createCustomerAdminRouter = (
             email: true,
             displayName: true,
             phoneNumber: true,
+            login: true,
+            maxUserId: true,
             active: true,
             createdAt: true,
           },
         });
-        response.status(201).json({ customer, temporaryPassword });
+        const { maxUserId, ...publicCustomer } = customer;
+        response.status(201).json({
+          customer: { ...publicCustomer, maxLinked: Boolean(maxUserId) },
+          temporaryPassword,
+        });
       } catch (error) {
         if (isUniqueViolation(error))
           next(
@@ -174,6 +278,7 @@ export const createCustomerAdminRouter = (
                   },
                 },
                 { email: { contains: search, mode: "insensitive" as const } },
+                { login: { contains: search, mode: "insensitive" as const } },
                 { phoneNumber: { contains: search } },
               ],
             }
@@ -185,8 +290,10 @@ export const createCustomerAdminRouter = (
           select: {
             id: true,
             email: true,
+            login: true,
             displayName: true,
             phoneNumber: true,
+            maxUserId: true,
             active: true,
             createdAt: true,
           },
@@ -196,7 +303,10 @@ export const createCustomerAdminRouter = (
         database.user.count({ where }),
       ]);
       response.json({
-        customers,
+        customers: customers.map((customer) => {
+          const { maxUserId, ...publicCustomer } = customer;
+          return { ...publicCustomer, maxLinked: Boolean(maxUserId) };
+        }),
         pagination: createPaginatedResponse(customers, totalItems, {
           page,
           pageSize,

@@ -192,6 +192,48 @@ test("MAX login creates a one-time session and expires the poll request", async 
   });
 });
 
+test("admin activation MAX links are bound to the selected customer", async () => {
+  await withEnvironment(async () => {
+    const maxApiMock = mockMaxApiRequests(() => ({
+      body: { username: "service_bot" },
+    }));
+    const targetUserId = "44444444-4444-4444-8444-444444444444";
+    let createdRequest: Record<string, unknown> | undefined;
+    const database = {
+      maxLoginRequest: {
+        deleteMany: async () => ({ count: 0 }),
+        updateMany: async () => ({ count: 0 }),
+        create: async ({ data }: { data: Record<string, unknown> }) => {
+          createdRequest = data;
+          return data;
+        },
+      },
+      $transaction: async (operations: Promise<unknown>[]) =>
+        Promise.all(operations),
+    };
+
+    try {
+      const started = await startMaxLogin(
+        database as unknown as DatabaseClient,
+        undefined,
+        targetUserId,
+      );
+
+      assert.equal(createdRequest?.userId, targetUserId);
+      assert.equal(
+        createdRequest?.tokenHash,
+        hashMaxLoginToken(decodeURIComponent(started.url.split("?start=")[1]!)),
+      );
+      assert.equal(
+        started.url.startsWith("https://max.ru/service_bot?start="),
+        true,
+      );
+    } finally {
+      maxApiMock.restore();
+    }
+  });
+});
+
 test("bot_started confirms an already linked customer without a phone request", async () => {
   await withEnvironment(async () => {
     const maxApiMock = mockMaxApiRequests(() => ({ body: { message: {} } }));

@@ -132,8 +132,23 @@ and technician service calculation in the same database transaction. Only admini
 catalog balances; technicians can read active item balances. A tracked zero balance blocks use of that
 spare part or product. Administrators can create a repair order for an
 active customer through `POST /admin/orders`; its creation is recorded in order history. The
-administrator can create a customer record through `POST /admin/customers`; the one-time temporary
-password is returned only with that creation response and must be changed on first sign-in.
+administrator can create a customer record through `POST /admin/customers`. When an administrator
+creates a customer without an email, the API generates a unique `enot-…` login and temporary
+password, but never returns that password to the admin client. The API stores the pending password
+only as AES-256-GCM ciphertext keyed from the server-only `PASSWORD_RESET_CODE_SECRET`; a successful
+MAX delivery clears the ciphertext. A customer without an email also receives these credentials
+after their first repair order if their MAX account is already linked.
+
+For an admin-created customer without an email, `POST /admin/customers/:customerId/max-activation`
+returns a 10-minute MAX activation link bound to that exact customer account. The bot requests a
+contact; the API validates MAX's signed contact payload,
+checks that the verified phone matches the selected customer's phone, and rejects an already-linked
+different MAX profile. Only after this check does it link MAX and send the login and temporary
+password to that chat. Customers must start the bot themselves before it can message them. The
+temporary password is required to be changed on first sign-in; `/auth/login` accepts either email or
+the generated login in its existing `email` request field. Administrators creating an email-backed
+customer retain the existing one-time password response. If an activation link cannot be generated,
+the admin UI can request another for the same customer.
 Customers can permanently delete their own account from the signed-in app through
 `DELETE /customer/account`; the endpoint uses the authenticated customer's ID and accepts no target
 account ID. Only administrators can delete another customer through

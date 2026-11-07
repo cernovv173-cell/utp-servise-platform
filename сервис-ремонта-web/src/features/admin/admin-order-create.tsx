@@ -20,6 +20,7 @@ import {
   createAdminCustomer,
   createAdminOrder,
   getAdminCustomers,
+  startAdminCustomerMaxActivation,
 } from "@/lib/api";
 
 const fieldClassName =
@@ -40,10 +41,15 @@ export const AdminOrderCreate = ({
   const [customer, setCustomer] = useState<AdminCustomer | null>(null);
   const [customerMode, setCustomerMode] = useState<"existing" | "new">("existing");
   const [credentials, setCredentials] = useState<{
+    customerId: string;
     login: string;
-    password: string;
+    password?: string | null;
+    activationUrl?: string;
+    expiresAt?: string;
+    deliveryViaMax: boolean;
     orderCreated: boolean;
   } | null>(null);
+  const [activationBusy, setActivationBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const candidates = useQuery({
     queryKey: ["admin-order-customers", token, customerSearch],
@@ -60,14 +66,19 @@ export const AdminOrderCreate = ({
     const repairLocation =
       data.get("repairLocation") === "SERVICE_CENTER" ? "SERVICE_CENTER" : "CUSTOMER_ADDRESS";
     let newCustomer: NewAdminCustomer | null = null;
+    let activation: { url: string; expiresAt: string } | null = null;
     setSaving(true);
     try {
       if (customerMode === "new") {
+        const email = String(data.get("customerEmail")).trim();
         newCustomer = await createAdminCustomer(token, {
           displayName: String(data.get("customerName")).trim(),
-          email: String(data.get("customerEmail")).trim(),
+          email: email || null,
           ...(phone ? { phoneNumber: phone } : {}),
         });
+        if (!email) {
+          activation = await startAdminCustomerMaxActivation(token, newCustomer.customer.id);
+        }
       }
       await createAdminOrder(token, {
         customerId: newCustomer?.customer.id ?? customer!.id,
@@ -84,8 +95,12 @@ export const AdminOrderCreate = ({
       toast.success("Заявка создана и добавлена в общий список.");
       if (newCustomer) {
         setCredentials({
-          login: newCustomer.customer.email ?? "вход через МАКС",
+          customerId: newCustomer.customer.id,
+          login: newCustomer.customer.login ?? newCustomer.customer.email ?? "—",
           password: newCustomer.temporaryPassword,
+          activationUrl: activation?.url,
+          expiresAt: activation?.expiresAt,
+          deliveryViaMax: !newCustomer.customer.email,
           orderCreated: true,
         });
       }
@@ -98,8 +113,12 @@ export const AdminOrderCreate = ({
     } catch {
       if (newCustomer) {
         setCredentials({
-          login: newCustomer.customer.email ?? "вход через МАКС",
+          customerId: newCustomer.customer.id,
+          login: newCustomer.customer.login ?? newCustomer.customer.email ?? "—",
           password: newCustomer.temporaryPassword,
+          activationUrl: activation?.url,
+          expiresAt: activation?.expiresAt,
+          deliveryViaMax: !newCustomer.customer.email,
           orderCreated: false,
         });
         setOpen(false);
@@ -110,6 +129,27 @@ export const AdminOrderCreate = ({
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const retryMaxActivation = async () => {
+    if (!token || !credentials?.deliveryViaMax) return;
+    setActivationBusy(true);
+    try {
+      const activation = await startAdminCustomerMaxActivation(token, credentials.customerId);
+      setCredentials((current) =>
+        current
+          ? {
+              ...current,
+              activationUrl: activation.url,
+              expiresAt: activation.expiresAt,
+            }
+          : current,
+      );
+    } catch {
+      toast.error("Не удалось создать ссылку MAX. Проверьте подключение и повторите попытку.");
+    } finally {
+      setActivationBusy(false);
     }
   };
 
@@ -158,8 +198,8 @@ export const AdminOrderCreate = ({
           {customerMode === "new" ? (
             <>
               <p className="text-xs text-slate-500 sm:col-span-2">
-                Создадим клиентский вход с логином по электронной почте и временным паролем. При
-                первом входе клиент должен будет сменить пароль.
+                Если у клиента нет электронной почты, оставьте поле пустым. Создадим логин и
+                временный пароль, а бот MAX отправит их после подтверждения номера клиента.
               </p>
               <label className="grid gap-1 text-sm font-medium">
                 Имя клиента{"\u00a0"}
@@ -173,12 +213,10 @@ export const AdminOrderCreate = ({
                 />
               </label>
               <label className="grid gap-1 text-sm font-medium">
-                Электронная почта — логин{"\u00a0"}
-                <span aria-hidden="true">*</span>
+                Электронная почта — необязательно
                 <input
                   name="customerEmail"
                   type="email"
-                  required
                   maxLength={320}
                   className={fieldClassName}
                 />
@@ -363,10 +401,17 @@ export const AdminOrderCreate = ({
       <Modal open={Boolean(credentials)} onOpenChange={(next) => !next && setCredentials(null)}>
         <ModalContent className="dark:border-slate-700 dark:bg-slate-900 dark:text-white">
           <ModalHeader>
-            <ModalTitle>Данные для первого входа</ModalTitle>
+            <ModalTitle>
+              {credentials?.deliveryViaMax
+                ? "Подключение клиента через МАКС"
+                : "Данные для первого входа"}
+            </ModalTitle>
             <ModalDescription className="dark:text-slate-400">
-              Передайте данные клиенту безопасным способом. Временный пароль будет запрошен к смене
-              при первом входе и больше не будет показан.
+              {credentials?.activationUrl
+                ? "Передайте клиенту ссылку ниже. После перехода в МАКС и подтверждения номера бот отправит клиенту логин и временный пароль."
+                : credentials?.deliveryViaMax
+                  ? "Ссылка пока не создана. Создайте её ниже и передайте клиенту; пароль бот отправит только после подтверждения его номера."
+                  : "Передайте данные клиенту безопасным способом. Временный пароль будет запрошен к смене при первом входе."}
             </ModalDescription>
           </ModalHeader>
           {!credentials?.orderCreated && (
@@ -377,15 +422,54 @@ export const AdminOrderCreate = ({
           )}
           <dl className="mt-4 grid gap-3 rounded-xl border border-slate-200 p-4 text-sm dark:border-slate-700">
             <div>
-              <dt className="text-xs text-slate-500">Логин (электронная почта)</dt>
+              <dt className="text-xs text-slate-500">
+                {credentials?.deliveryViaMax ? "Логин" : "Логин (электронная почта)"}
+              </dt>
               <dd className="mt-1 font-semibold break-all">{credentials?.login}</dd>
             </div>
-            <div>
-              <dt className="text-xs text-slate-500">Временный пароль</dt>
-              <dd className="mt-1 font-mono font-semibold break-all select-all">
-                {credentials?.password}
-              </dd>
-            </div>
+            {credentials?.deliveryViaMax ? (
+              <div>
+                {credentials.activationUrl ? (
+                  <>
+                    <dt className="text-xs text-slate-500">Ссылка для подтверждения в МАКС</dt>
+                    <dd className="mt-1 break-all">
+                      <a
+                        className="font-semibold text-blue-700 underline underline-offset-4 dark:text-blue-300"
+                        href={credentials.activationUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Открыть ссылку МАКС
+                      </a>
+                    </dd>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">
+                      Ссылка действует 10 минут
+                      {credentials.expiresAt
+                        ? ` — до ${new Date(credentials.expiresAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}`
+                        : ""}
+                      . Она закреплена за этим клиентом; бот отправит пароль только после
+                      подтверждения его номера.
+                    </p>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void retryMaxActivation()}
+                    disabled={activationBusy}
+                    className="mt-2 min-h-10 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {activationBusy ? "Создаём ссылку…" : "Создать ссылку MAX"}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div>
+                <dt className="text-xs text-slate-500">Временный пароль</dt>
+                <dd className="mt-1 font-mono font-semibold break-all select-all">
+                  {credentials?.password}
+                </dd>
+              </div>
+            )}
           </dl>
           <ModalFooter>
             <button

@@ -182,6 +182,7 @@ model ProductAnalyticsDailyMetric {
 model User {
   id                        String                         @id @default(uuid()) @db.Uuid
   email                     String?                        @unique @db.VarChar(320)
+  login                     String?                        @unique @db.VarChar(64)
   displayName               String                         @map("display_name") @db.VarChar(120)
   phoneNumber               String?                        @map("phone_number") @db.VarChar(32)
   gender                    CustomerGender?
@@ -244,6 +245,7 @@ model User {
   maxLinkTokens             MaxLinkToken[]
   maxNotifications          MaxNotificationDelivery[]
   maxLoginRequests          MaxLoginRequest[]
+  maxCredentialDelivery     MaxCredentialDelivery?
   referralsSent             CustomerReferral[]             @relation("ReferralInviter")
   referralReceived          CustomerReferral?              @relation("ReferralInvitee")
   referralPromoCodes        CustomerReferralCode[]         @relation("ReferralPromoCodeOwner")
@@ -940,6 +942,22 @@ model MaxNotificationDelivery {
   @@index([status, nextAttemptAt, lockedUntil])
   @@index([userId, createdAt])
   @@map("max_notification_deliveries")
+}
+
+model MaxCredentialDelivery {
+  id                String    @id @default(uuid()) @db.Uuid
+  userId            String    @unique @map("user_id") @db.Uuid
+  login             String    @db.VarChar(64)
+  encryptedPassword String?   @map("encrypted_password") @db.VarChar(512)
+  expiresAt         DateTime  @map("expires_at") @db.Timestamptz(3)
+  lockedUntil       DateTime? @map("locked_until") @db.Timestamptz(3)
+  attemptCount      Int       @default(0) @map("attempt_count")
+  sentAt            DateTime? @map("sent_at") @db.Timestamptz(3)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt, sentAt, lockedUntil])
+  @@map("max_credential_deliveries")
 }
 
 model Review {

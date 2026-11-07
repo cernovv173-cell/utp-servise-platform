@@ -710,13 +710,31 @@ object ApiClient {
     ): NewAdminCustomerResult {
         val response = request(
             "POST", "/admin/customers", token,
-            JSONObject().put("displayName", displayName).put("email", email).apply {
+            JSONObject().put("displayName", displayName).apply {
+                email.trim().takeIf { it.isNotEmpty() }?.let { put("email", it) }
                 if (phoneNumber.isNotBlank()) put("phoneNumber", phoneNumber)
             },
         )
+        val credentialDelivery = response.optJSONObject("credentialDelivery")
         return NewAdminCustomerResult(
             customer = response.getJSONObject("customer").toAdminCustomer(),
-            temporaryPassword = response.getString("temporaryPassword"),
+            temporaryPassword = response.nullableString("temporaryPassword"),
+            credentialDeliveryPending = credentialDelivery?.optString("status") == "PENDING",
+        )
+    }
+
+    fun startAdministratorCustomerMaxActivation(
+        token: String,
+        customerId: String,
+    ): MaxActivationLink {
+        val response = request(
+            "POST",
+            "/admin/customers/$customerId/max-activation",
+            token,
+        )
+        return MaxActivationLink(
+            url = response.getString("url"),
+            expiresAt = response.getString("expiresAt"),
         )
     }
 

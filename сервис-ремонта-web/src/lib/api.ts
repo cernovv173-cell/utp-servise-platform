@@ -43,6 +43,7 @@ export type RepairOrderDeadlineChange = {
 export type User = {
   id: string;
   email: string | null;
+  login?: string | null;
   displayName: string;
   avatarObjectId?: string | null;
   phoneNumber?: string | null;
@@ -510,6 +511,8 @@ export type CustomerServicePrice = Pick<
 export type AdminCustomer = {
   id: string;
   email: string | null;
+  login?: string | null;
+  maxLinked?: boolean;
   displayName: string;
   phoneNumber: string | null;
   active: boolean;
@@ -523,7 +526,8 @@ export type AdminCustomerPage = {
 
 export type NewAdminCustomer = {
   customer: AdminCustomer;
-  temporaryPassword: string;
+  temporaryPassword?: string | null;
+  credentialDelivery?: { channel: "MAX"; status: "PENDING" };
 };
 
 export type Review = {
@@ -1218,12 +1222,19 @@ export const releaseRepairOrder = (
 
 export const createAdminCustomer = (
   token: string,
-  input: { email: string; displayName: string; phoneNumber?: string },
+  input: { email: string | null; displayName: string; phoneNumber?: string },
 ) =>
   apiRequest<NewAdminCustomer>("/admin/customers", token, {
     method: "POST",
     body: JSON.stringify(input),
   });
+
+export const startAdminCustomerMaxActivation = (token: string, customerId: string) =>
+  apiRequest<{ url: string; expiresAt: string }>(
+    `/admin/customers/${customerId}/max-activation`,
+    token,
+    { method: "POST" },
+  );
 
 export const updateAdminCustomer = (
   token: string,

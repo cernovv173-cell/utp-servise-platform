@@ -6,6 +6,7 @@ import org.json.JSONObject
 internal fun JSONObject.toUser() = AppUser(
     id = getString("id"),
     email = nullableString("email"),
+    login = nullableString("login"),
     displayName = getString("displayName"),
     phoneNumber = nullableString("phoneNumber"),
     gender = nullableString("gender"),
@@ -595,6 +596,8 @@ internal fun JSONObject.toSupportChatInboxItem(): SupportChatInboxItem {
 internal fun JSONObject.toAdminCustomer() = AdminCustomer(
     id = getString("id"),
     email = nullableString("email"),
+    login = nullableString("login"),
+    maxLinked = optBoolean("maxLinked"),
     displayName = getString("displayName"),
     phoneNumber = nullableString("phoneNumber"),
     active = optBoolean("active", true),
