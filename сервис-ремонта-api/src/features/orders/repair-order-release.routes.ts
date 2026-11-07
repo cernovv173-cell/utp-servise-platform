@@ -22,6 +22,7 @@ import {
   calculateServiceBonusEligibleRub,
   canViewRepairOrder,
 } from "./order-policy.js";
+import { assertWorkActApproved } from "./repair-work-act.shared.js";
 import {
   REPAIR_WARRANTY_DAYS,
   REPAIR_WARRANTY_TERMS,
@@ -80,7 +81,11 @@ export const createRepairOrderReleaseRouter = (
       const user = getAuthenticatedUser(response);
       const order = await database.repairOrder.findUnique({
         where: { id: orderId },
-        include: { items: true, receipt: true },
+        include: {
+          items: true,
+          receipt: true,
+          workAct: { select: { status: true } },
+        },
       });
       if (!order || !canViewRepairOrder(user.role, user.id, order)) {
         throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
@@ -92,6 +97,7 @@ export const createRepairOrderReleaseRouter = (
           "Заявка ещё не готова к выдаче.",
         );
       }
+      assertWorkActApproved(order.workActRequired, order.workAct?.status);
       const intake = await database.repairOrderIntake.findUnique({
         where: { orderId },
         select: { conditionSummary: true, intakeMediaObjectId: true },
@@ -155,6 +161,7 @@ export const createRepairOrderReleaseRouter = (
             items: { orderBy: { createdAt: "asc" } },
             receipt: true,
             salaryEntry: true,
+            workAct: { select: { status: true } },
             customer: { select: { displayName: true, phoneNumber: true } },
           },
         });
@@ -168,6 +175,7 @@ export const createRepairOrderReleaseRouter = (
             "Заявка уже изменилась или не готова к выдаче.",
           );
         }
+        assertWorkActApproved(order.workActRequired, order.workAct?.status);
         const intake = await transaction.repairOrderIntake.findUnique({
           where: { orderId },
           select: { conditionSummary: true, intakeMediaObjectId: true },

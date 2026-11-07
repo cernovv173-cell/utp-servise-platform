@@ -195,14 +195,14 @@ it in the application. An administrator reviews it with
 creates the actual order lines at the snapshotted prices, while a decline records the decision
 without changing the order composition. The former `/response` path remains as an admin-only
 compatibility alias; customer requests to either path are forbidden. A changed offer creates a new
-version and preserves prior versions. Once estimates exist, direct order-line add/edit/delete endpoints are locked; an initial
-estimate must be approved by an administrator before a technician starts the repair, and pending
-additional work must receive an administrator's decision before the repair can be marked ready.
-No repair may transition to `IN_PROGRESS` without an administrator-approved estimate, including orders
-that predate estimates. Customers can read only active service names and exact unit prices through
+version and preserves prior versions. Once estimates exist, direct order-line add/edit/delete endpoints are locked. The initial estimate must be approved by an administrator before a technician starts the repair; no repair may transition to `IN_PROGRESS` without an administrator-approved estimate, including orders that predate estimates.
+
+After work starts, the assigned technician can add actual services and parts to the order's work-act draft without advance administrator approval. The API snapshots catalog names and prices and does not change order lines, inventory, receipt totals, or technician pay while the act is a draft or pending review. The technician submits the draft when ready; an administrator alone chooses the lines to keep and approves the act, without a second confirmation from the technician. Removed lines remain in the act's audit snapshot. Approval reconciles order lines and tracked stock atomically; the approved lines then feed the receipt and technician calculation. For orders created by this API version, an approved work act is required before `READY_FOR_PICKUP`, receipt finalization, or release. Existing orders keep their previous behavior until a work act is created for them. The additive `20261107190000_repair_work_acts` migration adds the act and audit records without rewriting existing orders.
+
+Customers can read only active service names and exact unit prices through
 `GET /customer/service-prices`; this response excludes parts, stock levels, inactive rows, and admin
 data. Web and Android show these as pre-visit catalog references, not a diagnosis or guaranteed
-repair total. Each quoted work item and any parts must be included in the technician's exact estimate,
+repair total. Each initial quoted work item and any parts must be included in the technician's exact estimate,
 which an administrator confirms before work begins; the service communicates the confirmed work and
 price to the customer beforehand. The new
 `20261011190000_repair_estimate_approval` migration is additive and does not rewrite existing orders.

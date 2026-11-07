@@ -130,6 +130,8 @@ data class RepairOrder(
     val intake: RepairOrderIntake? = null,
     val warranty: RepairWarranty? = null,
     val estimates: List<RepairEstimate> = emptyList(),
+    val workActRequired: Boolean = false,
+    val workAct: RepairWorkAct? = null,
     val deadlineChanges: List<RepairOrderDeadlineChange> = emptyList(),
     val deviceBrand: String? = null,
     val deviceModel: String? = null,
@@ -215,6 +217,37 @@ data class RepairEstimateItem(
 
 data class RepairEstimateDraftItem(val catalogItemId: String, val quantity: Int)
 
+data class RepairWorkAct(
+    val id: String,
+    val orderId: String,
+    val status: String,
+    val revision: Int,
+    val itemsSnapshot: List<RepairWorkActLine>,
+    val approvedItemsSnapshot: List<RepairWorkActLine>?,
+    val removedItemsSnapshot: List<RepairWorkActLine>?,
+    val submittedAt: String?,
+    val approvedAt: String?,
+    val createdByName: String?,
+    val approvedByName: String?,
+)
+
+data class RepairWorkActLine(
+    val lineId: String,
+    val orderItemId: String?,
+    val catalogItemId: String?,
+    val type: String,
+    val name: String,
+    val quantity: Int,
+    val unitPriceRub: Int,
+)
+
+data class RepairWorkActDraftLine(
+    val lineId: String,
+    val orderItemId: String?,
+    val catalogItemId: String?,
+    val quantity: Int,
+)
+
 data class RepairOrderIntake(
     val conditionSummary: String = "",
     val intakeMediaObjectId: String? = null,
@@ -263,6 +296,7 @@ data class RepairOrderItem(
     val quantity: Int,
     val unitPriceRub: Int,
     val addedByName: String,
+    val catalogItemId: String? = null,
 )
 
 data class LoyaltyTransaction(

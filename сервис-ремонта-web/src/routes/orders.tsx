@@ -25,6 +25,7 @@ import { RepairOrderInformation } from "@/features/orders/repair-order-informati
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
 import { RepairRequestForm } from "@/features/orders/repair-request-form";
+import { RepairWorkActPanel } from "@/features/orders/repair-work-act-panel";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
@@ -305,6 +306,19 @@ const OrdersPage = () => {
                 }
               />
             )}
+            {token && user && user.role !== "CUSTOMER" && (
+              <RepairWorkActPanel
+                order={order}
+                token={token}
+                catalogItems={catalog.data?.catalogItems ?? []}
+                onRefresh={() =>
+                  Promise.all([
+                    queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                    queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                  ])
+                }
+              />
+            )}
             {token && (
               <details className="mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
                 <summary className="cursor-pointer text-sm font-semibold">
@@ -410,7 +424,9 @@ const OrdersPage = () => {
                   <button
                     type="button"
                     disabled={
-                      statusMutation.isPending || order.estimates?.at(-1)?.status === "PENDING"
+                      statusMutation.isPending ||
+                      order.estimates?.at(-1)?.status === "PENDING" ||
+                      (order.workActRequired && order.workAct?.status !== "APPROVED")
                     }
                     onClick={() =>
                       statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })

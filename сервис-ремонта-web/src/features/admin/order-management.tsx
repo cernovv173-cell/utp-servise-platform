@@ -20,6 +20,7 @@ import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
+import { RepairWorkActPanel } from "@/features/orders/repair-work-act-panel";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
@@ -238,7 +239,8 @@ export const OrderManagement = ({
                           order.estimates?.length && order.estimates.at(-1)?.status !== "APPROVED",
                         )) ||
                       (value === "READY_FOR_PICKUP" &&
-                        order.estimates?.at(-1)?.status === "PENDING"),
+                        (order.estimates?.at(-1)?.status === "PENDING" ||
+                          (order.workActRequired && order.workAct?.status !== "APPROVED"))),
                   }))}
                   className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
                 />
@@ -340,6 +342,14 @@ export const OrderManagement = ({
             )}
             {token && orderId && (
               <RepairEstimatePanel
+                order={order}
+                token={token}
+                catalogItems={catalog.data?.catalogItems ?? []}
+                onRefresh={refresh}
+              />
+            )}
+            {token && (orderId || order.status === "IN_PROGRESS" || order.workAct) && (
+              <RepairWorkActPanel
                 order={order}
                 token={token}
                 catalogItems={catalog.data?.catalogItems ?? []}

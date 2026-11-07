@@ -88,6 +88,12 @@ enum RepairEstimateStatus {
   SUPERSEDED
 }
 
+enum RepairWorkActStatus {
+  DRAFT
+  PENDING
+  APPROVED
+}
+
 enum CraftOrderStatus {
   REQUESTED
   ACCEPTED
@@ -208,6 +214,8 @@ model User {
   assignedOrders            RepairOrder[]                  @relation("AssignedOrders")
   statusChanges             RepairStatusEvent[]            @relation("StatusActor")
   createdRepairEstimates    RepairEstimate[]               @relation("RepairEstimateCreator")
+  createdRepairWorkActs     RepairWorkAct[]                @relation("RepairWorkActCreator")
+  approvedRepairWorkActs    RepairWorkAct[]                @relation("RepairWorkActApprover")
   repairDeadlineChanges     RepairOrderDeadlineChange[]    @relation("RepairDeadlineChangeActor")
   reviews                   Review[]
   addedOrderItems           RepairOrderItem[]              @relation("OrderItemAdder")
@@ -365,6 +373,7 @@ model RepairOrder {
   expectedCompletionAt  DateTime?                      @map("expected_completion_at") @db.Timestamptz(3)
   redeemBonuses         Boolean                        @default(false) @map("redeem_bonuses")
   bonusDiscountRub      Int                            @default(0) @map("bonus_discount_rub")
+  workActRequired       Boolean                        @default(false) @map("work_act_required")
   status                RepairStatus                   @default(REQUESTED)
   priority              RepairOrderPriority            @default(NORMAL)
   diagnosisCompletedAt  DateTime?                      @map("diagnosis_completed_at") @db.Timestamptz(3)
@@ -379,6 +388,7 @@ model RepairOrder {
   statusEvents          RepairStatusEvent[]
   items                 RepairOrderItem[]
   estimates             RepairEstimate[]
+  workAct               RepairWorkAct?
   deadlineChanges       RepairOrderDeadlineChange[]
   photos                RepairOrderPhoto[]
   intake                RepairOrderIntake?
@@ -480,6 +490,28 @@ model RepairEstimate {
   @@unique([orderId, version])
   @@index([orderId, status, version])
   @@map("repair_estimates")
+}
+
+model RepairWorkAct {
+  id                    String              @id @default(uuid()) @db.Uuid
+  orderId               String              @unique @map("order_id") @db.Uuid
+  createdById           String?             @map("created_by_id") @db.Uuid
+  approvedById          String?             @map("approved_by_id") @db.Uuid
+  status                RepairWorkActStatus @default(DRAFT)
+  revision              Int                 @default(1)
+  itemsSnapshot         Json                @map("items_snapshot")
+  approvedItemsSnapshot Json?               @map("approved_items_snapshot")
+  removedItemsSnapshot  Json?               @map("removed_items_snapshot")
+  submittedAt           DateTime?           @map("submitted_at") @db.Timestamptz(3)
+  approvedAt            DateTime?           @map("approved_at") @db.Timestamptz(3)
+  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order                 RepairOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy             User?               @relation("RepairWorkActCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  approvedBy            User?               @relation("RepairWorkActApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([status, submittedAt])
+  @@map("repair_work_acts")
 }
 
 model RepairOrderDeadlineChange {

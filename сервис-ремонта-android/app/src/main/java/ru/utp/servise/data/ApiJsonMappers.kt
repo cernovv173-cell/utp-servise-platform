@@ -64,6 +64,7 @@ internal fun JSONObject.toOrder(): RepairOrder {
                 quantity = item.getInt("quantity"),
                 unitPriceRub = item.getInt("unitPriceRub"),
                 addedByName = item.optJSONObject("addedBy")?.optString("displayName").orEmpty(),
+                catalogItemId = item.nullableString("catalogItemId"),
             )
         },
         photos = optJSONArray("photos").mapObjects { photo ->
@@ -87,6 +88,8 @@ internal fun JSONObject.toOrder(): RepairOrder {
         intake = optJSONObject("intake")?.toRepairOrderIntake(),
         warranty = optJSONObject("warranty")?.toRepairWarranty(),
         estimates = estimates.mapObjects { it.toRepairEstimate() },
+        workActRequired = optBoolean("workActRequired"),
+        workAct = optJSONObject("workAct")?.toRepairWorkAct(),
         deadlineChanges = deadlineChanges.mapObjects { change ->
             RepairOrderDeadlineChange(
                 id = change.getString("id"),
@@ -198,6 +201,30 @@ internal fun JSONObject.toRepairEstimate() = RepairEstimate(
     submittedAt = optString("submittedAt"),
     respondedAt = nullableString("respondedAt"),
     createdByName = optJSONObject("createdBy")?.nullableString("displayName"),
+)
+
+internal fun JSONObject.toRepairWorkAct() = RepairWorkAct(
+    id = getString("id"),
+    orderId = getString("orderId"),
+    status = optString("status"),
+    revision = optInt("revision"),
+    itemsSnapshot = optJSONArray("itemsSnapshot").mapObjects { it.toRepairWorkActLine() },
+    approvedItemsSnapshot = if (isNull("approvedItemsSnapshot")) null else optJSONArray("approvedItemsSnapshot").mapObjects { it.toRepairWorkActLine() },
+    removedItemsSnapshot = if (isNull("removedItemsSnapshot")) null else optJSONArray("removedItemsSnapshot").mapObjects { it.toRepairWorkActLine() },
+    submittedAt = nullableString("submittedAt"),
+    approvedAt = nullableString("approvedAt"),
+    createdByName = optJSONObject("createdBy")?.nullableString("displayName"),
+    approvedByName = optJSONObject("approvedBy")?.nullableString("displayName"),
+)
+
+private fun JSONObject.toRepairWorkActLine() = RepairWorkActLine(
+    lineId = getString("lineId"),
+    orderItemId = nullableString("orderItemId"),
+    catalogItemId = nullableString("catalogItemId"),
+    type = optString("type"),
+    name = optString("name"),
+    quantity = optInt("quantity"),
+    unitPriceRub = optInt("unitPriceRub"),
 )
 
 internal fun JSONObject.toRepairOrderIntake() = RepairOrderIntake(

@@ -66,8 +66,8 @@ internal fun RepairEstimateSection(
     val latest = order.estimates.lastOrNull()
     val canManage = role == "ADMIN" || role == "TECHNICIAN"
     val canCompose = canManage &&
-        order.status in listOf("ASSIGNED", "IN_PROGRESS") &&
-        !(order.status == "ASSIGNED" && latest?.status == "APPROVED") &&
+        order.status == "ASSIGNED" &&
+        latest?.status != "APPROVED" &&
         (role != "ADMIN" || order.technicianName.isNotBlank())
     val isVisible = canCompose || role == "CUSTOMER" || order.estimates.isNotEmpty()
     var showComposer by remember(order.id) { mutableStateOf(false) }
@@ -84,7 +84,7 @@ internal fun RepairEstimateSection(
             Text("СМЕТА И ПРОВЕРКА", fontSize = 10.sp, color = UtpBlue, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp)
             Text("Стоимость ремонта", fontSize = 15.sp, color = UtpInk, fontWeight = FontWeight.SemiBold)
             Text(
-                "Запчасти списываются после подтверждения сметы администратором. Дополнительные работы также проверяет администратор.",
+                "Первоначальную смету администратор подтверждает до начала ремонта. Фактически выполненные дополнительные работы мастер добавит в отдельный акт без предварительного согласования.",
                 fontSize = 11.sp,
                 color = UtpMuted,
                 lineHeight = 16.sp,
@@ -154,7 +154,7 @@ internal fun RepairEstimateSection(
                     onClick = { showComposer = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(if (order.status == "IN_PROGRESS") "Предложить дополнительные работы" else "Подготовить смету")
+                    Text("Подготовить первоначальную смету")
                 }
             }
         }

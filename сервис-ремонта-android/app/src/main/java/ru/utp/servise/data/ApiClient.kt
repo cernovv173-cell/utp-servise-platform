@@ -1016,6 +1016,54 @@ object ApiClient {
             .put("note", note ?: JSONObject.NULL),
     ).getJSONObject("estimate").toRepairEstimate()
 
+    fun saveRepairWorkAct(
+        token: String,
+        orderId: String,
+        expectedRevision: Int,
+        items: List<RepairWorkActDraftLine>,
+    ): RepairWorkAct {
+        val itemsJson = JSONArray().apply {
+            items.forEach { item ->
+                put(
+                    JSONObject()
+                        .put("lineId", item.lineId)
+                        .put("orderItemId", item.orderItemId ?: JSONObject.NULL)
+                        .put("catalogItemId", item.catalogItemId ?: JSONObject.NULL)
+                        .put("quantity", item.quantity),
+                )
+            }
+        }
+        return request(
+            "PUT",
+            "/orders/$orderId/work-act",
+            token,
+            JSONObject().put("expectedRevision", expectedRevision).put("items", itemsJson),
+        ).getJSONObject("workAct").toRepairWorkAct()
+    }
+
+    fun submitRepairWorkAct(token: String, orderId: String, expectedRevision: Int): RepairWorkAct =
+        request(
+            "PATCH",
+            "/orders/$orderId/work-act/submit",
+            token,
+            JSONObject().put("expectedRevision", expectedRevision),
+        ).getJSONObject("workAct").toRepairWorkAct()
+
+    fun reviewRepairWorkAct(
+        token: String,
+        orderId: String,
+        expectedRevision: Int,
+        includedLineIds: List<String>,
+    ): RepairWorkAct {
+        val lineIds = JSONArray().apply { includedLineIds.forEach { put(it) } }
+        return request(
+            "PATCH",
+            "/orders/$orderId/work-act/review",
+            token,
+            JSONObject().put("expectedRevision", expectedRevision).put("includedLineIds", lineIds),
+        ).getJSONObject("workAct").toRepairWorkAct()
+    }
+
     fun staff(token: String): List<StaffMember> = request("GET", "/staff", token).getJSONArray("staff").mapObjects { it.toStaff() }
 
     fun technicianProfile(token: String, userId: String): TechnicianProfile =

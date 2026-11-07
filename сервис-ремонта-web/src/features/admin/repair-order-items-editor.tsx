@@ -148,8 +148,9 @@ export const RepairOrderItemsEditor = ({
   onRefresh: () => Promise<unknown>;
 }) => {
   const estimateControlsItems = Boolean(order.estimates?.length);
-  const canEditApprovedComposition = canEdit && !estimateControlsItems;
-  const canAddDirectly = canAdd && !estimateControlsItems;
+  const workActControlsItems = Boolean(order.workActRequired || order.workAct);
+  const canEditApprovedComposition = canEdit && !estimateControlsItems && !workActControlsItems;
+  const canAddDirectly = canAdd && !estimateControlsItems && !workActControlsItems;
   const [catalogItemId, setCatalogItemId] = useState("");
   const [quantity, setQuantity] = useState("1");
   const add = useMutation({
@@ -264,6 +265,12 @@ export const RepairOrderItemsEditor = ({
         <p className="mt-3 text-xs leading-5 text-slate-500">
           Состав уже подтверждён администратором. Дополнительные работы оформляйте отдельной сметой
           на проверку администратора.
+        </p>
+      )}
+      {canAdd && workActControlsItems && (
+        <p className="mt-3 text-xs leading-5 text-slate-500">
+          Новые работы и запчасти мастер добавляет в акт выполненных работ; до подтверждения
+          администратора они не меняют чек и склад.
         </p>
       )}
       {showEditHint && !canEdit && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (

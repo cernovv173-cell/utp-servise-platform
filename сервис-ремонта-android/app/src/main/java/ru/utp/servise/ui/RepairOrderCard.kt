@@ -157,6 +157,7 @@ internal fun RepairOrderCard(
                 }
             }
             RepairEstimateSection(order, role, token, catalogItems, runAction)
+            RepairWorkActSection(order, role, token, catalogItems, runAction)
             RepairDeadlineSection(order, role, token, runAction)
             TextButton(
                 onClick = { showOrderDetails = !showOrderDetails },
@@ -369,6 +370,8 @@ internal fun RepairOrderCard(
             }
             if (
                 role in listOf("ADMIN", "TECHNICIAN") &&
+                !order.workActRequired &&
+                order.workAct == null &&
                 order.estimates.isEmpty() &&
                 order.status in listOf("REQUESTED", "ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP")
             ) {
@@ -404,12 +407,23 @@ internal fun RepairOrderCard(
                     "READY_FOR_PICKUP" -> order.estimates.lastOrNull()?.status == "PENDING"
                     else -> false
                 }
+                val workActBlocksAction = status == "READY_FOR_PICKUP" &&
+                    (order.workActRequired || order.workAct != null) &&
+                    order.workAct?.status != "APPROVED"
                 OutlinedButton(
                     onClick = { runAction({ ApiClient.updateStatus(token, order.id, status) }, {}) },
-                    enabled = !estimateBlocksAction,
+                    enabled = !estimateBlocksAction && !workActBlocksAction,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     shape = RoundedCornerShape(12.dp),
-                ) { Text(if (estimateBlocksAction) "Ожидает подтверждения администратора" else label) }
+                ) {
+                    Text(
+                        when {
+                            workActBlocksAction -> "Ожидает подтверждения акта администратором"
+                            estimateBlocksAction -> "Ожидает подтверждения администратора"
+                            else -> label
+                        },
+                    )
+                }
             }
             if (role == "CUSTOMER" && order.status == "COMPLETED") {
                 RepairCompletionCard(order = order, onReview = onReview)

@@ -33,6 +33,7 @@ import {
   canViewRepairOrder,
 } from "./order-policy.js";
 import { createRepairOrderReleaseRouter } from "./repair-order-release.routes.js";
+import { assertWorkActApproved } from "./repair-work-act.shared.js";
 import {
   REPAIR_WARRANTY_DAYS,
   REPAIR_WARRANTY_TERMS,
@@ -252,6 +253,16 @@ const orderDetails = (role: UserRole) => ({
     orderBy: { version: "asc" as const },
     include: { createdBy: { select: { id: true, displayName: true } } },
   },
+  ...(role === "CUSTOMER"
+    ? {}
+    : {
+        workAct: {
+          include: {
+            createdBy: { select: { id: true, displayName: true } },
+            approvedBy: { select: { id: true, displayName: true } },
+          },
+        },
+      }),
   deadlineChanges: {
     orderBy: { createdAt: "desc" as const },
     include: { actor: { select: { id: true, displayName: true } } },
@@ -454,6 +465,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           data: {
             serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
             customerId: user.id,
+            workActRequired: true,
             customerDeviceId: savedDevice?.id ?? null,
             deviceType: savedDevice?.deviceType ?? input.deviceType,
             deviceBrand: savedDevice?.brand ?? (input.deviceBrand || null),
@@ -565,6 +577,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           data: {
             serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
             customerId: user.id,
+            workActRequired: true,
             customerDeviceId: source.customerDeviceId,
             warrantyOriginOrderId: source.id,
             deviceType: source.deviceType,
@@ -672,6 +685,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           data: {
             serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
             customerId: customer.id,
+            workActRequired: true,
             deviceType: input.deviceType,
             deviceBrand: input.deviceBrand || null,
             deviceModel: input.deviceModel || null,
@@ -1009,6 +1023,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             items: { orderBy: { createdAt: "asc" } },
             customer: { select: { displayName: true, phoneNumber: true } },
             receipt: true,
+            workAct: { select: { status: true } },
             salaryEntry: true,
           },
         });
@@ -1021,6 +1036,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Документ по ремонту можно сформировать после завершения работ.",
           );
         }
+        assertWorkActApproved(order.workActRequired, order.workAct?.status);
         if (order.receipt?.paymentStatus === "PAID") {
           throw new HttpError(
             409,
@@ -1609,6 +1625,15 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
               "Дождитесь решения администратора по дополнительной смете.",
             );
           }
+          if (status === "READY_FOR_PICKUP") {
+            const workAct = current.workActRequired
+              ? await transaction.repairWorkAct.findUnique({
+                  where: { orderId },
+                  select: { status: true },
+                })
+              : null;
+            assertWorkActApproved(current.workActRequired, workAct?.status);
+          }
         }
         if (status === "READY_FOR_PICKUP") {
           const intake = await transaction.repairOrderIntake.findUnique({
@@ -1717,6 +1742,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             assignedTechnicianId: true,
             status: true,
             deviceType: true,
+            workActRequired: true,
           },
         });
         if (!existing || !canAddRepairOrderItem(user.role, user.id, existing))
@@ -1729,6 +1755,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             409,
             "ORDER_NOT_EDITABLE",
             "Нельзя добавлять позиции в закрытую заявку.",
+          );
+        }
+        if (existing.workActRequired) {
+          throw new HttpError(
+            409,
+            "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+            "Для новой заявки добавляйте фактические работы в акт — без предварительного согласования.",
           );
         }
         if (
@@ -1837,6 +1870,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             id: true,
             assignedTechnicianId: true,
             status: true,
+            workActRequired: true,
             receipt: { select: { paymentStatus: true } },
           },
         });
@@ -1855,6 +1889,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             409,
             "ORDER_NOT_EDITABLE",
             "Нельзя изменить состав закрытой или оплаченной заявки.",
+          );
+        }
+        if (currentOrder.workActRequired) {
+          throw new HttpError(
+            409,
+            "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+            "Состав новой заявки меняйте через акт выполненных работ.",
           );
         }
         if (
@@ -1951,6 +1992,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             id: true,
             assignedTechnicianId: true,
             status: true,
+            workActRequired: true,
             receipt: { select: { paymentStatus: true } },
           },
         });
@@ -1969,6 +2011,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             409,
             "ORDER_NOT_EDITABLE",
             "Нельзя удалить позицию из закрытой или оплаченной заявки.",
+          );
+        }
+        if (currentOrder.workActRequired) {
+          throw new HttpError(
+            409,
+            "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+            "Состав новой заявки меняйте через акт выполненных работ.",
           );
         }
         if (

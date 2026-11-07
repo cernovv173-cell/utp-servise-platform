@@ -56,10 +56,7 @@ export const RepairEstimatePanel = ({
   const canManage =
     user?.role === "ADMIN" ||
     (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id);
-  const canSubmit =
-    canManage &&
-    ["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
-    !(order.status === "ASSIGNED" && latest?.status === "APPROVED");
+  const canSubmit = canManage && order.status === "ASSIGNED" && latest?.status !== "APPROVED";
   const review = useMutation({
     mutationFn: ({
       estimateId,
@@ -137,8 +134,9 @@ export const RepairEstimatePanel = ({
           </p>
           <h3 className="mt-1 text-base font-semibold">Сметы ремонта</h3>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-600 dark:text-slate-300">
-            Запчасти не списываются до подтверждения сметы администратором. После этого стоимость и
-            состав зафиксируются в заказе; дополнительные работы также проверит администратор.
+            Первоначальную смету администратор подтверждает до начала ремонта. Фактически
+            выполненные дополнительные работы мастер добавит в отдельный акт без предварительного
+            согласования.
           </p>
         </div>
         <span className="rounded-full border border-cyan-200 bg-white px-3 py-1 text-xs font-semibold text-cyan-900 dark:border-[#315989] dark:bg-[#102342] dark:text-cyan-100">
@@ -256,11 +254,7 @@ export const RepairEstimatePanel = ({
 
       {canSubmit && (
         <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
-          <h4 className="text-sm font-semibold">
-            {order.status === "IN_PROGRESS"
-              ? "Предложить дополнительные работы"
-              : "Подготовить смету"}
-          </h4>
+          <h4 className="text-sm font-semibold">"Подготовить первоначальную смету"</h4>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             Цены берутся из каталога на сервере и не редактируются с этого экрана.
           </p>

@@ -31,6 +31,30 @@ export type RepairEstimate = {
   createdBy: { id: string; displayName: string } | null;
 };
 
+export type RepairWorkActLine = {
+  lineId: string;
+  orderItemId: string | null;
+  catalogItemId: string | null;
+  type: RepairCatalogType;
+  name: string;
+  quantity: number;
+  unitPriceRub: number;
+};
+
+export type RepairWorkAct = {
+  id: string;
+  orderId: string;
+  status: "DRAFT" | "PENDING" | "APPROVED";
+  revision: number;
+  itemsSnapshot: RepairWorkActLine[];
+  approvedItemsSnapshot: RepairWorkActLine[] | null;
+  removedItemsSnapshot: RepairWorkActLine[] | null;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  createdBy: { id: string; displayName: string } | null;
+  approvedBy: { id: string; displayName: string } | null;
+};
+
 export type RepairOrderDeadlineChange = {
   id: string;
   previousExpectedAt: string | null;
@@ -160,12 +184,15 @@ export type RepairOrder = {
   }[];
   items: {
     id: string;
+    catalogItemId?: string | null;
     type: RepairCatalogType;
     name: string;
     quantity: number;
     unitPriceRub: number;
   }[];
   estimates?: RepairEstimate[];
+  workActRequired?: boolean;
+  workAct?: RepairWorkAct | null;
   review?: { id: string } | null;
   receipt?: RepairReceipt | null;
   intake?: RepairOrderIntake | null;
@@ -1047,6 +1074,36 @@ export const reviewRepairEstimate = (
     token,
     { method: "PATCH", body: JSON.stringify({ decision, note }) },
   );
+
+export const saveRepairWorkAct = (
+  token: string,
+  orderId: string,
+  input: {
+    expectedRevision: number;
+    items: Pick<RepairWorkActLine, "lineId" | "orderItemId" | "catalogItemId" | "quantity">[];
+  },
+) =>
+  apiRequest<{ workAct: RepairWorkAct }>(`/orders/${orderId}/work-act`, token, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+
+export const submitRepairWorkAct = (token: string, orderId: string, expectedRevision: number) =>
+  apiRequest<{ workAct: RepairWorkAct }>(`/orders/${orderId}/work-act/submit`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ expectedRevision }),
+  });
+
+export const reviewRepairWorkAct = (
+  token: string,
+  orderId: string,
+  expectedRevision: number,
+  includedLineIds: string[],
+) =>
+  apiRequest<{ workAct: RepairWorkAct }>(`/orders/${orderId}/work-act/review`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ expectedRevision, includedLineIds }),
+  });
 
 export const updateRepairOrderItemQuantity = (
   token: string,
