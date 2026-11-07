@@ -16,10 +16,14 @@ import { sendRepairOrderNotification } from "../notifications/push-notifications
 import { canAddRepairOrderItem, canViewRepairOrder } from "./order-policy.js";
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
-const responseParams = z.object({
+const reviewParams = z.object({
   orderId: z.string().uuid(),
   estimateId: z.string().uuid(),
 });
+const estimateReviewPaths = [
+  "/orders/:orderId/estimates/:estimateId/review",
+  "/orders/:orderId/estimates/:estimateId/response",
+];
 
 const submitEstimateBody = z
   .object({
@@ -48,7 +52,7 @@ const submitEstimateBody = z
     }
   });
 
-const respondEstimateBody = z
+const reviewEstimateBody = z
   .object({
     decision: z.enum(["APPROVED", "DECLINED"]),
     note: z.string().trim().max(500).optional(),
@@ -155,7 +159,7 @@ export const createRepairEstimatesRouter = (
           throw new HttpError(
             409,
             "INITIAL_ESTIMATE_ALREADY_APPROVED",
-            "Первоначальная смета уже согласована. Дополнительную смету можно подготовить после начала ремонта.",
+            "Первоначальная смета уже подтверждена администратором. Дополнительную смету можно подготовить после начала ремонта.",
           );
         }
 
@@ -272,27 +276,27 @@ export const createRepairEstimatesRouter = (
         database,
         result.order,
         user.id,
-        `Смета №${result.estimate.version} по заявке ${result.order.serviceNumber} отправлена на согласование.`,
+        `Смета №${result.estimate.version} по заявке ${result.order.serviceNumber} подготовлена и ожидает подтверждения администратора.`,
       );
       response.status(201).json({ estimate: result.estimate });
     },
   );
 
   router.patch(
-    "/orders/:orderId/estimates/:estimateId/response",
+    estimateReviewPaths,
     requireAuth,
-    requireRoles("CUSTOMER"),
-    validateRequest({ params: responseParams, body: respondEstimateBody }),
+    requireRoles("ADMIN"),
+    validateRequest({ params: reviewParams, body: reviewEstimateBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const { orderId, estimateId } = (
         response.locals.input as {
-          readonly params: z.infer<typeof responseParams>;
+          readonly params: z.infer<typeof reviewParams>;
         }
       ).params;
       const body = (
         response.locals.input as {
-          readonly body: z.infer<typeof respondEstimateBody>;
+          readonly body: z.infer<typeof reviewEstimateBody>;
         }
       ).body;
 
@@ -415,7 +419,7 @@ export const createRepairEstimatesRouter = (
         database,
         result.order,
         user.id,
-        `Клиент ${body.decision === "APPROVED" ? "согласовал" : "отклонил"} смету №${result.estimate.version} по заявке ${result.order.serviceNumber}.`,
+        `Администратор ${body.decision === "APPROVED" ? "подтвердил" : "отклонил"} смету №${result.estimate.version} по заявке ${result.order.serviceNumber}.`,
       );
       response.json({ estimate: result.estimate });
     },

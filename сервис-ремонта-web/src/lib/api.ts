@@ -1035,7 +1035,7 @@ export const submitRepairEstimate = (
     body: JSON.stringify(input),
   });
 
-export const respondToRepairEstimate = (
+export const reviewRepairEstimate = (
   token: string,
   orderId: string,
   estimateId: string,
@@ -1043,7 +1043,7 @@ export const respondToRepairEstimate = (
   note?: string,
 ) =>
   apiRequest<{ estimate: RepairEstimate }>(
-    `/orders/${orderId}/estimates/${estimateId}/response`,
+    `/orders/${orderId}/estimates/${estimateId}/review`,
     token,
     { method: "PATCH", body: JSON.stringify({ decision, note }) },
   );

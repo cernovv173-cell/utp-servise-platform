@@ -1596,7 +1596,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             throw new HttpError(
               409,
               "ESTIMATE_APPROVAL_REQUIRED",
-              "Нельзя начать ремонт без точной сметы. Сначала отправьте смету клиенту и получите его согласие.",
+              "Нельзя начать ремонт без подтверждённой сметы. Дождитесь решения администратора.",
             );
           }
           if (
@@ -1606,7 +1606,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             throw new HttpError(
               409,
               "ESTIMATE_RESPONSE_PENDING",
-              "Дождитесь ответа клиента на дополнительную смету.",
+              "Дождитесь решения администратора по дополнительной смете.",
             );
           }
         }
@@ -1737,7 +1737,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(
             409,
             "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
-            "После отправки сметы состав работ можно менять только новой сметой на согласование.",
+            "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
           );
         }
         const catalogItem = await transaction.repairCatalogItem.findFirst({
@@ -1863,7 +1863,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(
             409,
             "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
-            "После отправки сметы состав работ можно менять только новой сметой на согласование.",
+            "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
           );
         }
         const item = await transaction.repairOrderItem.findFirst({
@@ -1977,7 +1977,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(
             409,
             "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
-            "После отправки сметы состав работ можно менять только новой сметой на согласование.",
+            "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
           );
         }
         const item = await transaction.repairOrderItem.findFirst({

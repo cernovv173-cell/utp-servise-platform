@@ -250,13 +250,14 @@ assigned repair through the allowed status steps, prepare and send a versioned e
 intake act, upload its single photo or video, release a ready order with the confirmed payment method,
 and use the order chat. The estimate is surfaced before the collapsible contact, photo and
 history details; paperwork and chat are grouped separately. Administrators can create and edit
-requests, assign technicians, prepare estimates from the active catalog, manage receipts, search by
-service number, and manage paperwork and repair chat. Customers approve or decline the displayed
-version in their own order card. The API snapshots catalog prices, leaves stock untouched until
-approval, then creates order lines and deducts tracked stock in one transaction. Direct line edits are
-locked once estimate history exists, and the server requires approval before work starts. Orders
-without estimates retain the previous item-entry flow. The API remains authoritative for each role and
-order lifecycle transition.
+requests, assign technicians, prepare estimates from the active catalog, review pending estimates,
+manage receipts, search by service number, and manage paperwork and repair chat. Customers can view
+the estimate but do not approve or decline it in the application; only an administrator can confirm
+or return it for rework. The API snapshots catalog prices, leaves stock untouched until administrator
+confirmation, then creates order lines and deducts tracked stock in one transaction. Direct line edits
+are locked once estimate history exists, and the server requires administrator confirmation before
+work starts. Orders without estimates retain the previous item-entry flow. The API remains
+authoritative for each role and order lifecycle transition.
 
 Customer requests may include device brand, model, serial number, one optional initial photo and a
 preferred visit time. The time is explicitly a request; it is not confirmed until the service checks

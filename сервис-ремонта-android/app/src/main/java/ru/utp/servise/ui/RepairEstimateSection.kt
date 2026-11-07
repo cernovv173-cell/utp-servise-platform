@@ -40,8 +40,8 @@ import ru.utp.servise.data.RepairOrder
 private data class DraftLine(val catalogItem: CatalogItem, var quantity: String = "1")
 
 private fun estimateStatusLabel(status: String): String = when (status) {
-    "PENDING" -> "Ждёт ответа"
-    "APPROVED" -> "Согласована"
+    "PENDING" -> "Ожидает администратора"
+    "APPROVED" -> "Подтверждена"
     "DECLINED" -> "Отклонена"
     else -> "Заменена новой версией"
 }
@@ -81,10 +81,10 @@ internal fun RepairEstimateSection(
         colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.48f)),
     ) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("СМЕТА И СОГЛАСИЕ", fontSize = 10.sp, color = UtpBlue, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp)
+            Text("СМЕТА И ПРОВЕРКА", fontSize = 10.sp, color = UtpBlue, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp)
             Text("Стоимость ремонта", fontSize = 15.sp, color = UtpInk, fontWeight = FontWeight.SemiBold)
             Text(
-                "Запчасти не списываются до согласия. Дополнительные работы потребуют отдельного подтверждения.",
+                "Запчасти списываются после подтверждения сметы администратором. Дополнительные работы также проверяет администратор.",
                 fontSize = 11.sp,
                 color = UtpMuted,
                 lineHeight = 16.sp,
@@ -98,40 +98,54 @@ internal fun RepairEstimateSection(
                 }
             }
 
-            if (role == "CUSTOMER" && latest?.status == "PENDING") {
-                OutlinedTextField(
-                    value = responseNote,
-                    onValueChange = { responseNote = it.take(500) },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Вопрос или комментарий (необязательно)") },
-                    minLines = 2,
-                    maxLines = 4,
+            if (latest?.status == "PENDING") {
+                Text(
+                    if (role == "ADMIN") {
+                        "Смета ожидает вашего решения."
+                    } else {
+                        "Смета передана администратору на проверку."
+                    },
+                    fontSize = 12.sp,
+                    color = UtpMuted,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
-                        onClick = {
-                            runAction(
-                                {
-                                    ApiClient.respondToRepairEstimate(
-                                        token, order.id, latest.id, "APPROVED", responseNote.ifBlank { null },
-                                    )
-                                },
-                            ) { responseNote = "" }
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) { Text("Согласовать") }
-                    OutlinedButton(
-                        onClick = {
-                            runAction(
-                                {
-                                    ApiClient.respondToRepairEstimate(
-                                        token, order.id, latest.id, "DECLINED", responseNote.ifBlank { null },
-                                    )
-                                },
-                            ) { responseNote = "" }
-                        },
-                        modifier = Modifier.weight(1f),
-                    ) { Text("Отказать / уточнить") }
+                if (
+                    role == "ADMIN" &&
+                    order.status in listOf("ASSIGNED", "IN_PROGRESS")
+                ) {
+                    OutlinedTextField(
+                        value = responseNote,
+                        onValueChange = { responseNote = it.take(500) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Комментарий к решению (необязательно)") },
+                        minLines = 2,
+                        maxLines = 4,
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = {
+                                runAction(
+                                    {
+                                        ApiClient.reviewRepairEstimate(
+                                            token, order.id, latest.id, "APPROVED", responseNote.ifBlank { null },
+                                        )
+                                    },
+                                ) { responseNote = "" }
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Подтвердить смету") }
+                        OutlinedButton(
+                            onClick = {
+                                runAction(
+                                    {
+                                        ApiClient.reviewRepairEstimate(
+                                            token, order.id, latest.id, "DECLINED", responseNote.ifBlank { null },
+                                        )
+                                    },
+                                ) { responseNote = "" }
+                            },
+                            modifier = Modifier.weight(1f),
+                        ) { Text("Вернуть мастеру") }
+                    }
                 }
             }
 
@@ -199,7 +213,7 @@ private fun EstimateHistoryCard(estimate: RepairEstimate) {
             Text("Итого: ${estimate.totalRub} ₽", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = UtpBlue)
         }
         estimate.customerResponseNote?.let {
-            Text("Ответ клиента: $it", fontSize = 10.sp, color = UtpMuted)
+            Text("Комментарий к решению: $it", fontSize = 10.sp, color = UtpMuted)
         }
     }
 }
@@ -220,7 +234,7 @@ private fun RepairEstimateComposerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Смета для клиента") },
+        title = { Text("Смета на проверку администратору") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -274,7 +288,7 @@ private fun RepairEstimateComposerDialog(
                     }
                 }
                 validation?.let { Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error, fontSize = 11.sp) }
-                Text("Цена подставляется из каталога. Списание со склада произойдёт только после согласия.", fontSize = 10.sp, lineHeight = 15.sp, color = UtpMuted)
+                Text("Цена берётся из каталога. Списание со склада произойдёт после подтверждения администратором.", fontSize = 10.sp, lineHeight = 15.sp, color = UtpMuted)
             }
         },
         confirmButton = {
@@ -289,7 +303,7 @@ private fun RepairEstimateComposerDialog(
                         )
                     }
                 },
-            ) { Text("Отправить на согласование") }
+            ) { Text("Отправить администратору") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
     )

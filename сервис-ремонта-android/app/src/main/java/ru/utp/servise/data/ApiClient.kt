@@ -1001,7 +1001,7 @@ object ApiClient {
         ).getJSONObject("estimate").toRepairEstimate()
     }
 
-    fun respondToRepairEstimate(
+    fun reviewRepairEstimate(
         token: String,
         orderId: String,
         estimateId: String,
@@ -1009,7 +1009,7 @@ object ApiClient {
         note: String?,
     ): RepairEstimate = request(
         "PATCH",
-        "/orders/$orderId/estimates/$estimateId/response",
+        "/orders/$orderId/estimates/$estimateId/review",
         token,
         JSONObject()
             .put("decision", decision)

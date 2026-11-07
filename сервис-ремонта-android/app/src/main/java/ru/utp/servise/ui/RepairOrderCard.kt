@@ -409,7 +409,7 @@ internal fun RepairOrderCard(
                     enabled = !estimateBlocksAction,
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     shape = RoundedCornerShape(12.dp),
-                ) { Text(if (estimateBlocksAction) "Ожидает согласия клиента" else label) }
+                ) { Text(if (estimateBlocksAction) "Ожидает подтверждения администратора" else label) }
             }
             if (role == "CUSTOMER" && order.status == "COMPLETED") {
                 RepairCompletionCard(order = order, onReview = onReview)

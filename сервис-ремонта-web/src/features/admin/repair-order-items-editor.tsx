@@ -262,8 +262,8 @@ export const RepairOrderItemsEditor = ({
       )}
       {canAdd && estimateControlsItems && (
         <p className="mt-3 text-xs leading-5 text-slate-500">
-          Состав уже подтверждён клиентом. Дополнительные работы отправляйте отдельной сметой на
-          согласование.
+          Состав уже подтверждён администратором. Дополнительные работы оформляйте отдельной сметой
+          на проверку администратора.
         </p>
       )}
       {showEditHint && !canEdit && order.status !== "COMPLETED" && order.status !== "CANCELLED" && (

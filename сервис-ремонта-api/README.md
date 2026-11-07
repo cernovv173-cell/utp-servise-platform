@@ -188,19 +188,23 @@ and paid receipts keep their independent authorization and lifecycle checks.
 Assigned repair orders can use immutable, versioned estimates. An administrator or assigned
 technician selects active catalog items and quantities; the API snapshots the current catalog names
 and prices rather than accepting prices from the client. `POST /orders/:orderId/estimates` submits a
-version for customer approval. Until approval, no order lines are created and tracked inventory is
-not deducted. The customer responds with `PATCH /orders/:orderId/estimates/:estimateId/response`;
-approval rechecks tracked stock and atomically creates the actual order lines at the snapshotted
-prices, while a decline records the response without changing the order composition. A changed
-offer creates a new version and preserves prior versions. Once estimates exist, direct order-line
-add/edit/delete endpoints are locked; an initial estimate must be approved before a technician starts
-the repair, and pending additional work must receive a response before the repair can be marked ready.
-No repair may transition to `IN_PROGRESS` without a customer-approved estimate, including orders
+version for administrator review. Until an administrator approves it, no order lines are created and
+tracked inventory is not deducted. Customers can inspect the estimate but cannot approve or decline
+it in the application. An administrator reviews it with
+`PATCH /orders/:orderId/estimates/:estimateId/review`; approval rechecks tracked stock and atomically
+creates the actual order lines at the snapshotted prices, while a decline records the decision
+without changing the order composition. The former `/response` path remains as an admin-only
+compatibility alias; customer requests to either path are forbidden. A changed offer creates a new
+version and preserves prior versions. Once estimates exist, direct order-line add/edit/delete endpoints are locked; an initial
+estimate must be approved by an administrator before a technician starts the repair, and pending
+additional work must receive an administrator's decision before the repair can be marked ready.
+No repair may transition to `IN_PROGRESS` without an administrator-approved estimate, including orders
 that predate estimates. Customers can read only active service names and exact unit prices through
 `GET /customer/service-prices`; this response excludes parts, stock levels, inactive rows, and admin
 data. Web and Android show these as pre-visit catalog references, not a diagnosis or guaranteed
 repair total. Each quoted work item and any parts must be included in the technician's exact estimate,
-which the customer must approve before work begins. The new
+which an administrator confirms before work begins; the service communicates the confirmed work and
+price to the customer beforehand. The new
 `20261011190000_repair_estimate_approval` migration is additive and does not rewrite existing orders.
 
 Administrators set or revise the planned completion date through

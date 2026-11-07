@@ -221,6 +221,10 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
     estimate: { id: string; totalRub: number; itemsSnapshot: unknown };
   };
   assert.equal(responseBody.estimate.totalRub, 25000);
+  assert.equal(
+    (responseBody.estimate as { status?: string }).status,
+    "PENDING",
+  );
   assert.deepEqual(responseBody.estimate.itemsSnapshot, [
     {
       catalogItemId,
@@ -255,12 +259,55 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
   assert.equal(prematureStart.status, 409);
   assert.equal(order.status, "ASSIGNED");
 
-  const approved = await fetch(
+  const customerApproval = await fetch(
+    `${baseUrl}/estimates/${responseBody.estimate.id}/review`,
+    {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${customerToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ decision: "APPROVED" }),
+    },
+  );
+  assert.equal(customerApproval.status, 403);
+  assert.equal(stockQuantity, 5);
+  assert.equal(orderItems.length, 0);
+
+  const legacyCustomerApproval = await fetch(
     `${baseUrl}/estimates/${responseBody.estimate.id}/response`,
     {
       method: "PATCH",
       headers: {
         authorization: `Bearer ${customerToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ decision: "APPROVED" }),
+    },
+  );
+  assert.equal(legacyCustomerApproval.status, 403);
+  assert.equal(stockQuantity, 5);
+
+  const technicianApproval = await fetch(
+    `${baseUrl}/estimates/${responseBody.estimate.id}/review`,
+    {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${technicianToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ decision: "APPROVED" }),
+    },
+  );
+  assert.equal(technicianApproval.status, 403);
+  assert.equal(stockQuantity, 5);
+
+  const approved = await fetch(
+    `${baseUrl}/estimates/${responseBody.estimate.id}/review`,
+    {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${adminToken}`,
         "content-type": "application/json",
       },
       body: JSON.stringify({ decision: "APPROVED" }),

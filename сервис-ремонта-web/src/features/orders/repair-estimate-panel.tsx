@@ -12,13 +12,13 @@ import {
   type RepairDeviceType,
   type RepairEstimate,
   type RepairOrder,
-  respondToRepairEstimate,
+  reviewRepairEstimate,
   submitRepairEstimate,
 } from "@/lib/api";
 
 const statusLabels: Record<RepairEstimate["status"], string> = {
-  PENDING: "Ждёт ответа",
-  APPROVED: "Согласована",
+  PENDING: "Ожидает подтверждения администратора",
+  APPROVED: "Подтверждена",
   DECLINED: "Отклонена",
   SUPERSEDED: "Заменена новой версией",
 };
@@ -47,7 +47,7 @@ export const RepairEstimatePanel = ({
   const latest = estimates.at(-1);
   const [diagnosis, setDiagnosis] = useState("");
   const [draftItems, setDraftItems] = useState<DraftItem[]>([{ catalogItemId: "", quantity: "1" }]);
-  const [declineNote, setDeclineNote] = useState("");
+  const [decisionNote, setDecisionNote] = useState("");
   const activeCatalogItems = catalogItems.filter(
     (item) =>
       item.active &&
@@ -60,7 +60,7 @@ export const RepairEstimatePanel = ({
     canManage &&
     ["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
     !(order.status === "ASSIGNED" && latest?.status === "APPROVED");
-  const reply = useMutation({
+  const review = useMutation({
     mutationFn: ({
       estimateId,
       decision,
@@ -69,18 +69,18 @@ export const RepairEstimatePanel = ({
       estimateId: string;
       decision: "APPROVED" | "DECLINED";
       note?: string;
-    }) => respondToRepairEstimate(token, order.id, estimateId, decision, note),
+    }) => reviewRepairEstimate(token, order.id, estimateId, decision, note),
     onSuccess: async (_result, variables) => {
       toast.success(
         variables.decision === "APPROVED"
-          ? "Смета согласована. Работы и запчасти закреплены за заявкой."
-          : "Ответ по смете отправлен мастеру.",
+          ? "Смета подтверждена администратором. Работы и запчасти закреплены за заявкой."
+          : "Смета отклонена и возвращена на доработку.",
       );
-      setDeclineNote("");
+      setDecisionNote("");
       await onRefresh();
     },
     onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "Не удалось отправить ответ."),
+      toast.error(error instanceof Error ? error.message : "Не удалось обработать смету."),
   });
   const submit = useMutation({
     mutationFn: () =>
@@ -92,7 +92,7 @@ export const RepairEstimatePanel = ({
         })),
       }),
     onSuccess: async () => {
-      toast.success("Смета отправлена клиенту на согласование.");
+      toast.success("Смета передана администратору на подтверждение.");
       setDiagnosis("");
       setDraftItems([{ catalogItemId: "", quantity: "1" }]);
       await onRefresh();
@@ -123,18 +123,22 @@ export const RepairEstimatePanel = ({
   };
 
   const latestPendingEstimate = latest?.status === "PENDING" ? latest : undefined;
+  const canReview =
+    user?.role === "ADMIN" &&
+    latestPendingEstimate &&
+    ["ASSIGNED", "IN_PROGRESS"].includes(order.status);
 
   return (
     <section className="mt-4 rounded-2xl border border-cyan-200/70 bg-cyan-50/60 p-4 dark:border-[#315989] dark:bg-[#0b1a32]">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold tracking-wide text-cyan-800 uppercase dark:text-cyan-200">
-            Согласование стоимости
+            Проверка сметы
           </p>
           <h3 className="mt-1 text-base font-semibold">Сметы ремонта</h3>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-600 dark:text-slate-300">
-            До согласия клиента запчасти не списываются. После одобрения стоимость и состав
-            зафиксируются в заказе; новые работы потребуют отдельного подтверждения.
+            Запчасти не списываются до подтверждения сметы администратором. После этого стоимость и
+            состав зафиксируются в заказе; дополнительные работы также проверит администратор.
           </p>
         </div>
         <span className="rounded-full border border-cyan-200 bg-white px-3 py-1 text-xs font-semibold text-cyan-900 dark:border-[#315989] dark:bg-[#102342] dark:text-cyan-100">
@@ -142,51 +146,57 @@ export const RepairEstimatePanel = ({
         </span>
       </div>
 
-      {latestPendingEstimate && user?.role === "CUSTOMER" && (
+      {latestPendingEstimate && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4 dark:border-amber-900 dark:bg-slate-950">
           <p className="text-sm font-semibold">
-            Смета №{latestPendingEstimate.version} ждёт вашего решения
+            {user?.role === "ADMIN"
+              ? `Смета №${latestPendingEstimate.version} ожидает вашего подтверждения.`
+              : `Смета №${latestPendingEstimate.version} передана администратору на проверку.`}
           </p>
-          <label className="mt-3 grid gap-1 text-xs font-medium">
-            Ответ или вопрос мастеру (необязательно)
-            <textarea
-              value={declineNote}
-              onChange={(event) => setDeclineNote(event.target.value)}
-              maxLength={500}
-              rows={2}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-normal dark:border-slate-700 dark:bg-slate-900"
-            />
-          </label>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={reply.isPending}
-              onClick={() =>
-                reply.mutate({
-                  estimateId: latestPendingEstimate.id,
-                  decision: "APPROVED",
-                  note: declineNote.trim() || undefined,
-                })
-              }
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              <Check size={16} aria-hidden="true" /> Согласовать смету
-            </button>
-            <button
-              type="button"
-              disabled={reply.isPending}
-              onClick={() =>
-                reply.mutate({
-                  estimateId: latestPendingEstimate.id,
-                  decision: "DECLINED",
-                  note: declineNote.trim() || undefined,
-                })
-              }
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-200 px-4 text-sm font-semibold text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
-            >
-              <X size={16} aria-hidden="true" /> Попросить изменить / отказаться
-            </button>
-          </div>
+          {canReview && (
+            <>
+              <label className="mt-3 grid gap-1 text-xs font-medium">
+                Комментарий к решению (необязательно)
+                <textarea
+                  value={decisionNote}
+                  onChange={(event) => setDecisionNote(event.target.value)}
+                  maxLength={500}
+                  rows={2}
+                  className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-normal dark:border-slate-700 dark:bg-slate-900"
+                />
+              </label>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={review.isPending}
+                  onClick={() =>
+                    review.mutate({
+                      estimateId: latestPendingEstimate.id,
+                      decision: "APPROVED",
+                      note: decisionNote.trim() || undefined,
+                    })
+                  }
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  <Check size={16} aria-hidden="true" /> Подтвердить смету
+                </button>
+                <button
+                  type="button"
+                  disabled={review.isPending}
+                  onClick={() =>
+                    review.mutate({
+                      estimateId: latestPendingEstimate.id,
+                      decision: "DECLINED",
+                      note: decisionNote.trim() || undefined,
+                    })
+                  }
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-200 px-4 text-sm font-semibold text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
+                >
+                  <X size={16} aria-hidden="true" /> Вернуть мастеру на доработку
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -236,7 +246,7 @@ export const RepairEstimatePanel = ({
               </div>
               {estimate.customerResponseNote && (
                 <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300">
-                  Ответ клиента: {estimate.customerResponseNote}
+                  Комментарий к решению: {estimate.customerResponseNote}
                 </p>
               )}
             </li>
@@ -343,7 +353,7 @@ export const RepairEstimatePanel = ({
               className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               <Send size={15} aria-hidden="true" />
-              {submit.isPending ? "Отправляем…" : "Отправить клиенту"}
+              {submit.isPending ? "Отправляем администратору…" : "Отправить администратору"}
             </button>
           </div>
           {activeCatalogItems.length === 0 && (
