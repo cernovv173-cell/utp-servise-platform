@@ -21,6 +21,7 @@ import { RepairCompletionCard } from "@/features/orders/repair-completion-card";
 import { RepairDeadlineHistory } from "@/features/orders/repair-deadline";
 import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
+import { RepairOrderDisclosureSummary } from "@/features/orders/repair-order-disclosure-summary";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
@@ -48,13 +49,6 @@ const statusLabels: Record<string, string> = {
   COMPLETED: "Завершена",
   CANCELLED: "Отменена",
 };
-const deviceLabels: Record<string, string> = {
-  COMPUTER: "ПК",
-  LAPTOP: "Ноутбук",
-  PHONE: "Телефон",
-  TABLET: "Планшет",
-};
-
 const OrdersPage = () => {
   const searchParams = Route.useSearch();
   const { token, user } = useAuth();
@@ -230,48 +224,68 @@ const OrdersPage = () => {
       <RepairOrderListTabs value={listView} onChange={setListView} />
       <div className="grid gap-4">
         {visibleOrders.map((order) => (
-          <SectionCard key={order.id}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs text-slate-400">Сервисный номер · {order.serviceNumber}</p>
-                <h2 className="mt-1 font-semibold">
-                  {deviceLabels[order.deviceType] ?? order.deviceType}
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">{order.problem}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
+          <SectionCard key={order.id} className="p-0">
+            <details>
+              <RepairOrderDisclosureSummary
+                order={order}
+                statusLabel={statusLabels[order.status] ?? order.status}
+              />
+              <div className="border-t border-slate-100 p-5 dark:border-slate-800">
                 {token && (
-                  <RepairOrderPriority
-                    orderId={order.id}
-                    priority={order.priority}
-                    token={token}
-                    canEdit={user?.role === "ADMIN"}
-                  />
+                  <div className="mb-3 flex justify-end">
+                    <RepairOrderPriority
+                      orderId={order.id}
+                      priority={order.priority}
+                      token={token}
+                      canEdit={user?.role === "ADMIN"}
+                    />
+                  </div>
                 )}
-                <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                  {statusLabels[order.status] ?? order.status}
-                </span>
-              </div>
-            </div>
-            {(order.deviceBrand || order.deviceModel || order.deviceSerialNumber) && (
-              <p className="mt-2 text-xs text-slate-500">
-                {[
-                  order.deviceBrand,
-                  order.deviceModel,
-                  order.deviceSerialNumber && `№ ${order.deviceSerialNumber}`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </p>
-            )}
-            <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
-            {(user?.role === "ADMIN" || user?.role === "TECHNICIAN") &&
-              order.status === "READY_FOR_PICKUP" &&
-              token && (
-                <div className="mt-3">
-                  <RepairOrderReleaseButton
+                {(order.deviceBrand || order.deviceModel || order.deviceSerialNumber) && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    {[
+                      order.deviceBrand,
+                      order.deviceModel,
+                      order.deviceSerialNumber && `№ ${order.deviceSerialNumber}`,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                )}
+                <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
+                {(user?.role === "ADMIN" || user?.role === "TECHNICIAN") &&
+                  order.status === "READY_FOR_PICKUP" &&
+                  token && (
+                    <div className="mt-3">
+                      <RepairOrderReleaseButton
+                        order={order}
+                        token={token}
+                        onRefresh={() =>
+                          Promise.all([
+                            queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                            queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                          ])
+                        }
+                      />
+                    </div>
+                  )}
+                {order.archivedAt && (
+                  <p className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 dark:border-[#7855c7]/50 dark:bg-[#211841] dark:text-[#d4b7ff]">
+                    В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}
+                  </p>
+                )}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
+                  <span>Создана: {new Date(order.createdAt).toLocaleDateString("ru-RU")}</span>
+                  <Link to="/checks" className="font-semibold text-blue-600">
+                    Детали и чек →
+                  </Link>
+                </div>
+                <RepairDeadlineHistory order={order} />
+                {token && (
+                  <RepairEstimatePanel
                     order={order}
                     token={token}
+                    catalogItems={catalog.data?.catalogItems ?? []}
                     onRefresh={() =>
                       Promise.all([
                         queryClient.invalidateQueries({ queryKey: ["orders", token] }),
@@ -279,193 +293,173 @@ const OrdersPage = () => {
                       ])
                     }
                   />
-                </div>
-              )}
-            {order.archivedAt && (
-              <p className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 dark:border-[#7855c7]/50 dark:bg-[#211841] dark:text-[#d4b7ff]">
-                В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}
-              </p>
-            )}
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
-              <span>Создана: {new Date(order.createdAt).toLocaleDateString("ru-RU")}</span>
-              <Link to="/checks" className="font-semibold text-blue-600">
-                Детали и чек →
-              </Link>
-            </div>
-            <RepairDeadlineHistory order={order} />
-            {token && (
-              <RepairEstimatePanel
-                order={order}
-                token={token}
-                catalogItems={catalog.data?.catalogItems ?? []}
-                onRefresh={() =>
-                  Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ["orders", token] }),
-                    queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
-                  ])
-                }
-              />
-            )}
-            {token && user && user.role !== "CUSTOMER" && (
-              <RepairWorkActPanel
-                order={order}
-                token={token}
-                catalogItems={catalog.data?.catalogItems ?? []}
-                onRefresh={() =>
-                  Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ["orders", token] }),
-                    queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
-                  ])
-                }
-              />
-            )}
-            {token && (
-              <details className="mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-                <summary className="cursor-pointer text-sm font-semibold">
-                  Контакты, фото и история заявки
-                </summary>
-                <div className="pt-3">
-                  <RepairOrderInformation order={order} token={token} />
-                </div>
-              </details>
-            )}
-            {token && (
-              <details className="mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-                <summary className="cursor-pointer text-sm font-semibold">
-                  Документы и переписка
-                </summary>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <OrderPaperwork
+                )}
+                {token && user && user.role !== "CUSTOMER" && (
+                  <RepairWorkActPanel
                     order={order}
                     token={token}
-                    canEditIntake={
-                      user?.role === "ADMIN" ||
-                      (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id)
+                    catalogItems={catalog.data?.catalogItems ?? []}
+                    onRefresh={() =>
+                      Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                        queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                      ])
                     }
                   />
-                  {(user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
-                    <RepairOrderChat token={token} orderId={order.id} />
-                  )}
-                </div>
-              </details>
-            )}
-            {token && (user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
-              <RepairOrderItemsEditor
-                order={order}
-                token={token}
-                catalogItems={user.role === "TECHNICIAN" ? (catalog.data?.catalogItems ?? []) : []}
-                canEdit={false}
-                canAdd={
-                  user.role === "TECHNICIAN" &&
-                  order.status !== "COMPLETED" &&
-                  order.status !== "CANCELLED"
-                }
-                showEditHint={false}
-                isCatalogLoading={user.role === "TECHNICIAN" && catalog.isLoading}
-                isCatalogError={user.role === "TECHNICIAN" && catalog.isError}
-                onRefresh={() =>
-                  Promise.all([
-                    queryClient.invalidateQueries({ queryKey: ["orders", token] }),
-                    queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
-                  ])
-                }
-              />
-            )}
-            {user?.role === "CUSTOMER" && order.status === "REQUESTED" && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <RepairOrderEditor
-                  order={order}
-                  token={token!}
-                  catalogItems={[]}
-                  isCatalogLoading={false}
-                  isCatalogError={false}
-                  allowItemEditing={false}
-                  showItemEditHint={false}
-                  onRefresh={() =>
-                    Promise.all([
-                      queryClient.invalidateQueries({ queryKey: ["orders", token] }),
-                      queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
-                    ])
-                  }
-                />
-                <button
-                  type="button"
-                  disabled={statusMutation.isPending}
-                  onClick={() => {
-                    if (window.confirm(`Отменить заявку ${order.serviceNumber}?`))
-                      statusMutation.mutate({ orderId: order.id, status: "CANCELLED" });
-                  }}
-                  className="min-h-10 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
-                >
-                  Отменить заявку
-                </button>
-              </div>
-            )}
-            {user?.role === "TECHNICIAN" && token && (
-              <div className="mt-3 grid gap-3">
-                {order.status === "ASSIGNED" && (
-                  <button
-                    type="button"
-                    disabled={
-                      statusMutation.isPending ||
-                      Boolean(
-                        order.estimates?.length && order.estimates.at(-1)?.status !== "APPROVED",
-                      )
-                    }
-                    onClick={() =>
-                      statusMutation.mutate({ orderId: order.id, status: "IN_PROGRESS" })
-                    }
-                    className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    Начать ремонт
-                  </button>
                 )}
-                {order.status === "IN_PROGRESS" && (
-                  <button
-                    type="button"
-                    disabled={
-                      statusMutation.isPending ||
-                      order.estimates?.at(-1)?.status === "PENDING" ||
-                      (order.workActRequired && order.workAct?.status !== "APPROVED")
+                {token && (
+                  <details className="mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                    <summary className="cursor-pointer text-sm font-semibold">
+                      Контакты, фото и история заявки
+                    </summary>
+                    <div className="pt-3">
+                      <RepairOrderInformation order={order} token={token} />
+                    </div>
+                  </details>
+                )}
+                {token && (
+                  <details className="mt-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+                    <summary className="cursor-pointer text-sm font-semibold">
+                      Документы и переписка
+                    </summary>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <OrderPaperwork
+                        order={order}
+                        token={token}
+                        canEditIntake={
+                          user?.role === "ADMIN" ||
+                          (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id)
+                        }
+                      />
+                      {(user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
+                        <RepairOrderChat token={token} orderId={order.id} />
+                      )}
+                    </div>
+                  </details>
+                )}
+                {token && (user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
+                  <RepairOrderItemsEditor
+                    order={order}
+                    token={token}
+                    catalogItems={
+                      user.role === "TECHNICIAN" ? (catalog.data?.catalogItems ?? []) : []
                     }
-                    onClick={() =>
-                      statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
+                    canEdit={false}
+                    canAdd={
+                      user.role === "TECHNICIAN" &&
+                      order.status !== "COMPLETED" &&
+                      order.status !== "CANCELLED"
                     }
-                    className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    Готова к выдаче
-                  </button>
+                    showEditHint={false}
+                    isCatalogLoading={user.role === "TECHNICIAN" && catalog.isLoading}
+                    isCatalogError={user.role === "TECHNICIAN" && catalog.isError}
+                    onRefresh={() =>
+                      Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                        queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                      ])
+                    }
+                  />
+                )}
+                {user?.role === "CUSTOMER" && order.status === "REQUESTED" && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <RepairOrderEditor
+                      order={order}
+                      token={token!}
+                      catalogItems={[]}
+                      isCatalogLoading={false}
+                      isCatalogError={false}
+                      allowItemEditing={false}
+                      showItemEditHint={false}
+                      onRefresh={() =>
+                        Promise.all([
+                          queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                          queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                        ])
+                      }
+                    />
+                    <button
+                      type="button"
+                      disabled={statusMutation.isPending}
+                      onClick={() => {
+                        if (window.confirm(`Отменить заявку ${order.serviceNumber}?`))
+                          statusMutation.mutate({ orderId: order.id, status: "CANCELLED" });
+                      }}
+                      className="min-h-10 rounded-xl border border-rose-200 px-4 text-sm font-semibold text-rose-700 disabled:opacity-50 dark:border-rose-900 dark:text-rose-300"
+                    >
+                      Отменить заявку
+                    </button>
+                  </div>
+                )}
+                {user?.role === "TECHNICIAN" && token && (
+                  <div className="mt-3 grid gap-3">
+                    {order.status === "ASSIGNED" && (
+                      <button
+                        type="button"
+                        disabled={
+                          statusMutation.isPending ||
+                          Boolean(
+                            order.estimates?.length &&
+                            order.estimates.at(-1)?.status !== "APPROVED",
+                          )
+                        }
+                        onClick={() =>
+                          statusMutation.mutate({ orderId: order.id, status: "IN_PROGRESS" })
+                        }
+                        className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                      >
+                        Начать ремонт
+                      </button>
+                    )}
+                    {order.status === "IN_PROGRESS" && (
+                      <button
+                        type="button"
+                        disabled={
+                          statusMutation.isPending ||
+                          order.estimates?.at(-1)?.status === "PENDING" ||
+                          (order.workActRequired && order.workAct?.status !== "APPROVED")
+                        }
+                        onClick={() =>
+                          statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
+                        }
+                        className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                      >
+                        Готова к выдаче
+                      </button>
+                    )}
+                  </div>
+                )}
+                {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (
+                  <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
+                    <p className="font-medium">К оплате по чеку {order.receipt.receiptNumber}</p>
+                    <p className="mt-1 text-slate-500">
+                      Баланс: {(loyalty.data?.balance ?? 0).toLocaleString("ru-RU")} бонусов ·
+                      максимум к списанию:{" "}
+                      {Math.min(
+                        loyalty.data?.balance ?? 0,
+                        Math.floor(
+                          order.items
+                            .filter((item) => item.type === "SERVICE")
+                            .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0) *
+                            0.3,
+                        ),
+                      ).toLocaleString("ru-RU")}{" "}
+                      ₽
+                    </p>
+                    <p className="mt-1 font-semibold">
+                      Итог к оплате:{" "}
+                      {(order.receipt.totalRub - order.receipt.bonusDiscountRub).toLocaleString(
+                        "ru-RU",
+                      )}{" "}
+                      ₽
+                    </p>
+                  </div>
+                )}
+                {user?.role === "CUSTOMER" && order.status === "COMPLETED" && (
+                  <RepairCompletionCard order={order} />
                 )}
               </div>
-            )}
-            {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (
-              <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
-                <p className="font-medium">К оплате по чеку {order.receipt.receiptNumber}</p>
-                <p className="mt-1 text-slate-500">
-                  Баланс: {(loyalty.data?.balance ?? 0).toLocaleString("ru-RU")} бонусов · максимум
-                  к списанию:{" "}
-                  {Math.min(
-                    loyalty.data?.balance ?? 0,
-                    Math.floor(
-                      order.items
-                        .filter((item) => item.type === "SERVICE")
-                        .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0) * 0.3,
-                    ),
-                  ).toLocaleString("ru-RU")}{" "}
-                  ₽
-                </p>
-                <p className="mt-1 font-semibold">
-                  Итог к оплате:{" "}
-                  {(order.receipt.totalRub - order.receipt.bonusDiscountRub).toLocaleString(
-                    "ru-RU",
-                  )}{" "}
-                  ₽
-                </p>
-              </div>
-            )}
-            {user?.role === "CUSTOMER" && order.status === "COMPLETED" && (
-              <RepairCompletionCard order={order} />
-            )}
+            </details>
           </SectionCard>
         ))}
         {!currentOrdersQuery.isLoading && !currentOrdersQuery.isError && !visibleOrders.length && (

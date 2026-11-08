@@ -242,7 +242,9 @@ The `/orders` and `/admin/orders` lists separate active requests, completed/canc
 and the automatically archived requests. The Android-aligned order cards expose structured address
 and contact details, assigned technician contact, protected request photos, status history, itemized
 services/parts/products and totals, repair paperwork, and a standard release action with payment
-confirmation. Each service and spare part is tagged for one or more of PC, laptop, phone, or tablet;
+confirmation. All request cards in customer/staff lists and the administrator list start as compact
+summaries; opening a card reveals its details and available actions. Direct administrator order-detail
+links remain expanded. Each service and spare part is tagged for one or more of PC, laptop, phone, or tablet;
 requests and estimates show only matching catalog entries, and a selected saved device supplies its
 type automatically. Customers can edit or cancel their own requests only while they are new, and may
 leave one review with an optional photo after completion. Assigned technicians can advance their

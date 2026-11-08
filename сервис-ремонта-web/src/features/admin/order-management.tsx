@@ -17,6 +17,7 @@ import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { RepairDeadlineEditor } from "@/features/orders/repair-deadline";
 import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
+import { RepairOrderDisclosureSummary } from "@/features/orders/repair-order-disclosure-summary";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
@@ -176,11 +177,15 @@ export const OrderManagement = ({
         {list.map((order) => (
           <article
             key={order.id}
-            className="rounded-xl border border-slate-100 p-4 dark:border-slate-800"
+            className="overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800"
           >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold text-blue-600">{order.serviceNumber}</p>
+            <details open={Boolean(orderId)}>
+              <RepairOrderDisclosureSummary
+                order={order}
+                statusLabel={statusLabels[order.status] ?? order.status}
+                customerName={order.customer?.displayName ?? "Клиент"}
+              />
+              <div className="border-t border-slate-100 p-4 dark:border-slate-800">
                 {!orderId && (
                   <div className="mt-2 flex flex-wrap gap-2">
                     <button
@@ -202,174 +207,171 @@ export const OrderManagement = ({
                     </Link>
                   </div>
                 )}
-                {order.archivedAt && (
-                  <p className="mt-1 inline-flex rounded-full border border-violet-300/40 bg-violet-50 px-2.5 py-1 text-[11px] font-medium text-violet-800 dark:border-[#9b7bff]/40 dark:bg-[#241b45] dark:text-[#d4c4ff]">
-                    В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}
-                  </p>
-                )}
-                <h3 className="mt-1 font-semibold">
-                  {order.customer?.displayName ?? "Клиент"} · {order.deviceType}
-                </h3>
-                <p className="mt-1 max-w-2xl text-sm text-slate-500">{order.problem}</p>
-              </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium dark:bg-slate-800">
-                {statusLabels[order.status] ?? order.status}
-              </span>
-            </div>
-            <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
-            {token && <RepairOrderInformation order={order} token={token} />}
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {token && (
-                <div className="sm:col-span-2 lg:col-span-4">
-                  <RepairDeadlineEditor order={order} token={token} onSaved={refresh} />
-                </div>
-              )}
-              <label className="grid gap-1 text-xs font-medium">
-                Статус
-                <Select
-                  ariaLabel={`Статус заявки ${order.serviceNumber}`}
-                  value={order.status}
-                  onValueChange={(value) => mutate.mutate({ kind: "status", id: order.id, value })}
-                  options={(availableStatuses[order.status] ?? [order.status]).map((value) => ({
-                    value,
-                    label: statusLabels[value] ?? value,
-                    disabled:
-                      (value === "IN_PROGRESS" &&
-                        Boolean(
-                          order.estimates?.length && order.estimates.at(-1)?.status !== "APPROVED",
-                        )) ||
-                      (value === "READY_FOR_PICKUP" &&
-                        (order.estimates?.at(-1)?.status === "PENDING" ||
-                          (order.workActRequired && order.workAct?.status !== "APPROVED"))),
-                  }))}
-                  className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-              <label className="grid gap-1 text-xs font-medium">
-                {order.assignedTechnicianId ? "Изменить мастера" : "Назначить мастера"}
-                <Select
-                  ariaLabel={`Мастер для заявки ${order.serviceNumber}`}
-                  value={order.assignedTechnicianId ?? undefined}
-                  placeholder="Не назначен"
-                  onValueChange={(technicianId) =>
-                    mutate.mutate({ kind: "assign", id: order.id, value: technicianId })
-                  }
-                  disabled={
-                    mutate.isPending ||
-                    ["COMPLETED", "CANCELLED", "READY_FOR_PICKUP"].includes(order.status)
-                  }
-                  options={[
-                    ...activeTechnicians.map((member) => ({
-                      value: member.id,
-                      label: member.displayName,
-                    })),
-                    ...(order.assignedTechnicianId &&
-                    order.assignedTechnician &&
-                    !activeTechnicians.some((member) => member.id === order.assignedTechnicianId)
-                      ? [
-                          {
-                            value: order.assignedTechnicianId,
-                            label: `${order.assignedTechnician.displayName} · неактивен`,
-                            disabled: true,
-                          },
-                        ]
-                      : []),
-                  ]}
-                  className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-                />
-              </label>
-              <div className="grid content-end">
-                {order.status === "READY_FOR_PICKUP" && token && (
-                  <RepairOrderReleaseButton order={order} token={token} onRefresh={refresh} />
-                )}
-                <button
-                  disabled={
-                    order.status !== "COMPLETED" ||
-                    mutate.isPending ||
-                    order.receipt?.paymentStatus === "PAID"
-                  }
-                  onClick={() => mutate.mutate({ kind: "receipt", id: order.id })}
-                  className="h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
-                >
-                  {order.receipt?.paymentStatus === "PAID"
-                    ? "Чек оплачен"
-                    : order.receipt
-                      ? "Обновить документ"
-                      : "Создать документ"}
-                </button>
-                {["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
-                  !order.diagnosisCompletedAt && (
-                    <button
-                      disabled={mutate.isPending}
-                      onClick={() => mutate.mutate({ kind: "diagnosis", id: order.id })}
-                      className="mt-2 h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
-                    >
-                      Диагностика завершена
-                    </button>
+                <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
+                {token && <RepairOrderInformation order={order} token={token} />}
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {token && (
+                    <div className="sm:col-span-2 lg:col-span-4">
+                      <RepairDeadlineEditor order={order} token={token} onSaved={refresh} />
+                    </div>
                   )}
-                {order.diagnosisCompletedAt && (
+                  <label className="grid gap-1 text-xs font-medium">
+                    Статус
+                    <Select
+                      ariaLabel={`Статус заявки ${order.serviceNumber}`}
+                      value={order.status}
+                      onValueChange={(value) =>
+                        mutate.mutate({ kind: "status", id: order.id, value })
+                      }
+                      options={(availableStatuses[order.status] ?? [order.status]).map((value) => ({
+                        value,
+                        label: statusLabels[value] ?? value,
+                        disabled:
+                          (value === "IN_PROGRESS" &&
+                            Boolean(
+                              order.estimates?.length &&
+                              order.estimates.at(-1)?.status !== "APPROVED",
+                            )) ||
+                          (value === "READY_FOR_PICKUP" &&
+                            (order.estimates?.at(-1)?.status === "PENDING" ||
+                              (order.workActRequired && order.workAct?.status !== "APPROVED"))),
+                      }))}
+                      className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-xs font-medium">
+                    {order.assignedTechnicianId ? "Изменить мастера" : "Назначить мастера"}
+                    <Select
+                      ariaLabel={`Мастер для заявки ${order.serviceNumber}`}
+                      value={order.assignedTechnicianId ?? undefined}
+                      placeholder="Не назначен"
+                      onValueChange={(technicianId) =>
+                        mutate.mutate({ kind: "assign", id: order.id, value: technicianId })
+                      }
+                      disabled={
+                        mutate.isPending ||
+                        ["COMPLETED", "CANCELLED", "READY_FOR_PICKUP"].includes(order.status)
+                      }
+                      options={[
+                        ...activeTechnicians.map((member) => ({
+                          value: member.id,
+                          label: member.displayName,
+                        })),
+                        ...(order.assignedTechnicianId &&
+                        order.assignedTechnician &&
+                        !activeTechnicians.some(
+                          (member) => member.id === order.assignedTechnicianId,
+                        )
+                          ? [
+                              {
+                                value: order.assignedTechnicianId,
+                                label: `${order.assignedTechnician.displayName} · неактивен`,
+                                disabled: true,
+                              },
+                            ]
+                          : []),
+                      ]}
+                      className="h-9 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+                    />
+                  </label>
+                  <div className="grid content-end">
+                    {order.status === "READY_FOR_PICKUP" && token && (
+                      <RepairOrderReleaseButton order={order} token={token} onRefresh={refresh} />
+                    )}
+                    <button
+                      disabled={
+                        order.status !== "COMPLETED" ||
+                        mutate.isPending ||
+                        order.receipt?.paymentStatus === "PAID"
+                      }
+                      onClick={() => mutate.mutate({ kind: "receipt", id: order.id })}
+                      className="h-9 rounded-lg bg-blue-600 px-3 text-xs font-semibold text-white disabled:opacity-50"
+                    >
+                      {order.receipt?.paymentStatus === "PAID"
+                        ? "Чек оплачен"
+                        : order.receipt
+                          ? "Обновить документ"
+                          : "Создать документ"}
+                    </button>
+                    {["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
+                      !order.diagnosisCompletedAt && (
+                        <button
+                          disabled={mutate.isPending}
+                          onClick={() => mutate.mutate({ kind: "diagnosis", id: order.id })}
+                          className="mt-2 h-9 rounded-lg border border-slate-200 px-3 text-xs font-semibold hover:bg-slate-50 disabled:opacity-50 dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          Диагностика завершена
+                        </button>
+                      )}
+                    {order.diagnosisCompletedAt && (
+                      <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
+                        Диагностика завершена
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {token && (
+                  <div className="mt-3">
+                    <OrderPaperwork
+                      order={order}
+                      token={token}
+                      canEditIntake={
+                        order.status !== "READY_FOR_PICKUP" &&
+                        order.status !== "COMPLETED" &&
+                        order.status !== "CANCELLED"
+                      }
+                    />
+                  </div>
+                )}
+                {token && (
+                  <RepairOrderEditor
+                    order={order}
+                    token={token}
+                    catalogItems={catalog.data?.catalogItems ?? []}
+                    isCatalogLoading={catalog.isLoading}
+                    isCatalogError={catalog.isError}
+                    isEditing={!orderId && editingOrderId === order.id}
+                    onEditingChange={(isEditing) => setEditingOrderId(isEditing ? order.id : null)}
+                    showEditToggle={Boolean(orderId)}
+                    onRefresh={refresh}
+                  />
+                )}
+                {token && orderId && (
+                  <RepairEstimatePanel
+                    order={order}
+                    token={token}
+                    catalogItems={catalog.data?.catalogItems ?? []}
+                    onRefresh={refresh}
+                  />
+                )}
+                {token && (orderId || order.status === "IN_PROGRESS" || order.workAct) && (
+                  <RepairWorkActPanel
+                    order={order}
+                    token={token}
+                    catalogItems={catalog.data?.catalogItems ?? []}
+                    onRefresh={refresh}
+                  />
+                )}
+                {token && (orderId || isAdmin) && (
+                  <RepairOrderChat
+                    token={token}
+                    orderId={order.id}
+                    defaultOpen={Boolean(orderId)}
+                  />
+                )}
+                {order.expectedCompletionAt && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Ориентировочное завершение:{" "}
+                    {new Date(order.expectedCompletionAt).toLocaleString("ru-RU")}
+                  </p>
+                )}
+                {order.bonusDiscountRub > 0 && (
                   <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
-                    Диагностика завершена
+                    Оплата бонусами: {order.bonusDiscountRub.toLocaleString("ru-RU")} ₽
                   </p>
                 )}
               </div>
-            </div>
-            {token && (
-              <div className="mt-3">
-                <OrderPaperwork
-                  order={order}
-                  token={token}
-                  canEditIntake={
-                    order.status !== "READY_FOR_PICKUP" &&
-                    order.status !== "COMPLETED" &&
-                    order.status !== "CANCELLED"
-                  }
-                />
-              </div>
-            )}
-            {token && (
-              <RepairOrderEditor
-                order={order}
-                token={token}
-                catalogItems={catalog.data?.catalogItems ?? []}
-                isCatalogLoading={catalog.isLoading}
-                isCatalogError={catalog.isError}
-                isEditing={!orderId && editingOrderId === order.id}
-                onEditingChange={(isEditing) => setEditingOrderId(isEditing ? order.id : null)}
-                showEditToggle={Boolean(orderId)}
-                onRefresh={refresh}
-              />
-            )}
-            {token && orderId && (
-              <RepairEstimatePanel
-                order={order}
-                token={token}
-                catalogItems={catalog.data?.catalogItems ?? []}
-                onRefresh={refresh}
-              />
-            )}
-            {token && (orderId || order.status === "IN_PROGRESS" || order.workAct) && (
-              <RepairWorkActPanel
-                order={order}
-                token={token}
-                catalogItems={catalog.data?.catalogItems ?? []}
-                onRefresh={refresh}
-              />
-            )}
-            {token && (orderId || isAdmin) && (
-              <RepairOrderChat token={token} orderId={order.id} defaultOpen={Boolean(orderId)} />
-            )}
-            {order.expectedCompletionAt && (
-              <p className="mt-3 text-xs text-slate-500">
-                Ориентировочное завершение:{" "}
-                {new Date(order.expectedCompletionAt).toLocaleString("ru-RU")}
-              </p>
-            )}
-            {order.bonusDiscountRub > 0 && (
-              <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
-                Оплата бонусами: {order.bonusDiscountRub.toLocaleString("ru-RU")} ₽
-              </p>
-            )}
+            </details>
           </article>
         ))}
         {!orderId && orders.isLoading && (
