@@ -132,6 +132,7 @@ private fun LoginScreen(
             .padding(22.dp),
     ) {
         TextButton(onClick = onBack) { Text("←  Назад") }
+        BrandHeader(modifier = Modifier.padding(bottom = 14.dp), subtitle = "Вход в личный кабинет")
         Text(if (recovering) "Восстановление пароля" else "Вход: ${portal.roleLabel()}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text(
             if (recovering) "Укажите адрес аккаунта — мы отправим ссылку для создания нового пароля."
@@ -297,6 +298,7 @@ private fun RegisterScreen(
     val phoneError = phoneNumberValidationError(phoneNumber)
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(22.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
+        BrandHeader(modifier = Modifier.padding(bottom = 14.dp), subtitle = "Регистрация клиента")
         Text("Аккаунт клиента", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text("Регистрация создаёт только клиентскую роль.", color = UtpMuted, modifier = Modifier.padding(top = 6.dp, bottom = 20.dp))
         MaxLoginCard(

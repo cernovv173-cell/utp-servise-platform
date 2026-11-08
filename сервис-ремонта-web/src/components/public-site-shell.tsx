@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, LogIn, Moon, ShoppingBag, Sun, Wrench, X } from "lucide-react";
+import { ArrowRight, LogIn, Moon, ShoppingBag, Sun, X } from "lucide-react";
 import { type ReactNode, createContext, useContext, useEffect, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
+import { BrandLogo } from "@/components/brand-logo";
 import { Modal, ModalClose, ModalContent, ModalTitle } from "@/components/modal";
 
 import { LoginExperience } from "@/features/auth/login-experience";
@@ -72,9 +73,7 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
               to="/"
               className="flex shrink-0 items-center gap-3 text-lg font-bold tracking-tight"
             >
-              <span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white shadow-[0_0_22px_rgba(37,99,235,0.28)]">
-                <Wrench size={20} aria-hidden="true" />
-              </span>
+              <BrandLogo className="size-10 rounded-xl border border-slate-200 shadow-[0_0_22px_rgba(37,99,235,0.18)] dark:border-[#304373]" />
               ЕНОТ СЕРВИС
             </Link>
             <nav className="hidden items-center gap-1 md:flex" aria-label="Основная навигация">
@@ -186,9 +185,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
         <main>{children}</main>
         <footer className="border-t border-slate-200/80 bg-white/70 dark:border-[#26365f]/80 dark:bg-[#080e20]/70 print:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between md:px-8">
-            <div>
-              <p className="font-semibold text-slate-800 dark:text-slate-200">ЕНОТ СЕРВИС</p>
-              <p className="mt-1">Открытая информация о сервисе — без регистрации.</p>
+            <div className="flex items-center gap-3">
+              <BrandLogo className="size-10 rounded-xl border border-slate-200 dark:border-[#304373]" />
+              <div>
+                <p className="font-semibold text-slate-800 dark:text-slate-200">ЕНОТ СЕРВИС</p>
+                <p className="mt-1">Открытая информация о сервисе — без регистрации.</p>
+              </div>
             </div>
             <nav
               className="flex flex-wrap items-center gap-3"

@@ -1,6 +1,8 @@
 import { HeadContent, Link, Outlet, createRootRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
 
+import { BrandLogo } from "@/components/brand-logo";
+
 import { AuthProvider } from "@/features/auth/auth-provider";
 import { SeasonalSceneBackground } from "@/features/seasonal/seasonal-scene-background";
 import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
@@ -33,6 +35,10 @@ const RootComponent = () => {
 const RouteError = () => (
   <main className="grid min-h-dvh place-items-center px-6" id="main-content">
     <section className="max-w-md rounded-3xl border border-neutral-200 bg-white p-8 text-neutral-950 shadow-sm">
+      <div className="mb-5 flex items-center gap-3 text-sm font-semibold">
+        <BrandLogo className="size-10 rounded-xl border border-neutral-200" />
+        ЕНОТ СЕРВИС
+      </div>
       <p className="font-mono text-xs tracking-widest text-red-700 uppercase">Application error</p>
       <h1 className="mt-3 text-3xl font-semibold">This view could not be opened.</h1>
       <p className="mt-3 text-sm leading-6 text-neutral-600">
@@ -51,6 +57,8 @@ const RouteError = () => (
 const NotFound = () => (
   <main className="grid min-h-dvh place-items-center px-6" id="main-content">
     <section className="max-w-md text-center">
+      <BrandLogo className="mx-auto mb-5 size-16 rounded-2xl border border-neutral-200" />
+      <p className="font-semibold">ЕНОТ СЕРВИС</p>
       <p className="font-mono text-sm text-neutral-600">404</p>
       <h1 className="mt-3 text-3xl font-semibold">Page not found</h1>
       <Link className="mt-6 inline-flex text-sm font-semibold text-neutral-950 underline" to="/">

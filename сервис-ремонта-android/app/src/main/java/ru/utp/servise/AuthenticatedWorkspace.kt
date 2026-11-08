@@ -72,6 +72,7 @@ import ru.utp.servise.ui.TechnicianCatalogScreen
 import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
+import ru.utp.servise.ui.BrandHeader
 import ru.utp.servise.ui.CustomerShopScreen
 import ru.utp.servise.ui.CustomerOffersScreen
 import ru.utp.servise.ui.CustomerDevicesScreen
@@ -208,6 +209,7 @@ internal fun AuthenticatedWorkspace(
         },
     ) { insets ->
         Column(Modifier.fillMaxSize().padding(insets)) {
+            BrandHeader()
             if (errorMessage != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp)) {
                     Text(errorMessage, Modifier.weight(1f), color = androidx.compose.material3.MaterialTheme.colorScheme.error)

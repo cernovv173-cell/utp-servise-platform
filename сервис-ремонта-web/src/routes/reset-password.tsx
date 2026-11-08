@@ -1,6 +1,7 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Wrench } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
+
+import { BrandLogo } from "@/components/brand-logo";
 
 import { confirmPasswordReset, confirmPasswordResetWithCode } from "@/lib/api";
 
@@ -57,9 +58,7 @@ const ResetPasswordPage = () => {
     <main className="grid min-h-dvh place-items-center bg-slate-50 px-5 py-10 dark:bg-slate-950">
       <section className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <Link to="/" className="flex items-center gap-3 text-lg font-bold">
-          <span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white">
-            <Wrench size={20} />
-          </span>
+          <BrandLogo className="size-10 rounded-xl border border-slate-200" />
           ЕНОТ СЕРВИС
         </Link>
         <h1 className="mt-8 text-2xl font-semibold">Восстановление пароля</h1>

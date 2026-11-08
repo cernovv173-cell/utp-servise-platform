@@ -4,7 +4,7 @@ import { LogOut, Moon, Power, Sun } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
-import { RaccoonIcon } from "@/components/raccoon-icon";
+import { BrandLogo } from "@/components/brand-logo";
 
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { IncomingOrderNotifications } from "@/features/admin/incoming-order-notifications";
@@ -41,9 +41,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
     return (
       <main className="grid min-h-dvh place-items-center bg-slate-50/35 p-6 dark:bg-slate-950/35">
         <section className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white/90 p-8 text-center shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/90">
-          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-100 text-xl font-bold text-blue-700">
-            U
-          </div>
+          <BrandLogo className="mx-auto size-14 rounded-2xl border border-slate-200" />
           <h1 className="mt-5 text-2xl font-semibold text-slate-950 dark:text-white">
             Войдите в ЕНОТ СЕРВИС
           </h1>
@@ -70,9 +68,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
     <div className="app-shell min-h-dvh bg-slate-50/45 text-slate-900 dark:bg-transparent dark:text-[#edf2ff] print:bg-white print:text-black">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)] print:hidden">
         <Link to="/" className="flex items-center gap-3 px-2 text-lg font-bold tracking-tight">
-          <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[#55e6ff] via-[#5580ff] to-[#ad65ff] text-xl text-white shadow-[0_0_24px_rgba(83,121,255,0.5)]">
-            <RaccoonIcon motion="peek" />
-          </span>
+          <BrandLogo className="size-9 rounded-xl border border-slate-200 shadow-[0_0_24px_rgba(83,121,255,0.22)] dark:border-[#304373]" />
           ЕНОТ СЕРВИС
         </Link>
         <DesktopSectionNavigation
@@ -98,9 +94,7 @@ export const AppShell = ({ active, children }: { active: string; children: React
       <div className="lg:pl-60">
         <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 shadow-sm backdrop-blur md:px-8 dark:border-[#26365f]/80 dark:bg-[#080e20]/85 dark:shadow-[0_8px_32px_rgba(0,0,0,0.14)] print:hidden">
           <Link to="/" className="flex items-center gap-2 font-bold lg:hidden">
-            <span className="grid size-8 place-items-center rounded-lg bg-gradient-to-br from-[#55e6ff] via-[#5580ff] to-[#ad65ff] text-lg text-white shadow-[0_0_18px_rgba(83,121,255,0.45)]">
-              <RaccoonIcon motion="peek" />
-            </span>
+            <BrandLogo className="size-8 rounded-lg border border-slate-200 shadow-[0_0_18px_rgba(83,121,255,0.22)] dark:border-[#304373]" />
             ЕНОТ СЕРВИС
           </Link>
           <div className="hidden text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase lg:block dark:text-[#91a5d6]">

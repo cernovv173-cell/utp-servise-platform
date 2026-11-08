@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -467,6 +468,7 @@ private fun UtpServiseApp(
 private fun LoadingScreen() {
     Box(Modifier.fillMaxSize().background(UtpPale), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            ru.utp.servise.ui.BrandLogo(Modifier.size(64.dp))
             CircularProgressIndicator(color = UtpBlue)
             Text("ЕНОТ СЕРВИС", fontWeight = FontWeight.SemiBold)
         }

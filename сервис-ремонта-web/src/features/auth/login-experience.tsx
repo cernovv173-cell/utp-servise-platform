@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, CheckCircle2, ClipboardList, MessageCircle, Wrench } from "lucide-react";
+import { ArrowRight, CheckCircle2, ClipboardList, MessageCircle } from "lucide-react";
 import { type FormEvent, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
+import { BrandLogo } from "@/components/brand-logo";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { MaxLogin } from "@/features/auth/max-login";
@@ -132,9 +133,7 @@ export const LoginExperience = ({
         <section className="flex items-center justify-center px-5 py-12">
           <div className="w-full max-w-lg">
             <Link to="/" className="flex items-center gap-3 text-lg font-bold">
-              <span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white">
-                <Wrench size={20} />
-              </span>
+              <BrandLogo className="size-10 rounded-xl border border-slate-200" />
               ЕНОТ СЕРВИС
             </Link>
             <div className="mt-12 grid size-14 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
@@ -227,16 +226,12 @@ export const LoginExperience = ({
         <div className="w-full max-w-md">
           {isDialog ? (
             <div className="flex items-center gap-3 text-lg font-bold">
-              <span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white">
-                <Wrench size={20} aria-hidden="true" />
-              </span>
+              <BrandLogo className="size-10 rounded-xl border border-slate-200" />
               ЕНОТ СЕРВИС
             </div>
           ) : (
             <Link to="/" className="flex items-center gap-3 text-lg font-bold">
-              <span className="grid size-10 place-items-center rounded-xl bg-blue-600 text-white">
-                <Wrench size={20} aria-hidden="true" />
-              </span>
+              <BrandLogo className="size-10 rounded-xl border border-slate-200" />
               ЕНОТ СЕРВИС
             </Link>
           )}

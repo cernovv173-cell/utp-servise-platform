@@ -88,11 +88,6 @@ fun CustomerHomeScreen(
     }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Image(painterResource(R.drawable.utp_servise_logo), "Логотип ЕНОТ СЕРВИС", Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)))
-            Column(Modifier.weight(1f).padding(start = 11.dp)) {
-                Text("ЕНОТ СЕРВИС", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("Сервисный центр", fontSize = 12.sp, color = UtpMuted)
-            }
             Text("Привет, ${user.displayName.substringBefore(' ')}", color = UtpBlue, fontSize = 12.sp)
         }
         Spacer(Modifier.height(18.dp))
