@@ -422,7 +422,9 @@ export const CustomerOffersManagement = () => {
                     {offer.winners.map((winner) => (
                       <p key={winner.place}>
                         {winner.place}-е место — {winner.displayName}
-                        {winner.bonusPoints > 0 ? ` · начислено ${winner.bonusPoints} баллов` : ""}
+                        {winner.bonusPoints > 0
+                          ? ` · ${offer.resultsPublishedAt ? "начислено" : "будет начислено"} ${winner.bonusPoints} баллов`
+                          : ""}
                       </p>
                     ))}
                   </div>
