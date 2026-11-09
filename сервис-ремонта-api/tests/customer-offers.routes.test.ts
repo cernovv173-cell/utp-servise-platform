@@ -217,6 +217,51 @@ const createHarness = () => {
     };
   };
 
+  const selectOffer = (
+    offer: (typeof offers)[number],
+    select: Record<string, any>,
+  ) =>
+    Object.fromEntries(
+      Object.entries(select).map(([key, value]) => {
+        if (key === "entries") {
+          const entryFilter = value?.where ?? {};
+          const selectedEntries = entries
+            .filter(
+              (entry) =>
+                entry.offerId === offer.id && entryMatches(entry, entryFilter),
+            )
+            .sort((left, right) => (left.place ?? 0) - (right.place ?? 0))
+            .map((entry) =>
+              Object.fromEntries(
+                Object.entries(value?.select ?? {}).map(
+                  ([field]: [string, any]) => {
+                    if (field === "customer") {
+                      return [
+                        field,
+                        {
+                          displayName:
+                            users.find((user) => user.id === entry.customerId)
+                              ?.displayName ?? "",
+                        },
+                      ];
+                    }
+                    return [
+                      field,
+                      entry[
+                        field as
+                          "id" | "offerId" | "customerId" | "joinedAt" | "place"
+                      ],
+                    ];
+                  },
+                ),
+              ),
+            );
+          return [key, selectedEntries];
+        }
+        return [key, offer[key as keyof typeof offer]];
+      }),
+    );
+
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
@@ -251,10 +296,12 @@ const createHarness = () => {
         where?: {
           isPublished?: boolean;
           startsAt?: { lte: Date };
-          endsAt?: { gt: Date };
+          endsAt?: { gt?: Date; lte?: Date };
+          resultsPublishedAt?: { not?: null; lte?: Date };
+          entries?: { some?: Record<string, any> };
         };
         include?: Record<string, any>;
-        select?: Record<string, true>;
+        select?: Record<string, any>;
       }) =>
         offers
           .filter(
@@ -262,16 +309,23 @@ const createHarness = () => {
               (where?.isPublished === undefined ||
                 offer.isPublished === where.isPublished) &&
               (!where?.startsAt?.lte || offer.startsAt <= where.startsAt.lte) &&
-              (!where?.endsAt?.gt || offer.endsAt > where.endsAt.gt),
+              (!where?.endsAt?.gt || offer.endsAt > where.endsAt.gt) &&
+              (!where?.endsAt?.lte || offer.endsAt <= where.endsAt.lte) &&
+              (where?.resultsPublishedAt?.not !== null ||
+                offer.resultsPublishedAt !== null) &&
+              (!where?.resultsPublishedAt?.lte ||
+                (offer.resultsPublishedAt !== null &&
+                  offer.resultsPublishedAt <= where.resultsPublishedAt.lte)) &&
+              (!where?.entries?.some ||
+                entries.some(
+                  (entry) =>
+                    entry.offerId === offer.id &&
+                    entryMatches(entry, where.entries!.some!),
+                )),
           )
           .map((offer) =>
             select
-              ? Object.fromEntries(
-                  Object.keys(select).map((key) => [
-                    key,
-                    offer[key as keyof typeof offer],
-                  ]),
-                )
+              ? selectOffer(offer, select)
               : includeOffer(offer, include ?? {}),
           ),
       findUnique: async ({
@@ -530,6 +584,7 @@ test("customers join once, and administrators draw and publish three distinct wi
   assert.equal(publicOffers.offers[0].participantCount, undefined);
   assert.equal(publicOffers.offers[0].myParticipation, undefined);
   assert.equal(publicOffers.offers[0].winners, undefined);
+  assert.deepEqual(publicOffers.completedOffers, []);
 
   const listing = await fetch(`${baseUrl}/offers`, {
     headers: headers(customerToken),
@@ -640,6 +695,54 @@ test("customers join once, and administrators draw and publish three distinct wi
     (offer: { id: string }) => offer.id === giveawayId,
   );
   assert.equal(customerOffer.winners.length, 3);
+
+  const completedResponse = await fetch(`${baseUrl}/public/offers`);
+  assert.equal(completedResponse.status, 200);
+  const completedBody = await completedResponse.json();
+  assert.deepEqual(
+    completedBody.offers.map((offer: { id: string }) => offer.id),
+    [promotionId],
+  );
+  assert.deepEqual(
+    completedBody.completedOffers.map((offer: { id: string }) => offer.id),
+    [giveawayId],
+  );
+  const completedOffer = completedBody.completedOffers[0];
+  assert.equal(
+    completedOffer.resultsPublishedAt,
+    publishedOffer.resultsPublishedAt,
+  );
+  assert.deepEqual(
+    completedOffer.winners.map(
+      ({
+        place,
+        prize,
+        bonusPoints,
+      }: {
+        place: number;
+        prize: string | null;
+        bonusPoints: number;
+      }) => ({ place, prize, bonusPoints }),
+    ),
+    [
+      { place: 1, prize: "Приз 1-го места", bonusPoints: 400 },
+      { place: 2, prize: "Приз 2-го места", bonusPoints: 200 },
+      { place: 3, prize: "Приз 3-го места", bonusPoints: 100 },
+    ],
+  );
+  assert.deepEqual(
+    new Set(
+      completedOffer.winners.map(
+        (winner: { displayName: string }) => winner.displayName,
+      ),
+    ),
+    new Set(["Клиент Один", "Клиент Два", "Клиент Три"]),
+  );
+  assert.ok(
+    completedOffer.winners.every(
+      (winner: Record<string, unknown>) => winner.customerId === undefined,
+    ),
+  );
 
   const repeatedPublish = await fetch(
     `${baseUrl}/admin/offers/${giveawayId}/publish-results`,

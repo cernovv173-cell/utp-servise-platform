@@ -759,6 +759,15 @@ export type PublicCustomerOffer = Pick<
   | "endsAt"
 >;
 
+export type PublicCompletedCustomerOffer = {
+  id: string;
+  type: CustomerOfferType;
+  title: string;
+  endsAt: string;
+  resultsPublishedAt: string;
+  winners: CustomerOfferWinner[];
+};
+
 export type AdminCustomerOffer = Omit<CustomerOffer, "myParticipation">;
 
 export type CreateCustomerOfferInput = {
@@ -1778,7 +1787,10 @@ export const getCustomerOffers = (token: string, signal?: AbortSignal) =>
   apiRequest<{ offers: CustomerOffer[] }>("/offers", token, { signal });
 
 export const getPublicCustomerOffers = (signal?: AbortSignal) =>
-  apiRequest<{ offers: PublicCustomerOffer[] }>("/public/offers", null, { signal });
+  apiRequest<{
+    offers: PublicCustomerOffer[];
+    completedOffers?: PublicCompletedCustomerOffer[];
+  }>("/public/offers", null, { signal });
 
 export const participateInCustomerOffer = (token: string, offerId: string) =>
   apiRequest<{

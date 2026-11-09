@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { PublicCustomerOffer } from "@/lib/api";
+import type { PublicCompletedCustomerOffer, PublicCustomerOffer } from "@/lib/api";
 
-import { getRunningCustomerOffers } from "./customer-offer-home-banner-state";
+import {
+  getCompletedCustomerOffers,
+  getRunningCustomerOffers,
+} from "./customer-offer-home-banner-state";
 
 const offer = (overrides: Partial<PublicCustomerOffer> = {}): PublicCustomerOffer => ({
   id: "offer",
@@ -17,6 +20,18 @@ const offer = (overrides: Partial<PublicCustomerOffer> = {}): PublicCustomerOffe
   thirdPlacePoints: 0,
   startsAt: "2026-10-28T10:00:00.000Z",
   endsAt: "2026-10-28T18:00:00.000Z",
+  ...overrides,
+});
+
+const completedOffer = (
+  overrides: Partial<PublicCompletedCustomerOffer> = {},
+): PublicCompletedCustomerOffer => ({
+  id: "completed",
+  type: "GIVEAWAY",
+  title: "Розыгрыш",
+  endsAt: "2026-10-27T18:00:00.000Z",
+  resultsPublishedAt: "2026-10-27T19:00:00.000Z",
+  winners: [{ place: 1, displayName: "Игорь", prize: "сертификат", bonusPoints: 0 }],
   ...overrides,
 });
 
@@ -44,5 +59,37 @@ describe("home customer offers", () => {
     expect(
       getRunningCustomerOffers([later, sooner], Date.parse("2026-10-28T12:00:00.000Z")),
     ).toEqual([sooner, later]);
+  });
+
+  it("shows only published results of finished offers with winners, newest first", () => {
+    const asOf = Date.parse("2026-10-28T12:00:00.000Z");
+    const earlier = completedOffer({
+      id: "earlier",
+      endsAt: "2026-10-26T18:00:00.000Z",
+      resultsPublishedAt: "2026-10-26T19:00:00.000Z",
+    });
+    const later = completedOffer({ id: "later" });
+    const notPublished = completedOffer({
+      id: "not-published",
+      resultsPublishedAt: "2026-10-28T13:00:00.000Z",
+    });
+    const withoutWinners = completedOffer({ id: "without-winners", winners: [] });
+    const stillRunning = completedOffer({
+      id: "still-running",
+      endsAt: "2026-10-29T18:00:00.000Z",
+    });
+
+    expect(
+      getCompletedCustomerOffers(
+        [earlier, later, notPublished, withoutWinners, stillRunning],
+        asOf,
+      ).map(({ id }) => id),
+    ).toEqual(["later", "earlier"]);
+  });
+
+  it("tolerates an older public offers response without completed results", () => {
+    expect(getCompletedCustomerOffers(undefined, Date.parse("2026-10-28T12:00:00.000Z"))).toEqual(
+      [],
+    );
   });
 });

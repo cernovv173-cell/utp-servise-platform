@@ -77,12 +77,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
               ЕНОТ СЕРВИС
             </Link>
             <nav className="hidden items-center gap-1 md:flex" aria-label="Основная навигация">
-              <a
-                href="/#services"
+              <Link
+                to="/uslugi"
                 className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
               >
                 Услуги
-              </a>
+              </Link>
               <Link
                 to="/shop"
                 className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
@@ -137,12 +137,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
             className="flex gap-1 overflow-x-auto border-t border-slate-200/80 px-4 py-2 md:hidden dark:border-[#26365f]/80"
             aria-label="Навигация"
           >
-            <a
-              href="/#services"
+            <Link
+              to="/uslugi"
               className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
             >
               Услуги
-            </a>
+            </Link>
             <a
               href="/#reviews"
               className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"

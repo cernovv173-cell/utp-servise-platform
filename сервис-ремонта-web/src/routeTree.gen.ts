@@ -30,6 +30,7 @@ import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SalaryRouteImport } from './routes/salary'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SupportRouteImport } from './routes/support'
+import { Route as UslugiRouteImport } from './routes/uslugi'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminApkRouteImport } from './routes/admin.apk'
 import { Route as AdminCompanyRouteImport } from './routes/admin.company'
@@ -50,6 +51,12 @@ import { Route as GuidesThermalPasteRouteImport } from './routes/guides.thermal-
 import { Route as GuidesWhatToBringRouteImport } from './routes/guides.what-to-bring'
 import { Route as StaffTechnicianIdRouteImport } from './routes/staff.$technicianId'
 import { Route as SupportCustomerIdRouteImport } from './routes/support.$customerId'
+import { Route as UslugiIndexRouteImport } from './routes/uslugi.index'
+import { Route as UslugiChistkaIProfilaktikaRouteImport } from './routes/uslugi.chistka-i-profilaktika'
+import { Route as UslugiRemontNoutbukovRouteImport } from './routes/uslugi.remont-noutbukov'
+import { Route as UslugiRemontTelefonovRouteImport } from './routes/uslugi.remont-telefonov'
+import { Route as UslugiVosstanovlenieDannyhRouteImport } from './routes/uslugi.vosstanovlenie-dannyh'
+import { Route as UslugiZamenaEkranaRouteImport } from './routes/uslugi.zamena-ekrana'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -157,6 +164,11 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UslugiRoute = UslugiRouteImport.update({
+  id: '/uslugi',
+  path: '/uslugi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
   id: '/analytics',
   path: '/analytics',
@@ -257,6 +269,38 @@ const SupportCustomerIdRoute = SupportCustomerIdRouteImport.update({
   path: '/$customerId',
   getParentRoute: () => SupportRoute,
 } as any)
+const UslugiIndexRoute = UslugiIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => UslugiRoute,
+} as any)
+const UslugiChistkaIProfilaktikaRoute =
+  UslugiChistkaIProfilaktikaRouteImport.update({
+    id: '/chistka-i-profilaktika',
+    path: '/chistka-i-profilaktika',
+    getParentRoute: () => UslugiRoute,
+  } as any)
+const UslugiRemontNoutbukovRoute = UslugiRemontNoutbukovRouteImport.update({
+  id: '/remont-noutbukov',
+  path: '/remont-noutbukov',
+  getParentRoute: () => UslugiRoute,
+} as any)
+const UslugiRemontTelefonovRoute = UslugiRemontTelefonovRouteImport.update({
+  id: '/remont-telefonov',
+  path: '/remont-telefonov',
+  getParentRoute: () => UslugiRoute,
+} as any)
+const UslugiVosstanovlenieDannyhRoute =
+  UslugiVosstanovlenieDannyhRouteImport.update({
+    id: '/vosstanovlenie-dannyh',
+    path: '/vosstanovlenie-dannyh',
+    getParentRoute: () => UslugiRoute,
+  } as any)
+const UslugiZamenaEkranaRoute = UslugiZamenaEkranaRouteImport.update({
+  id: '/zamena-ekrana',
+  path: '/zamena-ekrana',
+  getParentRoute: () => UslugiRoute,
+} as any)
 const AdminOrdersOrderIdRoute = AdminOrdersOrderIdRouteImport.update({
   id: '/$orderId',
   path: '/$orderId',
@@ -285,6 +329,7 @@ export interface FileRoutesByFullPath {
   '/salary': typeof SalaryRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
+  '/uslugi': typeof UslugiRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
@@ -304,7 +349,13 @@ export interface FileRoutesByFullPath {
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
+  '/uslugi/chistka-i-profilaktika': typeof UslugiChistkaIProfilaktikaRoute
+  '/uslugi/remont-noutbukov': typeof UslugiRemontNoutbukovRoute
+  '/uslugi/remont-telefonov': typeof UslugiRemontTelefonovRoute
+  '/uslugi/vosstanovlenie-dannyh': typeof UslugiVosstanovlenieDannyhRoute
+  '/uslugi/zamena-ekrana': typeof UslugiZamenaEkranaRoute
   '/guides/': typeof GuidesIndexRoute
+  '/uslugi/': typeof UslugiIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRoutesByTo {
@@ -347,7 +398,13 @@ export interface FileRoutesByTo {
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
+  '/uslugi/chistka-i-profilaktika': typeof UslugiChistkaIProfilaktikaRoute
+  '/uslugi/remont-noutbukov': typeof UslugiRemontNoutbukovRoute
+  '/uslugi/remont-telefonov': typeof UslugiRemontTelefonovRoute
+  '/uslugi/vosstanovlenie-dannyh': typeof UslugiVosstanovlenieDannyhRoute
+  '/uslugi/zamena-ekrana': typeof UslugiZamenaEkranaRoute
   '/guides': typeof GuidesIndexRoute
+  '/uslugi': typeof UslugiIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRoutesById {
@@ -373,6 +430,7 @@ export interface FileRoutesById {
   '/salary': typeof SalaryRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
+  '/uslugi': typeof UslugiRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
@@ -392,7 +450,13 @@ export interface FileRoutesById {
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
+  '/uslugi/chistka-i-profilaktika': typeof UslugiChistkaIProfilaktikaRoute
+  '/uslugi/remont-noutbukov': typeof UslugiRemontNoutbukovRoute
+  '/uslugi/remont-telefonov': typeof UslugiRemontTelefonovRoute
+  '/uslugi/vosstanovlenie-dannyh': typeof UslugiVosstanovlenieDannyhRoute
+  '/uslugi/zamena-ekrana': typeof UslugiZamenaEkranaRoute
   '/guides/': typeof GuidesIndexRoute
+  '/uslugi/': typeof UslugiIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRouteTypes {
@@ -419,6 +483,7 @@ export interface FileRouteTypes {
     | '/salary'
     | '/shop'
     | '/support'
+    | '/uslugi'
     | '/admin/analytics'
     | '/admin/apk'
     | '/admin/company'
@@ -438,7 +503,13 @@ export interface FileRouteTypes {
     | '/guides/what-to-bring'
     | '/staff/$technicianId'
     | '/support/$customerId'
+    | '/uslugi/chistka-i-profilaktika'
+    | '/uslugi/remont-noutbukov'
+    | '/uslugi/remont-telefonov'
+    | '/uslugi/vosstanovlenie-dannyh'
+    | '/uslugi/zamena-ekrana'
     | '/guides/'
+    | '/uslugi/'
     | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -481,7 +552,13 @@ export interface FileRouteTypes {
     | '/guides/what-to-bring'
     | '/staff/$technicianId'
     | '/support/$customerId'
+    | '/uslugi/chistka-i-profilaktika'
+    | '/uslugi/remont-noutbukov'
+    | '/uslugi/remont-telefonov'
+    | '/uslugi/vosstanovlenie-dannyh'
+    | '/uslugi/zamena-ekrana'
     | '/guides'
+    | '/uslugi'
     | '/admin/orders/$orderId'
   id:
     | '__root__'
@@ -506,6 +583,7 @@ export interface FileRouteTypes {
     | '/salary'
     | '/shop'
     | '/support'
+    | '/uslugi'
     | '/admin/analytics'
     | '/admin/apk'
     | '/admin/company'
@@ -525,7 +603,13 @@ export interface FileRouteTypes {
     | '/guides/what-to-bring'
     | '/staff/$technicianId'
     | '/support/$customerId'
+    | '/uslugi/chistka-i-profilaktika'
+    | '/uslugi/remont-noutbukov'
+    | '/uslugi/remont-telefonov'
+    | '/uslugi/vosstanovlenie-dannyh'
+    | '/uslugi/zamena-ekrana'
     | '/guides/'
+    | '/uslugi/'
     | '/admin/orders/$orderId'
   fileRoutesById: FileRoutesById
 }
@@ -551,6 +635,7 @@ export interface RootRouteChildren {
   SalaryRoute: typeof SalaryRoute
   ShopRoute: typeof ShopRoute
   SupportRoute: typeof SupportRouteWithChildren
+  UslugiRoute: typeof UslugiRouteWithChildren
   StaffTechnicianIdRoute: typeof StaffTechnicianIdRoute
 }
 
@@ -703,6 +788,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/uslugi': {
+      id: '/uslugi'
+      path: '/uslugi'
+      fullPath: '/uslugi'
+      preLoaderRoute: typeof UslugiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin/analytics': {
       id: '/admin/analytics'
       path: '/analytics'
@@ -843,6 +935,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportCustomerIdRouteImport
       parentRoute: typeof SupportRoute
     }
+    '/uslugi/': {
+      id: '/uslugi/'
+      path: '/'
+      fullPath: '/uslugi/'
+      preLoaderRoute: typeof UslugiIndexRouteImport
+      parentRoute: typeof UslugiRoute
+    }
+    '/uslugi/chistka-i-profilaktika': {
+      id: '/uslugi/chistka-i-profilaktika'
+      path: '/chistka-i-profilaktika'
+      fullPath: '/uslugi/chistka-i-profilaktika'
+      preLoaderRoute: typeof UslugiChistkaIProfilaktikaRouteImport
+      parentRoute: typeof UslugiRoute
+    }
+    '/uslugi/remont-noutbukov': {
+      id: '/uslugi/remont-noutbukov'
+      path: '/remont-noutbukov'
+      fullPath: '/uslugi/remont-noutbukov'
+      preLoaderRoute: typeof UslugiRemontNoutbukovRouteImport
+      parentRoute: typeof UslugiRoute
+    }
+    '/uslugi/remont-telefonov': {
+      id: '/uslugi/remont-telefonov'
+      path: '/remont-telefonov'
+      fullPath: '/uslugi/remont-telefonov'
+      preLoaderRoute: typeof UslugiRemontTelefonovRouteImport
+      parentRoute: typeof UslugiRoute
+    }
+    '/uslugi/vosstanovlenie-dannyh': {
+      id: '/uslugi/vosstanovlenie-dannyh'
+      path: '/vosstanovlenie-dannyh'
+      fullPath: '/uslugi/vosstanovlenie-dannyh'
+      preLoaderRoute: typeof UslugiVosstanovlenieDannyhRouteImport
+      parentRoute: typeof UslugiRoute
+    }
+    '/uslugi/zamena-ekrana': {
+      id: '/uslugi/zamena-ekrana'
+      path: '/zamena-ekrana'
+      fullPath: '/uslugi/zamena-ekrana'
+      preLoaderRoute: typeof UslugiZamenaEkranaRouteImport
+      parentRoute: typeof UslugiRoute
+    }
     '/admin/orders/$orderId': {
       id: '/admin/orders/$orderId'
       path: '/$orderId'
@@ -929,6 +1063,27 @@ const SupportRouteChildren: SupportRouteChildren = {
 const SupportRouteWithChildren =
   SupportRoute._addFileChildren(SupportRouteChildren)
 
+interface UslugiRouteChildren {
+  UslugiChistkaIProfilaktikaRoute: typeof UslugiChistkaIProfilaktikaRoute
+  UslugiRemontNoutbukovRoute: typeof UslugiRemontNoutbukovRoute
+  UslugiRemontTelefonovRoute: typeof UslugiRemontTelefonovRoute
+  UslugiVosstanovlenieDannyhRoute: typeof UslugiVosstanovlenieDannyhRoute
+  UslugiZamenaEkranaRoute: typeof UslugiZamenaEkranaRoute
+  UslugiIndexRoute: typeof UslugiIndexRoute
+}
+
+const UslugiRouteChildren: UslugiRouteChildren = {
+  UslugiChistkaIProfilaktikaRoute: UslugiChistkaIProfilaktikaRoute,
+  UslugiRemontNoutbukovRoute: UslugiRemontNoutbukovRoute,
+  UslugiRemontTelefonovRoute: UslugiRemontTelefonovRoute,
+  UslugiVosstanovlenieDannyhRoute: UslugiVosstanovlenieDannyhRoute,
+  UslugiZamenaEkranaRoute: UslugiZamenaEkranaRoute,
+  UslugiIndexRoute: UslugiIndexRoute,
+}
+
+const UslugiRouteWithChildren =
+  UslugiRoute._addFileChildren(UslugiRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -951,6 +1106,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalaryRoute: SalaryRoute,
   ShopRoute: ShopRoute,
   SupportRoute: SupportRouteWithChildren,
+  UslugiRoute: UslugiRouteWithChildren,
   StaffTechnicianIdRoute: StaffTechnicianIdRoute,
 }
 export const routeTree = rootRouteImport

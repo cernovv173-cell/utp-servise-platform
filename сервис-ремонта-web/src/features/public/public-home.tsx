@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   CheckCircle2,
@@ -177,6 +178,15 @@ export const PublicHome = () => {
                 </Reveal>
               );
             })}
+          </div>
+          <div className="mt-5">
+            <Link
+              to="/uslugi"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-200"
+            >
+              Все услуги и цены
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
         </section>
       </PageTurn>

@@ -251,32 +251,88 @@ export const createCustomerOffersRouter = (
 
   router.get("/public/offers", async (_request, response) => {
     const now = new Date();
-    const offers = await database.customerOffer.findMany({
-      where: {
-        isPublished: true,
-        startsAt: { lte: now },
-        endsAt: { gt: now },
-      },
-      orderBy: [{ endsAt: "asc" }, { startsAt: "desc" }],
-      take: 20,
-      select: {
-        id: true,
-        type: true,
-        title: true,
-        content: true,
-        firstPlacePrize: true,
-        firstPlacePoints: true,
-        secondPlacePrize: true,
-        secondPlacePoints: true,
-        thirdPlacePrize: true,
-        thirdPlacePoints: true,
-        startsAt: true,
-        endsAt: true,
-      },
-    });
+    const [offers, completedOffers] = await Promise.all([
+      database.customerOffer.findMany({
+        where: {
+          isPublished: true,
+          startsAt: { lte: now },
+          endsAt: { gt: now },
+        },
+        orderBy: [{ endsAt: "asc" }, { startsAt: "desc" }],
+        take: 20,
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          content: true,
+          firstPlacePrize: true,
+          firstPlacePoints: true,
+          secondPlacePrize: true,
+          secondPlacePoints: true,
+          thirdPlacePrize: true,
+          thirdPlacePoints: true,
+          startsAt: true,
+          endsAt: true,
+        },
+      }),
+      database.customerOffer.findMany({
+        where: {
+          isPublished: true,
+          endsAt: { lte: now },
+          resultsPublishedAt: { not: null, lte: now },
+          entries: { some: { place: { not: null } } },
+        },
+        orderBy: { endsAt: "desc" },
+        take: 5,
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          endsAt: true,
+          resultsPublishedAt: true,
+          firstPlacePrize: true,
+          firstPlacePoints: true,
+          secondPlacePrize: true,
+          secondPlacePoints: true,
+          thirdPlacePrize: true,
+          thirdPlacePoints: true,
+          entries: {
+            where: { place: { not: null } },
+            orderBy: { place: "asc" },
+            select: {
+              place: true,
+              customer: { select: { displayName: true } },
+            },
+          },
+        },
+      }),
+    ]);
 
     response.setHeader("Cache-Control", "no-store");
-    response.json({ offers });
+    response.json({
+      offers,
+      completedOffers: completedOffers.map((offer) => ({
+        id: offer.id,
+        type: offer.type,
+        title: offer.title,
+        endsAt: offer.endsAt,
+        resultsPublishedAt: offer.resultsPublishedAt,
+        winners: offer.entries.flatMap((entry) => {
+          if (entry.place === null) return [];
+          const reward = offerRewards(offer).find(
+            (item) => item.place === entry.place,
+          );
+          return [
+            {
+              place: entry.place,
+              displayName: entry.customer.displayName,
+              prize: reward?.prize ?? null,
+              bonusPoints: reward?.bonusPoints ?? 0,
+            },
+          ];
+        }),
+      })),
+    });
   });
 
   router.get(
