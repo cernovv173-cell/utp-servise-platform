@@ -10,6 +10,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { BenefitsNavigation } from "@/features/navigation/benefits-navigation";
 
 import { getPublicReviewImageUrl, getPublicReviews } from "@/lib/api";
+import { createPageHead } from "@/lib/seo";
 
 const ReviewsPage = () => {
   const { ready, user } = useAuth();
@@ -71,4 +72,13 @@ const ReviewsPage = () => {
     <PublicSiteShell>{content}</PublicSiteShell>
   );
 };
-export const Route = createFileRoute("/reviews")({ component: ReviewsPage });
+export const Route = createFileRoute("/reviews")({
+  component: ReviewsPage,
+  head: () =>
+    createPageHead({
+      title: "Отзывы о ремонте техники — ЕНОТ СЕРВИС, Пушкино",
+      description:
+        "Отзывы клиентов сервисного центра ЕНОТ СЕРВИС в Пушкино: ремонт ноутбуков, компьютеров, телефонов и планшетов, сроки и качество обслуживания.",
+      path: "/reviews",
+    }),
+});

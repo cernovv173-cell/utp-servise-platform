@@ -7,8 +7,14 @@ import { AuthProvider } from "@/features/auth/auth-provider";
 import { SeasonalSceneBackground } from "@/features/seasonal/seasonal-scene-background";
 import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
+import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_NAME } from "@/lib/seo";
+
 const RootComponent = () => {
   const seasonalTheme = useSeasonalTheme();
+
+  useEffect(() => {
+    document.querySelectorAll("[data-static-seo]").forEach((element) => element.remove());
+  }, []);
 
   useEffect(() => {
     const activeSeason = seasonalTheme.data?.activeSeason;
@@ -75,7 +81,13 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
-      { title: "ЕНОТ СЕРВИС — сервис ремонта техники" },
+      { title: DEFAULT_TITLE },
+      { name: "description", content: DEFAULT_DESCRIPTION },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: SITE_NAME },
+      { property: "og:locale", content: "ru_RU" },
+      { property: "og:title", content: DEFAULT_TITLE },
+      { property: "og:description", content: DEFAULT_DESCRIPTION },
     ],
     links: [
       {

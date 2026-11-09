@@ -44,6 +44,7 @@ import { Route as AdminScheduleRouteImport } from './routes/admin.schedule'
 import { Route as AdminSeasonalRouteImport } from './routes/admin.seasonal'
 import { Route as AdminShopOrdersRouteImport } from './routes/admin.shop-orders'
 import { Route as AdminStaffRouteImport } from './routes/admin.staff'
+import { Route as GuidesIndexRouteImport } from './routes/guides.index'
 import { Route as GuidesPrepareLaptopRouteImport } from './routes/guides.prepare-laptop'
 import { Route as GuidesThermalPasteRouteImport } from './routes/guides.thermal-paste'
 import { Route as GuidesWhatToBringRouteImport } from './routes/guides.what-to-bring'
@@ -226,6 +227,11 @@ const AdminStaffRoute = AdminStaffRouteImport.update({
   path: '/staff',
   getParentRoute: () => AdminRoute,
 } as any)
+const GuidesIndexRoute = GuidesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => GuidesRoute,
+} as any)
 const GuidesPrepareLaptopRoute = GuidesPrepareLaptopRouteImport.update({
   id: '/prepare-laptop',
   path: '/prepare-laptop',
@@ -298,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
+  '/guides/': typeof GuidesIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRoutesByTo {
@@ -311,7 +318,6 @@ export interface FileRoutesByTo {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
-  '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -341,6 +347,7 @@ export interface FileRoutesByTo {
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
+  '/guides': typeof GuidesIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRoutesById {
@@ -385,6 +392,7 @@ export interface FileRoutesById {
   '/guides/what-to-bring': typeof GuidesWhatToBringRoute
   '/staff/$technicianId': typeof StaffTechnicianIdRoute
   '/support/$customerId': typeof SupportCustomerIdRoute
+  '/guides/': typeof GuidesIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
 }
 export interface FileRouteTypes {
@@ -430,6 +438,7 @@ export interface FileRouteTypes {
     | '/guides/what-to-bring'
     | '/staff/$technicianId'
     | '/support/$customerId'
+    | '/guides/'
     | '/admin/orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -443,7 +452,6 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
-    | '/guides'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -473,6 +481,7 @@ export interface FileRouteTypes {
     | '/guides/what-to-bring'
     | '/staff/$technicianId'
     | '/support/$customerId'
+    | '/guides'
     | '/admin/orders/$orderId'
   id:
     | '__root__'
@@ -516,6 +525,7 @@ export interface FileRouteTypes {
     | '/guides/what-to-bring'
     | '/staff/$technicianId'
     | '/support/$customerId'
+    | '/guides/'
     | '/admin/orders/$orderId'
   fileRoutesById: FileRoutesById
 }
@@ -791,6 +801,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStaffRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/guides/': {
+      id: '/guides/'
+      path: '/'
+      fullPath: '/guides/'
+      preLoaderRoute: typeof GuidesIndexRouteImport
+      parentRoute: typeof GuidesRoute
+    }
     '/guides/prepare-laptop': {
       id: '/guides/prepare-laptop'
       path: '/prepare-laptop'
@@ -888,12 +905,14 @@ interface GuidesRouteChildren {
   GuidesPrepareLaptopRoute: typeof GuidesPrepareLaptopRoute
   GuidesThermalPasteRoute: typeof GuidesThermalPasteRoute
   GuidesWhatToBringRoute: typeof GuidesWhatToBringRoute
+  GuidesIndexRoute: typeof GuidesIndexRoute
 }
 
 const GuidesRouteChildren: GuidesRouteChildren = {
   GuidesPrepareLaptopRoute: GuidesPrepareLaptopRoute,
   GuidesThermalPasteRoute: GuidesThermalPasteRoute,
   GuidesWhatToBringRoute: GuidesWhatToBringRoute,
+  GuidesIndexRoute: GuidesIndexRoute,
 }
 
 const GuidesRouteWithChildren =

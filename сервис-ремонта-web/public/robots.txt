@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /account
+Disallow: /orders
+Disallow: /support
+Disallow: /chats
+Disallow: /checks
+Disallow: /crafts
+Disallow: /devices
+Disallow: /loyalty
+Disallow: /offers
+Disallow: /salary
+Disallow: /staff
+Disallow: /catalog
+
+Sitemap: https://xn----dtbhbq0ahshee.xn--p1ai/sitemap.xml

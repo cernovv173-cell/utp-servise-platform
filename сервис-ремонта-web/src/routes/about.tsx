@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 
 import { getCompany } from "@/lib/api";
+import { createPageHead } from "@/lib/seo";
 
 const AboutPage = () => {
   const { ready, user } = useAuth();
@@ -136,4 +137,13 @@ const AboutPage = () => {
     <PublicSiteShell>{content}</PublicSiteShell>
   );
 };
-export const Route = createFileRoute("/about")({ component: AboutPage });
+export const Route = createFileRoute("/about")({
+  component: AboutPage,
+  head: () =>
+    createPageHead({
+      title: "О сервисном центре ЕНОТ СЕРВИС в Пушкино",
+      description:
+        "16 лет ремонта компьютерной и мобильной техники: более 10 000 выполненных работ, обслуживание частных клиентов и организаций в Пушкино и Московской области.",
+      path: "/about",
+    }),
+});

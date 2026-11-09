@@ -17,6 +17,7 @@ import { PublicHome } from "@/features/public/public-home";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 
 import { getBanners, getCompany, getOrders } from "@/lib/api";
+import { createPageHead } from "@/lib/seo";
 
 const HomePage = () => {
   const { ready, token, user } = useAuth();
@@ -201,4 +202,13 @@ const HomePage = () => {
   );
 };
 
-export const Route = createFileRoute("/")({ component: HomePage });
+export const Route = createFileRoute("/")({
+  component: HomePage,
+  head: () =>
+    createPageHead({
+      title: "Ремонт компьютеров и ноутбуков в Пушкино — ЕНОТ СЕРВИС",
+      description:
+        "Ремонт ноутбуков, компьютеров и телефонов в Пушкино с 2008 года. Диагностика, смета до начала работ, гарантия и документы. Ежедневно 8:30–21:30.",
+      path: "/",
+    }),
+});

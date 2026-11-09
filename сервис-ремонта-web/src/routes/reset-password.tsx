@@ -4,6 +4,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 
 import { confirmPasswordReset, confirmPasswordResetWithCode } from "@/lib/api";
+import { createPageHead } from "@/lib/seo";
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -159,4 +160,13 @@ const ResetPasswordPage = () => {
   );
 };
 
-export const Route = createFileRoute("/reset-password")({ component: ResetPasswordPage });
+export const Route = createFileRoute("/reset-password")({
+  component: ResetPasswordPage,
+  head: () =>
+    createPageHead({
+      title: "Восстановление пароля — ЕНОТ СЕРВИС",
+      description: "Восстановление доступа к личному кабинету сервиса ЕНОТ СЕРВИС.",
+      path: "/reset-password",
+      noindex: true,
+    }),
+});
