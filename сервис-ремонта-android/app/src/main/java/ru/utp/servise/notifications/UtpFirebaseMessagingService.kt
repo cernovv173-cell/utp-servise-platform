@@ -36,6 +36,7 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
         val fallbackTitle = when (message.data["type"]) {
             "news_published" -> "Новая новость ЕНОТ СЕРВИС"
             "customer_offer_published" -> "Новая акция или розыгрыш"
+            "customer_offer_winner" -> "Поздравляем с победой! 🎉"
             "help_request" -> "Новый запрос помощи"
             "support_chat_message" -> "Новое сообщение в чате поддержки"
             "maintenance_reminder" -> "Пора обслужить технику"
