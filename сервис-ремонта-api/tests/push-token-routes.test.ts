@@ -23,6 +23,12 @@ test("signed-in users can register and remove only their own push device token",
   };
   let registered: Record<string, unknown> | undefined;
   let removed: Record<string, unknown> | undefined;
+  let requeued:
+    | {
+        where: { customerId: string; sentAt: null };
+        data: { nextAttemptAt: Date };
+      }
+    | undefined;
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) =>
@@ -37,6 +43,15 @@ test("signed-in users can register and remove only their own push device token",
       },
       deleteMany: async (input: Record<string, unknown>) => {
         removed = input;
+        return { count: 1 };
+      },
+    },
+    customerOfferWinnerPushDelivery: {
+      updateMany: async (input: {
+        where: { customerId: string; sentAt: null };
+        data: { nextAttemptAt: Date };
+      }) => {
+        requeued = input;
         return { count: 1 };
       },
     },
@@ -67,6 +82,9 @@ test("signed-in users can register and remove only their own push device token",
     create: { token: "firebase-device-token", userId: user.id },
     update: { userId: user.id },
   });
+  assert.equal(requeued?.where.customerId, user.id);
+  assert.equal(requeued?.where.sentAt, null);
+  assert.ok(requeued?.data.nextAttemptAt instanceof Date);
 
   const removal = await fetch(endpoint, {
     method: "DELETE",

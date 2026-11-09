@@ -160,6 +160,11 @@ const createHarness = () => {
     attemptCount: number;
     lastError: string | null;
   }> = [];
+  const winnerPushDeliveries: Array<{
+    id: string;
+    offerId: string;
+    customerId: string;
+  }> = [];
   let entryNumber = 4;
   let offerNumber = 4;
 
@@ -425,6 +430,14 @@ const createHarness = () => {
           if (offerPushDeliveries[deliveryIndex]?.offerId === where.id)
             offerPushDeliveries.splice(deliveryIndex, 1);
         }
+        for (
+          let deliveryIndex = winnerPushDeliveries.length - 1;
+          deliveryIndex >= 0;
+          deliveryIndex -= 1
+        ) {
+          if (winnerPushDeliveries[deliveryIndex]?.offerId === where.id)
+            winnerPushDeliveries.splice(deliveryIndex, 1);
+        }
         return { count: 1 };
       },
     },
@@ -478,6 +491,32 @@ const createHarness = () => {
         if (index < 0) return { count: 0 };
         offerPushDeliveries.splice(index, 1);
         return { count: 1 };
+      },
+    },
+    customerOfferWinnerPushDelivery: {
+      createMany: async ({
+        data,
+      }: {
+        data: Array<{ offerId: string; customerId: string }>;
+      }) => {
+        let count = 0;
+        for (const delivery of data) {
+          if (
+            winnerPushDeliveries.some(
+              (existing) =>
+                existing.offerId === delivery.offerId &&
+                existing.customerId === delivery.customerId,
+            )
+          ) {
+            continue;
+          }
+          winnerPushDeliveries.push({
+            id: `winner-push-${winnerPushDeliveries.length + 1}`,
+            ...delivery,
+          });
+          count += 1;
+        }
+        return { count };
       },
     },
     customerOfferParticipation: {
@@ -561,7 +600,14 @@ const createHarness = () => {
   app.use(errorHandler);
   const server = app.listen(0);
 
-  return { offers, entries, loyaltyTransactions, offerPushDeliveries, server };
+  return {
+    offers,
+    entries,
+    loyaltyTransactions,
+    offerPushDeliveries,
+    winnerPushDeliveries,
+    server,
+  };
 };
 
 test("customers join once, and administrators draw and publish three distinct winners", async (t) => {
@@ -670,6 +716,13 @@ test("customers join once, and administrators draw and publish three distinct wi
   const publishedOffer = (await publish.json()).offer;
   assert.equal(publishedOffer.resultsPublishedAt !== null, true);
   assert.equal(harness.loyaltyTransactions.length, 3);
+  assert.equal(harness.winnerPushDeliveries.length, 3);
+  assert.deepEqual(
+    harness.winnerPushDeliveries.map(({ customerId }) => customerId).sort(),
+    (publishedOffer.winners as Array<{ customerId: string }>)
+      .map(({ customerId }) => customerId)
+      .sort(),
+  );
   const expectedPoints = new Map([
     [1, 400],
     [2, 200],
@@ -753,6 +806,7 @@ test("customers join once, and administrators draw and publish three distinct wi
   );
   assert.equal(repeatedPublish.status, 200);
   assert.equal(harness.loyaltyTransactions.length, 3);
+  assert.equal(harness.winnerPushDeliveries.length, 3);
 });
 
 test("only administrators create offers and each giveaway place requires a prize or points", async (t) => {

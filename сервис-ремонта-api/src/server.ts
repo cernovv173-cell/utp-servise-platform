@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { ensureInitialAdmin } from "./features/auth/auth.routes.js";
 import { startCustomerOfferPushWorker } from "./features/customer-offers/customer-offer-push-worker.js";
+import { startCustomerOfferWinnerPushWorker } from "./features/customer-offers/customer-offer-winner-push-worker.js";
 import { hasMaxBotToken, hasMaxWebhookSecret } from "./features/max/max-bot.js";
 import { startMaxNotificationWorker } from "./features/max/max-notifications.js";
 import { setupMaxWebhookIfUnclaimed } from "./features/max/max-webhook-setup.js";
@@ -50,6 +51,9 @@ const start = async (): Promise<void> => {
   const stopCustomerOfferPushWorker = database
     ? startCustomerOfferPushWorker(database.client)
     : () => undefined;
+  const stopCustomerOfferWinnerPushWorker = database
+    ? startCustomerOfferWinnerPushWorker(database.client)
+    : () => undefined;
   const stopBirthdayPushWorker =
     database && config.nodeEnv === "production"
       ? startBirthdayPushWorker(database.client)
@@ -86,6 +90,7 @@ const start = async (): Promise<void> => {
     logger.info({ signal }, "Backend server stopping");
     stopNewsPushWorker();
     stopCustomerOfferPushWorker();
+    stopCustomerOfferWinnerPushWorker();
     stopBirthdayPushWorker();
     stopMaintenanceReminderWorker();
     stopOrderArchiveWorker();

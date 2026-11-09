@@ -240,6 +240,10 @@ export const createAuthRouter = (
         create: { token, userId: user.id },
         update: { userId: user.id },
       });
+      await database.customerOfferWinnerPushDelivery.updateMany({
+        where: { customerId: user.id, sentAt: null },
+        data: { nextAttemptAt: new Date() },
+      });
       response.status(204).end();
     },
   );

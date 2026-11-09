@@ -186,79 +186,80 @@ model ProductAnalyticsDailyMetric {
 }
 
 model User {
-  id                        String                         @id @default(uuid()) @db.Uuid
-  email                     String?                        @unique @db.VarChar(320)
-  login                     String?                        @unique @db.VarChar(64)
-  displayName               String                         @map("display_name") @db.VarChar(120)
-  phoneNumber               String?                        @map("phone_number") @db.VarChar(32)
-  gender                    CustomerGender?
-  birthDate                 DateTime?                      @map("birth_date") @db.Date
-  avatarObjectId            String?                        @map("avatar_object_id") @db.VarChar(255)
-  passwordHash              String                         @map("password_hash") @db.VarChar(255)
-  yandexId                  String?                        @unique @map("yandex_id") @db.VarChar(128)
-  vkId                      String?                        @unique @map("vk_id") @db.VarChar(128)
-  telegramChatId            String?                        @unique @map("telegram_chat_id") @db.VarChar(64)
-  maxUserId                 String?                        @unique @map("max_user_id") @db.VarChar(64)
-  referralCode              String?                        @unique @map("referral_code") @db.VarChar(16)
-  role                      UserRole                       @default(CUSTOMER)
-  salaryRatePercent         Int                            @default(75) @map("salary_rate_percent") @db.SmallInt
-  active                    Boolean                        @default(true)
-  mustChangePassword        Boolean                        @default(false) @map("must_change_password")
-  createdAt                 DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                 DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  sessions                  Session[]
-  passwordResetTokens       PasswordResetToken[]
-  maxEmailLoginVerification MaxEmailLoginVerification?
-  customerOrders            RepairOrder[]                  @relation("CustomerOrders")
-  shopOrders                ShopOrder[]                    @relation("ShopOrderCustomer")
-  assignedOrders            RepairOrder[]                  @relation("AssignedOrders")
-  statusChanges             RepairStatusEvent[]            @relation("StatusActor")
-  createdRepairEstimates    RepairEstimate[]               @relation("RepairEstimateCreator")
-  createdRepairWorkActs     RepairWorkAct[]                @relation("RepairWorkActCreator")
-  approvedRepairWorkActs    RepairWorkAct[]                @relation("RepairWorkActApprover")
-  repairDeadlineChanges     RepairOrderDeadlineChange[]    @relation("RepairDeadlineChangeActor")
-  reviews                   Review[]
-  addedOrderItems           RepairOrderItem[]              @relation("OrderItemAdder")
-  catalogItemsCreated       RepairCatalogItem[]            @relation("CatalogItemCreator")
-  newsArticlesCreated       NewsArticle[]                  @relation("NewsArticleCreator")
-  orderChatMessages         OrderChatMessage[]             @relation("OrderChatMessageSender")
-  craftOrderChatMessages    CraftOrderChatMessage[]        @relation("CraftOrderChatMessageSender")
-  requestedChats            OrderChat[]                    @relation("ChatEscalationRequester")
-  joinedChats               OrderChat[]                    @relation("ChatAdministratorJoiner")
-  repairChatReadReceipts    OrderChatAdminRead[]           @relation("RepairChatReadAdministrator")
-  pushDeviceTokens          PushDeviceToken[]
-  orderPhotos               RepairOrderPhoto[]
-  technicianProfile         TechnicianProfile?
-  createdIntakes            RepairOrderIntake[]            @relation("IntakeCreator")
-  updatedIntakes            RepairOrderIntake[]            @relation("IntakeUpdater")
-  issuedRepairWarranties    RepairWarranty[]               @relation("WarrantyIssuer")
-  craftItemsCreated         CraftItem[]                    @relation("CraftItemCreator")
-  craftOrders               CraftOrder[]                   @relation("CraftOrderCustomer")
-  handledCraftOrders        CraftOrder[]                   @relation("CraftOrderHandler")
-  assignedCraftOrders       CraftOrder[]                   @relation("CraftOrderTechnician")
-  craftSalaryEntries        CraftOrderSalaryEntry[]        @relation("CraftTechnicianSalaryEntries")
-  bonusTransactions         LoyaltyTransaction[]           @relation("BonusCustomer")
-  bonusActions              LoyaltyTransaction[]           @relation("BonusActor")
-  createdBanners            SiteBanner[]                   @relation("BannerCreator")
-  issuedReceipts            RepairReceipt[]                @relation("ReceiptIssuer")
-  issuedCraftReceipts       CraftOrderReceipt[]            @relation("CraftReceiptIssuer")
-  technicianSalaryEntries   TechnicianSalaryEntry[]        @relation("TechnicianSalaryEntries")
-  supportConversations      SupportConversation[]          @relation("SupportConversationCustomer")
-  supportMessages           SupportChatMessage[]           @relation("SupportChatMessageSender")
-  birthdayPushDeliveries    BirthdayPushDelivery[]
-  birthdayBonusAwards       BirthdayBonusAward[]
-  customerDevices           CustomerDevice[]
-  telegramLinkTokens        TelegramLinkToken[]
-  telegramNotifications     TelegramNotificationDelivery[]
-  maxLinkTokens             MaxLinkToken[]
-  maxNotifications          MaxNotificationDelivery[]
-  maxLoginRequests          MaxLoginRequest[]
-  maxCredentialDelivery     MaxCredentialDelivery?
-  referralsSent             CustomerReferral[]             @relation("ReferralInviter")
-  referralReceived          CustomerReferral?              @relation("ReferralInvitee")
-  referralPromoCodes        CustomerReferralCode[]         @relation("ReferralPromoCodeOwner")
-  createdCustomerOffers     CustomerOffer[]                @relation("CustomerOfferCreator")
-  customerOfferEntries      CustomerOfferParticipation[]   @relation("CustomerOfferParticipant")
+  id                                String                            @id @default(uuid()) @db.Uuid
+  email                             String?                           @unique @db.VarChar(320)
+  login                             String?                           @unique @db.VarChar(64)
+  displayName                       String                            @map("display_name") @db.VarChar(120)
+  phoneNumber                       String?                           @map("phone_number") @db.VarChar(32)
+  gender                            CustomerGender?
+  birthDate                         DateTime?                         @map("birth_date") @db.Date
+  avatarObjectId                    String?                           @map("avatar_object_id") @db.VarChar(255)
+  passwordHash                      String                            @map("password_hash") @db.VarChar(255)
+  yandexId                          String?                           @unique @map("yandex_id") @db.VarChar(128)
+  vkId                              String?                           @unique @map("vk_id") @db.VarChar(128)
+  telegramChatId                    String?                           @unique @map("telegram_chat_id") @db.VarChar(64)
+  maxUserId                         String?                           @unique @map("max_user_id") @db.VarChar(64)
+  referralCode                      String?                           @unique @map("referral_code") @db.VarChar(16)
+  role                              UserRole                          @default(CUSTOMER)
+  salaryRatePercent                 Int                               @default(75) @map("salary_rate_percent") @db.SmallInt
+  active                            Boolean                           @default(true)
+  mustChangePassword                Boolean                           @default(false) @map("must_change_password")
+  createdAt                         DateTime                          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                         DateTime                          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  sessions                          Session[]
+  passwordResetTokens               PasswordResetToken[]
+  maxEmailLoginVerification         MaxEmailLoginVerification?
+  customerOrders                    RepairOrder[]                     @relation("CustomerOrders")
+  shopOrders                        ShopOrder[]                       @relation("ShopOrderCustomer")
+  assignedOrders                    RepairOrder[]                     @relation("AssignedOrders")
+  statusChanges                     RepairStatusEvent[]               @relation("StatusActor")
+  createdRepairEstimates            RepairEstimate[]                  @relation("RepairEstimateCreator")
+  createdRepairWorkActs             RepairWorkAct[]                   @relation("RepairWorkActCreator")
+  approvedRepairWorkActs            RepairWorkAct[]                   @relation("RepairWorkActApprover")
+  repairDeadlineChanges             RepairOrderDeadlineChange[]       @relation("RepairDeadlineChangeActor")
+  reviews                           Review[]
+  addedOrderItems                   RepairOrderItem[]                 @relation("OrderItemAdder")
+  catalogItemsCreated               RepairCatalogItem[]               @relation("CatalogItemCreator")
+  newsArticlesCreated               NewsArticle[]                     @relation("NewsArticleCreator")
+  orderChatMessages                 OrderChatMessage[]                @relation("OrderChatMessageSender")
+  craftOrderChatMessages            CraftOrderChatMessage[]           @relation("CraftOrderChatMessageSender")
+  requestedChats                    OrderChat[]                       @relation("ChatEscalationRequester")
+  joinedChats                       OrderChat[]                       @relation("ChatAdministratorJoiner")
+  repairChatReadReceipts            OrderChatAdminRead[]              @relation("RepairChatReadAdministrator")
+  pushDeviceTokens                  PushDeviceToken[]
+  orderPhotos                       RepairOrderPhoto[]
+  technicianProfile                 TechnicianProfile?
+  createdIntakes                    RepairOrderIntake[]               @relation("IntakeCreator")
+  updatedIntakes                    RepairOrderIntake[]               @relation("IntakeUpdater")
+  issuedRepairWarranties            RepairWarranty[]                  @relation("WarrantyIssuer")
+  craftItemsCreated                 CraftItem[]                       @relation("CraftItemCreator")
+  craftOrders                       CraftOrder[]                      @relation("CraftOrderCustomer")
+  handledCraftOrders                CraftOrder[]                      @relation("CraftOrderHandler")
+  assignedCraftOrders               CraftOrder[]                      @relation("CraftOrderTechnician")
+  craftSalaryEntries                CraftOrderSalaryEntry[]           @relation("CraftTechnicianSalaryEntries")
+  bonusTransactions                 LoyaltyTransaction[]              @relation("BonusCustomer")
+  bonusActions                      LoyaltyTransaction[]              @relation("BonusActor")
+  createdBanners                    SiteBanner[]                      @relation("BannerCreator")
+  issuedReceipts                    RepairReceipt[]                   @relation("ReceiptIssuer")
+  issuedCraftReceipts               CraftOrderReceipt[]               @relation("CraftReceiptIssuer")
+  technicianSalaryEntries           TechnicianSalaryEntry[]           @relation("TechnicianSalaryEntries")
+  supportConversations              SupportConversation[]             @relation("SupportConversationCustomer")
+  supportMessages                   SupportChatMessage[]              @relation("SupportChatMessageSender")
+  birthdayPushDeliveries            BirthdayPushDelivery[]
+  birthdayBonusAwards               BirthdayBonusAward[]
+  customerDevices                   CustomerDevice[]
+  telegramLinkTokens                TelegramLinkToken[]
+  telegramNotifications             TelegramNotificationDelivery[]
+  maxLinkTokens                     MaxLinkToken[]
+  maxNotifications                  MaxNotificationDelivery[]
+  maxLoginRequests                  MaxLoginRequest[]
+  maxCredentialDelivery             MaxCredentialDelivery?
+  referralsSent                     CustomerReferral[]                @relation("ReferralInviter")
+  referralReceived                  CustomerReferral?                 @relation("ReferralInvitee")
+  referralPromoCodes                CustomerReferralCode[]            @relation("ReferralPromoCodeOwner")
+  createdCustomerOffers             CustomerOffer[]                   @relation("CustomerOfferCreator")
+  customerOfferEntries              CustomerOfferParticipation[]      @relation("CustomerOfferParticipant")
+  customerOfferWinnerPushDeliveries CustomerOfferWinnerPushDelivery[]
 
   @@index([role, active])
   @@map("users")
@@ -1198,28 +1199,29 @@ model SiteBanner {
 }
 
 model CustomerOffer {
-  id                 String                       @id @default(uuid()) @db.Uuid
-  type               CustomerOfferType
-  title              String                       @db.VarChar(160)
-  content            String                       @db.VarChar(8000)
-  firstPlacePrize    String?                      @map("first_place_prize") @db.VarChar(500)
-  firstPlacePoints   Int                          @default(0) @map("first_place_points")
-  secondPlacePrize   String?                      @map("second_place_prize") @db.VarChar(500)
-  secondPlacePoints  Int                          @default(0) @map("second_place_points")
-  thirdPlacePrize    String?                      @map("third_place_prize") @db.VarChar(500)
-  thirdPlacePoints   Int                          @default(0) @map("third_place_points")
-  isPublished        Boolean                      @default(false) @map("is_published")
-  startsAt           DateTime                     @map("starts_at") @db.Timestamptz(3)
-  endsAt             DateTime                     @map("ends_at") @db.Timestamptz(3)
-  drawnAt            DateTime?                    @map("drawn_at") @db.Timestamptz(3)
-  resultsPublishedAt DateTime?                    @map("results_published_at") @db.Timestamptz(3)
-  createdById        String?                      @map("created_by_id") @db.Uuid
-  createdAt          DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt          DateTime                     @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy          User?                        @relation("CustomerOfferCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  entries            CustomerOfferParticipation[]
-  rewardTransactions LoyaltyTransaction[]         @relation("CustomerOfferReward")
-  pushDelivery       CustomerOfferPushDelivery?
+  id                   String                            @id @default(uuid()) @db.Uuid
+  type                 CustomerOfferType
+  title                String                            @db.VarChar(160)
+  content              String                            @db.VarChar(8000)
+  firstPlacePrize      String?                           @map("first_place_prize") @db.VarChar(500)
+  firstPlacePoints     Int                               @default(0) @map("first_place_points")
+  secondPlacePrize     String?                           @map("second_place_prize") @db.VarChar(500)
+  secondPlacePoints    Int                               @default(0) @map("second_place_points")
+  thirdPlacePrize      String?                           @map("third_place_prize") @db.VarChar(500)
+  thirdPlacePoints     Int                               @default(0) @map("third_place_points")
+  isPublished          Boolean                           @default(false) @map("is_published")
+  startsAt             DateTime                          @map("starts_at") @db.Timestamptz(3)
+  endsAt               DateTime                          @map("ends_at") @db.Timestamptz(3)
+  drawnAt              DateTime?                         @map("drawn_at") @db.Timestamptz(3)
+  resultsPublishedAt   DateTime?                         @map("results_published_at") @db.Timestamptz(3)
+  createdById          String?                           @map("created_by_id") @db.Uuid
+  createdAt            DateTime                          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy            User?                             @relation("CustomerOfferCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  entries              CustomerOfferParticipation[]
+  rewardTransactions   LoyaltyTransaction[]              @relation("CustomerOfferReward")
+  pushDelivery         CustomerOfferPushDelivery?
+  winnerPushDeliveries CustomerOfferWinnerPushDelivery[]
 
   @@index([isPublished, startsAt, endsAt])
   @@index([type, endsAt])
@@ -1239,6 +1241,25 @@ model CustomerOfferPushDelivery {
 
   @@index([sentAt, nextAttemptAt, lockedUntil])
   @@map("customer_offer_push_deliveries")
+}
+
+model CustomerOfferWinnerPushDelivery {
+  id            String        @id @default(uuid()) @db.Uuid
+  offerId       String        @map("offer_id") @db.Uuid
+  customerId    String        @map("customer_id") @db.Uuid
+  nextAttemptAt DateTime      @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lockedUntil   DateTime?     @map("locked_until") @db.Timestamptz(3)
+  sentAt        DateTime?     @map("sent_at") @db.Timestamptz(3)
+  attemptCount  Int           @default(0) @map("attempt_count")
+  lastError     String?       @map("last_error") @db.VarChar(500)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  offer         CustomerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  customer      User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([offerId, customerId])
+  @@index([sentAt, nextAttemptAt, lockedUntil])
+  @@index([customerId, sentAt])
+  @@map("customer_offer_winner_push_deliveries")
 }
 
 model CustomerOfferParticipation {

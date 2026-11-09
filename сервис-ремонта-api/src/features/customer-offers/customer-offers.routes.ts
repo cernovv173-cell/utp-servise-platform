@@ -10,6 +10,8 @@ import {
   requireRoles,
 } from "../auth/auth.middleware.js";
 import { scheduleCustomerOfferPush } from "./customer-offer-push-delivery.js";
+import { getCustomerOfferReward } from "./customer-offer-rewards.js";
+import { scheduleCustomerOfferWinnerPush } from "./customer-offer-winner-push-delivery.js";
 import { selectRandomWinners } from "./winner-selection.js";
 
 const offerParams = z.object({ offerId: z.string().uuid() });
@@ -73,31 +75,6 @@ const isUniqueConstraintError = (error: unknown): boolean =>
   "code" in error &&
   error.code === "P2002";
 
-const offerRewards = (offer: {
-  firstPlacePrize: string | null;
-  firstPlacePoints: number;
-  secondPlacePrize: string | null;
-  secondPlacePoints: number;
-  thirdPlacePrize: string | null;
-  thirdPlacePoints: number;
-}) => [
-  {
-    place: 1,
-    prize: offer.firstPlacePrize,
-    bonusPoints: offer.firstPlacePoints,
-  },
-  {
-    place: 2,
-    prize: offer.secondPlacePrize,
-    bonusPoints: offer.secondPlacePoints,
-  },
-  {
-    place: 3,
-    prize: offer.thirdPlacePrize,
-    bonusPoints: offer.thirdPlacePoints,
-  },
-];
-
 const customerOfferResponse = <
   T extends {
     id: string;
@@ -139,7 +116,7 @@ const customerOfferResponse = <
         .map((entry) => ({
           place: entry.place,
           displayName: entry.customer.displayName,
-          ...offerRewards(offer).find((reward) => reward.place === entry.place),
+          ...getCustomerOfferReward(offer, entry.place ?? 0),
         }))
     : [];
 
@@ -225,7 +202,7 @@ const adminOfferResponse = <
       place: entry.place,
       customerId: entry.customerId,
       displayName: entry.customer.displayName,
-      ...offerRewards(offer).find((reward) => reward.place === entry.place),
+      ...getCustomerOfferReward(offer, entry.place ?? 0),
     })),
 });
 
@@ -319,9 +296,7 @@ export const createCustomerOffersRouter = (
         resultsPublishedAt: offer.resultsPublishedAt,
         winners: offer.entries.flatMap((entry) => {
           if (entry.place === null) return [];
-          const reward = offerRewards(offer).find(
-            (item) => item.place === entry.place,
-          );
+          const reward = getCustomerOfferReward(offer, entry.place);
           return [
             {
               place: entry.place,
@@ -682,11 +657,9 @@ export const createCustomerOffersRouter = (
           );
         }
 
-        const rewardsByPlace = new Map(
-          offerRewards(offer).map((reward) => [reward.place, reward]),
-        );
         const rewards = offer.entries.flatMap((winner) => {
-          const reward = rewardsByPlace.get(winner.place ?? 0);
+          if (winner.place === null) return [];
+          const reward = getCustomerOfferReward(offer, winner.place);
           if (!reward || reward.bonusPoints <= 0) return [];
           return [
             {
@@ -709,6 +682,11 @@ export const createCustomerOffersRouter = (
             skipDuplicates: true,
           });
         }
+        await scheduleCustomerOfferWinnerPush(
+          transaction,
+          offerId,
+          offer.entries.map(({ customerId }) => customerId),
+        );
 
         const updatedOffer = await transaction.customerOffer.findUniqueOrThrow({
           where: { id: offerId },
