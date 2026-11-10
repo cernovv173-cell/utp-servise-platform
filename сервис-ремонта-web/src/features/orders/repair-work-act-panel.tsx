@@ -3,9 +3,14 @@ import { Check, Plus, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Select } from "@/components/select";
-
 import { useAuth } from "@/features/auth/auth-context";
+import { RepairWorkActCatalogPicker } from "@/features/orders/repair-work-act-catalog-picker";
+import {
+  readRepairWorkActCatalogShortcuts,
+  recordRecentRepairCatalogItem,
+  saveRepairWorkActCatalogShortcuts,
+  toggleRepairCatalogFavorite,
+} from "@/features/orders/repair-work-act-catalog-shortcuts";
 
 import {
   type RepairCatalogItem,
@@ -45,8 +50,11 @@ export const RepairWorkActPanel = (props: {
   catalogItems: RepairCatalogItem[];
   onRefresh: () => Promise<unknown>;
 }) => {
+  const { user } = useAuth();
   const act = props.order.workAct ?? null;
+  const currentUserId = user?.id ?? "";
   const key = [
+    currentUserId,
     props.order.id,
     props.order.status,
     act?.id ?? "no-act",
@@ -55,7 +63,17 @@ export const RepairWorkActPanel = (props: {
     props.order.items.map((item) => `${item.id}:${item.quantity}`).join(","),
   ].join(":");
 
-  return <RepairWorkActPanelContent key={key} {...props} />;
+  return (
+    <RepairWorkActPanelContent
+      key={key}
+      {...props}
+      currentUserId={currentUserId || props.order.assignedTechnicianId || "local"}
+      isAdmin={user?.role === "ADMIN"}
+      isAssignedTechnician={
+        user?.role === "TECHNICIAN" && props.order.assignedTechnicianId === user.id
+      }
+    />
+  );
 };
 
 const RepairWorkActPanelContent = ({
@@ -63,23 +81,28 @@ const RepairWorkActPanelContent = ({
   token,
   catalogItems,
   onRefresh,
+  currentUserId,
+  isAdmin,
+  isAssignedTechnician,
 }: {
   order: RepairOrder;
   token: string;
   catalogItems: RepairCatalogItem[];
   onRefresh: () => Promise<unknown>;
+  currentUserId: string;
+  isAdmin: boolean;
+  isAssignedTechnician: boolean;
 }) => {
-  const { user } = useAuth();
   const act = order.workAct ?? null;
-  const isAdmin = user?.role === "ADMIN";
-  const isAssignedTechnician =
-    user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id;
   const canManage = isAdmin || isAssignedTechnician;
   const canEditDraft = order.status === "IN_PROGRESS" && (act === null || act.status === "DRAFT");
   const [draftLines, setDraftLines] = useState<RepairWorkActLine[]>(() =>
     act ? linesForAct(act) : linesFromOrder(order),
   );
-  const [catalogItemId, setCatalogItemId] = useState("");
+  const [catalogPickerOpen, setCatalogPickerOpen] = useState(false);
+  const [catalogShortcuts, setCatalogShortcuts] = useState(() =>
+    readRepairWorkActCatalogShortcuts(currentUserId),
+  );
   const [includedLineIds, setIncludedLineIds] = useState<string[]>(() =>
     act?.status === "PENDING" ? act.itemsSnapshot.map((line) => line.lineId) : [],
   );
@@ -145,9 +168,8 @@ const RepairWorkActPanelContent = ({
   const actLines = act ? linesForAct(act) : [];
   const total = (lines: readonly RepairWorkActLine[]) =>
     lines.reduce((sum, line) => sum + line.quantity * line.unitPriceRub, 0);
-  const addCatalogLine = () => {
-    const item = activeCatalogItems.find((candidate) => candidate.id === catalogItemId);
-    if (!item) return;
+  const addCatalogLine = (item: RepairCatalogItem) => {
+    if (draftLines.length >= 100) return;
     setDraftLines((current) => [
       ...current,
       {
@@ -160,8 +182,26 @@ const RepairWorkActPanelContent = ({
         unitPriceRub: item.unitPriceRub,
       },
     ]);
-    setCatalogItemId("");
+    setCatalogShortcuts((current) => {
+      const next = {
+        ...current,
+        recentIds: recordRecentRepairCatalogItem(current.recentIds, item.id),
+      };
+      saveRepairWorkActCatalogShortcuts(currentUserId, next);
+      return next;
+    });
+    setCatalogPickerOpen(false);
   };
+
+  const toggleFavorite = (itemId: string) =>
+    setCatalogShortcuts((current) => {
+      const next = {
+        ...current,
+        favoriteIds: toggleRepairCatalogFavorite(current.favoriteIds, itemId),
+      };
+      saveRepairWorkActCatalogShortcuts(currentUserId, next);
+      return next;
+    });
 
   return (
     <section className="mt-4 rounded-2xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-900 dark:bg-violet-950/20">
@@ -337,27 +377,23 @@ const RepairWorkActPanelContent = ({
               )}
             </div>
           ))}
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <Select
-              ariaLabel="Добавить работу или запчасть в акт"
-              value={catalogItemId}
-              onValueChange={setCatalogItemId}
-              placeholder="Выберите позицию из каталога"
-              options={activeCatalogItems.map((item) => ({
-                value: item.id,
-                label: `${itemTypeLabels[item.type]} · ${item.name} · ${money(item.unitPriceRub)}${item.stockQuantity === null ? "" : ` · остаток ${item.stockQuantity}`}`,
-              }))}
-              className="dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
-            />
-            <button
-              type="button"
-              disabled={!catalogItemId || draftLines.length >= 100}
-              onClick={addCatalogLine}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-violet-200 px-4 text-xs font-semibold disabled:opacity-50 dark:border-violet-800"
-            >
-              <Plus size={15} aria-hidden="true" /> Добавить строку
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={draftLines.length >= 100 || activeCatalogItems.length === 0}
+            onClick={() => setCatalogPickerOpen(true)}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-violet-200 px-4 text-sm font-semibold disabled:opacity-50 dark:border-violet-800"
+          >
+            <Plus size={16} aria-hidden="true" /> Добавить работу или запчасть
+          </button>
+          <RepairWorkActCatalogPicker
+            open={catalogPickerOpen}
+            items={activeCatalogItems}
+            favoriteIds={catalogShortcuts.favoriteIds}
+            recentIds={catalogShortcuts.recentIds}
+            onOpenChange={setCatalogPickerOpen}
+            onAdd={addCatalogLine}
+            onToggleFavorite={toggleFavorite}
+          />
           <p className="text-right text-sm font-semibold">
             Итого в черновике: {money(total(draftLines))}
           </p>

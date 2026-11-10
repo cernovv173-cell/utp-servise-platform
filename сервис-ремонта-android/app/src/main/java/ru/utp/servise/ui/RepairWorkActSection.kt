@@ -12,8 +12,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -26,14 +24,20 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.RepairOrder
+import ru.utp.servise.data.RepairWorkActCatalogShortcuts
 import ru.utp.servise.data.RepairWorkActDraftLine
 import ru.utp.servise.data.RepairWorkActLine
+import ru.utp.servise.data.readRepairWorkActCatalogShortcuts
+import ru.utp.servise.data.recordRecentRepairCatalogItem
+import ru.utp.servise.data.saveRepairWorkActCatalogShortcuts
+import ru.utp.servise.data.toggleRepairCatalogFavorite
 import java.util.UUID
 
 private data class ActLineDraft(
@@ -67,6 +71,7 @@ internal fun RepairWorkActSection(
     role: String,
     token: String,
     catalogItems: List<CatalogItem>,
+    currentUserId: String,
     runAction: RunAction,
 ) {
     val act = order.workAct
@@ -86,10 +91,45 @@ internal fun RepairWorkActSection(
         }
     }
     var catalogExpanded by remember(order.id) { mutableStateOf(false) }
+    val context = LocalContext.current.applicationContext
+    val shortcutOwnerId = currentUserId.ifBlank { "local" }
+    var catalogShortcuts by remember(shortcutOwnerId) {
+        mutableStateOf(readRepairWorkActCatalogShortcuts(context, shortcutOwnerId))
+    }
     val availableItems = catalogItems.filter { item ->
         item.active && (item.type == "PRODUCT" || order.deviceType in item.deviceTypes)
     }
     val draftLines = draft.map { it.line }
+    val addCatalogItem: (CatalogItem) -> Unit = { item ->
+        if (draft.size < 100) {
+            draft.add(
+                ActLineDraft(
+                    RepairWorkActLine(
+                        lineId = UUID.randomUUID().toString(),
+                        orderItemId = null,
+                        catalogItemId = item.id,
+                        type = item.type,
+                        name = item.name,
+                        quantity = 1,
+                        unitPriceRub = item.unitPriceRub,
+                    ),
+                ),
+            )
+            val updated = catalogShortcuts.copy(
+                recentIds = recordRecentRepairCatalogItem(catalogShortcuts.recentIds, item.id),
+            )
+            catalogShortcuts = updated
+            saveRepairWorkActCatalogShortcuts(context, shortcutOwnerId, updated)
+        }
+        catalogExpanded = false
+    }
+    val toggleFavorite: (String) -> Unit = { itemId ->
+        val updated = catalogShortcuts.copy(
+            favoriteIds = toggleRepairCatalogFavorite(catalogShortcuts.favoriteIds, itemId),
+        )
+        catalogShortcuts = updated
+        saveRepairWorkActCatalogShortcuts(context, shortcutOwnerId, updated)
+    }
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
@@ -161,31 +201,7 @@ internal fun RepairWorkActSection(
                         onClick = { catalogExpanded = true },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = draft.size < 100 && availableItems.isNotEmpty(),
-                    ) { Text("Добавить услугу или запчасть") }
-                    DropdownMenu(expanded = catalogExpanded, onDismissRequest = { catalogExpanded = false }) {
-                        availableItems.forEach { item ->
-                            DropdownMenuItem(
-                                text = { Text("${itemTypeLabel(item.type)} · ${item.name} · ${item.unitPriceRub} ₽", fontSize = 12.sp) },
-                                onClick = {
-                                    val lineId = UUID.randomUUID().toString()
-                                    draft.add(
-                                        ActLineDraft(
-                                            RepairWorkActLine(
-                                                lineId = lineId,
-                                                orderItemId = null,
-                                                catalogItemId = item.id,
-                                                type = item.type,
-                                                name = item.name,
-                                                quantity = 1,
-                                                unitPriceRub = item.unitPriceRub,
-                                            ),
-                                        ),
-                                    )
-                                    catalogExpanded = false
-                                },
-                            )
-                        }
-                    }
+                    ) { Text("Добавить работу или запчасть") }
                 }
                 Text("Черновик: ${actLineTotal(draftLines)} ₽", modifier = Modifier.fillMaxWidth(), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -284,6 +300,16 @@ internal fun RepairWorkActSection(
                 }
             }
         }
+    }
+
+    if (catalogExpanded) {
+        RepairWorkActCatalogPickerDialog(
+            items = availableItems,
+            shortcuts = catalogShortcuts,
+            onToggleFavorite = toggleFavorite,
+            onAdd = addCatalogItem,
+            onDismiss = { catalogExpanded = false },
+        )
     }
 }
 

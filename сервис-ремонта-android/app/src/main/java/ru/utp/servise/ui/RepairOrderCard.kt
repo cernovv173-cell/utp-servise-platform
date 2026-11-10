@@ -58,6 +58,7 @@ internal fun RepairOrderCard(
     order: RepairOrder,
     role: String,
     token: String,
+    currentUserId: String,
     technicians: List<StaffMember>,
     catalogItems: List<CatalogItem>,
     runAction: RunAction,
@@ -155,7 +156,7 @@ internal fun RepairOrderCard(
                     }
                 }
                 RepairEstimateSection(order, role, token, catalogItems, runAction)
-                RepairWorkActSection(order, role, token, catalogItems, runAction)
+                RepairWorkActSection(order, role, token, catalogItems, currentUserId, runAction)
                 RepairDeadlineSection(order, role, token, runAction)
                 val structuredAddress = listOfNotNull(
                     order.city,

@@ -373,8 +373,8 @@ internal fun AuthenticatedWorkspace(
                                 onOpenChat = { navController.navigate("chat/$it") },
                                 onBack = { navController.popBackStack() },
                             )
-                            composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}) }
-                            composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}) }
+                            composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}, currentUserId = user.id) }
+                            composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}, currentUserId = user.id) }
                             composable("technician/catalog") { TechnicianCatalogScreen(catalogItems) }
                             composable("technician/salary") { SalaryScreen(salary, isAdmin = false, onRefresh = refresh) }
                             composable("technician/reviews") { ReviewsScreen("Отзывы о работе", reviews, refresh, token = token) }
@@ -450,7 +450,7 @@ internal fun AuthenticatedWorkspace(
                             composable("admin/orders") {
                                 RepairOrdersScreen(
                                     "Управление заказами", orders, user.role, token, staff,
-                                    catalogItems, false, runAction, refresh, onReview = {},
+                                    catalogItems, false, runAction, refresh, onReview = {}, currentUserId = user.id,
                                 )
                             }
                             composable("admin/seasonal") {
@@ -468,7 +468,7 @@ internal fun AuthenticatedWorkspace(
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 20.dp),
                                 )
                             }
-                            composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, catalogItems, true, runAction, refresh, onReview = {}) }
+                            composable("admin/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, staff, catalogItems, true, runAction, refresh, onReview = {}, currentUserId = user.id) }
                             composable("admin/new-order") {
                                 AdminOrderCreationScreen(
                                     token = token,

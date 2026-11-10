@@ -57,6 +57,7 @@ fun RepairOrdersScreen(
     onReview: (String) -> Unit,
     onCreateOrder: (() -> Unit)? = null,
     headerContent: (@Composable () -> Unit)? = null,
+    currentUserId: String = "",
 ) {
     var searchText by remember { mutableStateOf("") }
     var searchResults by remember { mutableStateOf<List<RepairOrder>?>(null) }
@@ -169,7 +170,7 @@ fun RepairOrdersScreen(
             }
         }
         displayedOrders.forEach { order ->
-            RepairOrderCard(order, role, token, technicians, catalogItems, runAction, onChat, onReview)
+            RepairOrderCard(order, role, token, currentUserId, technicians, catalogItems, runAction, onChat, onReview)
         }
     }
 }
