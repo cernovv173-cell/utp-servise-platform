@@ -7,7 +7,7 @@ import { AuthProvider } from "@/features/auth/auth-provider";
 import { SeasonalSceneBackground } from "@/features/seasonal/seasonal-scene-background";
 import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
-import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_NAME } from "@/lib/seo";
+import { DEFAULT_DESCRIPTION, DEFAULT_SOCIAL_IMAGE, DEFAULT_TITLE, SITE_NAME } from "@/lib/seo";
 
 const RootComponent = () => {
   const seasonalTheme = useSeasonalTheme();
@@ -88,6 +88,8 @@ export const Route = createRootRoute({
       { property: "og:locale", content: "ru_RU" },
       { property: "og:title", content: DEFAULT_TITLE },
       { property: "og:description", content: DEFAULT_DESCRIPTION },
+      { property: "og:image", content: DEFAULT_SOCIAL_IMAGE },
+      { property: "og:image:alt", content: "Новый логотип ЕНОТ СЕРВИС с енотом-мастером" },
     ],
     links: [
       {

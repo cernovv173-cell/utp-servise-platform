@@ -20,6 +20,7 @@ import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-ho
 import { GuidesSection } from "@/features/guides/guides-section";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { PageTurn } from "@/features/public/page-turn";
+import { RepairScenes } from "@/features/public/repair-scenes";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 import { TypewriterText } from "@/features/public/typewriter-text";
 
@@ -139,6 +140,10 @@ export const PublicHome = () => {
             </Reveal>
           </div>
         </section>
+      </PageTurn>
+
+      <PageTurn>
+        <RepairScenes />
       </PageTurn>
 
       <PageTurn>
