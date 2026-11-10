@@ -6,7 +6,7 @@ const logger = createLogger();
 const ARCHIVE_TIME_ZONE = "Europe/Moscow";
 const WORKER_INTERVAL_MILLISECONDS = 60_000;
 
-export const archivePreviousDayOrders = async (
+export const archivePreviousDayClosedOrders = async (
   database: DatabaseClient,
   now = new Date(),
 ): Promise<number> => {
@@ -14,7 +14,8 @@ export const archivePreviousDayOrders = async (
   const result = await database.repairOrder.updateMany({
     where: {
       archivedAt: null,
-      createdAt: { lt: startsAt },
+      status: { in: ["COMPLETED", "CANCELLED"] },
+      updatedAt: { lt: startsAt },
     },
     data: { archivedAt: now },
   });
@@ -29,11 +30,11 @@ export const startOrderArchiveWorker = (
     if (running) return;
     running = true;
     try {
-      const archivedCount = await archivePreviousDayOrders(database);
+      const archivedCount = await archivePreviousDayClosedOrders(database);
       if (archivedCount > 0) {
         logger.info(
           { archivedCount, timeZone: ARCHIVE_TIME_ZONE },
-          "previous_day_orders_archived",
+          "previous_day_closed_orders_archived",
         );
       }
     } catch {

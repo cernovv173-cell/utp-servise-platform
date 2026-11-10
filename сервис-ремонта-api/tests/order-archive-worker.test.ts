@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { archivePreviousDayOrders } from "../src/features/orders/order-archive-worker.js";
+import { archivePreviousDayClosedOrders } from "../src/features/orders/order-archive-worker.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 
-test("daily archive uses Moscow midnight and preserves order status", async () => {
+test("only completed or cancelled orders are archived after the Moscow day they were closed", async () => {
   let query: Record<string, unknown> | undefined;
   const database = {
     repairOrder: {
@@ -16,7 +16,7 @@ test("daily archive uses Moscow midnight and preserves order status", async () =
   };
   const now = new Date("2026-10-03T21:00:30.000Z");
 
-  const archivedCount = await archivePreviousDayOrders(
+  const archivedCount = await archivePreviousDayClosedOrders(
     database as unknown as DatabaseClient,
     now,
   );
@@ -25,7 +25,8 @@ test("daily archive uses Moscow midnight and preserves order status", async () =
   assert.deepEqual(query, {
     where: {
       archivedAt: null,
-      createdAt: { lt: new Date("2026-10-03T21:00:00.000Z") },
+      status: { in: ["COMPLETED", "CANCELLED"] },
+      updatedAt: { lt: new Date("2026-10-03T21:00:00.000Z") },
     },
     data: { archivedAt: now },
   });

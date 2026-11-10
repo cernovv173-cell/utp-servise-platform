@@ -163,10 +163,12 @@ sessions. Deleting a referral also detaches, but does not delete, another custom
 ledger entry. Confirmed shop orders restore their tracked stock before their history is removed.
 Removing repair history does not restore spare-part stock quantities.
 
-Repair orders are archived automatically after the Moscow calendar day in which they were created.
-The worker checks once per minute and marks older orders with `archived_at`; it never deletes the
-order or changes its status. `GET /orders?archive=active` and `GET /orders?archive=archived`
-return the corresponding role-scoped list. Omitting `archive` retains the unfiltered legacy response.
+Open repair orders—including jobs with a rescheduled expected date—remain active until the repair is
+fully completed or cancelled; their creation date does not send them to the archive. After a
+completed or cancelled order's last update falls before the current Moscow calendar day, the worker
+archives it on its next minute check by setting `archived_at`; it never deletes the order or changes
+its status. `GET /orders?archive=active` and `GET /orders?archive=archived` return the corresponding
+role-scoped list. Omitting `archive` retains the unfiltered legacy response.
 
 Administrators can load an individual repair record through `GET /admin/orders/:orderId`; this
 endpoint is restricted to the administrator role. `POST /staff` also requires an administrator and
