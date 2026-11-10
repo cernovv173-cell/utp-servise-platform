@@ -3,6 +3,7 @@ import { getMessaging } from "firebase-admin/messaging";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { createLogger } from "../../lib/logger.js";
+import { androidPushChannelIdForType } from "./android-push-channels.js";
 import { formatBirthdayGreeting } from "./birthday-greeting.js";
 import { getMoscowBirthdayDayWindow } from "./birthday-time.js";
 
@@ -137,18 +138,17 @@ export const sendPushNotification = async (
         const result = await messaging.sendEachForMulticast({
           tokens,
           notification: { title: notification.title, body: notification.body },
-          ...(notification.androidTag || androidTtlMilliseconds !== undefined
-            ? {
-                android: {
-                  ...(notification.androidTag
-                    ? { notification: { tag: notification.androidTag } }
-                    : {}),
-                  ...(androidTtlMilliseconds !== undefined
-                    ? { ttl: androidTtlMilliseconds }
-                    : {}),
-                },
-              }
-            : {}),
+          android: {
+            notification: {
+              channelId: androidPushChannelIdForType(notification.data.type),
+              ...(notification.androidTag
+                ? { tag: notification.androidTag }
+                : {}),
+            },
+            ...(androidTtlMilliseconds !== undefined
+              ? { ttl: androidTtlMilliseconds }
+              : {}),
+          },
           data: { ...notification.data },
         });
         if (

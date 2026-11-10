@@ -1,0 +1,11 @@
+export const ANDROID_UPDATES_PUSH_CHANNEL_ID =
+  "repair_updates_soft_spark" as const;
+export const ANDROID_WINNER_PUSH_CHANNEL_ID =
+  "repair_winner_soft_spark" as const;
+
+export const androidPushChannelIdForType = (
+  type: string | undefined,
+): string =>
+  type === "customer_offer_winner"
+    ? ANDROID_WINNER_PUSH_CHANNEL_ID
+    : ANDROID_UPDATES_PUSH_CHANNEL_ID;

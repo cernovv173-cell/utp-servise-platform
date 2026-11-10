@@ -1,12 +1,10 @@
 package ru.utp.servise.notifications
 
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -55,7 +53,10 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
             launchIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val notification = Notification.Builder(this, NotificationChannels.CHANNEL_ID)
+        val notification = Notification.Builder(
+            this,
+            NotificationChannelRouting.channelIdFor(message.data["type"]),
+        )
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setContentTitle(title)
             .setContentText(body)
@@ -69,22 +70,5 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
                 ?.hashCode()
                 ?: System.currentTimeMillis().toInt()
         runCatching { manager.notify(notificationId, notification) }
-    }
-}
-
-object NotificationChannels {
-    const val CHANNEL_ID = "repair_updates"
-
-    fun ensureCreated(context: Context) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Сообщения и запросы помощи",
-            NotificationManager.IMPORTANCE_DEFAULT,
-        ).apply {
-            description = "Сообщения по ремонту, запросы помощи и напоминания об обслуживании."
-        }
-        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        manager.createNotificationChannel(channel)
     }
 }

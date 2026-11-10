@@ -458,5 +458,8 @@ and retries temporary Firebase delivery failures. An offer scheduled to start la
 be announced at publication; its Android notification expires at the configured end time. Repair-order status changes already notify the order's
 other participants; `READY_FOR_PICKUP` now explicitly says the repair is ready, and successful
 staff release confirmation sends a separate completion notification. Firebase delivery
-requires a registered device token and the relevant notification permission. The new additive
+requires a registered device token and the relevant notification permission. Android FCM messages
+are routed to `repair_updates_soft_spark` by default; `customer_offer_winner` uses
+`repair_winner_soft_spark`, which the Android app creates with the separate celebration sound.
+The new additive
 `20261028190000_customer_offer_push_deliveries` migration adds only the delivery queue.
