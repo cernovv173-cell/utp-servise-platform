@@ -78,7 +78,7 @@ test("technician drafts the work act without stock changes; administrator approv
     serviceNumber: "S-301",
     deviceType: "COMPUTER",
     status: "IN_PROGRESS",
-    workActRequired: true,
+    workActRequired: false,
     receipt: null,
   };
   const service = {
@@ -154,7 +154,10 @@ test("technician drafts the work act without stock changes; administrator approv
     pushDeviceToken: { findMany: async () => [] },
     repairOrder: {
       findUnique: async () => ({ ...order, items: orderItems, workAct: act }),
-      updateMany: async () => ({ count: 1 }),
+      updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+        Object.assign(order, data);
+        return { count: 1 };
+      },
     },
     repairCatalogItem: {
       findMany: async ({
@@ -300,6 +303,7 @@ test("technician drafts the work act without stock changes; administrator approv
     body: JSON.stringify({ expectedRevision: 0, items: draft }),
   });
   assert.equal(saved.status, 200);
+  assert.equal(order.workActRequired, true);
   assert.equal(stock.get(oldPartId), 4);
   assert.equal(stock.get(newPartId), 3);
   assert.equal(orderItems.length, 2);

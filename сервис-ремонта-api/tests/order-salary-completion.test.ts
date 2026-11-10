@@ -39,6 +39,13 @@ test("standard order release verifies payment and issues receipt, warranty, and 
       quantity: 1,
       unitPriceRub: 200,
     },
+    {
+      id: "line-3",
+      type: "SPARE_PART",
+      name: "Запчасть",
+      quantity: 1,
+      unitPriceRub: 800,
+    },
   ];
   const order: {
     id: string;
@@ -48,6 +55,8 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     deviceType: string;
     problem: string;
     status: string;
+    workActRequired: boolean;
+    workAct: { status: string };
     customer: { displayName: string; phoneNumber: string };
     contactPhone: string | null;
     redeemBonuses: boolean;
@@ -63,6 +72,8 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     deviceType: "PHONE",
     problem: "Телефон не включается",
     status: "READY_FOR_PICKUP",
+    workActRequired: true,
+    workAct: { status: "APPROVED" },
     customer: { displayName: "Клиент", phoneNumber: "+79990000000" },
     contactPhone: null,
     redeemBonuses: false,
@@ -75,6 +86,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     intakeMediaObjectId: "intake-media-1",
   };
   const loyaltyEntries: Array<Record<string, unknown>> = [];
+  const customerBalance = 1_000;
   let recordedEvent: Record<string, unknown> | undefined;
   let recordedWarranty: Record<string, unknown> | undefined;
   let recordedSalary: Record<string, unknown> | undefined;
@@ -96,7 +108,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     },
     repairOrderIntake: { findUnique: async () => intake },
     loyaltyTransaction: {
-      aggregate: async () => ({ _sum: { points: 0 } }),
+      aggregate: async () => ({ _sum: { points: customerBalance } }),
       create: async ({ data }: { data: Record<string, unknown> }) => {
         loyaltyEntries.push(data);
         return data;
@@ -147,7 +159,9 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     },
     repairOrder: { findUnique: async () => order },
     repairOrderIntake: { findUnique: async () => intake },
-    loyaltyTransaction: { aggregate: async () => ({ _sum: { points: 0 } }) },
+    loyaltyTransaction: {
+      aggregate: async () => ({ _sum: { points: customerBalance } }),
+    },
     user: { findMany: async () => [] },
     pushDeviceToken: { findMany: async () => [] },
     $transaction: async (
@@ -183,19 +197,26 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   assert.equal(summaryResponse.status, 200);
   const summary = (await summaryResponse.json()) as {
     totalRub: number;
+    bonusDiscountRub: number;
+    maxBonusDiscountRub: number;
+    redeemBonuses: boolean;
     amountDueRub: number;
     paymentMethods: string[];
   };
-  assert.equal(summary.totalRub, 1200);
-  assert.equal(summary.amountDueRub, 1200);
+  assert.equal(summary.totalRub, 2000);
+  assert.equal(summary.bonusDiscountRub, 0);
+  assert.equal(summary.maxBonusDiscountRub, 360);
+  assert.equal(summary.redeemBonuses, false);
+  assert.equal(summary.amountDueRub, 2000);
   assert.ok(summary.paymentMethods.includes("CARD_TERMINAL"));
 
   const wrongAmount = await fetch(`${endpoint}/release`, {
     method: "POST",
     headers,
     body: JSON.stringify({
-      expectedAmountRub: 1100,
+      expectedAmountRub: 1639,
       paymentMethod: "CARD_TERMINAL",
+      redeemBonuses: true,
     }),
   });
   assert.equal(wrongAmount.status, 409);
@@ -204,7 +225,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   const missingPaymentMethod = await fetch(`${endpoint}/release`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ expectedAmountRub: 1200 }),
+    body: JSON.stringify({ expectedAmountRub: 1640, redeemBonuses: true }),
   });
   assert.equal(missingPaymentMethod.status, 400);
   assert.equal(order.status, "READY_FOR_PICKUP");
@@ -213,15 +234,18 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     method: "POST",
     headers,
     body: JSON.stringify({
-      expectedAmountRub: 1200,
+      expectedAmountRub: 1640,
       paymentMethod: "CARD_TERMINAL",
+      redeemBonuses: true,
     }),
   });
   assert.equal(released.status, 200);
   assert.equal(order.status, "COMPLETED");
   assert.equal(order.receipt?.paymentStatus, "PAID");
   assert.equal(order.receipt?.paymentMethod, "CARD_TERMINAL");
-  assert.equal(order.receipt?.totalRub, 1200);
+  assert.equal(order.receipt?.totalRub, 2000);
+  assert.equal(order.receipt?.bonusDiscountRub, 360);
+  assert.equal(order.redeemBonuses, true);
   assert.equal(recordedEvent?.actorId, technicianId);
   assert.equal(recordedEvent?.from, "READY_FOR_PICKUP");
   assert.equal(recordedEvent?.to, "COMPLETED");
@@ -231,14 +255,20 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   assert.equal(recordedSalary?.serviceTotalRub, 1200);
   assert.equal(recordedSalary?.salaryRub, 720);
   assert.equal(recordedSalary?.ratePercent, 60);
-  assert.equal(loyaltyEntries.length, 1);
-  assert.equal(loyaltyEntries[0]?.type, "EARN");
+  assert.equal(loyaltyEntries.length, 2);
+  assert.deepEqual(
+    loyaltyEntries.map(({ type, points }) => ({ type, points })),
+    [
+      { type: "REDEEM", points: -360 },
+      { type: "EARN", points: 164 },
+    ],
+  );
 
   const replay = await fetch(`${endpoint}/release`, {
     method: "POST",
     headers,
     body: JSON.stringify({
-      expectedAmountRub: 1200,
+      expectedAmountRub: 1640,
       paymentMethod: "CARD_TERMINAL",
     }),
   });

@@ -8,17 +8,27 @@ import { createOrdersRouter } from "../src/features/orders/orders.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("tracked spare parts are decremented on add and restored on removal", async (t) => {
+test("technicians stage repair changes for approval while administrators reconcile tracked stock", async (t) => {
   const orderId = "11111111-1111-4111-8111-111111111111";
   const catalogItemId = "22222222-2222-4222-8222-222222222222";
   const orderItemId = "33333333-3333-4333-8333-333333333333";
   const adminId = "44444444-4444-4444-8444-444444444444";
+  const technicianId = "55555555-5555-4555-8555-555555555555";
   const token = "A".repeat(48);
+  const technicianToken = "T".repeat(48);
   const admin = {
     id: adminId,
     email: "admin@example.test",
     displayName: "Admin",
     role: "ADMIN" as const,
+    active: true,
+    mustChangePassword: false,
+  };
+  const technician = {
+    id: technicianId,
+    email: "technician@example.test",
+    displayName: "Мастер",
+    role: "TECHNICIAN" as const,
     active: true,
     mustChangePassword: false,
   };
@@ -29,17 +39,24 @@ test("tracked spare parts are decremented on add and restored on removal", async
   const databaseClient = {
     $queryRaw: async () => [],
     session: {
-      findUnique: async ({ where }: { where: { tokenHash: string } }) =>
-        where.tokenHash === hashSessionToken(token)
-          ? { expiresAt: new Date(Date.now() + 60_000), user: admin }
-          : null,
+      findUnique: async ({ where }: { where: { tokenHash: string } }) => {
+        if (where.tokenHash === hashSessionToken(token)) {
+          return { expiresAt: new Date(Date.now() + 60_000), user: admin };
+        }
+        if (where.tokenHash === hashSessionToken(technicianToken)) {
+          return { expiresAt: new Date(Date.now() + 60_000), user: technician };
+        }
+        return null;
+      },
     },
     repairOrder: {
       findUnique: async () => ({
         id: orderId,
-        assignedTechnicianId: null,
+        assignedTechnicianId: technicianId,
         deviceType: "COMPUTER",
         status: orderStatus,
+        workActRequired: false,
+        receipt: null,
       }),
       updateMany: async ({ data }: { data: { status: string } }) => {
         orderStatus = data.status;
@@ -47,9 +64,10 @@ test("tracked spare parts are decremented on add and restored on removal", async
       },
       findUniqueOrThrow: async () => ({
         id: orderId,
-        assignedTechnicianId: null,
+        assignedTechnicianId: technicianId,
         deviceType: "COMPUTER",
         status: orderStatus,
+        workActRequired: false,
         items: [...items],
       }),
     },
@@ -152,9 +170,51 @@ test("tracked spare parts are decremented on add and restored on removal", async
       body: JSON.stringify({ catalogItemId, quantity }),
     });
 
+  const technicianAdd = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${technicianToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ catalogItemId, quantity: 1 }),
+  });
+  assert.equal(technicianAdd.status, 409);
+  assert.equal(
+    (await technicianAdd.json()).error.code,
+    "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+  );
+  assert.equal(stockQuantity, 3);
+  assert.equal(items.length, 0);
+
   const added = await addItem(2);
   assert.equal(added.status, 201);
   assert.equal(stockQuantity, 1);
+
+  const technicianUpdate = await fetch(`${baseUrl}/${orderItemId}`, {
+    method: "PATCH",
+    headers: {
+      authorization: `Bearer ${technicianToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ quantity: 3 }),
+  });
+  assert.equal(technicianUpdate.status, 409);
+  assert.equal(
+    (await technicianUpdate.json()).error.code,
+    "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+  );
+
+  const technicianDelete = await fetch(`${baseUrl}/${orderItemId}`, {
+    method: "DELETE",
+    headers: { authorization: `Bearer ${technicianToken}` },
+  });
+  assert.equal(technicianDelete.status, 409);
+  assert.equal(
+    (await technicianDelete.json()).error.code,
+    "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+  );
+  assert.equal(stockQuantity, 1);
+  assert.equal(items[0]?.quantity, 2);
 
   const excessQuantity = await fetch(`${baseUrl}/${orderItemId}`, {
     method: "PATCH",

@@ -285,6 +285,9 @@ data class RepairOrderReleaseSummary(
     val paymentStatus: String,
     val paymentMethod: String?,
     val paymentMethods: List<String> = emptyList(),
+    val maxBonusDiscountRub: Int = 0,
+    val redeemBonuses: Boolean = false,
+    val bonusSelectionAvailable: Boolean = false,
 )
 
 data class RepairOrderPhoto(val id: String, val objectId: String, val portfolioConsentAt: String? = null)

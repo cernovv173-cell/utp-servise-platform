@@ -2,7 +2,9 @@ package ru.utp.servise.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -17,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -40,6 +43,7 @@ internal fun RepairOrderReleaseDialog(
     var loading by remember(order.id) { mutableStateOf(true) }
     var error by remember(order.id) { mutableStateOf<String?>(null) }
     var selectedMethod by remember(order.id) { mutableStateOf("CASH") }
+    var redeemBonuses by remember(order.id) { mutableStateOf(false) }
     var paymentMenuExpanded by remember { mutableStateOf(false) }
 
     fun loadSummary() {
@@ -47,10 +51,13 @@ internal fun RepairOrderReleaseDialog(
             loading = true
             error = null
             try {
-                summary = withContext(Dispatchers.IO) {
+                val loadedSummary = withContext(Dispatchers.IO) {
                     ApiClient.repairOrderReleaseSummary(token, order.id)
                 }
-                selectedMethod = summary?.paymentMethod ?: selectedMethod
+                summary = loadedSummary
+                selectedMethod = loadedSummary.paymentMethod ?: selectedMethod
+                redeemBonuses = loadedSummary.bonusSelectionAvailable &&
+                    loadedSummary.redeemBonuses && loadedSummary.maxBonusDiscountRub > 0
             } catch (failure: Throwable) {
                 error = failure.message ?: "Не удалось получить сумму заказа."
             } finally {
@@ -61,6 +68,23 @@ internal fun RepairOrderReleaseDialog(
 
     LaunchedEffect(order.id) { loadSummary() }
 
+    val totals = summary
+    val isAlreadyPaid = totals?.paymentStatus == "PAID"
+    val supportsBonusSelection = totals?.bonusSelectionAvailable == true
+    val bonusDiscountRub = when {
+        totals == null -> 0
+        isAlreadyPaid == true -> totals.bonusDiscountRub
+        supportsBonusSelection && redeemBonuses -> totals.maxBonusDiscountRub
+        supportsBonusSelection -> 0
+        else -> totals.bonusDiscountRub
+    }
+    val amountDueRub = when {
+        totals == null -> 0
+        isAlreadyPaid == true -> 0
+        supportsBonusSelection -> (totals.totalRub - bonusDiscountRub).coerceAtLeast(0)
+        else -> totals.amountDueRub
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Выдать заказ · ${order.serviceNumber}") },
@@ -68,25 +92,48 @@ internal fun RepairOrderReleaseDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 when {
                     loading -> Text("Проверяем итоговую сумму…")
-                    summary != null -> {
-                        val totals = summary!!
+                    totals != null -> {
                         Text("Стоимость ремонта: ${totals.totalRub} ₽", color = UtpInk)
-                        if (totals.bonusDiscountRub > 0) {
-                            Text("Списываем бонусами: ${totals.bonusDiscountRub} ₽", color = UtpMuted)
+                        if (supportsBonusSelection && !isAlreadyPaid && totals.maxBonusDiscountRub > 0) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Checkbox(
+                                    checked = redeemBonuses,
+                                    onCheckedChange = { redeemBonuses = it },
+                                )
+                                Column {
+                                    Text(
+                                        "Списать бонусы — до ${totals.maxBonusDiscountRub} ₽",
+                                        color = UtpInk,
+                                        fontWeight = FontWeight.SemiBold,
+                                    )
+                                    Text(
+                                        "1 балл = 1 ₽; только на услуги, не больше 30% их стоимости.",
+                                        color = UtpMuted,
+                                        fontSize = 12.sp,
+                                    )
+                                }
+                            }
+                        }
+                        if (bonusDiscountRub > 0) {
+                            Text("Списываем бонусами: $bonusDiscountRub ₽", color = UtpMuted)
                         }
                         Text(
-                            "К оплате: ${totals.amountDueRub} ₽",
+                            "К оплате: $amountDueRub ₽",
                             color = UtpBlue,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                         )
-                        if (totals.paymentStatus == "PAID") {
+                        if (isAlreadyPaid == true) {
                             Text(
                                 "Заказ уже оплачен${totals.paymentMethod?.let { " · ${it.paymentMethodLabel()}" }.orEmpty()}.",
                                 color = UtpMuted,
                                 fontSize = 12.sp,
                             )
-                        } else if (totals.amountDueRub > 0) {
+                        } else if (amountDueRub > 0) {
                             Text("Способ оплаты", fontWeight = FontWeight.SemiBold, color = UtpInk)
                             OutlinedButton(
                                 onClick = { paymentMenuExpanded = true },
@@ -108,7 +155,12 @@ internal fun RepairOrderReleaseDialog(
                                     }
                             }
                         } else {
-                            Text("Сумма полностью покрыта бонусами.", color = UtpMuted, fontSize = 12.sp)
+                            Text(
+                                if (bonusDiscountRub > 0) "Сумма полностью покрыта бонусами."
+                                else "Оплата не требуется.",
+                                color = UtpMuted,
+                                fontSize = 12.sp,
+                            )
                         }
                     }
                 }
@@ -124,18 +176,19 @@ internal fun RepairOrderReleaseDialog(
             }
         },
         confirmButton = {
-            val current = summary
+            val current = totals
             Button(
                 enabled = !loading && current != null && error == null &&
-                    (current.amountDueRub == 0 || current.paymentStatus == "PAID" || selectedMethod in current.paymentMethods),
+                    (amountDueRub == 0 || current.paymentStatus == "PAID" || selectedMethod in current.paymentMethods),
                 onClick = {
                     current?.let { totals ->
                         runAction({
                             ApiClient.releaseRepairOrder(
                                 token = token,
                                 orderId = order.id,
-                                expectedAmountRub = totals.amountDueRub,
-                                paymentMethod = if (totals.amountDueRub > 0 && totals.paymentStatus != "PAID") selectedMethod else null,
+                                expectedAmountRub = amountDueRub,
+                                paymentMethod = if (amountDueRub > 0 && totals.paymentStatus != "PAID") selectedMethod else null,
+                                redeemBonuses = if (totals.bonusSelectionAvailable && totals.paymentStatus != "PAID") redeemBonuses else null,
                             )
                         }) { onDismiss() }
                     }

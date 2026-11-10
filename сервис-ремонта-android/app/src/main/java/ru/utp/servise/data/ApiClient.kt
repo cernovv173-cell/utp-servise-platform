@@ -913,10 +913,12 @@ object ApiClient {
         orderId: String,
         expectedAmountRub: Int,
         paymentMethod: String?,
+        redeemBonuses: Boolean? = null,
     ): RepairOrder = request(
         "POST", "/orders/$orderId/release", token,
         JSONObject().put("expectedAmountRub", expectedAmountRub).apply {
             paymentMethod?.let { put("paymentMethod", it) }
+            redeemBonuses?.let { put("redeemBonuses", it) }
         },
     ).getJSONObject("order").toOrder()
 

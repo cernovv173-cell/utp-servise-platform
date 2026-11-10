@@ -40,6 +40,7 @@ const releaseBody = z
   .object({
     expectedAmountRub: z.number().int().min(0).max(2_147_483_647),
     paymentMethod: paymentMethod.optional(),
+    redeemBonuses: z.boolean().optional(),
   })
   .strict();
 
@@ -117,24 +118,31 @@ export const createRepairOrderReleaseRouter = (
         where: { customerId: order.customerId },
         _sum: { points: true },
       });
-      const bonusDiscountRub =
-        order.receipt?.paymentStatus === "PAID"
-          ? order.receipt.bonusDiscountRub
-          : order.redeemBonuses
-            ? calculateMaxBonusDiscount(
-                calculateServiceBonusEligibleRub(order.items),
-                balance._sum.points ?? 0,
-              )
-            : 0;
+      const alreadyPaid = order.receipt?.paymentStatus === "PAID";
+      const maxBonusDiscountRub = alreadyPaid
+        ? 0
+        : calculateMaxBonusDiscount(
+            calculateServiceBonusEligibleRub(order.items),
+            balance._sum.points ?? 0,
+          );
+      const redeemBonuses = alreadyPaid
+        ? order.receipt!.bonusDiscountRub > 0
+        : order.redeemBonuses;
+      const bonusDiscountRub = alreadyPaid
+        ? order.receipt!.bonusDiscountRub
+        : redeemBonuses
+          ? maxBonusDiscountRub
+          : 0;
       response.json({
         orderId,
         serviceNumber: order.serviceNumber,
         totalRub,
         bonusDiscountRub,
-        amountDueRub:
-          order.receipt?.paymentStatus === "PAID"
-            ? 0
-            : Math.max(0, totalRub - bonusDiscountRub),
+        maxBonusDiscountRub,
+        redeemBonuses,
+        amountDueRub: alreadyPaid
+          ? 0
+          : Math.max(0, totalRub - bonusDiscountRub),
         paymentStatus: order.receipt?.paymentStatus ?? "PENDING",
         paymentMethod: order.receipt?.paymentMethod ?? null,
         paymentMethods: ["CASH", "CARD_TERMINAL", "BANK_TRANSFER", "OTHER"],
@@ -200,9 +208,11 @@ export const createRepairOrderReleaseRouter = (
           where: { customerId: order.customerId },
           _sum: { points: true },
         });
+        const shouldRedeemBonuses =
+          !alreadyPaid && (input.redeemBonuses ?? order.redeemBonuses);
         const bonusDiscountRub = alreadyPaid
           ? order.receipt!.bonusDiscountRub
-          : order.redeemBonuses
+          : shouldRedeemBonuses
             ? calculateMaxBonusDiscount(
                 calculateServiceBonusEligibleRub(order.items),
                 balance._sum.points ?? 0,
@@ -260,7 +270,11 @@ export const createRepairOrderReleaseRouter = (
 
         const updatedCount = await transaction.repairOrder.updateMany({
           where: { id: orderId, status: "READY_FOR_PICKUP" },
-          data: { status: "COMPLETED", bonusDiscountRub },
+          data: {
+            status: "COMPLETED",
+            bonusDiscountRub,
+            ...(alreadyPaid ? {} : { redeemBonuses: shouldRedeemBonuses }),
+          },
         });
         if (updatedCount.count !== 1) {
           throw new HttpError(

@@ -75,6 +75,7 @@ const RepairWorkActPanelContent = ({
   const isAssignedTechnician =
     user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id;
   const canManage = isAdmin || isAssignedTechnician;
+  const canEditDraft = order.status === "IN_PROGRESS" && (act === null || act.status === "DRAFT");
   const [draftLines, setDraftLines] = useState<RepairWorkActLine[]>(() =>
     act ? linesForAct(act) : linesFromOrder(order),
   );
@@ -280,7 +281,7 @@ const RepairWorkActPanelContent = ({
         </div>
       )}
 
-      {act?.status === "DRAFT" && (
+      {canEditDraft && (
         <div className="mt-4 grid gap-3">
           <p className="text-xs text-slate-500">
             Исходные строки сметы сохранены. Мастер может добавлять фактически выполненные работы и

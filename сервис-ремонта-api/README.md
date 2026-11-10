@@ -199,7 +199,7 @@ without changing the order composition. The former `/response` path remains as a
 compatibility alias; customer requests to either path are forbidden. A changed offer creates a new
 version and preserves prior versions. Once estimates exist, direct order-line add/edit/delete endpoints are locked. The initial estimate must be approved by an administrator before a technician starts the repair; no repair may transition to `IN_PROGRESS` without an administrator-approved estimate, including orders that predate estimates.
 
-After work starts, the assigned technician can add actual services and parts to the order's work-act draft without advance administrator approval. The API snapshots catalog names and prices and does not change order lines, inventory, receipt totals, or technician pay while the act is a draft or pending review. The technician submits the draft when ready; an administrator alone chooses the lines to keep and approves the act, without a second confirmation from the technician. Removed lines remain in the act's audit snapshot. Approval reconciles order lines and tracked stock atomically; the approved lines then feed the receipt and technician calculation. For orders created by this API version, an approved work act is required before `READY_FOR_PICKUP`, receipt finalization, or release. Existing orders keep their previous behavior until a work act is created for them. The additive `20261107190000_repair_work_acts` migration adds the act and audit records without rewriting existing orders.
+After work starts, the assigned technician can add actual services and parts to the order's work-act draft without advance administrator approval. The API snapshots catalog names and prices and does not change order lines, inventory, receipt totals, or technician pay while the act is a draft or pending review. The technician submits the draft when ready; an administrator alone chooses the lines to keep and approves the act, without a second confirmation from the technician. Removed lines remain in the act's audit snapshot. Approval reconciles order lines and tracked stock atomically; the approved lines then feed the receipt and technician calculation. For orders created by this API version, an approved work act is required before `READY_FOR_PICKUP`, receipt finalization, or release. On older in-progress orders, technicians must use the work act instead of directly changing receipt lines; if an older order already has an estimate, additional changes remain subject to administrator-approved estimates. The additive `20261107190000_repair_work_acts` migration adds the act and audit records without rewriting existing orders.
 
 Customers can read only active service names and exact unit prices through
 `GET /customer/service-prices`; this response excludes parts, stock levels, inactive rows, and admin
@@ -258,9 +258,11 @@ salary entries are included in the same day, week, and month totals as repair sa
 Craft-product orders do not allow bonus redemption. An administrator records their payment method
 after receiving payment outside the app; there is no online payment integration. The server awards
 5% of the paid craft-order amount as loyalty points, and repeated confirmations do not duplicate the
-bonus transaction. For repair receipts, only an administrator can apply bonuses, capped at 30% of
-`SERVICE` line totals; spare parts and products are excluded. The server deducts the redeemed amount
-when the administrator confirms the repair payment and awards 10% of the remaining cash amount.
+bonus transaction. For repair orders, the assigned technician or administrator can choose to redeem
+points at pickup. One point equals one ruble, capped by the available balance and 30% of `SERVICE`
+line totals; spare parts and products are excluded. The release transaction records the redemption,
+marks the receipt paid, and awards 10% of the remaining cash amount. The server recalculates the due
+amount under lock, so a changed balance or order total requires refreshing the release screen.
 
 ## Customer referrals
 

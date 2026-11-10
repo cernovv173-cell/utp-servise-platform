@@ -479,18 +479,25 @@ internal fun JSONObject.toNewsArticle() = NewsArticle(
     videoObjectId = nullableString("videoObjectId"),
 )
 
-internal fun JSONObject.toRepairOrderReleaseSummary() = RepairOrderReleaseSummary(
-    orderId = getString("orderId"),
-    serviceNumber = getString("serviceNumber"),
-    totalRub = getInt("totalRub"),
-    bonusDiscountRub = getInt("bonusDiscountRub"),
-    amountDueRub = getInt("amountDueRub"),
-    paymentStatus = optString("paymentStatus", "PENDING"),
-    paymentMethod = nullableString("paymentMethod"),
-    paymentMethods = optJSONArray("paymentMethods")?.let { values ->
-        List(values.length()) { index -> values.getString(index) }
-    }.orEmpty(),
-)
+internal fun JSONObject.toRepairOrderReleaseSummary(): RepairOrderReleaseSummary {
+    val bonusDiscountRub = getInt("bonusDiscountRub")
+    val bonusSelectionAvailable = has("maxBonusDiscountRub") && has("redeemBonuses")
+    return RepairOrderReleaseSummary(
+        orderId = getString("orderId"),
+        serviceNumber = getString("serviceNumber"),
+        totalRub = getInt("totalRub"),
+        bonusDiscountRub = bonusDiscountRub,
+        amountDueRub = getInt("amountDueRub"),
+        paymentStatus = optString("paymentStatus", "PENDING"),
+        paymentMethod = nullableString("paymentMethod"),
+        paymentMethods = optJSONArray("paymentMethods")?.let { values ->
+            List(values.length()) { index -> values.getString(index) }
+        }.orEmpty(),
+        maxBonusDiscountRub = optInt("maxBonusDiscountRub", 0),
+        redeemBonuses = optBoolean("redeemBonuses", bonusDiscountRub > 0),
+        bonusSelectionAvailable = bonusSelectionAvailable,
+    )
+}
 
 internal fun JSONObject.toTechnologyFact() = TechnologyFact(
     id = getString("id"),

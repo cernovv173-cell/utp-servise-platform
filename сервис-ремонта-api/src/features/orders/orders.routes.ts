@@ -1773,6 +1773,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
           );
         }
+        if (existing.status === "IN_PROGRESS" && user.role === "TECHNICIAN") {
+          throw new HttpError(
+            409,
+            "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+            "Во время ремонта добавляйте услуги и запчасти в акт. Они попадут в чек и изменят склад только после подтверждения администратором.",
+          );
+        }
         const catalogItem = await transaction.repairCatalogItem.findFirst({
           where: { id: input.catalogItemId, active: true },
           select: {
@@ -1907,6 +1914,16 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
           );
         }
+        if (
+          currentOrder.status === "IN_PROGRESS" &&
+          user.role === "TECHNICIAN"
+        ) {
+          throw new HttpError(
+            409,
+            "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+            "Во время ремонта меняйте услуги и запчасти через акт. Чек и склад обновятся только после подтверждения администратором.",
+          );
+        }
         const item = await transaction.repairOrderItem.findFirst({
           where: { id: itemId, orderId },
         });
@@ -2027,6 +2044,16 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             409,
             "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
             "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
+          );
+        }
+        if (
+          currentOrder.status === "IN_PROGRESS" &&
+          user.role === "TECHNICIAN"
+        ) {
+          throw new HttpError(
+            409,
+            "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+            "Во время ремонта меняйте услуги и запчасти через акт. Чек и склад обновятся только после подтверждения администратором.",
           );
         }
         const item = await transaction.repairOrderItem.findFirst({

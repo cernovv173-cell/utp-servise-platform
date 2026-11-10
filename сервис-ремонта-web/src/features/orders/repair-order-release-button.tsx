@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, LoaderCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -37,6 +37,8 @@ export const RepairOrderReleaseButton = ({
   onRefresh: () => Promise<unknown>;
 }) => {
   const [open, setOpen] = useState(false);
+  const [redeemBonuses, setRedeemBonuses] = useState(false);
+  const [initializedOrderId, setInitializedOrderId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] =
     useState<NonNullable<RepairReceipt["paymentMethod"]>>("CASH");
   const summary = useQuery({
@@ -44,13 +46,46 @@ export const RepairOrderReleaseButton = ({
     queryFn: () => getRepairOrderReleaseSummary(token, order.id),
     enabled: open,
   });
+  useEffect(() => {
+    if (!open || !summary.data || initializedOrderId === order.id) return;
+    setRedeemBonuses(summary.data.redeemBonuses ?? summary.data.bonusDiscountRub > 0);
+    setInitializedOrderId(order.id);
+  }, [initializedOrderId, open, order.id, summary.data]);
+  const isAlreadyPaid = summary.data?.paymentStatus === "PAID";
+  const supportsBonusSelection =
+    typeof summary.data?.maxBonusDiscountRub === "number" &&
+    typeof summary.data.redeemBonuses === "boolean";
+  const selectedRedeemBonuses =
+    initializedOrderId === order.id ? redeemBonuses : (summary.data?.redeemBonuses ?? false);
+  const maxBonusDiscountRub = summary.data?.maxBonusDiscountRub ?? 0;
+  const bonusDiscountRub = summary.data
+    ? isAlreadyPaid
+      ? summary.data.bonusDiscountRub
+      : supportsBonusSelection
+        ? selectedRedeemBonuses
+          ? maxBonusDiscountRub
+          : 0
+        : summary.data.bonusDiscountRub
+    : 0;
+  const amount = summary.data
+    ? isAlreadyPaid
+      ? 0
+      : supportsBonusSelection
+        ? Math.max(0, summary.data.totalRub - bonusDiscountRub)
+        : summary.data.amountDueRub
+    : 0;
   const release = useMutation({
     mutationFn: () => {
       if (!summary.data) throw new Error("Сначала загрузите сумму к оплате.");
+      const isAlreadyPaid = summary.data.paymentStatus === "PAID";
+      const supportsBonusSelection =
+        typeof summary.data.maxBonusDiscountRub === "number" &&
+        typeof summary.data.redeemBonuses === "boolean";
       return releaseRepairOrder(token, order.id, {
-        expectedAmountRub: summary.data.amountDueRub,
-        ...(summary.data.amountDueRub > 0 && summary.data.paymentStatus !== "PAID"
-          ? { paymentMethod }
+        expectedAmountRub: amount,
+        ...(amount > 0 && !isAlreadyPaid ? { paymentMethod } : {}),
+        ...(supportsBonusSelection && !isAlreadyPaid
+          ? { redeemBonuses: selectedRedeemBonuses }
           : {}),
       });
     },
@@ -65,10 +100,9 @@ export const RepairOrderReleaseButton = ({
 
   const close = (nextOpen: boolean) => {
     if (nextOpen) setPaymentMethod("CASH");
+    setInitializedOrderId(null);
     setOpen(nextOpen);
   };
-  const amount = summary.data?.amountDueRub ?? 0;
-  const isAlreadyPaid = summary.data?.paymentStatus === "PAID";
 
   return (
     <Modal open={open} onOpenChange={close}>
@@ -112,10 +146,29 @@ export const RepairOrderReleaseButton = ({
                 <span>Стоимость ремонта</span>
                 <b>{summary.data.totalRub.toLocaleString("ru-RU")} ₽</b>
               </p>
-              {summary.data.bonusDiscountRub > 0 && (
+              {supportsBonusSelection && !isAlreadyPaid && maxBonusDiscountRub > 0 && (
+                <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={selectedRedeemBonuses}
+                    onChange={(event) => setRedeemBonuses(event.target.checked)}
+                    className="mt-0.5 size-4 shrink-0 accent-emerald-600"
+                  />
+                  <span>
+                    <span className="block font-medium">
+                      Списать бонусы — до {maxBonusDiscountRub.toLocaleString("ru-RU")} ₽
+                    </span>
+                    <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">
+                      1 балл = 1 ₽; скидка действует только на услуги и не превышает 30% их
+                      стоимости.
+                    </span>
+                  </span>
+                </label>
+              )}
+              {bonusDiscountRub > 0 && (
                 <p className="mt-2 flex justify-between gap-3 text-sm text-emerald-700 dark:text-emerald-300">
                   <span>Списать бонусами</span>
-                  <b>−{summary.data.bonusDiscountRub.toLocaleString("ru-RU")} ₽</b>
+                  <b>−{bonusDiscountRub.toLocaleString("ru-RU")} ₽</b>
                 </p>
               )}
               <p className="mt-3 flex justify-between gap-3 border-t border-slate-200 pt-3 text-base dark:border-slate-700">

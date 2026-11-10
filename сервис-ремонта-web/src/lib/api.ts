@@ -1263,6 +1263,8 @@ export type RepairOrderReleaseSummary = {
   serviceNumber: string;
   totalRub: number;
   bonusDiscountRub: number;
+  maxBonusDiscountRub?: number;
+  redeemBonuses?: boolean;
   amountDueRub: number;
   paymentStatus: "PENDING" | "PAID";
   paymentMethod: RepairReceipt["paymentMethod"];
@@ -1278,6 +1280,7 @@ export const releaseRepairOrder = (
   input: {
     expectedAmountRub: number;
     paymentMethod?: NonNullable<RepairReceipt["paymentMethod"]>;
+    redeemBonuses?: boolean;
   },
 ) =>
   apiRequest<{ order: RepairOrder; receipt: RepairReceipt; warranty: RepairWarranty }>(
