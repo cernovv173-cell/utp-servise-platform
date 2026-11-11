@@ -142,8 +142,16 @@ const confirmMaxLink = async (
         where: { id: linkToken.id },
         select: { userId: true },
       });
+      const targetUser = storedToken
+        ? await transaction.user.findUnique({
+            where: { id: storedToken.userId },
+            select: { id: true, active: true, terminatedAt: true },
+          })
+        : null;
       if (
         !storedToken ||
+        !targetUser?.active ||
+        targetUser.terminatedAt ||
         (activeOwner && activeOwner.id !== storedToken.userId)
       ) {
         return false;
@@ -194,7 +202,7 @@ export const createMaxRouter = (database: DatabaseClient): Router => {
   router.get(
     "/auth/max/status",
     requireAuth,
-    requireRoles("CUSTOMER"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"),
     (_request, response) => {
       response.json({
         available:
@@ -209,7 +217,7 @@ export const createMaxRouter = (database: DatabaseClient): Router => {
   router.post(
     "/auth/max/link",
     requireAuth,
-    requireRoles("CUSTOMER"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       let bot: Awaited<ReturnType<typeof getMaxBotProfile>>;
@@ -252,7 +260,7 @@ export const createMaxRouter = (database: DatabaseClient): Router => {
   router.delete(
     "/auth/max/link",
     requireAuth,
-    requireRoles("CUSTOMER"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const now = new Date();

@@ -89,9 +89,21 @@ export const handleMaxBotStarted = async (
   if (request.userId) {
     const target = await database.user.findUnique({
       where: { id: request.userId },
-      select: { id: true, role: true, active: true, maxUserId: true },
+      select: {
+        id: true,
+        role: true,
+        active: true,
+        terminatedAt: true,
+        maxUserId: true,
+      },
     });
-    if (!target || target.role !== "CUSTOMER" || !target.active) {
+    if (
+      !target ||
+      target.role !== request.expectedRole ||
+      target.role !== "CUSTOMER" ||
+      !target.active ||
+      target.terminatedAt
+    ) {
       await failAndNotify(
         database,
         request.id,
@@ -179,20 +191,20 @@ export const handleMaxBotStarted = async (
 
   const linkedUser = await database.user.findUnique({
     where: { maxUserId },
-    select: { id: true, role: true, active: true },
+    select: { id: true, role: true, active: true, terminatedAt: true },
   });
   if (linkedUser) {
-    if (linkedUser.role !== "CUSTOMER") {
+    if (linkedUser.role !== request.expectedRole) {
       await failAndNotify(
         database,
         request.id,
         maxUserId,
-        "MAX_STAFF_ACCOUNT",
-        "Вход через МАКС доступен клиентам. Сотрудники входят по почте и паролю.",
+        "MAX_ROLE_MISMATCH",
+        "Этот MAX привязан к другому типу аккаунта. Выберите соответствующую роль на экране входа.",
       );
       return;
     }
-    if (!linkedUser.active) {
+    if (!linkedUser.active || linkedUser.terminatedAt) {
       await failAndNotify(
         database,
         request.id,
@@ -218,6 +230,17 @@ export const handleMaxBotStarted = async (
     if (confirmed) {
       await deliverCredentialsQuietly(database, linkedUser.id, maxUserId);
     }
+    return;
+  }
+
+  if (request.expectedRole !== "CUSTOMER") {
+    await failAndNotify(
+      database,
+      request.id,
+      maxUserId,
+      "MAX_STAFF_NOT_LINKED",
+      "Чтобы войти как сотрудник, войдите по выданному логину и паролю и подключите МАКС в профиле.",
+    );
     return;
   }
 

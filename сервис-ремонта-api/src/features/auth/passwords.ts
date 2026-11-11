@@ -1,5 +1,6 @@
 import {
   randomBytes,
+  randomInt,
   scrypt as scryptCallback,
   timingSafeEqual,
 } from "node:crypto";
@@ -58,5 +59,17 @@ export const performDummyPasswordCheck = async (
   timingSafeEqual(Buffer.alloc(KEY_LENGTH), actual);
 };
 
+const TEMPORARY_PASSWORD_ALPHABET =
+  "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+
+export const generateAccountLogin = (): string =>
+  `enot-${randomBytes(8).toString("hex")}`;
+
 export const generateTemporaryPassword = (): string =>
-  randomBytes(18).toString("base64url");
+  Array.from(
+    { length: 6 },
+    () =>
+      TEMPORARY_PASSWORD_ALPHABET[
+        randomInt(TEMPORARY_PASSWORD_ALPHABET.length)
+      ],
+  ).join("");

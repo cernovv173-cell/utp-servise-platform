@@ -140,9 +140,11 @@ private fun LoginScreen(
             color = UtpMuted,
             modifier = Modifier.padding(top = 6.dp, bottom = 22.dp),
         )
-        if (!recovering && portal == "CUSTOMER") {
+        if (!recovering) {
             MaxLoginCard(
                 referralCode = referralCode,
+                expectedRole = portal,
+                compact = true,
                 enabled = true,
                 onBusy = onBusy,
                 onError = onError,

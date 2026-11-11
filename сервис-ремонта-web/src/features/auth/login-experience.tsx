@@ -252,25 +252,24 @@ export const LoginExperience = ({
               <AppInstallButton />
             </div>
           )}
-          {!recovering && (registering || role === "CUSTOMER") && (
+          {!recovering && (
             <div className="mt-6">
               <MaxLogin
                 referralCode={referralCode}
+                expectedRole={registering ? "CUSTOMER" : role}
+                compact={!registering}
                 disabled={busy}
                 onError={() => setError("")}
                 onSuccess={completeMaxLogin}
               />
-              <div className="my-6 flex items-center gap-3 text-xs font-semibold tracking-wide text-slate-400 uppercase">
+              <div className="my-4 flex items-center gap-3 text-xs font-semibold tracking-wide text-slate-400 uppercase">
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
                 {registering ? "или по почте" : "или по почте/логину"}
                 <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               </div>
             </div>
           )}
-          <form
-            onSubmit={submit}
-            className={`${!recovering && (registering || role === "CUSTOMER") ? "" : "mt-8"} grid gap-4`}
-          >
+          <form onSubmit={submit} className={`${!recovering ? "" : "mt-8"} grid gap-4`}>
             {registering && !recovering && (
               <label className="grid gap-1.5 text-sm font-medium">
                 Имя

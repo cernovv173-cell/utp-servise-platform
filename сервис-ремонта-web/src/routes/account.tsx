@@ -49,7 +49,7 @@ const AccountPage = () => {
   const telegramStatus = useQuery({
     queryKey: ["telegram-status", token],
     queryFn: ({ signal }) => getTelegramStatus(token!, signal),
-    enabled: Boolean(token && user?.role === "CUSTOMER"),
+    enabled: Boolean(token),
     refetchInterval: (query) => (!query.state.data?.connected && telegramLink ? 2_000 : false),
   });
   const telegramLinkMutation = useMutation({
@@ -296,12 +296,12 @@ const AccountPage = () => {
             )}
           </SectionCard>
         )}
-        {user?.role === "CUSTOMER" && (
+        {Boolean(user && token) && (
           <SectionCard>
-            <h2 className="font-semibold">Уведомления в MAX</h2>
+            <h2 className="font-semibold">Вход и уведомления через МАКС</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Получайте сообщения, когда устройство принято, диагностика завершена и заказ готов к
-              выдаче.
+              Привяжите МАКС к своему аккаунту, чтобы входить через кнопку на экране входа и
+              получать сообщения по заявкам. Привязка не меняет роль аккаунта.
             </p>
             {maxStatus.isLoading ? (
               <p className="mt-3 text-sm text-slate-500">Проверяем подключение MAX…</p>
@@ -311,9 +311,9 @@ const AccountPage = () => {
               </p>
             ) : !maxStatus.data?.available ? (
               <p className="mt-3 text-sm text-slate-500">
-                Подключение MAX не настроено; уведомления в MAX пока недоступны.
+                Подключение МАКС временно недоступно. Попробуйте позже.
               </p>
-            ) : (maxStatus.data.connected ?? user.maxLinked) ? (
+            ) : (maxStatus.data.connected ?? user?.maxLinked) ? (
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                   MAX подключён

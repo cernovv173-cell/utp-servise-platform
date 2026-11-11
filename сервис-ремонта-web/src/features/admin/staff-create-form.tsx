@@ -14,6 +14,7 @@ const roleLabels: Record<StaffCreationRole, string> = {
 };
 
 type CreatedAccount = {
+  login: string;
   email: string;
   displayName: string;
   role: StaffCreationRole;
@@ -33,6 +34,7 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
     }) => createStaff(token!, input),
     onSuccess: async ({ staff, temporaryPassword }) => {
       setCreatedAccount({
+        login: staff.login ?? staff.email,
         email: staff.email,
         displayName: staff.displayName,
         role: staff.role === "PROCUREMENT" ? "PROCUREMENT" : "TECHNICIAN",
@@ -102,7 +104,7 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
         </label>
         <label className="grid gap-1 text-sm font-medium">
           <span>
-            Электронная почта — логин{"\u00a0"}
+            Рабочая электронная почта{"\u00a0"}
             <span aria-hidden="true">*</span>
           </span>
           <input
@@ -140,7 +142,8 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
                 Данные для первого входа · {createdAccount.displayName} ·{" "}
                 {roleLabels[createdAccount.role]}
               </h4>
-              <p className="mt-2">Логин: {createdAccount.email}</p>
+              <p className="mt-2">Логин: {createdAccount.login}</p>
+              <p className="mt-1">Рабочая почта: {createdAccount.email}</p>
               <p className="mt-1">
                 Временный пароль:{" "}
                 <code className="font-semibold select-all">{createdAccount.temporaryPassword}</code>

@@ -394,8 +394,10 @@ export type StaffMember = {
   id: string;
   displayName: string;
   email: string;
+  login?: string | null;
   salaryRatePercent: number;
   active: boolean;
+  terminatedAt?: string | null;
   role: string;
 };
 
@@ -825,11 +827,14 @@ export const loginRequest = (email: string, password: string, portal: Role) =>
 export const maxLoginConfigRequest = () =>
   apiRequest<{ available: boolean }>("/auth/max/config", null);
 
-export const startMaxLoginRequest = (referralCode?: string) => {
+export const startMaxLoginRequest = (referralCode?: string, expectedRole: Role = "CUSTOMER") => {
   const normalizedReferralCode = referralCode?.trim().toUpperCase();
   return apiRequest<MaxLoginStart>("/auth/max/login", null, {
     method: "POST",
-    body: JSON.stringify(normalizedReferralCode ? { referralCode: normalizedReferralCode } : {}),
+    body: JSON.stringify({
+      expectedRole,
+      ...(normalizedReferralCode ? { referralCode: normalizedReferralCode } : {}),
+    }),
   });
 };
 
@@ -1635,7 +1640,7 @@ export const createStaff = (
   },
 ) =>
   apiRequest<{
-    staff: Pick<StaffMember, "id" | "displayName" | "email" | "role">;
+    staff: Pick<StaffMember, "id" | "displayName" | "email" | "login" | "role">;
     temporaryPassword: string;
   }>("/staff", token, {
     method: "POST",
@@ -1658,8 +1663,10 @@ export const setStaffActive = (token: string, userId: string, active: boolean) =
     body: JSON.stringify({ active }),
   });
 
-export const deleteTechnician = (token: string, userId: string) =>
-  apiRequest<{ staff: StaffMember }>(`/staff/${userId}`, token, { method: "DELETE" });
+export const terminateStaff = (token: string, userId: string) =>
+  apiRequest<{ staff: StaffMember }>(`/staff/${userId}/terminate`, token, {
+    method: "POST",
+  });
 
 export const assignOrder = (token: string, orderId: string, technicianId: string) =>
   apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/assign`, token, {

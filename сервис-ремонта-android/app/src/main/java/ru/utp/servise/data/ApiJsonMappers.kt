@@ -321,12 +321,14 @@ private fun JSONObject.toSalaryAmounts() = SalaryAmounts(
 internal fun JSONObject.toStaff() = StaffMember(
     id = getString("id"),
     email = getString("email"),
+    login = nullableString("login"),
     displayName = getString("displayName"),
     phoneNumber = nullableString("phoneNumber"),
     avatarObjectId = nullableString("avatarObjectId"),
     role = getString("role"),
     active = optBoolean("active", true),
     salaryRatePercent = optInt("salaryRatePercent", 75),
+    terminatedAt = nullableString("terminatedAt"),
 )
 
 internal fun JSONObject.toCatalogItem() = CatalogItem(

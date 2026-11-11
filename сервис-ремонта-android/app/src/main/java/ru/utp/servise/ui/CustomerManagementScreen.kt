@@ -295,8 +295,13 @@ private fun NewCustomerCredentialsDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Передайте данные клиенту безопасным способом. После закрытия пароль больше не будет показан.", fontSize = 12.sp, color = UtpMuted)
                 Text("Клиент: ${result.customer.displayName}", fontWeight = FontWeight.SemiBold)
+                Text("Логин: ${result.customer.login ?: result.customer.email ?: "—"}", fontWeight = FontWeight.Medium)
                 Text("Почта: ${result.customer.email ?: "не указана"}")
-                Text("Временный пароль: ${result.temporaryPassword}", fontWeight = FontWeight.Bold)
+                if (result.temporaryPassword != null) {
+                    Text("Временный пароль: ${result.temporaryPassword}", fontWeight = FontWeight.Bold)
+                } else if (result.credentialDeliveryPending) {
+                    Text("Временный пароль будет передан клиенту через МАКС после подключения аккаунта.", fontSize = 12.sp, color = UtpMuted)
+                }
             }
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("Готово") } },

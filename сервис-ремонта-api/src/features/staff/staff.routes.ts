@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { type RequestHandler, Router } from "express";
 import { z } from "zod";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
@@ -10,7 +10,11 @@ import {
   publicUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
-import { generateTemporaryPassword, hashPassword } from "../auth/passwords.js";
+import {
+  generateAccountLogin,
+  generateTemporaryPassword,
+  hashPassword,
+} from "../auth/passwords.js";
 
 const emailSchema = z
   .string()
@@ -73,12 +77,6 @@ const isUniqueViolation = (error: unknown): boolean =>
   error !== null &&
   "code" in error &&
   error.code === "P2002";
-
-const isForeignKeyViolation = (error: unknown): boolean =>
-  typeof error === "object" &&
-  error !== null &&
-  "code" in error &&
-  error.code === "P2003";
 
 export const createStaffRouter = (database: DatabaseClient): Router => {
   const router = Router();
@@ -258,10 +256,12 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           email: true,
           displayName: true,
           phoneNumber: true,
+          login: true,
           avatarObjectId: true,
           role: true,
           salaryRatePercent: true,
           active: true,
+          terminatedAt: true,
           createdAt: true,
         },
         orderBy: [{ active: "desc" }, { displayName: "asc" }],
@@ -282,6 +282,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
         const staff = await database.user.create({
           data: {
             email: input.email,
+            login: generateAccountLogin(),
             displayName: input.displayName,
             phoneNumber: input.phoneNumber?.trim() || null,
             role: input.role,
@@ -377,6 +378,16 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
         next(new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден."));
         return;
       }
+      if (target.terminatedAt && active) {
+        next(
+          new HttpError(
+            409,
+            "STAFF_PERMANENTLY_TERMINATED",
+            "Уволенную учётную запись нельзя восстановить. Создайте новую запись сотрудника.",
+          ),
+        );
+        return;
+      }
       if (target.role === "ADMIN" && target.active && !active) {
         const activeAdmins = await database.user.count({
           where: { role: "ADMIN", active: true },
@@ -398,11 +409,13 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
         select: {
           id: true,
           email: true,
+          login: true,
           displayName: true,
           phoneNumber: true,
           avatarObjectId: true,
           role: true,
           active: true,
+          terminatedAt: true,
           createdAt: true,
         },
       });
@@ -411,65 +424,147 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
     },
   );
 
+  const terminateStaff: RequestHandler = async (_request, response, next) => {
+    const userId = userIdOf(response);
+    const actor = getAuthenticatedUser(response);
+    if (actor.id === userId) {
+      next(
+        new HttpError(
+          409,
+          "CANNOT_TERMINATE_SELF",
+          "Нельзя навсегда уволить собственную учётную запись.",
+        ),
+      );
+      return;
+    }
+
+    try {
+      const staff = await database.$transaction(async (transaction) => {
+        await transaction.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "users"
+          WHERE "id" = ${userId}::uuid OR "id" = ${actor.id}::uuid
+          ORDER BY "id"
+          FOR UPDATE
+        `;
+        const [currentActor, target] = await Promise.all([
+          transaction.user.findUnique({
+            where: { id: actor.id },
+            select: { id: true, role: true, active: true, terminatedAt: true },
+          }),
+          transaction.user.findUnique({ where: { id: userId } }),
+        ]);
+        if (
+          !currentActor ||
+          currentActor.role !== "ADMIN" ||
+          !currentActor.active ||
+          currentActor.terminatedAt
+        ) {
+          throw new HttpError(
+            403,
+            "FORBIDDEN",
+            "Недостаточно прав для этого действия.",
+          );
+        }
+        if (
+          !target ||
+          !["TECHNICIAN", "ADMIN", "PROCUREMENT"].includes(target.role)
+        ) {
+          throw new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден.");
+        }
+        if (target.terminatedAt) return target;
+        if (target.role === "ADMIN" && target.active) {
+          const activeAdmins = await transaction.user.count({
+            where: { role: "ADMIN", active: true, terminatedAt: null },
+          });
+          if (activeAdmins <= 1) {
+            throw new HttpError(
+              409,
+              "LAST_ADMIN_REQUIRED",
+              "В системе должен оставаться хотя бы один активный администратор.",
+            );
+          }
+        }
+
+        const now = new Date();
+        const activeOrders = await transaction.repairOrder.findMany({
+          where: {
+            assignedTechnicianId: userId,
+            status: { notIn: ["COMPLETED", "CANCELLED"] },
+          },
+          select: { id: true, status: true },
+        });
+        if (activeOrders.length > 0) {
+          await transaction.repairOrder.updateMany({
+            where: {
+              assignedTechnicianId: userId,
+              status: { notIn: ["COMPLETED", "CANCELLED"] },
+            },
+            data: { assignedTechnicianId: null },
+          });
+          await transaction.repairStatusEvent.createMany({
+            data: activeOrders.map((order) => ({
+              orderId: order.id,
+              actorId: actor.id,
+              from: order.status,
+              to: order.status,
+              note: "Сотрудник уволен. Заявка возвращена администраторам для переназначения.",
+            })),
+          });
+        }
+
+        await Promise.all([
+          transaction.session.deleteMany({ where: { userId } }),
+          transaction.passwordResetToken.deleteMany({ where: { userId } }),
+          transaction.pushDeviceToken.deleteMany({ where: { userId } }),
+          transaction.maxLinkToken.updateMany({
+            where: { userId, usedAt: null },
+            data: { usedAt: now },
+          }),
+          transaction.maxLoginRequest.updateMany({
+            where: {
+              userId,
+              status: { in: ["PENDING", "AWAITING_CONTACT", "CONFIRMED"] },
+            },
+            data: {
+              status: "FAILED",
+              failureCode: "STAFF_TERMINATED",
+              failureMessage: "Учётная запись сотрудника отключена.",
+            },
+          }),
+        ]);
+
+        return transaction.user.update({
+          where: { id: userId },
+          data: {
+            active: false,
+            terminatedAt: now,
+            terminatedById: actor.id,
+            maxUserId: null,
+            telegramChatId: null,
+          },
+        });
+      });
+      response.json({ staff: publicUser(staff) });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  router.post(
+    "/staff/:userId/terminate",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: userIdParams }),
+    terminateStaff,
+  );
+
+  // Preserve the old client route, but make it a safe permanent offboarding action.
   router.delete(
     "/staff/:userId",
     requireAuth,
     requireRoles("ADMIN"),
     validateRequest({ params: userIdParams }),
-    async (_request, response, next) => {
-      const userId = userIdOf(response);
-      try {
-        const staff = await database.$transaction(async (transaction) => {
-          await transaction.$queryRaw<Array<{ id: string }>>`
-            SELECT id FROM users WHERE id = ${userId}::uuid FOR UPDATE
-          `;
-          const target = await transaction.user.findFirst({
-            where: { id: userId, role: "TECHNICIAN" },
-            select: {
-              id: true,
-              email: true,
-              displayName: true,
-              phoneNumber: true,
-              avatarObjectId: true,
-              role: true,
-              active: true,
-              createdAt: true,
-            },
-          });
-          if (!target)
-            throw new HttpError(404, "STAFF_NOT_FOUND", "Мастер не найден.");
-
-          const activeAssignments = await transaction.repairOrder.count({
-            where: {
-              assignedTechnicianId: userId,
-              status: { notIn: ["COMPLETED", "CANCELLED"] },
-            },
-          });
-          if (activeAssignments > 0)
-            throw new HttpError(
-              409,
-              "TECHNICIAN_HAS_ACTIVE_ORDERS",
-              "Сначала переназначьте или завершите активные заявки этого мастера.",
-            );
-
-          await transaction.user.delete({ where: { id: userId } });
-          return { ...target, active: false };
-        });
-        response.json({ staff });
-      } catch (error) {
-        if (isForeignKeyViolation(error)) {
-          next(
-            new HttpError(
-              409,
-              "STAFF_HAS_LINKED_CUSTOMER_RECORDS",
-              "Нельзя удалить мастера: его учётная запись используется в клиентских записях.",
-            ),
-          );
-          return;
-        }
-        next(error);
-      }
-    },
+    terminateStaff,
   );
 
   return router;

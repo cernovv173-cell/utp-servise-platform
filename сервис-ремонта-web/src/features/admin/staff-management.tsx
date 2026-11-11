@@ -9,7 +9,7 @@ import { SectionCard } from "@/components/app-shell";
 import { StaffCreateForm } from "@/features/admin/staff-create-form";
 import { useAuth } from "@/features/auth/auth-context";
 
-import { deleteTechnician, getStaff, setStaffActive, updateTechnician } from "@/lib/api";
+import { getStaff, setStaffActive, terminateStaff, updateTechnician } from "@/lib/api";
 
 export const StaffManagement = () => {
   const { token, user } = useAuth();
@@ -22,19 +22,15 @@ export const StaffManagement = () => {
     enabled: Boolean(token && user?.role === "ADMIN"),
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["staff", token] });
-  const deleteMutation = useMutation({
-    mutationFn: (userId: string) => deleteTechnician(token!, userId),
-    onSuccess: async ({ staff: removed }) => {
+  const terminateMutation = useMutation({
+    mutationFn: (userId: string) => terminateStaff(token!, userId),
+    onSuccess: async ({ staff: terminated }) => {
       setConfirmingId(null);
-      toast.success(
-        `Учётная запись мастера ${removed.displayName} удалена без возможности восстановления. Чеки и начисления сохранены без привязки к нему.`,
-      );
+      toast.success(`Сотрудник ${terminated.displayName} уволен. История и документы сохранены.`);
       await refresh();
     },
-    onError: () =>
-      toast.error(
-        "Не удалось удалить мастера. Проверьте его незавершённые заявки и связанные клиентские записи.",
-      ),
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Не удалось уволить сотрудника."),
   });
   const activeMutation = useMutation({
     mutationFn: ({ userId, active }: { userId: string; active: boolean }) =>
@@ -66,8 +62,8 @@ export const StaffManagement = () => {
         <div>
           <h2 className="font-semibold">Сотрудники</h2>
           <p className="mt-1 text-sm text-slate-500">
-            Доступ можно отключить и восстановить. Удаление мастера безвозвратно; история ремонта и
-            документы сохраняются.
+            Доступ можно временно отключить и восстановить. Увольнение навсегда закрывает вход,
+            сохраняет историю и возвращает незавершённые заявки администраторам.
           </p>
         </div>
       </div>
@@ -91,7 +87,11 @@ export const StaffManagement = () => {
                 <p className="font-medium">{member.displayName}</p>
                 <p className="mt-1 text-sm text-slate-500">
                   {member.email} · {roleLabel(member.role)} ·{" "}
-                  {member.active ? "Активен" : "Отключён"}
+                  {member.terminatedAt
+                    ? `Уволен навсегда · ${new Date(member.terminatedAt).toLocaleDateString("ru-RU")}`
+                    : member.active
+                      ? "Активен"
+                      : "Доступ временно отключён"}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -104,7 +104,7 @@ export const StaffManagement = () => {
                     Профиль мастера
                   </Link>
                 )}
-                {member.id !== user?.id && (
+                {member.id !== user?.id && !member.terminatedAt && (
                   <button
                     type="button"
                     disabled={activeMutation.isPending}
@@ -126,12 +126,12 @@ export const StaffManagement = () => {
                     )}
                   </button>
                 )}
-                {member.role === "TECHNICIAN" && (
+                {member.id !== user?.id && !member.terminatedAt && (
                   <button
                     type="button"
                     onClick={() => setConfirmingId(confirmingId === member.id ? null : member.id)}
-                    aria-label={`Удалить мастера ${member.displayName}`}
-                    title="Удалить"
+                    aria-label={`Уволить навсегда ${member.displayName}`}
+                    title="Уволить навсегда"
                     className="grid size-9 place-items-center rounded-lg border border-rose-200 text-rose-700 dark:border-rose-900 dark:text-rose-300"
                   >
                     <X size={16} aria-hidden="true" />
@@ -184,21 +184,22 @@ export const StaffManagement = () => {
                 </button>
               </form>
             )}
-            {confirmingId === member.id && (
+            {confirmingId === member.id && !member.terminatedAt && member.id !== user?.id && (
               <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">
                 <p>
-                  Учётная запись {member.displayName} будет удалена без возможности восстановления,
-                  а сеансы завершены. Завершённые заявки, чеки и начисления сохранятся без привязки
-                  к мастеру. Сначала переназначьте или завершите все незавершённые заявки.
+                  Учётная запись {member.displayName} будет уволена навсегда: вход и связанные
+                  сеансы будут закрыты. История, завершённые заявки, чеки и начисления сохранятся;
+                  незавершённые заявки вернутся администраторам для переназначения. Восстановить
+                  доступ нельзя.
                 </p>
                 <div className="mt-3 flex gap-2">
                   <button
                     type="button"
-                    disabled={deleteMutation.isPending}
-                    onClick={() => deleteMutation.mutate(member.id)}
+                    disabled={terminateMutation.isPending}
+                    onClick={() => terminateMutation.mutate(member.id)}
                     className="min-h-9 rounded-lg bg-rose-600 px-3 font-semibold text-white disabled:opacity-60"
                   >
-                    {deleteMutation.isPending ? "Удаляем…" : "Подтвердить удаление"}
+                    {terminateMutation.isPending ? "Увольняем…" : "Уволить навсегда"}
                   </button>
                   <button
                     type="button"

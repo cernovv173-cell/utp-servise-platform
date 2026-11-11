@@ -19,6 +19,7 @@ export type AuthenticatedUser = {
   readonly role: UserRole;
   readonly salaryRatePercent?: number;
   readonly active: boolean;
+  readonly terminatedAt?: Date | null;
   readonly mustChangePassword: boolean;
 };
 
@@ -57,13 +58,19 @@ export const createRequireAuth =
             role: true,
             salaryRatePercent: true,
             active: true,
+            terminatedAt: true,
             mustChangePassword: true,
           },
         },
       },
     });
 
-    if (!session || session.expiresAt <= new Date() || !session.user.active) {
+    if (
+      !session ||
+      session.expiresAt <= new Date() ||
+      !session.user.active ||
+      session.user.terminatedAt
+    ) {
       next(
         new HttpError(
           401,

@@ -14,7 +14,11 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
-import { generateTemporaryPassword, hashPassword } from "../auth/passwords.js";
+import {
+  generateAccountLogin,
+  generateTemporaryPassword,
+  hashPassword,
+} from "../auth/passwords.js";
 import {
   findCustomersByNationalPhone,
   startMaxLogin,
@@ -218,10 +222,12 @@ export const createCustomerAdminRouter = (
       }
 
       const temporaryPassword = generateTemporaryPassword();
+      const login = generateAccountLogin();
       try {
         const customer = await database.user.create({
           data: {
             email: input.email,
+            login,
             displayName: input.displayName,
             phoneNumber,
             role: "CUSTOMER",

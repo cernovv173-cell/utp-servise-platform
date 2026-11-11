@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   type AuthResponse,
   type MaxLoginStart,
+  type Role,
   maxLoginConfigRequest,
   pollMaxLoginRequest,
   startMaxLoginRequest,
@@ -26,11 +27,15 @@ const errorMessage = (failure: unknown): string =>
 
 export const MaxLogin = ({
   referralCode,
+  expectedRole = "CUSTOMER",
+  compact = false,
   disabled = false,
   onError,
   onSuccess,
 }: {
   referralCode?: string;
+  expectedRole?: Role;
+  compact?: boolean;
   disabled?: boolean;
   onError: (message: string) => void;
   onSuccess: (session: AuthResponse) => void;
@@ -132,7 +137,7 @@ export const MaxLogin = ({
     const popup = window.open("about:blank", "_blank");
     if (popup) popup.opener = null;
     try {
-      const started = await startMaxLoginRequest(referralCode);
+      const started = await startMaxLoginRequest(referralCode, expectedRole);
       setStart(started);
       setPollStatus("pending");
       setPhase("waiting");
@@ -151,8 +156,32 @@ export const MaxLogin = ({
     setError("");
   };
 
-  if (available === null) return null;
+  if (available === null) {
+    return compact ? (
+      <button
+        type="button"
+        disabled
+        aria-label="Проверяем вход через МАКС"
+        className="inline-flex min-h-9 items-center gap-2 rounded-full border border-slate-200 px-3 text-sm font-semibold text-slate-500 dark:border-slate-700"
+      >
+        <MessageCircle size={15} aria-hidden="true" /> МАКС…
+      </button>
+    ) : null;
+  }
   if (available === false) {
+    if (compact) {
+      return (
+        <button
+          type="button"
+          disabled
+          title="Вход через МАКС временно недоступен"
+          aria-label="Вход через МАКС временно недоступен"
+          className="inline-flex min-h-9 items-center gap-2 rounded-full border border-slate-200 px-3 text-sm font-semibold text-slate-400 dark:border-slate-700"
+        >
+          <MessageCircle size={15} aria-hidden="true" /> МАКС
+        </button>
+      );
+    }
     return (
       <p className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
         Вход через МАКС временно недоступен. Войдите по почте или попробуйте позже.
@@ -163,25 +192,31 @@ export const MaxLogin = ({
   return (
     <section
       aria-labelledby="max-login-title"
-      className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 dark:border-blue-900 dark:from-blue-950/40 dark:via-slate-900 dark:to-cyan-950/30"
+      className={
+        compact
+          ? "grid justify-items-start gap-2"
+          : "rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-white to-cyan-50 p-4 dark:border-blue-900 dark:from-blue-950/40 dark:via-slate-900 dark:to-cyan-950/30"
+      }
     >
-      <div className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-white">
-          <MessageCircle size={20} aria-hidden="true" />
-        </span>
-        <div className="min-w-0">
-          <h2 id="max-login-title" className="font-semibold">
-            Вход и регистрация через МАКС
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
-            Без пароля: бот подтвердит ваш номер телефона. Если аккаунта ещё нет, он создастся
-            автоматически.
-          </p>
+      {!compact && (
+        <div className="flex items-start gap-3">
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-blue-600 text-white">
+            <MessageCircle size={20} aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h2 id="max-login-title" className="font-semibold">
+              Вход и регистрация через МАКС
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Без пароля: бот подтвердит ваш номер телефона. Если аккаунта ещё нет, он создастся
+              автоматически.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {phase === "idle" || phase === "starting" || phase === "error" ? (
-        <div className="mt-4 grid gap-3">
+        <div className={compact ? "grid gap-2" : "mt-4 grid gap-3"}>
           {error && (
             <p role="alert" className="text-sm text-rose-600">
               {error}
@@ -191,19 +226,27 @@ export const MaxLogin = ({
             type="button"
             onClick={() => void begin()}
             disabled={disabled || phase === "starting"}
-            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            className={
+              compact
+                ? "inline-flex min-h-9 items-center justify-center gap-2 rounded-full bg-blue-600 px-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                : "flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+            }
           >
             {phase === "starting" ? (
-              "Открываем МАКС…"
+              compact ? (
+                "Открываем…"
+              ) : (
+                "Открываем МАКС…"
+              )
             ) : phase === "error" ? (
               <>
                 <RotateCcw size={18} aria-hidden="true" />
-                Попробовать снова
+                compact ? "Повторить МАКС" : "Попробовать снова"
               </>
             ) : (
               <>
                 <MessageCircle size={18} aria-hidden="true" />
-                Продолжить в МАКС
+                {compact ? "МАКС" : "Продолжить в МАКС"}
               </>
             )}
           </button>
@@ -251,18 +294,21 @@ export const MaxLogin = ({
         </div>
       )}
 
-      <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-        <ShieldCheck size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
-        <span>
-          Продолжая, вы разрешаете использовать номер телефона из МАКС для входа и связи по заказам.{" "}
-          <a
-            href="/privacy-policy.html"
-            className="underline underline-offset-2 hover:text-blue-700"
-          >
-            Политика конфиденциальности
-          </a>
-        </span>
-      </p>
+      {!compact && (
+        <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
+          <ShieldCheck size={15} className="mt-0.5 shrink-0" aria-hidden="true" />
+          <span>
+            Продолжая, вы разрешаете использовать номер телефона из МАКС для входа и связи по
+            заказам.{" "}
+            <a
+              href="/privacy-policy.html"
+              className="underline underline-offset-2 hover:text-blue-700"
+            >
+              Политика конфиденциальности
+            </a>
+          </span>
+        </p>
+      )}
     </section>
   );
 };

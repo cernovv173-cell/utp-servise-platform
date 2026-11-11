@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -48,6 +49,8 @@ private enum class MaxLoginPhase { Idle, Starting, Waiting, Error }
 @Composable
 internal fun MaxLoginCard(
     referralCode: String,
+    expectedRole: String = "CUSTOMER",
+    compact: Boolean = false,
     enabled: Boolean,
     onBusy: (Boolean) -> Unit,
     onError: (String?) -> Unit,
@@ -86,7 +89,10 @@ internal fun MaxLoginCard(
             onBusy(true)
             try {
                 val started = withContext(Dispatchers.IO) {
-                    ApiClient.startMaxLogin(referralCode.trim().takeIf { it.isNotEmpty() })
+                    ApiClient.startMaxLogin(
+                        referralCode.trim().takeIf { it.isNotEmpty() },
+                        expectedRole,
+                    )
                 }
                 session = started
                 phase = MaxLoginPhase.Waiting
@@ -141,36 +147,61 @@ internal fun MaxLoginCard(
         }
     }
 
-    if (available == null) return
+    if (available == null) {
+        if (compact) {
+            OutlinedButton(
+                onClick = {},
+                enabled = false,
+                modifier = Modifier.height(36.dp),
+                shape = RoundedCornerShape(18.dp),
+            ) { Text("МАКС…", fontSize = 12.sp) }
+        }
+        return
+    }
     if (available == false) {
-        Text(
-            "Вход через МАКС временно недоступен. Войдите по почте или попробуйте позже.",
-            fontSize = 12.sp,
-            color = UtpMuted,
-        )
+        if (compact) {
+            OutlinedButton(
+                onClick = {},
+                enabled = false,
+                modifier = Modifier.height(36.dp),
+                shape = RoundedCornerShape(18.dp),
+            ) { Text("МАКС", fontSize = 12.sp) }
+        } else {
+            Text(
+                "Вход через МАКС временно недоступен. Войдите по почте или попробуйте позже.",
+                fontSize = 12.sp,
+                color = UtpMuted,
+            )
+        }
         return
     }
 
     Column(
-        Modifier.fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(Color.White)
-            .border(1.dp, UtpBlue.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
-            .padding(16.dp),
+        if (compact) {
+            Modifier.wrapContentWidth()
+        } else {
+            Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color.White)
+                .border(1.dp, UtpBlue.copy(alpha = 0.3f), RoundedCornerShape(18.dp))
+                .padding(16.dp)
+        },
     ) {
-        Text(
-            "Вход и регистрация через МАКС",
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = UtpInk,
-        )
-        Text(
-            "Без пароля: бот подтвердит ваш номер телефона. Если аккаунта ещё нет, он создастся автоматически.",
-            fontSize = 12.sp,
-            color = UtpMuted,
-            lineHeight = 17.sp,
-            modifier = Modifier.padding(top = 4.dp),
-        )
+        if (!compact) {
+            Text(
+                "Вход и регистрация через МАКС",
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = UtpInk,
+            )
+            Text(
+                "Без пароля: бот подтвердит ваш номер телефона. Если аккаунта ещё нет, он создастся автоматически.",
+                fontSize = 12.sp,
+                color = UtpMuted,
+                lineHeight = 17.sp,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
         message?.let {
             Text(
                 it,
@@ -183,16 +214,17 @@ internal fun MaxLoginCard(
         when (phase) {
             MaxLoginPhase.Idle, MaxLoginPhase.Starting, MaxLoginPhase.Error -> Button(
                 onClick = { begin() },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
+                modifier = if (compact) Modifier.height(36.dp) else Modifier.fillMaxWidth().height(48.dp),
                 enabled = enabled && phase != MaxLoginPhase.Starting,
-                shape = RoundedCornerShape(15.dp),
+                shape = if (compact) RoundedCornerShape(18.dp) else RoundedCornerShape(15.dp),
             ) {
                 Text(
                     when (phase) {
-                        MaxLoginPhase.Starting -> "Открываем МАКС…"
-                        MaxLoginPhase.Error -> "Попробовать снова"
-                        else -> "Продолжить в МАКС"
+                        MaxLoginPhase.Starting -> if (compact) "Открываем…" else "Открываем МАКС…"
+                        MaxLoginPhase.Error -> if (compact) "Повторить МАКС" else "Попробовать снова"
+                        else -> if (compact) "МАКС" else "Продолжить в МАКС"
                     },
+                    fontSize = if (compact) 12.sp else 14.sp,
                 )
             }
 
@@ -224,9 +256,9 @@ internal fun MaxLoginCard(
                     Spacer(Modifier.height(10.dp))
                     OutlinedButton(
                         onClick = { openChat(started.url) },
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
+                        modifier = if (compact) Modifier.height(36.dp) else Modifier.fillMaxWidth().height(44.dp),
                         shape = RoundedCornerShape(15.dp),
-                    ) { Text("Открыть чат с ботом") }
+                    ) { Text(if (compact) "Открыть МАКС" else "Открыть чат с ботом") }
                 }
                 TextButton(
                     onClick = {
@@ -238,12 +270,14 @@ internal fun MaxLoginCard(
                 ) { Text("Отменить") }
             }
         }
-        Text(
-            "Продолжая, вы разрешаете использовать номер телефона из МАКС для входа и связи по заказам.",
-            fontSize = 11.sp,
-            color = UtpMuted,
-            lineHeight = 15.sp,
-            modifier = Modifier.padding(top = 8.dp),
-        )
+        if (!compact) {
+            Text(
+                "Продолжая, вы разрешаете использовать номер телефона из МАКС для входа и связи по заказам.",
+                fontSize = 11.sp,
+                color = UtpMuted,
+                lineHeight = 15.sp,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
     }
 }

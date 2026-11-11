@@ -476,35 +476,35 @@ fun ProfileScreen(
                     }
                 },
             )
-            Spacer(Modifier.height(10.dp))
-            MessengerNotificationCard(
-                serviceName = "MAX",
-                available = user.maxAvailable,
-                connected = maxLinked,
-                linkUrl = maxLinkUrl,
-                onConnect = {
-                    runAction({ ru.utp.servise.data.ApiClient.requestMaxLink(token) }) { result ->
-                        maxLinkUrl = result as? String
-                    }
-                },
-                onCheckConnection = {
-                    runAction({ ru.utp.servise.data.ApiClient.isMaxConnected(token) }) { result ->
-                        maxLinked = result as? Boolean == true
-                        if (maxLinked) {
-                            maxLinkUrl = null
-                            onUserUpdated(user.copy(maxLinked = true))
-                        }
-                    }
-                },
-                onDisconnect = {
-                    runAction({ ru.utp.servise.data.ApiClient.disconnectMax(token) }) {
-                        maxLinked = false
-                        maxLinkUrl = null
-                        onUserUpdated(user.copy(maxLinked = false))
-                    }
-                },
-            )
         }
+        Spacer(Modifier.height(10.dp))
+        MessengerNotificationCard(
+            serviceName = "MAX",
+            available = user.maxAvailable,
+            connected = maxLinked,
+            linkUrl = maxLinkUrl,
+            onConnect = {
+                runAction({ ru.utp.servise.data.ApiClient.requestMaxLink(token) }) { result ->
+                    maxLinkUrl = result as? String
+                }
+            },
+            onCheckConnection = {
+                runAction({ ru.utp.servise.data.ApiClient.isMaxConnected(token) }) { result ->
+                    maxLinked = result as? Boolean == true
+                    if (maxLinked) {
+                        maxLinkUrl = null
+                        onUserUpdated(user.copy(maxLinked = true))
+                    }
+                }
+            },
+            onDisconnect = {
+                runAction({ ru.utp.servise.data.ApiClient.disconnectMax(token) }) {
+                    maxLinked = false
+                    maxLinkUrl = null
+                    onUserUpdated(user.copy(maxLinked = false))
+                }
+            },
+        )
         Spacer(Modifier.height(12.dp))
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {

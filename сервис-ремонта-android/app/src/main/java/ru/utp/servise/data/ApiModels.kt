@@ -686,12 +686,14 @@ data class NewAdminCustomerResult(
 data class StaffMember(
     val id: String,
     val email: String,
+    val login: String? = null,
     val displayName: String,
     val phoneNumber: String?,
     val avatarObjectId: String?,
     val role: String,
     val active: Boolean,
     val salaryRatePercent: Int = 75,
+    val terminatedAt: String? = null,
 )
 
 data class CustomerReview(

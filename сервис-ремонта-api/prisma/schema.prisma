@@ -203,10 +203,14 @@ model User {
   role                              UserRole                          @default(CUSTOMER)
   salaryRatePercent                 Int                               @default(75) @map("salary_rate_percent") @db.SmallInt
   active                            Boolean                           @default(true)
+  terminatedAt                      DateTime?                         @map("terminated_at") @db.Timestamptz(3)
+  terminatedById                    String?                           @map("terminated_by_id") @db.Uuid
   mustChangePassword                Boolean                           @default(false) @map("must_change_password")
   createdAt                         DateTime                          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                         DateTime                          @updatedAt @map("updated_at") @db.Timestamptz(3)
   sessions                          Session[]
+  terminatedBy                      User?                             @relation("StaffTerminations", fields: [terminatedById], references: [id], onDelete: SetNull)
+  terminatedStaff                   User[]                            @relation("StaffTerminations")
   passwordResetTokens               PasswordResetToken[]
   maxEmailLoginVerification         MaxEmailLoginVerification?
   customerOrders                    RepairOrder[]                     @relation("CustomerOrders")
@@ -949,6 +953,7 @@ model MaxLoginRequest {
   tokenHash       String         @unique @map("token_hash") @db.Char(64)
   pollTokenHash   String         @unique @map("poll_token_hash") @db.Char(64)
   status          MaxLoginStatus @default(PENDING)
+  expectedRole    UserRole       @default(CUSTOMER) @map("expected_role")
   userId          String?        @map("user_id") @db.Uuid
   maxUserId       String?        @map("max_user_id") @db.VarChar(64)
   maxDisplayName  String?        @map("max_display_name") @db.VarChar(120)

@@ -1,7 +1,9 @@
-import { randomBytes } from "node:crypto";
-
 import type { Prisma } from "../../generated/prisma/client.js";
-import { generateTemporaryPassword, hashPassword } from "../auth/passwords.js";
+import {
+  generateAccountLogin,
+  generateTemporaryPassword,
+  hashPassword,
+} from "../auth/passwords.js";
 import { storePendingMaxCredential } from "../max/max-credential-delivery.js";
 
 export type TemporaryCustomerCredentials = {
@@ -9,9 +11,6 @@ export type TemporaryCustomerCredentials = {
   readonly temporaryPassword: string;
   readonly maxUserId: string | null;
 };
-
-export const generateCustomerLogin = (): string =>
-  `enot-${randomBytes(8).toString("hex")}`;
 
 export const createCustomerWithTemporaryLogin = async (
   transaction: Prisma.TransactionClient,
@@ -33,7 +32,7 @@ export const createCustomerWithTemporaryLogin = async (
   };
   readonly credentials: TemporaryCustomerCredentials;
 }> => {
-  const login = generateCustomerLogin();
+  const login = generateAccountLogin();
   const temporaryPassword = generateTemporaryPassword();
   const customer = await transaction.user.create({
     data: {
@@ -77,7 +76,7 @@ export const addTemporaryLoginToCustomer = async (
   });
   if (!customer || customer.email || customer.login) return null;
 
-  const login = generateCustomerLogin();
+  const login = generateAccountLogin();
   const temporaryPassword = generateTemporaryPassword();
   await transaction.user.update({
     where: { id: customer.id },

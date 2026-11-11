@@ -11,7 +11,14 @@ import { referralCodeSchema } from "../referrals/referral-code.js";
 import { hasMaxBotToken, hasMaxWebhookSecret } from "./max-bot.js";
 import { pollMaxLogin, startMaxLogin } from "./max-login.service.js";
 
-const startSchema = z.object({ referralCode: referralCodeSchema }).strict();
+const startSchema = z
+  .object({
+    referralCode: referralCodeSchema,
+    expectedRole: z
+      .enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"])
+      .default("CUSTOMER"),
+  })
+  .strict();
 
 const pollSchema = z
   .object({
@@ -41,7 +48,14 @@ export const createMaxLoginRouter = (database: DatabaseClient): Router => {
     validateRequest({ body: startSchema }),
     async (_request, response) => {
       const input = bodyOf<z.infer<typeof startSchema>>(response);
-      response.json(await startMaxLogin(database, input.referralCode));
+      response.json(
+        await startMaxLogin(
+          database,
+          input.referralCode,
+          undefined,
+          input.expectedRole,
+        ),
+      );
     },
   );
 

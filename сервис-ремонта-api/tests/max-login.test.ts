@@ -153,6 +153,7 @@ test("MAX login creates a one-time session and expires the poll request", async 
       user: {
         findUnique: async () => testUser,
       },
+      $queryRaw: async () => [],
       $transaction: async (operation: unknown) =>
         typeof operation === "function"
           ? (operation as (transaction: unknown) => Promise<unknown>)(database)
@@ -168,6 +169,16 @@ test("MAX login creates a one-time session and expires the poll request", async 
     assert.ok(row);
     assert.equal(row.status, "PENDING");
     assert.equal(row.referralCode, null);
+    const staffStarted = await startMaxLogin(
+      database as unknown as DatabaseClient,
+      undefined,
+      undefined,
+      "ADMIN",
+    );
+    assert.equal(
+      rows.get(hashMaxLoginToken(staffStarted.pollToken))?.expectedRole,
+      "ADMIN",
+    );
 
     row.status = "CONFIRMED";
     row.userId = testUser.id;
@@ -241,6 +252,7 @@ test("bot_started confirms an already linked customer without a phone request", 
       id: "33333333-3333-4333-8333-333333333333",
       tokenHash: hashMaxLoginToken("start-token"),
       status: "PENDING",
+      expectedRole: "CUSTOMER",
       userId: null as string | null,
       maxUserId: null as string | null,
       expiresAt: new Date(Date.now() + 60_000),
@@ -257,7 +269,12 @@ test("bot_started confirms an already linked customer without a phone request", 
       user: {
         findUnique: async ({ where }: { where: { maxUserId?: string } }) =>
           where.maxUserId
-            ? { id: testUser.id, role: "CUSTOMER", active: true }
+            ? {
+                id: testUser.id,
+                role: "CUSTOMER",
+                active: true,
+                terminatedAt: null,
+              }
             : testUser,
       },
       $transaction: async (operation: unknown) =>
@@ -277,6 +294,53 @@ test("bot_started confirms an already linked customer without a phone request", 
     assert.equal(maxApiMock.requests.length, 1);
     assert.equal(maxApiMock.requests[0]?.method, "POST");
     maxApiMock.restore();
+  });
+});
+
+test("MAX sign-in cannot create an unlinked employee account", async () => {
+  await withEnvironment(async () => {
+    const maxApiMock = mockMaxApiRequests(() => ({ body: { message: {} } }));
+    const request = {
+      id: "55555555-5555-4555-8555-555555555555",
+      tokenHash: hashMaxLoginToken("admin-start-token"),
+      status: "PENDING",
+      expectedRole: "ADMIN",
+      userId: null as string | null,
+      maxUserId: null as string | null,
+      failureCode: null as string | null,
+      expiresAt: new Date(Date.now() + 60_000),
+    };
+    const database = {
+      maxLoginRequest: {
+        findUnique: async ({ where }: { where: { tokenHash: string } }) =>
+          where.tokenHash === request.tokenHash ? request : null,
+        updateMany: async ({ data }: { data: Record<string, unknown> }) => {
+          Object.assign(request, data);
+          return { count: 1 };
+        },
+      },
+      user: {
+        findUnique: async () => null,
+        create: async () => {
+          throw new Error("MAX must not create employee accounts");
+        },
+      },
+      $transaction: async (operation: unknown) =>
+        typeof operation === "function"
+          ? (operation as (transaction: unknown) => Promise<unknown>)(database)
+          : Promise.all(operation as Promise<unknown>[]),
+    };
+
+    try {
+      await handleMaxBotStarted(database as unknown as DatabaseClient, {
+        payload: "admin-start-token",
+        user: { id: "987654321", name: "Иван" },
+      });
+      assert.equal(request.status, "FAILED");
+      assert.equal(request.failureCode, "MAX_STAFF_NOT_LINKED");
+    } finally {
+      maxApiMock.restore();
+    }
   });
 });
 

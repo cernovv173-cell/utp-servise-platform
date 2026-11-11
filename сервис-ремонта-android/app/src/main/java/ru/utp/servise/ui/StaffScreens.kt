@@ -92,7 +92,9 @@ fun StaffManagementScreen(
                     onClick = {
                         runAction({ ru.utp.servise.data.ApiClient.createStaff(token, email.trim(), displayName.trim(), role, phoneNumber.trim().takeIf { it.isNotEmpty() }) }) { result ->
                             val created = result as? NewStaffResult
-                            temporaryPassword = created?.let { "${it.staff.email}\n\nВременный пароль:\n${it.temporaryPassword}" }
+                            temporaryPassword = created?.let {
+                                "Логин: ${it.staff.login ?: it.staff.email}\nРабочая почта: ${it.staff.email}\n\nВременный пароль: ${it.temporaryPassword}"
+                            }
                             email = ""
                             displayName = ""
                             phoneNumber = ""
@@ -120,9 +122,9 @@ fun StaffManagementScreen(
                         Text(member.email, fontSize = 12.sp, color = UtpMuted)
                         member.phoneNumber?.takeIf { it.isNotBlank() }?.let { Text(it, fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 2.dp)) }
                         Text(
-                            "${member.role.roleLabel()} · ${if (member.active) "Активен" else "Отключён"}",
+                            "${member.role.roleLabel()} · ${member.terminatedAt?.let { "Уволен навсегда" } ?: if (member.active) "Активен" else "Доступ отключён"}",
                             fontSize = 11.sp,
-                            color = if (member.active) UtpGreen else UtpMuted,
+                            color = if (member.active && member.terminatedAt == null) UtpGreen else UtpMuted,
                             modifier = Modifier.padding(top = 4.dp),
                         )
                         if (member.role == "TECHNICIAN") {
@@ -138,6 +140,8 @@ fun StaffManagementScreen(
                         if (member.role == "TECHNICIAN") {
                             TextButton(onClick = { onOpenTechnicianProfile(member.id) }) { Text("Профиль") }
                             TextButton(onClick = { editedStaff = member }) { Text("Изменить") }
+                        }
+                        if (member.id != currentUser.id && member.terminatedAt == null) {
                             TextButton(
                                 onClick = {
                                     runAction(
@@ -145,14 +149,10 @@ fun StaffManagementScreen(
                                         { refresh() },
                                     )
                                 },
-                            ) { Text(if (member.active) "Отключить" else "Восстановить") }
+                            ) { Text(if (member.active) "Отключить" else "Включить") }
                             TextButton(onClick = { deletingStaff = member }) {
-                                Text("Удалить навсегда")
+                                Text("Уволить навсегда")
                             }
-                        } else if (member.id != currentUser.id) {
-                            TextButton(onClick = {
-                                runAction({ ApiClient.setStaffActive(token, member.id, !member.active) }, {})
-                            }) { Text(if (member.active) "Отключить" else "Включить") }
                         }
                     }
                 }
@@ -182,17 +182,17 @@ fun StaffManagementScreen(
     deletingStaff?.let { member ->
         AlertDialog(
             onDismissRequest = { deletingStaff = null },
-            title = { Text("Удалить мастера?") },
+            title = { Text("Уволить сотрудника навсегда?") },
             text = {
-                Text("Учётная запись ${member.displayName} будет удалена без возможности восстановления, а вход в приложение закрыт. Завершённые заявки, чеки и начисления сохранятся без привязки к мастеру. Сначала переназначьте или завершите все незавершённые заявки.")
+                Text("Вход для ${member.displayName} и связанные сеансы будут закрыты навсегда. История, завершённые заявки, чеки и начисления сохранятся; незавершённые заявки вернутся администраторам для переназначения. Восстановить доступ нельзя.")
             },
             confirmButton = {
                 TextButton(onClick = {
-                    runAction({ ApiClient.deleteTechnician(token, member.id) }) {
+                    runAction({ ApiClient.terminateStaff(token, member.id) }) {
                         deletingStaff = null
                         refresh()
                     }
-                }) { Text("Удалить") }
+                }) { Text("Уволить навсегда") }
             },
             dismissButton = { TextButton(onClick = { deletingStaff = null }) { Text("Отмена") } },
         )

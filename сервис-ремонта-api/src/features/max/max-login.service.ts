@@ -42,6 +42,8 @@ export const startMaxLogin = async (
   database: DatabaseClient,
   referralCode?: string,
   targetUserId?: string,
+  expectedRole:
+    "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT" = "CUSTOMER",
 ): Promise<{
   readonly url: string;
   readonly pollToken: string;
@@ -83,6 +85,7 @@ export const startMaxLogin = async (
         tokenHash: hashMaxLoginToken(token),
         pollTokenHash: hashMaxLoginToken(pollToken),
         referralCode: referralCode ?? null,
+        expectedRole,
         ...(targetUserId ? { userId: targetUserId } : {}),
         expiresAt,
       },
@@ -202,6 +205,29 @@ export const pollMaxLogin = async (
   }
 
   const completed = await database.$transaction(async (transaction) => {
+    await transaction.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "users" WHERE "id" = ${request.userId}::uuid FOR UPDATE
+    `;
+    const user = await transaction.user.findUnique({
+      where: { id: request.userId! },
+    });
+    if (
+      !user ||
+      !user.active ||
+      user.terminatedAt ||
+      user.role !== request.expectedRole
+    ) {
+      const message =
+        "Аккаунт недоступен для входа через МАКС. Обратитесь к администратору сервиса.";
+      await failMaxLogin(
+        transaction,
+        request.id,
+        "MAX_ACCOUNT_UNAVAILABLE",
+        message,
+      );
+      return { unavailableMessage: message } as const;
+    }
+
     const claimed = await transaction.maxLoginRequest.updateMany({
       where: {
         id: request.id,
@@ -215,18 +241,17 @@ export const pollMaxLogin = async (
 
     const session = buildSession(request.userId!);
     await transaction.session.create({ data: session.record });
-    const user = await transaction.user.findUnique({
-      where: { id: request.userId! },
-    });
-    if (!user) {
-      throw new HttpError(
-        401,
-        "ACCOUNT_NOT_FOUND",
-        "Аккаунт для входа не найден. Обратитесь в поддержку.",
-      );
-    }
     return { session, user };
   });
+
+  if (completed && "unavailableMessage" in completed) {
+    return {
+      status: "failed",
+      message:
+        completed.unavailableMessage ??
+        "Аккаунт недоступен для входа через МАКС. Обратитесь к администратору сервиса.",
+    };
+  }
 
   if (!completed) {
     throw new HttpError(

@@ -8,18 +8,21 @@ import { createStaffRouter } from "../src/features/staff/staff.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("only administrators can remove a technician, and unfinished jobs block removal", async (t) => {
+test("only administrators can permanently offboard staff without deleting history", async (t) => {
   const tokens = { admin: "A".repeat(48), customer: "C".repeat(48) };
+  const adminId = "22222222-2222-4222-8222-222222222222";
   const technicianId = "11111111-1111-4111-8111-111111111111";
   const users = [
     {
-      id: "22222222-2222-4222-8222-222222222222",
+      id: adminId,
       email: "admin@example.test",
       displayName: "Admin",
       phoneNumber: null,
       avatarObjectId: null,
       role: "ADMIN" as const,
       active: true,
+      terminatedAt: null as Date | null,
+      terminatedById: null as string | null,
       mustChangePassword: false,
       token: tokens.admin,
       createdAt: new Date(),
@@ -32,6 +35,8 @@ test("only administrators can remove a technician, and unfinished jobs block rem
       avatarObjectId: null,
       role: "CUSTOMER" as const,
       active: true,
+      terminatedAt: null,
+      terminatedById: null,
       mustChangePassword: false,
       token: tokens.customer,
     },
@@ -43,6 +48,8 @@ test("only administrators can remove a technician, and unfinished jobs block rem
       avatarObjectId: null,
       role: "TECHNICIAN" as const,
       active: true,
+      terminatedAt: null as Date | null,
+      terminatedById: null as string | null,
       mustChangePassword: false,
       token: "T".repeat(48),
       createdAt: new Date(),
@@ -52,30 +59,59 @@ test("only administrators can remove a technician, and unfinished jobs block rem
     ...user,
     expiresAt: new Date(Date.now() + 60_000),
   }));
-  let activeAssignments = 1;
+  const activeOrder = {
+    id: "44444444-4444-4444-8444-444444444444",
+    status: "IN_PROGRESS" as const,
+    assignedTechnicianId: technicianId as string | null,
+  };
   let revokedSessions = false;
+  let statusEvents = 0;
   const transaction = {
-    $queryRaw: async () => [{ id: technicianId }],
+    $queryRaw: async () => [{ id: technicianId }, { id: adminId }],
     user: {
-      findFirst: async ({ where }: { where: { id: string; role: string } }) => {
-        const user = users.find(
-          (item) => item.id === where.id && item.role === where.role,
-        );
-        return user ?? null;
-      },
-      delete: async ({ where }: { where: { id: string } }) => {
-        const index = users.findIndex((item) => item.id === where.id);
-        assert.notEqual(index, -1);
-        const [removed] = users.splice(index, 1);
-        const sessionIndex = sessions.findIndex(
-          (session) => session.id === where.id,
-        );
-        if (sessionIndex !== -1) sessions.splice(sessionIndex, 1);
-        revokedSessions = true;
-        return removed;
+      findUnique: async ({ where }: { where: { id: string } }) =>
+        users.find((item) => item.id === where.id) ?? null,
+      count: async ({ where }: { where: { role: string; active: boolean } }) =>
+        users.filter(
+          (item) => item.role === where.role && item.active === where.active,
+        ).length,
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: Record<string, unknown>;
+      }) => {
+        const user = users.find((item) => item.id === where.id);
+        assert.ok(user);
+        Object.assign(user, data);
+        return { ...user };
       },
     },
-    repairOrder: { count: async () => activeAssignments },
+    repairOrder: {
+      findMany: async () =>
+        activeOrder.assignedTechnicianId ? [{ ...activeOrder }] : [],
+      updateMany: async () => {
+        activeOrder.assignedTechnicianId = null;
+        return { count: 1 };
+      },
+    },
+    repairStatusEvent: {
+      createMany: async ({ data }: { data: unknown[] }) => {
+        statusEvents += data.length;
+        return { count: data.length };
+      },
+    },
+    session: {
+      deleteMany: async () => {
+        revokedSessions = true;
+        return { count: 1 };
+      },
+    },
+    passwordResetToken: { deleteMany: async () => ({ count: 0 }) },
+    pushDeviceToken: { deleteMany: async () => ({ count: 0 }) },
+    maxLinkToken: { updateMany: async () => ({ count: 0 }) },
+    maxLoginRequest: { updateMany: async () => ({ count: 0 }) },
   };
   const client = {
     session: {
@@ -112,7 +148,6 @@ test("only administrators can remove a technician, and unfinished jobs block rem
         return { ...user };
       },
     },
-    repairOrder: { count: async () => activeAssignments },
     $transaction: async <T>(
       operation: (tx: typeof transaction) => Promise<T>,
     ) => operation(transaction),
@@ -126,7 +161,8 @@ test("only administrators can remove a technician, and unfinished jobs block rem
   t.after(() => server.close());
   const address = server.address();
   assert.ok(address && typeof address !== "string");
-  const endpoint = `http://127.0.0.1:${address.port}/api/staff/${technicianId}`;
+  const baseUrl = `http://127.0.0.1:${address.port}/api/staff`;
+  const endpoint = `${baseUrl}/${technicianId}`;
   const headers = (token: string) => ({
     authorization: `Bearer ${token}`,
     "content-type": "application/json",
@@ -142,20 +178,21 @@ test("only administrators can remove a technician, and unfinished jobs block rem
     method: "DELETE",
     headers: headers(tokens.admin),
   });
-  assert.equal(blocked.status, 409);
-  assert.equal(users[2]!.active, true);
-  assert.equal(revokedSessions, false);
-
-  activeAssignments = 0;
-  const removed = await fetch(endpoint, {
-    method: "DELETE",
-    headers: headers(tokens.admin),
-  });
-  assert.equal(removed.status, 200);
-  assert.equal((await removed.json()).staff.active, false);
+  assert.equal(blocked.status, 200);
+  await blocked.json();
+  assert.equal(users[2]!.active, false);
+  assert.ok(users[2]!.terminatedAt);
   assert.equal(
     users.some((user) => user.id === technicianId),
-    false,
+    true,
   );
+  assert.equal(activeOrder.assignedTechnicianId, null);
+  assert.equal(statusEvents, 1);
   assert.equal(revokedSessions, true);
+
+  const selfTermination = await fetch(`${baseUrl}/${adminId}/terminate`, {
+    method: "POST",
+    headers: headers(tokens.admin),
+  });
+  assert.equal(selfTermination.status, 409);
 });

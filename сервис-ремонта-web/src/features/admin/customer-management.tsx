@@ -232,10 +232,10 @@ export const CustomerManagement = () => {
         <SectionCard className="border border-emerald-300 dark:border-emerald-800">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="font-semibold">Временный пароль нового клиента</h2>
+              <h2 className="font-semibold">Данные для первого входа клиента</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Передайте данные клиенту безопасным способом. Пароль будет запрошен при входе и
-                больше не будет показан в панели.
+                Передайте данные клиенту безопасным способом. Временный пароль потребуется сменить
+                при первом входе; после закрытия блока он больше не будет показан.
               </p>
             </div>
             <button
@@ -250,15 +250,27 @@ export const CustomerManagement = () => {
           </div>
           <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
             <div>
+              <dt className="text-slate-500">Логин</dt>
+              <dd className="font-mono font-semibold break-all">
+                {createdCustomer.customer.login ?? createdCustomer.customer.email ?? "—"}
+              </dd>
+            </div>
+            <div>
               <dt className="text-slate-500">Почта</dt>
               <dd className="font-medium">{createdCustomer.customer.email ?? "не указана"}</dd>
             </div>
-            <div>
-              <dt className="text-slate-500">Временный пароль</dt>
-              <dd className="font-mono font-semibold break-all">
-                {createdCustomer.temporaryPassword}
-              </dd>
-            </div>
+            {createdCustomer.temporaryPassword ? (
+              <div>
+                <dt className="text-slate-500">Временный пароль</dt>
+                <dd className="font-mono font-semibold break-all">
+                  {createdCustomer.temporaryPassword}
+                </dd>
+              </div>
+            ) : createdCustomer.credentialDelivery ? (
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Временный пароль будет передан клиенту через МАКС после подключения аккаунта.
+              </p>
+            ) : null}
           </dl>
         </SectionCard>
       )}

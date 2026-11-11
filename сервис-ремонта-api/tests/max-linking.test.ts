@@ -63,7 +63,12 @@ test("MAX deep-link confirmation is one-time and updates only MAX account state"
       findUnique: async () => ({ userId: customerId }),
     },
     user: {
-      findUnique: async () => (linkedMaxUserId ? { id: customerId } : null),
+      findUnique: async ({ where }: { where: Record<string, string> }) =>
+        where.id === customerId
+          ? { id: customerId, active: true, terminatedAt: null }
+          : linkedMaxUserId
+            ? { id: customerId }
+            : null,
       update: async ({ data }: { data: { maxUserId: string } }) => {
         linkedMaxUserId = data.maxUserId;
         accountLinkWrites += 1;

@@ -68,6 +68,7 @@ test("admins can create customers with forced password rotation and manage their
         return {
           id: "44444444-4444-4444-8444-444444444444",
           email: data.email,
+          login: data.login,
           displayName: data.displayName,
           phoneNumber: data.phoneNumber,
           active: true,
@@ -149,7 +150,8 @@ test("admins can create customers with forced password rotation and manage their
   assert.equal(createdBody.customer.email, "new@example.test");
   assert.equal(createdBody.customer.displayName, "Новый клиент");
   assert.equal("passwordHash" in createdBody.customer, false);
-  assert.ok(createdBody.temporaryPassword.length >= 20);
+  assert.match(createdBody.customer.login, /^enot-[a-f0-9]{16}$/);
+  assert.equal(createdBody.temporaryPassword.length, 6);
   assert.equal(lastCreate?.role, "CUSTOMER");
   assert.equal(lastCreate?.mustChangePassword, true);
   assert.equal(String(lastCreate?.passwordHash).startsWith("scrypt$"), true);

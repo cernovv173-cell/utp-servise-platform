@@ -31,8 +31,8 @@ object ApiClient {
 
     fun maxLoginAvailable(): Boolean = request("GET", "/auth/max/config").optBoolean("available")
 
-    fun startMaxLogin(referralCode: String? = null): MaxLoginStart {
-        val body = JSONObject()
+    fun startMaxLogin(referralCode: String? = null, expectedRole: String = "CUSTOMER"): MaxLoginStart {
+        val body = JSONObject().put("expectedRole", expectedRole)
         referralCode?.trim()?.takeIf { it.isNotEmpty() }?.let { body.put("referralCode", it.uppercase()) }
         val json = request("POST", "/auth/max/login", body = body)
         return MaxLoginStart(
@@ -1152,8 +1152,8 @@ object ApiClient {
         "PATCH", "/staff/$staffId/active", token, JSONObject().put("active", active)
     ).getJSONObject("staff").toStaff()
 
-    fun deleteTechnician(token: String, staffId: String): StaffMember = request(
-        "DELETE", "/staff/$staffId", token,
+    fun terminateStaff(token: String, staffId: String): StaffMember = request(
+        "POST", "/staff/$staffId/terminate", token,
     ).getJSONObject("staff").toStaff()
 
     fun updateStaff(token: String, staff: StaffMember): StaffMember = request(
