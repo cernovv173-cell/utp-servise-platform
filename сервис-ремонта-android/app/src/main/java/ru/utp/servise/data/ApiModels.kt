@@ -35,6 +35,10 @@ data class RepairRequestDetails(
     val deviceSerialNumber: String = "",
     val preferredAt: String? = null,
     val customerDeviceId: String? = null,
+    val repairLocation: String = "SERVICE_CENTER",
+    val useNewRepairScenario: Boolean = true,
+    val visitIsWithinCity: Boolean? = null,
+    val visitCustomerDistanceKm: Int? = null,
 )
 
 data class CustomerDeviceRepair(
@@ -139,6 +143,16 @@ data class RepairOrder(
     val preferredAt: String? = null,
     val priority: String = "NORMAL",
     val repairLocation: String? = null,
+    val visitScenarioVersion: Int = 0,
+    val visitIsWithinCity: Boolean? = null,
+    val visitCustomerDistanceKm: Int? = null,
+    val visitVerifiedDistanceKm: Int? = null,
+    val visitDistanceVerifiedAt: String? = null,
+    val diagnosisFeeRub: Int = 0,
+    val visitFeeRub: Int = 0,
+    val visitPickupAgreedAt: String? = null,
+    val technicianRepairCompletedAt: String? = null,
+    val onsiteRepairCompletedAt: String? = null,
 )
 
 data class OperationsDashboard(
@@ -280,6 +294,9 @@ data class RepairOrderReleaseSummary(
     val orderId: String,
     val serviceNumber: String,
     val totalRub: Int,
+    val repairSubtotalRub: Int = 0,
+    val diagnosisFeeRub: Int = 0,
+    val visitFeeRub: Int = 0,
     val bonusDiscountRub: Int,
     val amountDueRub: Int,
     val paymentStatus: String,

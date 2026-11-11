@@ -123,6 +123,27 @@ internal fun RepairOrderCard(
                         modifier = Modifier.padding(top = 4.dp),
                     )
                 }
+                if (order.visitScenarioVersion > 0) {
+                    Text(
+                        "Диагностика: ${if (order.diagnosisCompletedAt != null) "${order.diagnosisFeeRub} ₽" else "850 ₽, если проведена"} · выезд: ${order.visitFeeRub} ₽",
+                        fontSize = 11.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                    if (order.repairLocation == "CUSTOMER_ADDRESS") {
+                        Text(
+                            when {
+                                order.visitIsWithinCity == true -> "Пушкино · выезд бесплатный"
+                                order.visitVerifiedDistanceKm != null -> "${order.visitVerifiedDistanceKm} км в одну сторону от границы · проверено по Яндекс Картам"
+                                order.visitCustomerDistanceKm != null -> "Ориентир клиента: ${order.visitCustomerDistanceKm} км от границы Пушкино"
+                                else -> "Расстояние от границы Пушкино ещё не указано"
+                            },
+                            fontSize = 11.sp,
+                            color = UtpMuted,
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                }
                 if (order.preferredAt != null) {
                     Text(
                         "Желаемое время: ${formatArchiveDate(order.preferredAt)} · сервис подтвердит отдельно",
@@ -157,6 +178,7 @@ internal fun RepairOrderCard(
                 }
                 RepairEstimateSection(order, role, token, catalogItems, runAction)
                 RepairWorkActSection(order, role, token, catalogItems, currentUserId, runAction)
+                RepairVisitWorkflow(order, role, currentUserId, token, runAction)
                 RepairDeadlineSection(order, role, token, runAction)
                 val structuredAddress = listOfNotNull(
                     order.city,
@@ -312,7 +334,7 @@ internal fun RepairOrderCard(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Акт приёма · заказ-наряд · гарантия") }
-                if (role in listOf("ADMIN", "TECHNICIAN") && order.status == "READY_FOR_PICKUP") {
+                if (role == "ADMIN" && order.status == "READY_FOR_PICKUP") {
                     Button(
                         onClick = { showReleaseDialog = true },
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -320,105 +342,17 @@ internal fun RepairOrderCard(
                     ) { Text("Выдать заказ") }
                 }
 
-                val actions = mutableListOf<Pair<String, String>>()
-                when (role) {
-                    "CUSTOMER" -> if (order.status == "REQUESTED") actions.add("Отменить заявку" to "CANCELLED")
-                    "TECHNICIAN" -> when (order.status) {
-                        "ASSIGNED" -> actions.add("Начать ремонт" to "IN_PROGRESS")
-                        "IN_PROGRESS" -> actions.add("Готов к выдаче" to "READY_FOR_PICKUP")
-                    }
-                    "ADMIN" -> when (order.status) {
-                        "ASSIGNED" -> actions.add("Начать ремонт" to "IN_PROGRESS")
-                        "IN_PROGRESS" -> {
-                            actions.add("Готов к выдаче" to "READY_FOR_PICKUP")
-                            actions.add("Отменить" to "CANCELLED")
-                        }
-                        "REQUESTED" -> actions.add("Отменить" to "CANCELLED")
-                    }
-                }
-
-                val canEdit =
-                    (order.status == "REQUESTED" && role in listOf("CUSTOMER", "ADMIN")) ||
-                        (role == "ADMIN" && order.status in listOf(
-                            "ASSIGNED",
-                            "IN_PROGRESS",
-                            "READY_FOR_PICKUP",
-                            "COMPLETED",
-                        ))
-                if (canEdit) {
-                    OutlinedButton(
-                        onClick = { showEdit = true },
-                        modifier = Modifier.fillMaxWidth().padding(top = 9.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) { Text("Редактировать заказ") }
-                }
-                if (role == "ADMIN" && order.status in listOf("REQUESTED", "ASSIGNED")) {
-                    OutlinedButton(
-                        onClick = { showAssignment = true },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) { Text(if (order.technicianName.isBlank()) "Назначить мастера" else "Сменить мастера") }
-                }
-                if (
-                    role in listOf("ADMIN", "TECHNICIAN") &&
-                    !order.workActRequired &&
-                    order.workAct == null &&
-                    order.estimates.isEmpty() &&
-                    order.status in listOf("REQUESTED", "ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP")
-                ) {
-                    OutlinedButton(
-                        onClick = { showAddItem = true },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) { Text("Добавить услугу или запчасть") }
-                }
-                if (
-                    role in listOf("ADMIN", "TECHNICIAN") &&
-                    order.status in listOf("ASSIGNED", "IN_PROGRESS") &&
-                    order.diagnosisCompletedAt == null
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            runAction({ ApiClient.completeRepairDiagnosis(token, order.id) }, {})
-                        },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) { Text("Диагностика завершена") }
-                }
-                if (role == "CUSTOMER" || role == "TECHNICIAN") {
-                    OutlinedButton(
-                        onClick = { onChat(order.id) },
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) { Text("Открыть чат по заказу") }
-                }
-                actions.forEach { (label, status) ->
-                    val estimateBlocksAction = when (status) {
-                        "IN_PROGRESS" -> order.estimates.isNotEmpty() && latestEstimateRequiresApproval(order)
-                        "READY_FOR_PICKUP" -> order.estimates.lastOrNull()?.status == "PENDING"
-                        else -> false
-                    }
-                    val workActBlocksAction = status == "READY_FOR_PICKUP" &&
-                        (order.workActRequired || order.workAct != null) &&
-                        order.workAct?.status != "APPROVED"
-                    OutlinedButton(
-                        onClick = { runAction({ ApiClient.updateStatus(token, order.id, status) }, {}) },
-                        enabled = !estimateBlocksAction && !workActBlocksAction,
-                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        shape = RoundedCornerShape(12.dp),
-                    ) {
-                        Text(
-                            when {
-                                workActBlocksAction -> "Ожидает подтверждения акта администратором"
-                                estimateBlocksAction -> "Ожидает подтверждения администратора"
-                                else -> label
-                            },
-                        )
-                    }
-                }
-                if (role == "CUSTOMER" && order.status == "COMPLETED") {
-                    RepairCompletionCard(order = order, onReview = onReview)
-                }
+                RepairOrderActionControls(
+                    order = order,
+                    role = role,
+                    token = token,
+                    runAction = runAction,
+                    onEdit = { showEdit = true },
+                    onAssign = { showAssignment = true },
+                    onAddItem = { showAddItem = true },
+                    onChat = onChat,
+                    onReview = onReview,
+                )
             }
         }
     }

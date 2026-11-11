@@ -117,6 +117,15 @@ test("technicians can only progress assigned work and cannot access another tech
     true,
   );
   assert.equal(
+    canTransitionRepairStatus(
+      "TECHNICIAN",
+      "IN_PROGRESS",
+      "READY_FOR_PICKUP",
+      1,
+    ),
+    false,
+  );
+  assert.equal(
     canTransitionRepairStatus("TECHNICIAN", "IN_PROGRESS", "COMPLETED"),
     false,
   );
@@ -151,6 +160,10 @@ test("administrators may make forward changes without reopening terminal orders"
   );
   assert.equal(
     canTransitionRepairStatus("ADMIN", "IN_PROGRESS", "CANCELLED"),
+    true,
+  );
+  assert.equal(
+    canTransitionRepairStatus("ADMIN", "IN_PROGRESS", "READY_FOR_PICKUP"),
     true,
   );
   assert.equal(

@@ -66,6 +66,17 @@ const totalForItems = (
   return total;
 };
 
+const isDiagnosisOnlyReturn = (order: {
+  visitScenarioVersion: number;
+  diagnosisCompletedAt: Date | null;
+  items: readonly unknown[];
+  estimates: readonly { status: string }[];
+}): boolean =>
+  order.visitScenarioVersion > 0 &&
+  order.diagnosisCompletedAt !== null &&
+  order.items.length === 0 &&
+  order.estimates.at(-1)?.status === "DECLINED";
+
 export const createRepairOrderReleaseRouter = (
   database: DatabaseClient,
 ): Router => {
@@ -75,7 +86,7 @@ export const createRepairOrderReleaseRouter = (
   router.get(
     "/orders/:orderId/release-summary",
     requireAuth,
-    requireRoles("TECHNICIAN", "ADMIN"),
+    requireRoles("ADMIN"),
     validateRequest({ params: orderIdParams }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -86,6 +97,7 @@ export const createRepairOrderReleaseRouter = (
           items: true,
           receipt: true,
           workAct: { select: { status: true } },
+          estimates: { orderBy: { version: "asc" }, select: { status: true } },
         },
       });
       if (!order || !canViewRepairOrder(user.role, user.id, order)) {
@@ -98,7 +110,10 @@ export const createRepairOrderReleaseRouter = (
           "Заявка ещё не готова к выдаче.",
         );
       }
-      assertWorkActApproved(order.workActRequired, order.workAct?.status);
+      const diagnosisOnlyReturn = isDiagnosisOnlyReturn(order);
+      if (!diagnosisOnlyReturn) {
+        assertWorkActApproved(order.workActRequired, order.workAct?.status);
+      }
       const intake = await database.repairOrderIntake.findUnique({
         where: { orderId },
         select: { conditionSummary: true, intakeMediaObjectId: true },
@@ -110,10 +125,14 @@ export const createRepairOrderReleaseRouter = (
           "Перед выдачей заполните акт и добавьте одно фото или видео.",
         );
       }
-      const totalRub =
+      const repairSubtotalRub =
         order.receipt?.paymentStatus === "PAID"
           ? order.receipt.totalRub
           : totalForItems(order.items);
+      const totalRub =
+        order.receipt?.paymentStatus === "PAID"
+          ? order.receipt.totalRub
+          : repairSubtotalRub + order.diagnosisFeeRub + order.visitFeeRub;
       const balance = await database.loyaltyTransaction.aggregate({
         where: { customerId: order.customerId },
         _sum: { points: true },
@@ -137,6 +156,12 @@ export const createRepairOrderReleaseRouter = (
         orderId,
         serviceNumber: order.serviceNumber,
         totalRub,
+        repairSubtotalRub:
+          order.receipt?.paymentStatus === "PAID"
+            ? order.receipt.totalRub - order.diagnosisFeeRub - order.visitFeeRub
+            : repairSubtotalRub,
+        diagnosisFeeRub: order.diagnosisFeeRub,
+        visitFeeRub: order.visitFeeRub,
         bonusDiscountRub,
         maxBonusDiscountRub,
         redeemBonuses,
@@ -153,7 +178,7 @@ export const createRepairOrderReleaseRouter = (
   router.post(
     "/orders/:orderId/release",
     requireAuth,
-    requireRoles("TECHNICIAN", "ADMIN"),
+    requireRoles("ADMIN"),
     validateRequest({ params: orderIdParams, body: releaseBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -170,6 +195,10 @@ export const createRepairOrderReleaseRouter = (
             receipt: true,
             salaryEntry: true,
             workAct: { select: { status: true } },
+            estimates: {
+              orderBy: { version: "asc" },
+              select: { status: true },
+            },
             customer: { select: { displayName: true, phoneNumber: true } },
           },
         });
@@ -183,7 +212,10 @@ export const createRepairOrderReleaseRouter = (
             "Заявка уже изменилась или не готова к выдаче.",
           );
         }
-        assertWorkActApproved(order.workActRequired, order.workAct?.status);
+        const diagnosisOnlyReturn = isDiagnosisOnlyReturn(order);
+        if (!diagnosisOnlyReturn) {
+          assertWorkActApproved(order.workActRequired, order.workAct?.status);
+        }
         const intake = await transaction.repairOrderIntake.findUnique({
           where: { orderId },
           select: { conditionSummary: true, intakeMediaObjectId: true },
@@ -198,9 +230,12 @@ export const createRepairOrderReleaseRouter = (
 
         const now = new Date();
         const alreadyPaid = order.receipt?.paymentStatus === "PAID";
-        const totalRub = alreadyPaid
+        const repairSubtotalRub = alreadyPaid
           ? order.receipt!.totalRub
           : totalForItems(order.items);
+        const totalRub = alreadyPaid
+          ? order.receipt!.totalRub
+          : repairSubtotalRub + order.diagnosisFeeRub + order.visitFeeRub;
         await transaction.$queryRaw`
           SELECT "id" FROM "users" WHERE "id" = ${order.customerId}::uuid FOR UPDATE
         `;
@@ -238,12 +273,39 @@ export const createRepairOrderReleaseRouter = (
 
         const snapshot = alreadyPaid
           ? (order.receipt!.itemsSnapshot as Prisma.InputJsonValue)
-          : order.items.map((item) => ({
-              name: item.name,
-              quantity: item.quantity,
-              unitPriceRub: item.unitPriceRub,
-              totalRub: item.quantity * item.unitPriceRub,
-            }));
+          : ([
+              ...order.items.map((item) => ({
+                type: item.type,
+                name: item.name,
+                quantity: item.quantity,
+                unitPriceRub: item.unitPriceRub,
+                totalRub: item.quantity * item.unitPriceRub,
+              })),
+              ...(order.diagnosisFeeRub > 0
+                ? [
+                    {
+                      type: "FEE",
+                      name: "Диагностика",
+                      quantity: 1,
+                      unitPriceRub: order.diagnosisFeeRub,
+                      totalRub: order.diagnosisFeeRub,
+                      bonusEligible: false,
+                    },
+                  ]
+                : []),
+              ...(order.visitFeeRub > 0
+                ? [
+                    {
+                      type: "FEE",
+                      name: `Загородный выезд · ${order.visitVerifiedDistanceKm} км в одну сторону`,
+                      quantity: 1,
+                      unitPriceRub: order.visitFeeRub,
+                      totalRub: order.visitFeeRub,
+                      bonusEligible: false,
+                    },
+                  ]
+                : []),
+            ] as Prisma.InputJsonValue);
         const receiptData = {
           orderId,
           receiptNumber: `DOC-${order.serviceNumber}`,
@@ -323,6 +385,7 @@ export const createRepairOrderReleaseRouter = (
             select: { salaryRatePercent: true },
           });
           const serviceTotalRub = calculateServiceBonusEligibleRub(order.items);
+          const visitFeesRub = order.diagnosisFeeRub + order.visitFeeRub;
           const ratePercent =
             technician?.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT;
           await transaction.technicianSalaryEntry.create({
@@ -330,10 +393,10 @@ export const createRepairOrderReleaseRouter = (
               orderId,
               technicianId: order.assignedTechnicianId,
               serviceTotalRub,
-              salaryRub: calculateTechnicianSalaryRub(
-                serviceTotalRub,
-                ratePercent,
-              ),
+              visitFeesRub,
+              salaryRub:
+                calculateTechnicianSalaryRub(serviceTotalRub, ratePercent) +
+                visitFeesRub,
               ratePercent,
               earnedAt: now,
             },

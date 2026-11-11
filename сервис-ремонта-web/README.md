@@ -209,9 +209,12 @@ The form supports an existing client or registering a new client with their emai
 the generated temporary password is shown once after account creation, and the client must change
 it at first sign-in. If order creation fails after account registration, the client remains in the
 customer list and the order can be retried for that account. The administrator also selects whether
-the repair will take place at the client's address or at the service center. This choice is saved
-separately from the client's contact address and shown in the order details; the company address
-continues to be maintained independently in “About the company.”
+the repair will take place at the client's address or at the service center. For a home visit the
+form records the customer's approximate one-way distance from Pushkino's boundary and shows the
+25 ₽/km estimate; an administrator or assigned technician checks the city and distance manually in
+Yandex Maps before diagnosis. The choice and estimate are saved separately from the client's contact
+address and shown in the order details; the company address continues to be maintained independently
+in “About the company.”
 
 On `/admin/customers`, administrators can permanently delete a customer after entering the customer's
 email in a confirmation dialog. This removes the account and its linked repair/craft orders, receipts,
@@ -235,10 +238,15 @@ background asset.
 Order cards expose the intake act, work-order summary, and any issued warranty card. Administrators
 and assigned technicians record one condition summary and attach one protected photo or video, plus
 the serial number, included accessories, and notes. Before release, the API requires the saved act and
-its single media file. An administrator or assigned technician uses the ordinary “Выдать заказ”
-action; it shows the amount due and payment options, checks the confirmed amount again, records the
-payment method, closes the order, and issues its warranty card. QR pickup codes and scanning are not
-part of the release flow; old act data and attached media remain available for history.
+its single media file. For service-center orders, the assigned technician marks the repair complete;
+the administrator then marks it ready and uses “Выдать заказ.” The release screen shows repair,
+diagnosis, and travel amounts separately, limits bonuses to eligible services, rechecks the total,
+records payment, closes the order, and issues its warranty card. For an on-site order the assigned
+technician agrees the repair directly with the customer and records cash or bank-transfer payment;
+when work is declined after diagnosis, the receipt records the diagnostic and applicable travel fees.
+QR pickup codes and scanning are not part of the release flow; old act data and attached media remain
+available for history. See [`../docs/repair-visit-scenario.md`](../docs/repair-visit-scenario.md) for
+the full rules.
 
 The `/orders` and `/admin/orders` lists separate active requests, completed/cancelled repair history,
 and the automatically archived requests. The Android-aligned order cards expose structured address
@@ -251,8 +259,8 @@ requests and estimates show only matching catalog entries, and a selected saved 
 type automatically. Customers can edit or cancel their own requests only while they are new, and may
 leave one review with an optional photo after completion. Assigned technicians can advance their
 assigned repair through the allowed status steps, prepare and send a versioned estimate, update the
-intake act, upload its single photo or video, release a ready order with the confirmed payment method,
-and use the order chat. The estimate is surfaced before the collapsible contact, photo and
+intake act, upload its single photo or video, and use the order chat. Only an administrator releases
+a service-center order after the technician marks the repair complete. The estimate is surfaced before the collapsible contact, photo and
 history details; paperwork and chat are grouped separately. Administrators can create and edit
 requests, assign technicians, prepare estimates from the active catalog, review pending estimates,
 manage receipts, search by service number, and manage paperwork and repair chat. Customers can view

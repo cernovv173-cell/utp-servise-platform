@@ -295,11 +295,32 @@ once the order is ready, completed, or cancelled. The old four-side fields remai
 history; the additive migration carries their descriptions and first available photo into the new
 fields without deleting the original columns or stored files.
 
-The service moves a repair from `IN_PROGRESS` to `READY_FOR_PICKUP`; staff cannot directly set
-`COMPLETED`. An administrator or assigned technician uses the ordinary release action, which shows
-the current total and bonus discount and requires a payment method when money is due. The API checks
-the displayed amount again, then records the paid receipt and method, completes the order, records
-the status event, issues the warranty card, and calculates technician salary in one transaction.
+New orders record whether repair is at the service center or at the customer's address. At a home
+visit, the customer supplies an approximate one-way distance from Pushkino's boundary; the assigned
+technician or administrator checks the address and distance manually in Yandex Maps before recording
+diagnosis. No Maps API or automatic route calculation is used. Pushkino visits are free; outside the
+city, the verified one-way distance is charged at 25 RUB/km only after a diagnosis is recorded.
+Diagnosis costs 850 RUB when performed, is charged once, cannot be covered by loyalty bonuses, and is
+credited in full to the technician. The new flow is opted into with `useNewRepairScenario: true`;
+legacy orders and older clients that omit that flag keep scenario version 0 and receive none of the
+new fees or status gates.
+
+For an on-site repair, the assigned technician agrees the repair price directly with the customer,
+records cash or bank-transfer payment, and closes the order without administrator approval. When an
+on-site repair is declined after diagnosis, the receipt contains the diagnostic and applicable travel
+fees. If the repair cannot be completed there, the technician records customer consent and the
+condition/accessories with one protected photo or video; the order then follows the normal service-
+center estimate and intake workflow.
+
+For service-center repairs, the technician records work completion separately. Only an administrator
+can move a new-scenario order to `READY_FOR_PICKUP` and release it. Release shows repair and parts
+separately from diagnosis and travel fees, applies bonuses only to eligible services (up to 30%, not
+to diagnosis, travel, or parts), records payment, closes the order, issues the warranty card, and
+calculates technician salary. Diagnosis and travel fees are added to the technician's salary in full,
+outside the repair percentage. These additive fields are introduced by migration
+`20261111080000_repair_visit_scenario`; existing order rows default to scenario version 0. See
+[`../docs/repair-visit-scenario.md`](../docs/repair-visit-scenario.md) for the complete workflow.
+
 The former pickup-QR endpoints are no longer available; legacy code records and columns are retained
 for historical data.
 

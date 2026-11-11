@@ -93,7 +93,14 @@ internal fun RepairOrderReleaseDialog(
                 when {
                     loading -> Text("Проверяем итоговую сумму…")
                     totals != null -> {
-                        Text("Стоимость ремонта: ${totals.totalRub} ₽", color = UtpInk)
+                        Text("Работы и запчасти: ${totals.repairSubtotalRub} ₽", color = UtpInk)
+                        if (totals.diagnosisFeeRub > 0) {
+                            Text("Диагностика · мастеру, без бонусов: ${totals.diagnosisFeeRub} ₽", color = UtpMuted, fontSize = 12.sp)
+                        }
+                        if (totals.visitFeeRub > 0) {
+                            Text("Выезд · мастеру, в одну сторону, без бонусов: ${totals.visitFeeRub} ₽", color = UtpMuted, fontSize = 12.sp)
+                        }
+                        Text("Итого: ${totals.totalRub} ₽", color = UtpInk, fontWeight = FontWeight.SemiBold)
                         if (supportsBonusSelection && !isAlreadyPaid && totals.maxBonusDiscountRub > 0) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),

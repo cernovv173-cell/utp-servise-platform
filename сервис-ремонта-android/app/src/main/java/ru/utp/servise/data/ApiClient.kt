@@ -748,12 +748,16 @@ object ApiClient {
         val body = JSONObject()
             .put("deviceType", deviceType)
             .put("problem", problem)
+            .put("useNewRepairScenario", details.useNewRepairScenario)
             .putAddress(address)
         details.deviceBrand.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceBrand", it) }
         details.deviceModel.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceModel", it) }
         details.deviceSerialNumber.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceSerialNumber", it) }
         details.preferredAt?.let { body.put("preferredAt", it) }
         details.customerDeviceId?.let { body.put("customerDeviceId", it) }
+        body.put("repairLocation", details.repairLocation)
+        details.visitIsWithinCity?.let { body.put("visitIsWithinCity", it) }
+        details.visitCustomerDistanceKm?.let { body.put("visitCustomerDistanceKm", it) }
         return request("POST", "/orders", token, body).getJSONObject("order").toOrder()
     }
 
@@ -818,10 +822,20 @@ object ApiClient {
         problem: String,
         repairLocation: String,
         address: OrderAddress,
-    ): RepairOrder = request(
+        useNewRepairScenario: Boolean = true,
+        visitIsWithinCity: Boolean = true,
+    visitCustomerDistanceKm: Int? = null,
+): RepairOrder = request(
         "POST", "/admin/orders", token,
         JSONObject().put("customerId", customerId).put("deviceType", deviceType)
-            .put("problem", problem).put("repairLocation", repairLocation).putAddress(address),
+            .put("problem", problem).put("repairLocation", repairLocation).putAddress(address)
+            .apply {
+                put("useNewRepairScenario", useNewRepairScenario)
+                if (repairLocation == "CUSTOMER_ADDRESS") {
+                    put("visitIsWithinCity", visitIsWithinCity)
+                    visitCustomerDistanceKm?.let { put("visitCustomerDistanceKm", it) }
+                }
+            },
     ).getJSONObject("order").toOrder()
 
     fun updateOrder(token: String, orderId: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(
@@ -944,6 +958,40 @@ object ApiClient {
 
     fun completeRepairDiagnosis(token: String, orderId: String): RepairOrder = request(
         "POST", "/orders/$orderId/diagnosis-completed", token,
+    ).getJSONObject("order").toOrder()
+
+    fun verifyRepairVisitDistance(
+        token: String,
+        orderId: String,
+        isWithinCity: Boolean,
+        distanceKm: Int,
+    ): RepairOrder = request(
+        "PATCH", "/orders/$orderId/visit-distance", token,
+        JSONObject().put("isWithinCity", isWithinCity).put("distanceKm", distanceKm),
+    ).getJSONObject("order").toOrder()
+
+    fun consentRepairVisitPickup(token: String, orderId: String): RepairOrder = request(
+        "POST", "/orders/$orderId/visit-pickup", token,
+        JSONObject().put("customerConsent", true),
+    ).getJSONObject("order").toOrder()
+
+    fun completeOnsiteRepair(
+        token: String,
+        orderId: String,
+        repairAgreed: Boolean,
+        repairPriceRub: Int,
+        paymentMethod: String,
+    ): RepairOrder = request(
+        "POST", "/orders/$orderId/onsite-completion", token,
+        JSONObject()
+            .put("repairAgreed", repairAgreed)
+            .put("repairPriceRub", repairPriceRub)
+            .put("paymentMethod", paymentMethod),
+    ).getJSONObject("order").toOrder()
+
+    fun markTechnicianRepairCompleted(token: String, orderId: String): RepairOrder = request(
+        "POST", "/orders/$orderId/technician-completed", token,
+        JSONObject(),
     ).getJSONObject("order").toOrder()
 
     fun requestTelegramLink(token: String): String = request(

@@ -13,15 +13,16 @@ export const canTransitionRepairStatus = (
   role: UserRole,
   current: RepairStatus,
   next: RepairStatus,
+  visitScenarioVersion = 0,
 ): boolean => {
   if (!transitions[current].includes(next)) return false;
   if (role === "ADMIN") return true;
   if (role === "CUSTOMER")
     return current === "REQUESTED" && next === "CANCELLED";
-  return (
-    (current === "ASSIGNED" && next === "IN_PROGRESS") ||
-    (current === "IN_PROGRESS" && next === "READY_FOR_PICKUP")
-  );
+  if (current === "IN_PROGRESS" && next === "READY_FOR_PICKUP") {
+    return visitScenarioVersion < 1;
+  }
+  return current === "ASSIGNED" && next === "IN_PROGRESS";
 };
 
 export const canViewRepairOrder = (

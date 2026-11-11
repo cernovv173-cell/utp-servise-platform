@@ -26,6 +26,7 @@ import { RepairOrderInformation } from "@/features/orders/repair-order-informati
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
 import { RepairRequestForm } from "@/features/orders/repair-request-form";
+import { RepairVisitWorkflow } from "@/features/orders/repair-visit-workflow";
 import { RepairWorkActPanel } from "@/features/orders/repair-work-act-panel";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
@@ -253,22 +254,20 @@ const OrdersPage = () => {
                   </p>
                 )}
                 <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
-                {(user?.role === "ADMIN" || user?.role === "TECHNICIAN") &&
-                  order.status === "READY_FOR_PICKUP" &&
-                  token && (
-                    <div className="mt-3">
-                      <RepairOrderReleaseButton
-                        order={order}
-                        token={token}
-                        onRefresh={() =>
-                          Promise.all([
-                            queryClient.invalidateQueries({ queryKey: ["orders", token] }),
-                            queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
-                          ])
-                        }
-                      />
-                    </div>
-                  )}
+                {user?.role === "ADMIN" && order.status === "READY_FOR_PICKUP" && token && (
+                  <div className="mt-3">
+                    <RepairOrderReleaseButton
+                      order={order}
+                      token={token}
+                      onRefresh={() =>
+                        Promise.all([
+                          queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                          queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                        ])
+                      }
+                    />
+                  </div>
+                )}
                 {order.archivedAt && (
                   <p className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 dark:border-[#7855c7]/50 dark:bg-[#211841] dark:text-[#d4b7ff]">
                     В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}
@@ -303,6 +302,21 @@ const OrdersPage = () => {
                       Promise.all([
                         queryClient.invalidateQueries({ queryKey: ["orders", token] }),
                         queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                      ])
+                    }
+                  />
+                )}
+                {token && user && (
+                  <RepairVisitWorkflow
+                    order={order}
+                    token={token}
+                    role={user.role}
+                    userId={user.id}
+                    onRefresh={() =>
+                      Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                        queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                        queryClient.invalidateQueries({ queryKey: ["admin-order-search", token] }),
                       ])
                     }
                   />
@@ -398,10 +412,15 @@ const OrdersPage = () => {
                         type="button"
                         disabled={
                           statusMutation.isPending ||
-                          Boolean(
-                            order.estimates?.length &&
-                            order.estimates.at(-1)?.status !== "APPROVED",
-                          )
+                          (!(
+                            order.visitScenarioVersion &&
+                            order.repairLocation === "CUSTOMER_ADDRESS" &&
+                            !order.visitPickupAgreedAt
+                          ) &&
+                            Boolean(
+                              order.estimates?.length &&
+                              order.estimates.at(-1)?.status !== "APPROVED",
+                            ))
                         }
                         onClick={() =>
                           statusMutation.mutate({ orderId: order.id, status: "IN_PROGRESS" })
@@ -411,7 +430,7 @@ const OrdersPage = () => {
                         Начать ремонт
                       </button>
                     )}
-                    {order.status === "IN_PROGRESS" && (
+                    {order.status === "IN_PROGRESS" && (order.visitScenarioVersion ?? 0) < 1 && (
                       <button
                         type="button"
                         disabled={
@@ -427,6 +446,33 @@ const OrdersPage = () => {
                         Готова к выдаче
                       </button>
                     )}
+                  </div>
+                )}
+                {user?.role === "ADMIN" && order.status === "IN_PROGRESS" && (
+                  <div className="mt-3 grid gap-2">
+                    {(order.visitScenarioVersion ?? 0) > 0 &&
+                      order.repairLocation === "SERVICE_CENTER" &&
+                      !order.technicianRepairCompletedAt && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          Ожидается отметка мастера о завершении ремонта.
+                        </p>
+                      )}
+                    <button
+                      type="button"
+                      disabled={
+                        statusMutation.isPending ||
+                        ((order.visitScenarioVersion ?? 0) > 0 &&
+                          order.repairLocation === "SERVICE_CENTER" &&
+                          !order.technicianRepairCompletedAt) ||
+                        order.estimates?.at(-1)?.status === "PENDING"
+                      }
+                      onClick={() =>
+                        statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
+                      }
+                      className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      Подтвердить готовность к выдаче
+                    </button>
                   </div>
                 )}
                 {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (

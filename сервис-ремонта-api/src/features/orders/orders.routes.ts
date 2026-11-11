@@ -33,6 +33,12 @@ import {
   canViewRepairOrder,
 } from "./order-policy.js";
 import { createRepairOrderReleaseRouter } from "./repair-order-release.routes.js";
+import { createRepairTechnicianCompletionRouter } from "./repair-technician-completion.routes.js";
+import {
+  REPAIR_DIAGNOSIS_FEE_RUB,
+  calculateRepairVisitFeeRub,
+} from "./repair-visit-policy.js";
+import { createRepairVisitRouter } from "./repair-visits.routes.js";
 import { assertWorkActApproved } from "./repair-work-act.shared.js";
 import {
   REPAIR_WARRANTY_DAYS,
@@ -71,6 +77,10 @@ const createOrderBody = z
     deviceSerialNumber: z.string().trim().max(160).optional(),
     problem: z.string().trim().min(5).max(2000),
     contactPhone,
+    repairLocation: z.enum(["CUSTOMER_ADDRESS", "SERVICE_CENTER"]).optional(),
+    useNewRepairScenario: z.literal(true).optional(),
+    visitIsWithinCity: z.boolean().optional(),
+    visitCustomerDistanceKm: z.number().int().min(1).max(10000).optional(),
     city: optionalAddressField(2, 120),
     street: optionalAddressField(2, 180),
     house: optionalAddressField(1, 30),
@@ -443,6 +453,23 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createOrderBody>>(response);
+      if (
+        input.useNewRepairScenario &&
+        (!input.repairLocation ||
+          (input.repairLocation === "CUSTOMER_ADDRESS" &&
+            (input.visitIsWithinCity === undefined ||
+              (!input.visitIsWithinCity &&
+                input.visitCustomerDistanceKm === undefined) ||
+              !input.city ||
+              !input.street ||
+              !input.house)))
+      ) {
+        throw new HttpError(
+          400,
+          "VISIT_DISTANCE_REQUIRED",
+          "Для нового сценария выберите место ремонта; для выезда укажите полный адрес и отметьте, находится ли он в Пушкино. За городом добавьте примерное расстояние от границы.",
+        );
+      }
       let credentialMaxUserId = user.maxUserId ?? null;
       const order = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
@@ -474,6 +501,17 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
               savedDevice?.serialNumber ?? (input.deviceSerialNumber || null),
             problem: input.problem,
             address,
+            repairLocation: input.repairLocation ?? null,
+            visitScenarioVersion: input.useNewRepairScenario ? 1 : 0,
+            visitIsWithinCity:
+              input.repairLocation === "CUSTOMER_ADDRESS"
+                ? (input.visitIsWithinCity ?? null)
+                : null,
+            visitCustomerDistanceKm:
+              input.repairLocation === "CUSTOMER_ADDRESS" &&
+              input.visitIsWithinCity === false
+                ? (input.visitCustomerDistanceKm ?? null)
+                : null,
             contactPhone: input.contactPhone,
             city: input.city ?? null,
             street: input.street ?? null,
@@ -646,6 +684,23 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const administrator = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createAdminOrderBody>>(response);
+      if (
+        input.useNewRepairScenario &&
+        (!input.repairLocation ||
+          (input.repairLocation === "CUSTOMER_ADDRESS" &&
+            (input.visitIsWithinCity === undefined ||
+              (!input.visitIsWithinCity &&
+                input.visitCustomerDistanceKm === undefined) ||
+              !input.city ||
+              !input.street ||
+              !input.house)))
+      ) {
+        throw new HttpError(
+          400,
+          "VISIT_DISTANCE_REQUIRED",
+          "Для нового сценария выберите место ремонта; для выезда укажите полный адрес и отметьте, находится ли он в Пушкино. За городом добавьте примерное расстояние от границы.",
+        );
+      }
       const customer = await database.user.findFirst({
         where: { id: input.customerId, role: "CUSTOMER", active: true },
         select: {
@@ -693,6 +748,16 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             problem: input.problem,
             address: addressFromFields(input),
             repairLocation: input.repairLocation ?? null,
+            visitScenarioVersion: input.useNewRepairScenario ? 1 : 0,
+            visitIsWithinCity:
+              input.repairLocation === "CUSTOMER_ADDRESS"
+                ? (input.visitIsWithinCity ?? null)
+                : null,
+            visitCustomerDistanceKm:
+              input.repairLocation === "CUSTOMER_ADDRESS" &&
+              input.visitIsWithinCity === false
+                ? (input.visitCustomerDistanceKm ?? null)
+                : null,
             contactPhone,
             city: input.city ?? null,
             street: input.street ?? null,
@@ -1501,6 +1566,11 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             assignedTechnicianId: true,
             status: true,
             diagnosisCompletedAt: true,
+            repairLocation: true,
+            visitScenarioVersion: true,
+            visitIsWithinCity: true,
+            visitVerifiedDistanceKm: true,
+            visitDistanceVerifiedAt: true,
           },
         });
         if (
@@ -1524,14 +1594,35 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           );
         }
 
+        if (
+          current.visitScenarioVersion > 0 &&
+          current.repairLocation === "CUSTOMER_ADDRESS" &&
+          !current.visitDistanceVerifiedAt
+        ) {
+          throw new HttpError(
+            409,
+            "VISIT_DISTANCE_NOT_VERIFIED",
+            "Перед завершением диагностики мастер должен сверить адрес и расстояние по Яндекс Картам.",
+          );
+        }
+
         const now = new Date();
+        const diagnosisFeeRub =
+          current.visitScenarioVersion > 0 ? REPAIR_DIAGNOSIS_FEE_RUB : 0;
+        const visitFeeRub = calculateRepairVisitFeeRub({
+          visitScenarioVersion: current.visitScenarioVersion,
+          repairLocation: current.repairLocation,
+          isWithinCity: current.visitIsWithinCity,
+          verifiedDistanceKm: current.visitVerifiedDistanceKm,
+          diagnosisCompleted: true,
+        });
         const updated = await transaction.repairOrder.updateMany({
           where: {
             id: orderId,
             diagnosisCompletedAt: null,
             status: current.status,
           },
-          data: { diagnosisCompletedAt: now },
+          data: { diagnosisCompletedAt: now, diagnosisFeeRub, visitFeeRub },
         });
         if (updated.count !== 1) {
           throw new HttpError(
@@ -1547,7 +1638,10 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             actorId: user.id,
             from: current.status,
             to: current.status,
-            note: "Диагностика завершена",
+            note:
+              diagnosisFeeRub > 0
+                ? `Диагностика завершена; начислено ${diagnosisFeeRub} ₽ мастеру`
+                : "Диагностика завершена",
           },
         });
         await scheduleTelegramRepairNotification(transaction, {
@@ -1592,7 +1686,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         if (!current || !canViewRepairOrder(user.role, user.id, current)) {
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         }
-        if (!canTransitionRepairStatus(user.role, current.status, status)) {
+        if (
+          !canTransitionRepairStatus(
+            user.role,
+            current.status,
+            status,
+            current.visitScenarioVersion,
+          )
+        ) {
           throw new HttpError(
             403,
             "STATUS_TRANSITION_FORBIDDEN",
@@ -1600,6 +1701,10 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           );
         }
         if (status === "IN_PROGRESS" || status === "READY_FOR_PICKUP") {
+          const onsiteVisit =
+            current.visitScenarioVersion > 0 &&
+            current.repairLocation === "CUSTOMER_ADDRESS" &&
+            !current.visitPickupAgreedAt;
           const latestEstimate = await transaction.repairEstimate.findFirst({
             where: { orderId },
             orderBy: { version: "desc" },
@@ -1607,6 +1712,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           });
           if (
             status === "IN_PROGRESS" &&
+            !onsiteVisit &&
             (!latestEstimate || latestEstimate.status !== "APPROVED")
           ) {
             throw new HttpError(
@@ -1626,13 +1732,34 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             );
           }
           if (status === "READY_FOR_PICKUP") {
+            const diagnosisOnlyReturn =
+              current.visitScenarioVersion > 0 &&
+              current.diagnosisCompletedAt !== null &&
+              latestEstimate?.status === "DECLINED" &&
+              (await transaction.repairOrderItem.count({
+                where: { orderId },
+              })) === 0;
+            if (
+              current.visitScenarioVersion > 0 &&
+              current.repairLocation === "SERVICE_CENTER" &&
+              !current.technicianRepairCompletedAt &&
+              !diagnosisOnlyReturn
+            ) {
+              throw new HttpError(
+                409,
+                "TECHNICIAN_COMPLETION_REQUIRED",
+                "Сначала мастер должен отметить ремонт завершённым.",
+              );
+            }
             const workAct = current.workActRequired
               ? await transaction.repairWorkAct.findUnique({
                   where: { orderId },
                   select: { status: true },
                 })
               : null;
-            assertWorkActApproved(current.workActRequired, workAct?.status);
+            if (!diagnosisOnlyReturn) {
+              assertWorkActApproved(current.workActRequired, workAct?.status);
+            }
           }
         }
         if (status === "READY_FOR_PICKUP") {
@@ -2207,5 +2334,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   );
 
   router.use(createRepairOrderReleaseRouter(database));
+  router.use(createRepairVisitRouter(database));
+  router.use(createRepairTechnicianCompletionRouter(database));
   return router;
 };

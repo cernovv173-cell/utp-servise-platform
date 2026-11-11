@@ -162,11 +162,48 @@ test("only admins create repair orders for active customers and creation is audi
     const locationOrder = await fetch(endpoint, {
       method: "POST",
       headers: headers(adminToken),
-      body: JSON.stringify({ ...body, repairLocation }),
+      body: JSON.stringify({
+        ...body,
+        repairLocation,
+        useNewRepairScenario: true,
+        ...(repairLocation === "CUSTOMER_ADDRESS"
+          ? { visitIsWithinCity: true }
+          : {}),
+      }),
     });
     assert.equal(locationOrder.status, 201);
     assert.equal(createdData?.repairLocation, repairLocation);
+    assert.equal(createdData?.visitScenarioVersion, 1);
   }
+
+  const legacyVisitOrder = await fetch(endpoint, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({ ...body, repairLocation: "CUSTOMER_ADDRESS" }),
+  });
+  assert.equal(legacyVisitOrder.status, 201);
+  assert.equal(createdData?.repairLocation, "CUSTOMER_ADDRESS");
+  assert.equal(createdData?.visitScenarioVersion, 0);
+
+  const legacyServiceCenterOrder = await fetch(endpoint, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({ ...body, repairLocation: "SERVICE_CENTER" }),
+  });
+  assert.equal(legacyServiceCenterOrder.status, 201);
+  assert.equal(createdData?.visitScenarioVersion, 0);
+
+  const outsideVisitWithoutDistance = await fetch(endpoint, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({
+      ...body,
+      repairLocation: "CUSTOMER_ADDRESS",
+      useNewRepairScenario: true,
+      visitIsWithinCity: false,
+    }),
+  });
+  assert.equal(outsideVisitWithoutDistance.status, 400);
 
   const invalidLocation = await fetch(endpoint, {
     method: "POST",

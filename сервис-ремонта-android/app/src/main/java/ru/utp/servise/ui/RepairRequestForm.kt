@@ -82,6 +82,9 @@ fun RepairRequestForm(
     var deviceMenu by remember { mutableStateOf(false) }
     var selectedCustomerDeviceId by remember { mutableStateOf(initialDeviceId) }
     var problem by remember { mutableStateOf("") }
+    var repairLocation by remember { mutableStateOf("SERVICE_CENTER") }
+    var visitIsWithinCity by remember { mutableStateOf(true) }
+    var visitDistanceKm by remember { mutableStateOf("") }
     var phone by remember(initialPhone) { mutableStateOf(initialPhone) }
     var city by remember { mutableStateOf("") }
     var street by remember { mutableStateOf("") }
@@ -254,10 +257,23 @@ fun RepairRequestForm(
         }
         Spacer(Modifier.height(10.dp))
         AddressField(phone, { phone = it.take(32) }, "Телефон для связи *", KeyboardType.Phone)
-        Text("Адрес клиента (необязательно)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-        AddressField(city, { city = it.take(120) }, "Город")
-        AddressField(street, { street = it.take(180) }, "Улица")
-        AddressField(house, { house = it.take(30) }, "Дом")
+        RepairRequestVisitFields(
+            repairLocation = repairLocation,
+            onRepairLocationChange = { repairLocation = it },
+            isWithinCity = visitIsWithinCity,
+            onWithinCityChange = { visitIsWithinCity = it },
+            distanceKm = visitDistanceKm,
+            onDistanceKmChange = { visitDistanceKm = it },
+        )
+        Text(
+            if (repairLocation == "CUSTOMER_ADDRESS") "Адрес для выезда мастера *" else "Адрес клиента (необязательно)",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = UtpInk,
+        )
+        AddressField(city, { city = it.take(120) }, if (repairLocation == "CUSTOMER_ADDRESS") "Город *" else "Город")
+        AddressField(street, { street = it.take(180) }, if (repairLocation == "CUSTOMER_ADDRESS") "Улица *" else "Улица")
+        AddressField(house, { house = it.take(30) }, if (repairLocation == "CUSTOMER_ADDRESS") "Дом *" else "Дом")
         AddressField(apartment, { apartment = it.take(30) }, "Квартира")
         AddressField(entrance, { entrance = it.take(30) }, "Подъезд")
         AddressField(floor, { floor = it.take(20) }, "Этаж")
@@ -307,6 +323,14 @@ fun RepairRequestForm(
         val missingFields = buildList {
             if (problem.trim().length < 5) add("опишите неисправность (не менее 5 символов)")
             if (phone.count(Char::isDigit) < 7) add("укажите телефон для связи")
+            if (repairLocation == "CUSTOMER_ADDRESS") {
+                if (city.trim().length < 2) add("укажите город выезда")
+                if (street.trim().length < 2) add("укажите улицу для выезда")
+                if (house.isBlank()) add("укажите дом для выезда")
+                if (!visitIsWithinCity && (visitDistanceKm.toIntOrNull() ?: 0) < 1) {
+                    add("укажите километраж от границы Пушкино")
+                }
+            }
         }
         if (showValidation && missingFields.isNotEmpty()) {
             Text(
@@ -333,6 +357,10 @@ fun RepairRequestForm(
                         deviceSerialNumber = deviceSerialNumber.trim(),
                         preferredAt = preferredAt,
                         customerDeviceId = selectedCustomerDeviceId,
+                        repairLocation = repairLocation,
+                        visitIsWithinCity = visitIsWithinCity.takeIf { repairLocation == "CUSTOMER_ADDRESS" },
+                        visitCustomerDistanceKm =
+                            if (repairLocation == "CUSTOMER_ADDRESS" && !visitIsWithinCity) visitDistanceKm.toIntOrNull() else null,
                     ),
                     selectedPhoto,
                 )

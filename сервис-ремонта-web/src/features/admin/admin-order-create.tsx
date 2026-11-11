@@ -13,10 +13,12 @@ import {
 } from "@/components/modal";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { RepairRequestVisitFields } from "@/features/orders/repair-request-visit-fields";
 
 import {
   type AdminCustomer,
   type NewAdminCustomer,
+  type RepairLocation,
   createAdminCustomer,
   createAdminOrder,
   getAdminCustomers,
@@ -51,6 +53,9 @@ export const AdminOrderCreate = ({
   } | null>(null);
   const [activationBusy, setActivationBusy] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [repairLocation, setRepairLocation] = useState<RepairLocation>("CUSTOMER_ADDRESS");
+  const [isWithinCity, setIsWithinCity] = useState(true);
+  const [visitFieldsKey, setVisitFieldsKey] = useState(0);
   const candidates = useQuery({
     queryKey: ["admin-order-customers", token, customerSearch],
     queryFn: ({ signal }) => getAdminCustomers(token!, customerSearch.trim(), 1, 20, signal),
@@ -63,8 +68,6 @@ export const AdminOrderCreate = ({
     const form = event.currentTarget;
     const data = new FormData(form);
     const phone = String(data.get("contactPhone")).trim();
-    const repairLocation =
-      data.get("repairLocation") === "SERVICE_CENTER" ? "SERVICE_CENTER" : "CUSTOMER_ADDRESS";
     let newCustomer: NewAdminCustomer | null = null;
     let activation: { url: string; expiresAt: string } | null = null;
     setSaving(true);
@@ -84,6 +87,15 @@ export const AdminOrderCreate = ({
         customerId: newCustomer?.customer.id ?? customer!.id,
         deviceType: String(data.get("deviceType")),
         repairLocation,
+        useNewRepairScenario: true,
+        ...(repairLocation === "CUSTOMER_ADDRESS"
+          ? {
+              visitIsWithinCity: isWithinCity,
+              ...(!isWithinCity
+                ? { visitCustomerDistanceKm: Number(data.get("visitCustomerDistanceKm")) }
+                : {}),
+            }
+          : {}),
         problem: String(data.get("problem")).trim(),
         ...(phone ? { contactPhone: phone } : {}),
         city: String(data.get("city")).trim(),
@@ -108,6 +120,9 @@ export const AdminOrderCreate = ({
       setCustomer(null);
       setCustomerMode("existing");
       setCustomerSearch("");
+      setRepairLocation("CUSTOMER_ADDRESS");
+      setIsWithinCity(true);
+      setVisitFieldsKey((current) => current + 1);
       form.reset();
       onCreated();
     } catch {
@@ -322,49 +337,42 @@ export const AdminOrderCreate = ({
               className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-normal dark:border-slate-700 dark:bg-slate-950"
             />
           </label>
-          <fieldset className="grid gap-2 sm:col-span-2">
-            <legend className="text-sm font-semibold">Место ремонта</legend>
-            <div className="grid gap-2 sm:grid-cols-2">
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700">
-                <input
-                  type="radio"
-                  name="repairLocation"
-                  value="CUSTOMER_ADDRESS"
-                  required
-                  defaultChecked
-                  className="h-4 w-4 accent-blue-600"
-                />
-                У клиента
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 text-sm dark:border-slate-700">
-                <input
-                  type="radio"
-                  name="repairLocation"
-                  value="SERVICE_CENTER"
-                  required
-                  className="h-4 w-4 accent-blue-600"
-                />
-                В сервисном центре
-              </label>
-            </div>
-            <p className="text-xs text-slate-500">
-              Выбор сохранится в заявке. Адрес ниже — контактный адрес клиента.
-            </p>
-          </fieldset>
+          <RepairRequestVisitFields
+            key={visitFieldsKey}
+            repairLocation={repairLocation}
+            onRepairLocationChange={setRepairLocation}
+            isWithinCity={isWithinCity}
+            onWithinCityChange={setIsWithinCity}
+          />
           <div className="sm:col-span-2">
             <p className="text-sm font-semibold">Контактный адрес клиента (необязательно)</p>
           </div>
           <label className="grid gap-1 text-sm font-medium">
             Город
-            <input name="city" maxLength={120} className={fieldClassName} />
+            <input
+              name="city"
+              maxLength={120}
+              required={repairLocation === "CUSTOMER_ADDRESS"}
+              className={fieldClassName}
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium">
             Улица
-            <input name="street" maxLength={180} className={fieldClassName} />
+            <input
+              name="street"
+              maxLength={180}
+              required={repairLocation === "CUSTOMER_ADDRESS"}
+              className={fieldClassName}
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium">
             Дом
-            <input name="house" maxLength={30} className={fieldClassName} />
+            <input
+              name="house"
+              maxLength={30}
+              required={repairLocation === "CUSTOMER_ADDRESS"}
+              className={fieldClassName}
+            />
           </label>
           <label className="grid gap-1 text-sm font-medium">
             Квартира

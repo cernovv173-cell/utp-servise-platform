@@ -81,6 +81,8 @@ fun AdminOrderCreationScreen(
     var deviceType by remember { mutableStateOf(orderDevices.first().first) }
     var deviceMenu by remember { mutableStateOf(false) }
     var repairLocation by remember { mutableStateOf("CUSTOMER_ADDRESS") }
+    var visitIsWithinCity by remember { mutableStateOf(true) }
+    var visitDistanceKm by remember { mutableStateOf("") }
     var problem by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
@@ -186,28 +188,14 @@ fun AdminOrderCreationScreen(
             }
         }
 
-        Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Место ремонта", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = repairLocation == "CUSTOMER_ADDRESS",
-                        onClick = { repairLocation = "CUSTOMER_ADDRESS" },
-                        label = { Text("У клиента") },
-                    )
-                    FilterChip(
-                        selected = repairLocation == "SERVICE_CENTER",
-                        onClick = { repairLocation = "SERVICE_CENTER" },
-                        label = { Text("В сервисе") },
-                    )
-                }
-                Text(
-                    "Адрес ниже — контактный адрес клиента. Выбранное место сохранится в заявке.",
-                    fontSize = 12.sp,
-                    color = UtpMuted,
-                )
-            }
-        }
+        RepairRequestVisitFields(
+            repairLocation = repairLocation,
+            onRepairLocationChange = { repairLocation = it },
+            isWithinCity = visitIsWithinCity,
+            onWithinCityChange = { visitIsWithinCity = it },
+            distanceKm = visitDistanceKm,
+            onDistanceKmChange = { visitDistanceKm = it },
+        )
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { deviceMenu = true }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
@@ -227,10 +215,15 @@ fun AdminOrderCreationScreen(
             shape = RoundedCornerShape(14.dp),
         )
         AdminOrderField(phone, { phone = it.take(32) }, "Телефон для связи${if (createNewCustomer) " клиента" else ""}", KeyboardType.Phone)
-        Text("Адрес клиента (необязательно)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-        AdminOrderField(city, { city = it.take(120) }, "Город")
-        AdminOrderField(street, { street = it.take(180) }, "Улица")
-        AdminOrderField(house, { house = it.take(30) }, "Дом")
+        Text(
+            if (repairLocation == "CUSTOMER_ADDRESS") "Адрес для выезда" else "Контактный адрес клиента (необязательно)",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = UtpInk,
+        )
+        AdminOrderField(city, { city = it.take(120) }, if (repairLocation == "CUSTOMER_ADDRESS") "Город для выезда" else "Город")
+        AdminOrderField(street, { street = it.take(180) }, if (repairLocation == "CUSTOMER_ADDRESS") "Улица для выезда" else "Улица")
+        AdminOrderField(house, { house = it.take(30) }, if (repairLocation == "CUSTOMER_ADDRESS") "Дом для выезда" else "Дом")
         AdminOrderField(apartment, { apartment = it.take(30) }, "Квартира")
         OutlinedTextField(
             value = additionalInfo,
@@ -277,6 +270,8 @@ fun AdminOrderCreationScreen(
                                 apartment = apartment.trim(),
                                 additionalInfo = additionalInfo.trim(),
                             ),
+                            visitIsWithinCity = visitIsWithinCity,
+                            visitCustomerDistanceKm = visitDistanceKm.toIntOrNull(),
                         )
                         AdminOrderSubmission(
                             orderCreated = true,
@@ -310,7 +305,12 @@ fun AdminOrderCreationScreen(
                 newCustomerName.trim().length >= 2 &&
                     (newCustomerEmail.isBlank() || newCustomerEmail.contains('@'))
             } else selectedCustomer != null) && problem.trim().length >= 5 &&
-                phone.count(Char::isDigit) >= 7,
+                phone.count(Char::isDigit) >= 7 &&
+                (repairLocation != "CUSTOMER_ADDRESS" ||
+                    (city.trim().length >= 2 &&
+                        street.trim().length >= 2 &&
+                        house.trim().isNotEmpty() &&
+                        (visitIsWithinCity || (visitDistanceKm.toIntOrNull() ?: 0) > 0))),
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(14.dp),
         ) { Text(if (busy) "Создаём…" else "Создать заявку") }

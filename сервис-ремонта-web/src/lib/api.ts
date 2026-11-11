@@ -150,6 +150,16 @@ export type RepairOrder = {
   problem: string;
   address: string;
   repairLocation?: RepairLocation | null;
+  visitScenarioVersion?: number;
+  visitIsWithinCity?: boolean | null;
+  visitCustomerDistanceKm?: number | null;
+  visitVerifiedDistanceKm?: number | null;
+  visitDistanceVerifiedAt?: string | null;
+  diagnosisFeeRub?: number;
+  visitFeeRub?: number;
+  visitPickupAgreedAt?: string | null;
+  technicianRepairCompletedAt?: string | null;
+  onsiteRepairCompletedAt?: string | null;
   contactPhone: string | null;
   city: string | null;
   street: string | null;
@@ -945,6 +955,10 @@ export const createOrder = (
     deviceSerialNumber?: string;
     problem: string;
     contactPhone: string;
+    repairLocation: RepairLocation;
+    useNewRepairScenario?: true;
+    visitIsWithinCity?: boolean;
+    visitCustomerDistanceKm?: number;
     city?: string;
     street?: string;
     house?: string;
@@ -968,6 +982,9 @@ export const createAdminOrder = (
     customerId: string;
     deviceType: string;
     repairLocation: RepairLocation;
+    useNewRepairScenario?: true;
+    visitIsWithinCity?: boolean;
+    visitCustomerDistanceKm?: number;
     deviceBrand?: string;
     deviceModel?: string;
     deviceSerialNumber?: string;
@@ -1262,6 +1279,9 @@ export type RepairOrderReleaseSummary = {
   orderId: string;
   serviceNumber: string;
   totalRub: number;
+  repairSubtotalRub: number;
+  diagnosisFeeRub: number;
+  visitFeeRub: number;
   bonusDiscountRub: number;
   maxBonusDiscountRub?: number;
   redeemBonuses?: boolean;
@@ -1288,6 +1308,40 @@ export const releaseRepairOrder = (
     token,
     { method: "POST", body: JSON.stringify(input) },
   );
+
+export const verifyRepairVisitDistance = (
+  token: string,
+  orderId: string,
+  input: { isWithinCity: boolean; distanceKm: number },
+) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/visit-distance`, token, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+export const consentRepairVisitPickup = (token: string, orderId: string) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/visit-pickup`, token, {
+    method: "POST",
+    body: JSON.stringify({ customerConsent: true }),
+  });
+
+export const completeOnsiteRepair = (
+  token: string,
+  orderId: string,
+  input: {
+    repairAgreed: boolean;
+    repairPriceRub: number;
+    paymentMethod: "CASH" | "BANK_TRANSFER";
+  },
+) =>
+  apiRequest<{
+    order: RepairOrder;
+    receipt: RepairReceipt;
+    warranty: RepairWarranty | null;
+  }>(`/orders/${orderId}/onsite-completion`, token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 
 export const createAdminCustomer = (
   token: string,
@@ -1622,6 +1676,12 @@ export const updateOrderStatus = (token: string, orderId: string, status: string
 export const completeRepairDiagnosis = (token: string, orderId: string) =>
   apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/diagnosis-completed`, token, {
     method: "POST",
+  });
+
+export const markTechnicianRepairCompleted = (token: string, orderId: string) =>
+  apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/technician-completed`, token, {
+    method: "POST",
+    body: JSON.stringify({}),
   });
 
 export const requestBonusRedemption = (token: string, orderId: string, redeemBonuses: boolean) =>

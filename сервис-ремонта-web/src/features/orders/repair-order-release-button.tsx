@@ -142,7 +142,23 @@ export const RepairOrderReleaseButton = ({
           <div className="grid gap-3 py-2">
             <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800">
               <p className="flex justify-between gap-3 text-sm">
-                <span>Стоимость ремонта</span>
+                <span>Работы и запчасти</span>
+                <b>{summary.data.repairSubtotalRub.toLocaleString("ru-RU")} ₽</b>
+              </p>
+              {summary.data.diagnosisFeeRub > 0 && (
+                <p className="mt-2 flex justify-between gap-3 text-sm">
+                  <span>Диагностика · мастеру, бонусами не оплачивается</span>
+                  <b>{summary.data.diagnosisFeeRub.toLocaleString("ru-RU")} ₽</b>
+                </p>
+              )}
+              {summary.data.visitFeeRub > 0 && (
+                <p className="mt-2 flex justify-between gap-3 text-sm">
+                  <span>Выезд · мастеру, в одну сторону, без бонусов</span>
+                  <b>{summary.data.visitFeeRub.toLocaleString("ru-RU")} ₽</b>
+                </p>
+              )}
+              <p className="mt-2 flex justify-between gap-3 border-t border-slate-200 pt-2 text-sm dark:border-slate-700">
+                <span>Итого</span>
                 <b>{summary.data.totalRub.toLocaleString("ru-RU")} ₽</b>
               </p>
               {supportsBonusSelection && !isAlreadyPaid && maxBonusDiscountRub > 0 && (

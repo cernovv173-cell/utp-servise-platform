@@ -83,6 +83,40 @@ export const RepairOrderInformation = ({ order, token }: { order: RepairOrder; t
               </dd>
             </div>
           )}
+          {(order.visitScenarioVersion ?? 0) > 0 && (
+            <>
+              <div>
+                <dt className="text-slate-500">Диагностика</dt>
+                <dd>
+                  {order.diagnosisCompletedAt
+                    ? `Проведена · ${(order.diagnosisFeeRub ?? 850).toLocaleString("ru-RU")} ₽`
+                    : "850 ₽, только если мастер её проведёт"}
+                </dd>
+              </div>
+              {order.repairLocation === "CUSTOMER_ADDRESS" && (
+                <div>
+                  <dt className="text-slate-500">Выезд от границы Пушкино</dt>
+                  <dd>
+                    {order.visitIsWithinCity
+                      ? "В пределах города · бесплатно"
+                      : order.visitVerifiedDistanceKm != null
+                        ? `${order.visitVerifiedDistanceKm} км в одну сторону · ${(
+                            order.visitFeeRub ?? 0
+                          ).toLocaleString(
+                            "ru-RU",
+                          )} ₽${order.visitDistanceVerifiedAt ? " · проверено по Яндекс Картам" : ""}`
+                        : `${order.visitCustomerDistanceKm ?? "Расстояние не указано"} км ориентировочно · проверит мастер или администратор`}
+                  </dd>
+                </div>
+              )}
+              {(order.visitFeeRub ?? 0) > 0 && (
+                <div>
+                  <dt className="text-slate-500">Плата за выезд</dt>
+                  <dd>{order.visitFeeRub?.toLocaleString("ru-RU")} ₽ · в одну сторону, мастеру</dd>
+                </div>
+              )}
+            </>
+          )}
           <div>
             <dt className="text-slate-500">Контактный адрес клиента</dt>
             <dd>{address || order.address || "Не указан"}</dd>

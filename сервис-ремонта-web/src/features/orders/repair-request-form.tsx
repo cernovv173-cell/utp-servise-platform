@@ -1,9 +1,10 @@
 import { type FormEvent, useState } from "react";
 
 import { PreVisitPriceGuide } from "@/features/orders/pre-visit-price-guide";
+import { RepairRequestVisitFields } from "@/features/orders/repair-request-visit-fields";
 import { RepairSymptomGuide } from "@/features/orders/repair-symptom-guide";
 
-import type { CustomerDevice, CustomerServicePrice, createOrder } from "@/lib/api";
+import type { CustomerDevice, CustomerServicePrice, RepairLocation, createOrder } from "@/lib/api";
 
 type RepairRequestInput = Parameters<typeof createOrder>[1];
 
@@ -41,6 +42,8 @@ export const RepairRequestForm = ({
   const [selectedDeviceId, setSelectedDeviceId] = useState(initialDeviceId ?? "");
   const [problem, setProblem] = useState("");
   const [deviceType, setDeviceType] = useState("COMPUTER");
+  const [repairLocation, setRepairLocation] = useState<RepairLocation>("SERVICE_CENTER");
+  const [isWithinCity, setIsWithinCity] = useState(true);
   const selectedDevice = devices.find((device) => device.id === selectedDeviceId);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -56,6 +59,16 @@ export const RepairRequestForm = ({
         deviceSerialNumber: String(data.get("deviceSerialNumber") || "").trim(),
         problem: String(data.get("problem")),
         contactPhone: String(data.get("contactPhone")),
+        repairLocation,
+        useNewRepairScenario: true,
+        ...(repairLocation === "CUSTOMER_ADDRESS"
+          ? {
+              visitIsWithinCity: isWithinCity,
+              ...(!isWithinCity
+                ? { visitCustomerDistanceKm: Number(data.get("visitCustomerDistanceKm")) }
+                : {}),
+            }
+          : {}),
         city: String(data.get("city")),
         street: String(data.get("street")),
         house: String(data.get("house")),
@@ -177,6 +190,12 @@ export const RepairRequestForm = ({
           }
         />
       </div>
+      <RepairRequestVisitFields
+        repairLocation={repairLocation}
+        onRepairLocationChange={setRepairLocation}
+        isWithinCity={isWithinCity}
+        onWithinCityChange={setIsWithinCity}
+      />
       <label className="grid gap-1.5 text-sm font-medium">
         Телефон для связи
         <input
@@ -190,26 +209,29 @@ export const RepairRequestForm = ({
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
-        Город (необязательно)
+        Город {repairLocation === "CUSTOMER_ADDRESS" ? "для выезда" : "(необязательно)"}
         <input
           name="city"
           maxLength={120}
+          required={repairLocation === "CUSTOMER_ADDRESS"}
           className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
-        Улица (необязательно)
+        Улица {repairLocation === "CUSTOMER_ADDRESS" ? "для выезда" : "(необязательно)"}
         <input
           name="street"
           maxLength={180}
+          required={repairLocation === "CUSTOMER_ADDRESS"}
           className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
-        Дом (необязательно)
+        Дом {repairLocation === "CUSTOMER_ADDRESS" ? "для выезда" : "(необязательно)"}
         <input
           name="house"
           maxLength={30}
+          required={repairLocation === "CUSTOMER_ADDRESS"}
           className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
         />
       </label>

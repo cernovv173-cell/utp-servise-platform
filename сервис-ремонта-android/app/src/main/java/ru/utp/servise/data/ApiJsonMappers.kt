@@ -106,6 +106,16 @@ internal fun JSONObject.toOrder(): RepairOrder {
         preferredAt = nullableString("preferredAt"),
         priority = optString("priority", "NORMAL"),
         repairLocation = nullableString("repairLocation"),
+        visitScenarioVersion = optInt("visitScenarioVersion"),
+        visitIsWithinCity = if (isNull("visitIsWithinCity")) null else optBoolean("visitIsWithinCity"),
+        visitCustomerDistanceKm = if (isNull("visitCustomerDistanceKm")) null else optInt("visitCustomerDistanceKm"),
+        visitVerifiedDistanceKm = if (isNull("visitVerifiedDistanceKm")) null else optInt("visitVerifiedDistanceKm"),
+        visitDistanceVerifiedAt = nullableString("visitDistanceVerifiedAt"),
+        diagnosisFeeRub = optInt("diagnosisFeeRub"),
+        visitFeeRub = optInt("visitFeeRub"),
+        visitPickupAgreedAt = nullableString("visitPickupAgreedAt"),
+        technicianRepairCompletedAt = nullableString("technicianRepairCompletedAt"),
+        onsiteRepairCompletedAt = nullableString("onsiteRepairCompletedAt"),
     )
 }
 
@@ -486,6 +496,9 @@ internal fun JSONObject.toRepairOrderReleaseSummary(): RepairOrderReleaseSummary
         orderId = getString("orderId"),
         serviceNumber = getString("serviceNumber"),
         totalRub = getInt("totalRub"),
+        repairSubtotalRub = optInt("repairSubtotalRub"),
+        diagnosisFeeRub = optInt("diagnosisFeeRub"),
+        visitFeeRub = optInt("visitFeeRub"),
         bonusDiscountRub = bonusDiscountRub,
         amountDueRub = getInt("amountDueRub"),
         paymentStatus = optString("paymentStatus", "PENDING"),

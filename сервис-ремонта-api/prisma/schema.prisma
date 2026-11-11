@@ -347,62 +347,73 @@ model BirthdayBonusAward {
 }
 
 model RepairOrder {
-  id                    String                         @id @default(uuid()) @db.Uuid
-  serviceNumber         String                         @unique @map("service_number") @db.VarChar(32)
-  customerId            String                         @map("customer_id") @db.Uuid
-  customerDeviceId      String?                        @map("customer_device_id") @db.Uuid
-  warrantyOriginOrderId String?                        @map("warranty_origin_order_id") @db.Uuid
-  assignedTechnicianId  String?                        @map("assigned_technician_id") @db.Uuid
-  deviceType            String                         @map("device_type") @db.VarChar(120)
-  deviceBrand           String?                        @map("device_brand") @db.VarChar(120)
-  deviceModel           String?                        @map("device_model") @db.VarChar(160)
-  deviceSerialNumber    String?                        @map("device_serial_number") @db.VarChar(160)
-  problem               String                         @db.VarChar(2000)
-  address               String                         @db.VarChar(500)
-  repairLocation        RepairLocation?                @map("repair_location")
-  contactPhone          String?                        @map("contact_phone") @db.VarChar(32)
-  city                  String?                        @db.VarChar(120)
-  street                String?                        @db.VarChar(180)
-  house                 String?                        @db.VarChar(30)
-  apartment             String?                        @db.VarChar(30)
-  entrance              String?                        @db.VarChar(30)
-  hasBarrier            Boolean                        @default(false) @map("has_barrier")
-  floor                 String?                        @db.VarChar(20)
-  additionalPhone       String?                        @map("additional_phone") @db.VarChar(32)
-  additionalInfo        String?                        @map("additional_info") @db.VarChar(500)
-  preferredAt           DateTime?                      @map("preferred_at") @db.Timestamptz(3)
-  expectedCompletionAt  DateTime?                      @map("expected_completion_at") @db.Timestamptz(3)
-  redeemBonuses         Boolean                        @default(false) @map("redeem_bonuses")
-  bonusDiscountRub      Int                            @default(0) @map("bonus_discount_rub")
-  workActRequired       Boolean                        @default(false) @map("work_act_required")
-  status                RepairStatus                   @default(REQUESTED)
-  priority              RepairOrderPriority            @default(NORMAL)
-  diagnosisCompletedAt  DateTime?                      @map("diagnosis_completed_at") @db.Timestamptz(3)
-  createdAt             DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  archivedAt            DateTime?                      @map("archived_at") @db.Timestamptz(3)
-  customer              User                           @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
-  customerDevice        CustomerDevice?                @relation(fields: [customerDeviceId], references: [id], onDelete: SetNull)
-  warrantyOriginOrder   RepairOrder?                   @relation("WarrantyClaims", fields: [warrantyOriginOrderId], references: [id], onDelete: SetNull)
-  warrantyClaims        RepairOrder[]                  @relation("WarrantyClaims")
-  assignedTechnician    User?                          @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
-  statusEvents          RepairStatusEvent[]
-  items                 RepairOrderItem[]
-  estimates             RepairEstimate[]
-  workAct               RepairWorkAct?
-  deadlineChanges       RepairOrderDeadlineChange[]
-  photos                RepairOrderPhoto[]
-  intake                RepairOrderIntake?
-  pickupCode            RepairOrderPickupCode?
-  warranty              RepairWarranty?
-  chat                  OrderChat?
-  review                Review?
-  bonusTransactions     LoyaltyTransaction[]
-  referralReward        CustomerReferral?              @relation("ReferralRewardOrder")
-  receipt               RepairReceipt?
-  salaryEntry           TechnicianSalaryEntry?
-  telegramNotifications TelegramNotificationDelivery[]
-  maxNotifications      MaxNotificationDelivery[]
+  id                          String                         @id @default(uuid()) @db.Uuid
+  serviceNumber               String                         @unique @map("service_number") @db.VarChar(32)
+  customerId                  String                         @map("customer_id") @db.Uuid
+  customerDeviceId            String?                        @map("customer_device_id") @db.Uuid
+  warrantyOriginOrderId       String?                        @map("warranty_origin_order_id") @db.Uuid
+  assignedTechnicianId        String?                        @map("assigned_technician_id") @db.Uuid
+  deviceType                  String                         @map("device_type") @db.VarChar(120)
+  deviceBrand                 String?                        @map("device_brand") @db.VarChar(120)
+  deviceModel                 String?                        @map("device_model") @db.VarChar(160)
+  deviceSerialNumber          String?                        @map("device_serial_number") @db.VarChar(160)
+  problem                     String                         @db.VarChar(2000)
+  address                     String                         @db.VarChar(500)
+  repairLocation              RepairLocation?                @map("repair_location")
+  visitScenarioVersion        Int                            @default(0) @map("visit_scenario_version") @db.SmallInt
+  visitIsWithinCity           Boolean?                       @map("visit_is_within_city")
+  visitCustomerDistanceKm     Int?                           @map("visit_customer_distance_km")
+  visitVerifiedDistanceKm     Int?                           @map("visit_verified_distance_km")
+  visitDistanceVerifiedAt     DateTime?                      @map("visit_distance_verified_at") @db.Timestamptz(3)
+  visitDistanceVerifiedById   String?                        @map("visit_distance_verified_by_id") @db.Uuid
+  diagnosisFeeRub             Int                            @default(0) @map("diagnosis_fee_rub")
+  visitFeeRub                 Int                            @default(0) @map("visit_fee_rub")
+  visitPickupAgreedAt         DateTime?                      @map("visit_pickup_agreed_at") @db.Timestamptz(3)
+  technicianRepairCompletedAt DateTime?                      @map("technician_repair_completed_at") @db.Timestamptz(3)
+  onsiteRepairCompletedAt     DateTime?                      @map("onsite_repair_completed_at") @db.Timestamptz(3)
+  contactPhone                String?                        @map("contact_phone") @db.VarChar(32)
+  city                        String?                        @db.VarChar(120)
+  street                      String?                        @db.VarChar(180)
+  house                       String?                        @db.VarChar(30)
+  apartment                   String?                        @db.VarChar(30)
+  entrance                    String?                        @db.VarChar(30)
+  hasBarrier                  Boolean                        @default(false) @map("has_barrier")
+  floor                       String?                        @db.VarChar(20)
+  additionalPhone             String?                        @map("additional_phone") @db.VarChar(32)
+  additionalInfo              String?                        @map("additional_info") @db.VarChar(500)
+  preferredAt                 DateTime?                      @map("preferred_at") @db.Timestamptz(3)
+  expectedCompletionAt        DateTime?                      @map("expected_completion_at") @db.Timestamptz(3)
+  redeemBonuses               Boolean                        @default(false) @map("redeem_bonuses")
+  bonusDiscountRub            Int                            @default(0) @map("bonus_discount_rub")
+  workActRequired             Boolean                        @default(false) @map("work_act_required")
+  status                      RepairStatus                   @default(REQUESTED)
+  priority                    RepairOrderPriority            @default(NORMAL)
+  diagnosisCompletedAt        DateTime?                      @map("diagnosis_completed_at") @db.Timestamptz(3)
+  createdAt                   DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                   DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  archivedAt                  DateTime?                      @map("archived_at") @db.Timestamptz(3)
+  customer                    User                           @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
+  customerDevice              CustomerDevice?                @relation(fields: [customerDeviceId], references: [id], onDelete: SetNull)
+  warrantyOriginOrder         RepairOrder?                   @relation("WarrantyClaims", fields: [warrantyOriginOrderId], references: [id], onDelete: SetNull)
+  warrantyClaims              RepairOrder[]                  @relation("WarrantyClaims")
+  assignedTechnician          User?                          @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
+  statusEvents                RepairStatusEvent[]
+  items                       RepairOrderItem[]
+  estimates                   RepairEstimate[]
+  workAct                     RepairWorkAct?
+  deadlineChanges             RepairOrderDeadlineChange[]
+  photos                      RepairOrderPhoto[]
+  intake                      RepairOrderIntake?
+  pickupCode                  RepairOrderPickupCode?
+  warranty                    RepairWarranty?
+  chat                        OrderChat?
+  review                      Review?
+  bonusTransactions           LoyaltyTransaction[]
+  referralReward              CustomerReferral?              @relation("ReferralRewardOrder")
+  receipt                     RepairReceipt?
+  salaryEntry                 TechnicianSalaryEntry?
+  telegramNotifications       TelegramNotificationDelivery[]
+  maxNotifications            MaxNotificationDelivery[]
 
   @@index([customerId, createdAt])
   @@index([assignedTechnicianId, status, updatedAt])
@@ -535,6 +546,7 @@ model TechnicianSalaryEntry {
   orderId         String      @unique @map("order_id") @db.Uuid
   technicianId    String?     @map("technician_id") @db.Uuid
   serviceTotalRub Int         @map("service_total_rub")
+  visitFeesRub    Int         @default(0) @map("visit_fees_rub")
   salaryRub       Int         @map("salary_rub")
   ratePercent     Int         @default(75) @map("rate_percent") @db.SmallInt
   earnedAt        DateTime    @map("earned_at") @db.Timestamptz(3)

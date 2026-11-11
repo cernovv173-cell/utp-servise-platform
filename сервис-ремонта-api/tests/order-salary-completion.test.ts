@@ -10,6 +10,8 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 
 test("standard order release verifies payment and issues receipt, warranty, and salary", async (t) => {
   const sessionToken = "T".repeat(48);
+  const adminSessionToken = "A".repeat(48);
+  const administratorId = "44444444-4444-4444-8444-444444444444";
   const technicianId = "22222222-2222-4222-8222-222222222222";
   const customerId = "11111111-1111-4111-8111-111111111111";
   const orderId = "33333333-3333-4333-8333-333333333333";
@@ -23,6 +25,13 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     salaryRatePercent: 60,
     active: true,
     mustChangePassword: false,
+  };
+  const administrator = {
+    ...technician,
+    id: administratorId,
+    email: "admin@example.test",
+    displayName: "Администратор",
+    role: "ADMIN" as const,
   };
   const items = [
     {
@@ -60,6 +69,8 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     customer: { displayName: string; phoneNumber: string };
     contactPhone: string | null;
     redeemBonuses: boolean;
+    diagnosisFeeRub: number;
+    visitFeeRub: number;
     items: typeof items;
     receipt: Record<string, unknown> | null;
     salaryEntry: Record<string, unknown> | null;
@@ -77,6 +88,8 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     customer: { displayName: "Клиент", phoneNumber: "+79990000000" },
     contactPhone: null,
     redeemBonuses: false,
+    diagnosisFeeRub: 0,
+    visitFeeRub: 0,
     items,
     receipt: null,
     salaryEntry: null,
@@ -155,7 +168,9 @@ test("standard order release verifies payment and issues receipt, warranty, and 
       findUnique: async ({ where }: { where: { tokenHash: string } }) =>
         where.tokenHash === hashSessionToken(sessionToken)
           ? { expiresAt: new Date(Date.now() + 60_000), user: technician }
-          : null,
+          : where.tokenHash === hashSessionToken(adminSessionToken)
+            ? { expiresAt: new Date(Date.now() + 60_000), user: administrator }
+            : null,
     },
     repairOrder: { findUnique: async () => order },
     repairOrderIntake: { findUnique: async () => intake },
@@ -186,10 +201,19 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   const address = server.address();
   assert.ok(address && typeof address !== "string");
   const endpoint = `http://127.0.0.1:${address.port}/api/orders/${orderId}`;
-  const headers = {
+  const technicianHeaders = {
     authorization: `Bearer ${sessionToken}`,
     "content-type": "application/json",
   };
+  const headers = {
+    authorization: `Bearer ${adminSessionToken}`,
+    "content-type": "application/json",
+  };
+
+  const technicianSummary = await fetch(`${endpoint}/release-summary`, {
+    headers: technicianHeaders,
+  });
+  assert.equal(technicianSummary.status, 403);
 
   const summaryResponse = await fetch(`${endpoint}/release-summary`, {
     headers,
@@ -246,7 +270,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   assert.equal(order.receipt?.totalRub, 2000);
   assert.equal(order.receipt?.bonusDiscountRub, 360);
   assert.equal(order.redeemBonuses, true);
-  assert.equal(recordedEvent?.actorId, technicianId);
+  assert.equal(recordedEvent?.actorId, administratorId);
   assert.equal(recordedEvent?.from, "READY_FOR_PICKUP");
   assert.equal(recordedEvent?.to, "COMPLETED");
   assert.equal(recordedWarranty?.warrantyNumber, `WTY-${order.serviceNumber}`);
