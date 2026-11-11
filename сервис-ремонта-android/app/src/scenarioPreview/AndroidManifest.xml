@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:label="ЕНОТ СЕРВИС — ПРЕДПРОСМОТР"
+        tools:replace="android:label">
+        <activity
+            android:name=".MainActivity"
+            tools:node="remove" />
+        <activity
+            android:name=".ScenarioPreviewActivity"
+            android:exported="true"
+            android:label="Сценарий ремонта · макет">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

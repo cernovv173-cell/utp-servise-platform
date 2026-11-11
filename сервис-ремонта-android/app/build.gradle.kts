@@ -4,9 +4,10 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val firebaseConfigJson = providers.environmentVariable("UTP_FIREBASE_ANDROID_CONFIG_JSON").orNull?.trim()
-val vkIdAppId = providers.environmentVariable("VK_ID_APP_ID").orNull?.trim().orEmpty()
-val vkIdClientSecret = providers.environmentVariable("VK_ID_CLIENT_SECRET").orNull?.trim().orEmpty()
+val scenarioPreviewBuild = providers.gradleProperty("scenarioPreviewBuild").orNull == "true"
+val firebaseConfigJson = if (scenarioPreviewBuild) null else providers.environmentVariable("UTP_FIREBASE_ANDROID_CONFIG_JSON").orNull?.trim()
+val vkIdAppId = if (scenarioPreviewBuild) "" else providers.environmentVariable("VK_ID_APP_ID").orNull?.trim().orEmpty()
+val vkIdClientSecret = if (scenarioPreviewBuild) "" else providers.environmentVariable("VK_ID_CLIENT_SECRET").orNull?.trim().orEmpty()
 val releaseKeystorePath = providers.environmentVariable("UTP_RELEASE_KEYSTORE_PATH").orNull
 val releaseStorePassword = providers.environmentVariable("UTP_RELEASE_STORE_PASSWORD").orNull
 val releaseKeyAlias = providers.environmentVariable("UTP_RELEASE_KEY_ALIAS").orNull
@@ -32,7 +33,7 @@ if (!firebaseConfigJson.isNullOrBlank()) {
 } else if (!googleServicesFile.isFile) {
     logger.warn("UTP_FIREBASE_ANDROID_CONFIG_JSON is empty; Firebase push notifications will be unavailable in this build.")
 }
-if (!firebaseConfigJson.isNullOrBlank() || googleServicesFile.isFile) {
+if (!scenarioPreviewBuild && (!firebaseConfigJson.isNullOrBlank() || googleServicesFile.isFile)) {
     pluginManager.apply("com.google.gms.google-services")
 }
 android {
@@ -56,11 +57,8 @@ android {
         buildConfig = true
     }
     defaultConfig {
-        buildConfigField(
-            "String",
-            "API_BASE_URL",
-            "\"${providers.environmentVariable("UTP_API_BASE_URL").orNull.orEmpty().trimEnd('/')}\""
-        )
+        val apiBaseUrl = if (scenarioPreviewBuild) "" else providers.environmentVariable("UTP_API_BASE_URL").orNull.orEmpty().trimEnd('/')
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         buildConfigField("String", "VK_ID_APP_ID", "\"$vkIdAppId\"")
     }
     signingConfigs {
@@ -74,6 +72,12 @@ android {
         }
     }
     buildTypes {
+        create("scenarioPreview") {
+            initWith(getByName("debug"))
+            matchingFallbacks += listOf("debug")
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+        }
         getByName("release") {
             signingConfig = signingConfigs.getByName("release")
             manifestPlaceholders["VKIDClientID"] = ""

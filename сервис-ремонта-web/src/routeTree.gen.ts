@@ -28,6 +28,7 @@ import { Route as OrdersRouteImport } from './routes/orders'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as ReviewsRouteImport } from './routes/reviews'
 import { Route as SalaryRouteImport } from './routes/salary'
+import { Route as ScenarioPreviewRouteImport } from './routes/scenario-preview'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as UslugiRouteImport } from './routes/uslugi'
@@ -152,6 +153,11 @@ const ReviewsRoute = ReviewsRouteImport.update({
 const SalaryRoute = SalaryRouteImport.update({
   id: '/salary',
   path: '/salary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScenarioPreviewRoute = ScenarioPreviewRouteImport.update({
+  id: '/scenario-preview',
+  path: '/scenario-preview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShopRoute = ShopRouteImport.update({
@@ -327,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/scenario-preview': typeof ScenarioPreviewRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/uslugi': typeof UslugiRouteWithChildren
@@ -377,6 +384,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/scenario-preview': typeof ScenarioPreviewRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/admin/analytics': typeof AdminAnalyticsRoute
@@ -428,6 +436,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/reviews': typeof ReviewsRoute
   '/salary': typeof SalaryRoute
+  '/scenario-preview': typeof ScenarioPreviewRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/uslugi': typeof UslugiRouteWithChildren
@@ -481,6 +490,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/scenario-preview'
     | '/shop'
     | '/support'
     | '/uslugi'
@@ -531,6 +541,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/scenario-preview'
     | '/shop'
     | '/support'
     | '/admin/analytics'
@@ -581,6 +592,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/reviews'
     | '/salary'
+    | '/scenario-preview'
     | '/shop'
     | '/support'
     | '/uslugi'
@@ -633,6 +645,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   ReviewsRoute: typeof ReviewsRoute
   SalaryRoute: typeof SalaryRoute
+  ScenarioPreviewRoute: typeof ScenarioPreviewRoute
   ShopRoute: typeof ShopRoute
   SupportRoute: typeof SupportRouteWithChildren
   UslugiRoute: typeof UslugiRouteWithChildren
@@ -772,6 +785,13 @@ declare module '@tanstack/react-router' {
       path: '/salary'
       fullPath: '/salary'
       preLoaderRoute: typeof SalaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scenario-preview': {
+      id: '/scenario-preview'
+      path: '/scenario-preview'
+      fullPath: '/scenario-preview'
+      preLoaderRoute: typeof ScenarioPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shop': {
@@ -1104,6 +1124,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   ReviewsRoute: ReviewsRoute,
   SalaryRoute: SalaryRoute,
+  ScenarioPreviewRoute: ScenarioPreviewRoute,
   ShopRoute: ShopRoute,
   SupportRoute: SupportRouteWithChildren,
   UslugiRoute: UslugiRouteWithChildren,
