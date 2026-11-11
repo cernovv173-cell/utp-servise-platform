@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { CheckCircle2, LoaderCircle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -37,8 +37,10 @@ export const RepairOrderReleaseButton = ({
   onRefresh: () => Promise<unknown>;
 }) => {
   const [open, setOpen] = useState(false);
-  const [redeemBonuses, setRedeemBonuses] = useState(false);
-  const [initializedOrderId, setInitializedOrderId] = useState<string | null>(null);
+  const [bonusSelection, setBonusSelection] = useState<{
+    orderId: string;
+    value: boolean;
+  } | null>(null);
   const [paymentMethod, setPaymentMethod] =
     useState<NonNullable<RepairReceipt["paymentMethod"]>>("CASH");
   const summary = useQuery({
@@ -46,17 +48,14 @@ export const RepairOrderReleaseButton = ({
     queryFn: () => getRepairOrderReleaseSummary(token, order.id),
     enabled: open,
   });
-  useEffect(() => {
-    if (!open || !summary.data || initializedOrderId === order.id) return;
-    setRedeemBonuses(summary.data.redeemBonuses ?? summary.data.bonusDiscountRub > 0);
-    setInitializedOrderId(order.id);
-  }, [initializedOrderId, open, order.id, summary.data]);
   const isAlreadyPaid = summary.data?.paymentStatus === "PAID";
   const supportsBonusSelection =
     typeof summary.data?.maxBonusDiscountRub === "number" &&
     typeof summary.data.redeemBonuses === "boolean";
   const selectedRedeemBonuses =
-    initializedOrderId === order.id ? redeemBonuses : (summary.data?.redeemBonuses ?? false);
+    bonusSelection?.orderId === order.id
+      ? bonusSelection.value
+      : (summary.data?.redeemBonuses ?? false);
   const maxBonusDiscountRub = summary.data?.maxBonusDiscountRub ?? 0;
   const bonusDiscountRub = summary.data
     ? isAlreadyPaid
@@ -100,7 +99,7 @@ export const RepairOrderReleaseButton = ({
 
   const close = (nextOpen: boolean) => {
     if (nextOpen) setPaymentMethod("CASH");
-    setInitializedOrderId(null);
+    setBonusSelection(null);
     setOpen(nextOpen);
   };
 
@@ -151,7 +150,9 @@ export const RepairOrderReleaseButton = ({
                   <input
                     type="checkbox"
                     checked={selectedRedeemBonuses}
-                    onChange={(event) => setRedeemBonuses(event.target.checked)}
+                    onChange={(event) =>
+                      setBonusSelection({ orderId: order.id, value: event.target.checked })
+                    }
                     className="mt-0.5 size-4 shrink-0 accent-emerald-600"
                   />
                   <span>
