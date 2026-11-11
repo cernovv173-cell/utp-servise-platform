@@ -6,7 +6,7 @@ const apiBase =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/u, "") ?? "";
 
 export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
-export type StaffRole = Exclude<Role, "CUSTOMER">;
+export type StaffRole = Exclude<Role, "CUSTOMER"> | "ADMIN_ASSISTANT";
 export type OrderArchiveView = "active" | "archived";
 export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
 export type RepairDeviceType = "COMPUTER" | "LAPTOP" | "PHONE" | "TABLET";
@@ -77,6 +77,7 @@ export type User = {
   maxLinked?: boolean;
   maxAvailable?: boolean;
   role: Role;
+  isAdminAssistant?: boolean;
   mustChangePassword: boolean;
 };
 
@@ -399,6 +400,7 @@ export type StaffMember = {
   active: boolean;
   terminatedAt?: string | null;
   role: string;
+  isAdminAssistant?: boolean;
 };
 
 export type TechnicianProfile = {
@@ -1636,11 +1638,14 @@ export const createStaff = (
     email: string;
     displayName: string;
     phoneNumber?: string;
-    role: Extract<StaffRole, "TECHNICIAN" | "PROCUREMENT">;
+    role: Extract<StaffRole, "TECHNICIAN" | "PROCUREMENT" | "ADMIN_ASSISTANT">;
   },
 ) =>
   apiRequest<{
-    staff: Pick<StaffMember, "id" | "displayName" | "email" | "login" | "role">;
+    staff: Pick<
+      StaffMember,
+      "id" | "displayName" | "email" | "login" | "role" | "isAdminAssistant"
+    >;
     temporaryPassword: string;
   }>("/staff", token, {
     method: "POST",

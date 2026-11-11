@@ -170,12 +170,13 @@ archives it on its next minute check by setting `archived_at`; it never deletes 
 its status. `GET /orders?archive=active` and `GET /orders?archive=archived` return the corresponding
 role-scoped list. Omitting `archive` retains the unfiltered legacy response.
 
-Administrators can load an individual repair record through `GET /admin/orders/:orderId`; this
-endpoint is restricted to the administrator role. `POST /staff` also requires an administrator and
-creates a staff login with a generated temporary password and mandatory password change on first
-sign-in. Supported staff roles are `TECHNICIAN`, `ADMIN`, and `PROCUREMENT`; customer self-registration
-remains separate at `POST /auth/register` and always creates a customer account. Public registration
-cannot assign staff roles.
+Administrators can load an individual repair record through `GET /admin/orders/:orderId`. `POST /staff`
+creates staff logins with a generated temporary password and mandatory password change on first
+sign-in. A full administrator can create another `ADMIN`; an `ADMIN_ASSISTANT` is stored with the
+same operational administrator permissions but cannot create an `ADMIN`. Administrators and assistants
+can create assistants. Staff-list responses omit permanently terminated accounts, while the user
+record and order history remain stored. Customer self-registration remains separate at
+`POST /auth/register` and always creates a customer account; public registration cannot assign staff roles.
 
 The procurement role is managed by an administrator and signs in through the `PROCUREMENT` portal.
 It can view the purchase-replenishment summary and active products and spare parts, then update only

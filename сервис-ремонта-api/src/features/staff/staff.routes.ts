@@ -39,7 +39,9 @@ const staffSchema = z
     email: emailSchema,
     displayName: z.string().trim().min(2).max(120),
     phoneNumber: phoneNumberSchema,
-    role: z.enum(["TECHNICIAN", "ADMIN", "PROCUREMENT"]).default("TECHNICIAN"),
+    role: z
+      .enum(["TECHNICIAN", "ADMIN", "ADMIN_ASSISTANT", "PROCUREMENT"])
+      .default("TECHNICIAN"),
   })
   .strict();
 const updateTechnicianSchema = z
@@ -250,7 +252,10 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
     requireRoles("ADMIN"),
     async (_request, response) => {
       const staff = await database.user.findMany({
-        where: { role: { in: ["TECHNICIAN", "ADMIN", "PROCUREMENT"] } },
+        where: {
+          role: { in: ["TECHNICIAN", "ADMIN", "PROCUREMENT"] },
+          terminatedAt: null,
+        },
         select: {
           id: true,
           email: true,
@@ -259,6 +264,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           login: true,
           avatarObjectId: true,
           role: true,
+          isAdminAssistant: true,
           salaryRatePercent: true,
           active: true,
           terminatedAt: true,
@@ -277,6 +283,17 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
     validateRequest({ body: staffSchema }),
     async (_request, response, next) => {
       const input = bodyOf<z.infer<typeof staffSchema>>(response);
+      const actor = getAuthenticatedUser(response);
+      if (input.role === "ADMIN" && actor.isAdminAssistant) {
+        next(
+          new HttpError(
+            403,
+            "ADMIN_CREATION_FORBIDDEN",
+            "Помощник администратора не может создавать учётные записи администраторов.",
+          ),
+        );
+        return;
+      }
       const temporaryPassword = generateTemporaryPassword();
       try {
         const staff = await database.user.create({
@@ -285,7 +302,8 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
             login: generateAccountLogin(),
             displayName: input.displayName,
             phoneNumber: input.phoneNumber?.trim() || null,
-            role: input.role,
+            role: input.role === "ADMIN_ASSISTANT" ? "ADMIN" : input.role,
+            isAdminAssistant: input.role === "ADMIN_ASSISTANT",
             passwordHash: await hashPassword(temporaryPassword),
             mustChangePassword: true,
           },
@@ -388,9 +406,14 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
         );
         return;
       }
-      if (target.role === "ADMIN" && target.active && !active) {
+      if (
+        target.role === "ADMIN" &&
+        !target.isAdminAssistant &&
+        target.active &&
+        !active
+      ) {
         const activeAdmins = await database.user.count({
-          where: { role: "ADMIN", active: true },
+          where: { role: "ADMIN", isAdminAssistant: false, active: true },
         });
         if (activeAdmins <= 1) {
           next(
@@ -472,9 +495,18 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           throw new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден.");
         }
         if (target.terminatedAt) return target;
-        if (target.role === "ADMIN" && target.active) {
+        if (
+          target.role === "ADMIN" &&
+          !target.isAdminAssistant &&
+          target.active
+        ) {
           const activeAdmins = await transaction.user.count({
-            where: { role: "ADMIN", active: true, terminatedAt: null },
+            where: {
+              role: "ADMIN",
+              isAdminAssistant: false,
+              active: true,
+              terminatedAt: null,
+            },
           });
           if (activeAdmins <= 1) {
             throw new HttpError(

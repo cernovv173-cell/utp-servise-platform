@@ -17,6 +17,7 @@ export type AuthenticatedUser = {
   readonly maxUserId?: string | null;
   readonly avatarObjectId: string | null;
   readonly role: UserRole;
+  readonly isAdminAssistant?: boolean;
   readonly salaryRatePercent?: number;
   readonly active: boolean;
   readonly terminatedAt?: Date | null;
@@ -56,6 +57,7 @@ export const createRequireAuth =
             maxUserId: true,
             avatarObjectId: true,
             role: true,
+            isAdminAssistant: true,
             salaryRatePercent: true,
             active: true,
             terminatedAt: true,
@@ -126,6 +128,7 @@ export const publicUser = (user: AuthenticatedUser) => ({
   birthDate: user.birthDate?.toISOString().slice(0, 10) ?? null,
   avatarObjectId: user.avatarObjectId,
   role: user.role,
+  isAdminAssistant: Boolean(user.isAdminAssistant),
   mustChangePassword: user.mustChangePassword,
   telegramLinked: Boolean(user.telegramChatId),
   maxLinked: Boolean(user.maxUserId),

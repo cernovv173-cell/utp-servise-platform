@@ -14,6 +14,7 @@ data class AppUser(
     val avatarObjectId: String? = null,
     val role: String,
     val mustChangePassword: Boolean,
+    val isAdminAssistant: Boolean = false,
 )
 
 data class OrderAddress(
@@ -694,6 +695,7 @@ data class StaffMember(
     val active: Boolean,
     val salaryRatePercent: Int = 75,
     val terminatedAt: String? = null,
+    val isAdminAssistant: Boolean = false,
 )
 
 data class CustomerReview(

@@ -322,7 +322,7 @@ export const ensureInitialAdmin = async (
   await database.$transaction(async (transaction) => {
     await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('utp-servise-initial-admin'))`;
     const existingAdmin = await transaction.user.findFirst({
-      where: { role: "ADMIN" },
+      where: { role: "ADMIN", isAdminAssistant: false },
     });
     if (existingAdmin) return;
     const existingUser = await transaction.user.findUnique({

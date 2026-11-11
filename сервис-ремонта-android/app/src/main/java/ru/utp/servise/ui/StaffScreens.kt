@@ -85,7 +85,10 @@ fun StaffManagementScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                     FilterChip(selected = role == "TECHNICIAN", onClick = { role = "TECHNICIAN" }, label = { Text("Мастер") })
                     FilterChip(selected = role == "PROCUREMENT", onClick = { role = "PROCUREMENT" }, label = { Text("Мастер закупки") })
-                    FilterChip(selected = role == "ADMIN", onClick = { role = "ADMIN" }, label = { Text("Администратор") })
+                    FilterChip(selected = role == "ADMIN_ASSISTANT", onClick = { role = "ADMIN_ASSISTANT" }, label = { Text("Помощник администратора") })
+                    if (!currentUser.isAdminAssistant) {
+                        FilterChip(selected = role == "ADMIN", onClick = { role = "ADMIN" }, label = { Text("Администратор") })
+                    }
                 }
                 Text("Роль нельзя выбрать при обычной регистрации. Новый сотрудник получит временный пароль и сменит его при первом входе.", fontSize = 11.sp, lineHeight = 16.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
                 Button(
@@ -122,7 +125,7 @@ fun StaffManagementScreen(
                         Text(member.email, fontSize = 12.sp, color = UtpMuted)
                         member.phoneNumber?.takeIf { it.isNotBlank() }?.let { Text(it, fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 2.dp)) }
                         Text(
-                            "${member.role.roleLabel()} · ${member.terminatedAt?.let { "Уволен навсегда" } ?: if (member.active) "Активен" else "Доступ отключён"}",
+                            "${if (member.isAdminAssistant) "Помощник администратора" else member.role.roleLabel()} · ${member.terminatedAt?.let { "Уволен навсегда" } ?: if (member.active) "Активен" else "Доступ отключён"}",
                             fontSize = 11.sp,
                             color = if (member.active && member.terminatedAt == null) UtpGreen else UtpMuted,
                             modifier = Modifier.padding(top = 4.dp),

@@ -17,6 +17,7 @@ internal fun JSONObject.toUser() = AppUser(
     avatarObjectId = nullableString("avatarObjectId"),
     role = getString("role"),
     mustChangePassword = optBoolean("mustChangePassword"),
+    isAdminAssistant = optBoolean("isAdminAssistant"),
 )
 
 internal fun JSONObject.toOrder(): RepairOrder {
@@ -329,6 +330,7 @@ internal fun JSONObject.toStaff() = StaffMember(
     active = optBoolean("active", true),
     salaryRatePercent = optInt("salaryRatePercent", 75),
     terminatedAt = nullableString("terminatedAt"),
+    isAdminAssistant = optBoolean("isAdminAssistant"),
 )
 
 internal fun JSONObject.toCatalogItem() = CatalogItem(

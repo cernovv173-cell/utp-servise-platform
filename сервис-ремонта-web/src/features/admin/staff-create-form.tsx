@@ -6,11 +6,12 @@ import { useAuth } from "@/features/auth/auth-context";
 
 import { type StaffRole, createStaff } from "@/lib/api";
 
-type StaffCreationRole = Extract<StaffRole, "TECHNICIAN" | "PROCUREMENT">;
+type StaffCreationRole = Extract<StaffRole, "TECHNICIAN" | "PROCUREMENT" | "ADMIN_ASSISTANT">;
 
 const roleLabels: Record<StaffCreationRole, string> = {
   TECHNICIAN: "Мастер",
   PROCUREMENT: "Мастер закупки",
+  ADMIN_ASSISTANT: "Помощник администратора",
 };
 
 type CreatedAccount = {
@@ -37,7 +38,11 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
         login: staff.login ?? staff.email,
         email: staff.email,
         displayName: staff.displayName,
-        role: staff.role === "PROCUREMENT" ? "PROCUREMENT" : "TECHNICIAN",
+        role: staff.isAdminAssistant
+          ? "ADMIN_ASSISTANT"
+          : staff.role === "PROCUREMENT"
+            ? "PROCUREMENT"
+            : "TECHNICIAN",
         temporaryPassword,
       });
       await onCreated();

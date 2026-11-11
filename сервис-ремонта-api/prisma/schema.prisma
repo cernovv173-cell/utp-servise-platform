@@ -203,6 +203,7 @@ model User {
   role                              UserRole                          @default(CUSTOMER)
   salaryRatePercent                 Int                               @default(75) @map("salary_rate_percent") @db.SmallInt
   active                            Boolean                           @default(true)
+  isAdminAssistant                  Boolean                           @default(false) @map("is_admin_assistant")
   terminatedAt                      DateTime?                         @map("terminated_at") @db.Timestamptz(3)
   terminatedById                    String?                           @map("terminated_by_id") @db.Uuid
   mustChangePassword                Boolean                           @default(false) @map("must_change_password")

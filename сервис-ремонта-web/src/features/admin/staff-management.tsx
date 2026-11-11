@@ -63,7 +63,8 @@ export const StaffManagement = () => {
           <h2 className="font-semibold">Сотрудники</h2>
           <p className="mt-1 text-sm text-slate-500">
             Доступ можно временно отключить и восстановить. Увольнение навсегда закрывает вход,
-            сохраняет историю и возвращает незавершённые заявки администраторам.
+            скрывает запись из этого списка, сохраняет историю и возвращает незавершённые заявки
+            администраторам.
           </p>
         </div>
       </div>
@@ -86,7 +87,7 @@ export const StaffManagement = () => {
               <div>
                 <p className="font-medium">{member.displayName}</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {member.email} · {roleLabel(member.role)} ·{" "}
+                  {member.email} · {roleLabel(member)} ·{" "}
                   {member.terminatedAt
                     ? `Уволен навсегда · ${new Date(member.terminatedAt).toLocaleDateString("ru-RU")}`
                     : member.active
@@ -214,12 +215,18 @@ export const StaffManagement = () => {
           </article>
         ))}
         {!staff.isLoading && (staff.data?.staff.length ?? 0) === 0 && (
-          <p className="text-sm text-slate-500">Сотрудников пока нет.</p>
+          <p className="text-sm text-slate-500">Действующих записей сотрудников пока нет.</p>
         )}
       </div>
     </SectionCard>
   );
 };
 
-const roleLabel = (role: string) =>
-  role === "ADMIN" ? "Администратор" : role === "PROCUREMENT" ? "Мастер закупки" : "Мастер";
+const roleLabel = (member: { role: string; isAdminAssistant?: boolean }) =>
+  member.isAdminAssistant
+    ? "Помощник администратора"
+    : member.role === "ADMIN"
+      ? "Администратор"
+      : member.role === "PROCUREMENT"
+        ? "Мастер закупки"
+        : "Мастер";
