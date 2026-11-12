@@ -409,6 +409,16 @@ fun CustomerShopScreen(
                         }
                     }
                 },
+                onCancelPickup = {
+                    runAction({ ApiClient.cancelPickupShopOrder(token, order.id) }) { result ->
+                        (result as? ShopOrder)?.let { updated ->
+                            orders = orders.map { if (it.id == updated.id) updated else it }
+                            successMessage = "Заказ на самовывоз отменён."
+                            scope.launch { reload() }
+                        }
+                    }
+                },
+                isBusy = isActionBusy,
             )
         }
         Text("Заявки на изготовление", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)

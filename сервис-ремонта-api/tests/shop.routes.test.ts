@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  adminToken,
   createShopRoutesHarness,
   customerToken,
+  otherCustomerToken,
   shopTestIds,
 } from "./helpers/shop-routes-harness.js";
 
@@ -250,26 +252,163 @@ test("admin confirmation reserves tracked stock, cancellation restores it, and c
   assert.equal(cannotCancelCompleted.status, 409);
 });
 
-test("insufficient stock leaves an order pending and only customers see their own order list", async (t) => {
-  const { products, request } = await createShopRoutesHarness((callback) =>
-    t.after(callback),
-  );
-  await request(
+test("checkout rejects quantities above tracked product and craft stock before creating an order", async (t) => {
+  const { products, craftItems, orders, request } =
+    await createShopRoutesHarness((callback) => t.after(callback));
+  const productResponse = await request(
     "/shop/orders",
     customerToken,
     { items: [{ catalogItemId: productId, quantity: 6 }] },
     "POST",
   );
-  const confirmation = await request(
+  assert.equal(productResponse.status, 409);
+  const productError = (await productResponse.json()) as {
+    error: { code: string; message: string };
+  };
+  assert.equal(productError.error.code, "SHOP_STOCK_INSUFFICIENT");
+  assert.match(productError.error.message, /уменьшите количество/iu);
+
+  const craftResponse = await request(
+    "/shop/orders",
+    customerToken,
+    { items: [{ craftItemId, quantity: 4 }] },
+    "POST",
+  );
+  assert.equal(craftResponse.status, 409);
+
+  const mixedCartResponse = await request(
+    "/shop/orders",
+    customerToken,
+    {
+      items: [
+        { catalogItemId: productId, quantity: 1 },
+        { craftItemId, quantity: 4 },
+      ],
+    },
+    "POST",
+  );
+  assert.equal(mixedCartResponse.status, 409);
+  assert.equal(orders.length, 0);
+  assert.equal(products.find(({ id }) => id === productId)?.stockQuantity, 5);
+  assert.equal(
+    craftItems.find(({ id }) => id === craftItemId)?.stockQuantity,
+    3,
+  );
+
+  const untrackedProductResponse = await request(
+    "/shop/orders",
+    customerToken,
+    { items: [{ catalogItemId: untrackedProductId, quantity: 2 }] },
+    "POST",
+  );
+  assert.equal(untrackedProductResponse.status, 201);
+  assert.equal(orders.length, 1);
+});
+
+test("customers can cancel only their own pending pickup orders without changing stock", async (t) => {
+  const { products, orders, request, sentNotifications } =
+    await createShopRoutesHarness((callback) => t.after(callback));
+  await request(
+    "/shop/orders",
+    customerToken,
+    { items: [{ catalogItemId: productId, quantity: 2 }] },
+    "POST",
+  );
+
+  const otherCustomerCancellation = await request(
+    `/shop/orders/${orderId}/cancel`,
+    otherCustomerToken,
+    undefined,
+    "PATCH",
+  );
+  assert.equal(otherCustomerCancellation.status, 404);
+
+  const cancellation = await request(
+    `/shop/orders/${orderId}/cancel`,
+    customerToken,
+    undefined,
+    "PATCH",
+  );
+  assert.equal(cancellation.status, 200);
+  const body = (await cancellation.json()) as { order: Record<string, any> };
+  assert.equal(body.order.status, "CANCELLED");
+  assert.ok(body.order.cancelledAt);
+  assert.equal(orders[0]?.status, "CANCELLED");
+  assert.equal(products.find(({ id }) => id === productId)?.stockQuantity, 5);
+  assert.equal(
+    sentNotifications[1]?.notification.data.type,
+    "shop_order_updated",
+  );
+  assert.equal(sentNotifications[1]?.notification.data.orderId, orderId);
+
+  const repeatedCancellation = await request(
+    `/shop/orders/${orderId}/cancel`,
+    customerToken,
+    undefined,
+    "PATCH",
+  );
+  assert.equal(repeatedCancellation.status, 200);
+  const repeatedBody = (await repeatedCancellation.json()) as {
+    order: Record<string, any>;
+  };
+  assert.equal(repeatedBody.order.status, "CANCELLED");
+  assert.equal(sentNotifications.length, 2);
+
+  const customerOrders = await request("/shop/orders", customerToken);
+  assert.equal(customerOrders.status, 200);
+  const customerOrdersBody = (await customerOrders.json()) as {
+    orders: Array<{ status: string }>;
+  };
+  assert.equal(customerOrdersBody.orders[0]?.status, "CANCELLED");
+  const adminOrders = await request("/shop/orders", "A".repeat(48));
+  assert.equal(adminOrders.status, 403);
+});
+
+test("customers cannot cancel confirmed pickup or pending courier orders through pickup cancellation", async (t) => {
+  const { products, orders, request } = await createShopRoutesHarness(
+    (callback) => t.after(callback),
+  );
+  await request(
+    "/shop/orders",
+    customerToken,
+    { items: [{ catalogItemId: productId, quantity: 1 }] },
+    "POST",
+  );
+  const confirmed = await request(
     `/admin/shop/orders/${orderId}/status`,
-    "A".repeat(48),
+    adminToken,
     { status: "CONFIRMED" },
     "PATCH",
   );
-  assert.equal(confirmation.status, 409);
-  assert.equal(products.find(({ id }) => id === productId)?.stockQuantity, 5);
-  const customerOrders = await request("/shop/orders", customerToken);
-  assert.equal(customerOrders.status, 200);
-  const adminOrders = await request("/shop/orders", "A".repeat(48));
-  assert.equal(adminOrders.status, 403);
+  assert.equal(confirmed.status, 200);
+  const confirmedCancellation = await request(
+    `/shop/orders/${orderId}/cancel`,
+    customerToken,
+    undefined,
+    "PATCH",
+  );
+  assert.equal(confirmedCancellation.status, 409);
+  assert.equal(products.find(({ id }) => id === productId)?.stockQuantity, 4);
+
+  const courierOrder = await request(
+    "/shop/orders",
+    customerToken,
+    {
+      items: [{ catalogItemId: productId, quantity: 1 }],
+      deliveryMethod: "COURIER",
+      deliveryArea: "MOSCOW_REGION",
+      deliveryCity: "Пушкино",
+      deliveryAddress: "Пушкино, улица Примерная, дом 3",
+    },
+    "POST",
+  );
+  assert.equal(courierOrder.status, 201);
+  const courierCancellation = await request(
+    `/shop/orders/${secondOrderId}/cancel`,
+    customerToken,
+    undefined,
+    "PATCH",
+  );
+  assert.equal(courierCancellation.status, 409);
+  assert.equal(orders[1]?.status, "PENDING");
 });

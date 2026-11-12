@@ -108,13 +108,15 @@ the list is empty.
 The standalone shop sells only active `PRODUCT` catalog entries; repair services and spare parts stay
 in the repair workflow. Customers submit a separate cart order with server-calculated price snapshots,
 and can review its status in their account. A new shop order starts as `PENDING` and does not reserve
-stock. An administrator checks availability and confirms it; tracked stock is then deducted atomically
-with the status change, while an untracked (`null`) balance still requires the administrator's manual
-availability check. If tracked stock is insufficient, confirmation fails without changing the order
-or partially deducting its lines. Cancelling a confirmed order restores its tracked stock; completing
-it records the handoff after payment and receiving have been arranged outside the app. There is no
-online payment integration. Permanently deleting a customer releases any still-confirmed shop-order
-stock before removing that customer's shop order history.
+stock. At checkout, the API rejects a requested quantity above the current tracked balance and creates
+no order; the customer can reduce the quantity and retry. An untracked (`null`) balance still requires
+the administrator's manual availability check. The administrator checks availability and confirms a
+valid request; tracked stock is then deducted atomically with the status change, with a second stock
+check to handle changes since checkout. Cancelling a confirmed order restores its tracked stock;
+customers may cancel their own pending pickup orders before confirmation. Completing an order records
+the handoff after payment and receiving have been arranged outside the app. There is no online payment
+integration. Permanently deleting a customer releases any still-confirmed shop-order stock before
+removing that customer's shop order history.
 
 Published ready-to-sell handmade goods are listed by `GET /shop/craft-items` and can be ordered in the
 same cart as active catalog products. The public listing contains only published craft records; its
@@ -124,7 +126,7 @@ with the same transactional rules as ordinary products. Made-to-order requests r
 `/craft-orders` workflow; shipping for such work is discussed after the item is made.
 
 Active administrator assistants receive push notifications only for new and changed shop orders,
-including customer responses to courier offers. Ready handmade goods use the same shop-order
+including customer responses to courier offers and cancellations of pending pickup orders. Ready handmade goods use the same shop-order
 notifications because they share the store cart; made-to-order craft requests, repair work, support
 chats, and other non-shop events do not notify assistants. Full administrators keep the existing
 notification behavior.
@@ -135,7 +137,9 @@ courier orders start with the locality set to Pushkino and `MOSCOW_REGION`. The 
 checks each address, may decline an out-of-zone request, and offers a separate fee and time window.
 The customer must accept the current offer before an administrator can confirm the order and reserve
 stock. Revising an offer clears the prior acceptance; declining cancels the still-unconfirmed order
-without reserving stock. The delivery fee is stored separately from the goods subtotal, and no courier
+without reserving stock. The pickup-cancellation endpoint is limited to the owning customer and a
+`PENDING` `PICKUP` order; courier orders continue to use the offer-response flow. The delivery fee is
+stored separately from the goods subtotal, and no courier
 API or online payment provider is connected. The API continues to accept the older `MOSCOW` area code
 for compatibility with existing clients; the displayed pilot zone is a manual check, not automatic
 geocoding.

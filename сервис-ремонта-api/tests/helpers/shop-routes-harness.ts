@@ -12,6 +12,7 @@ export const shopTestIds = {
   adminId: "11111111-1111-4111-8111-111111111111",
   assistantId: "11111111-1111-4111-8111-111111111112",
   customerId: "22222222-2222-4222-8222-222222222222",
+  otherCustomerId: "22222222-2222-4222-8222-222222222223",
   productId: "33333333-3333-4333-8333-333333333331",
   untrackedProductId: "33333333-3333-4333-8333-333333333332",
   emptyProductId: "33333333-3333-4333-8333-333333333333",
@@ -25,6 +26,7 @@ export const shopTestIds = {
 
 export const adminToken = "A".repeat(48);
 export const customerToken = "C".repeat(48);
+export const otherCustomerToken = "D".repeat(48);
 
 export const createShopRoutesHarness = async (
   after: (callback: () => void) => void,
@@ -61,6 +63,16 @@ export const createShopRoutesHarness = async (
       active: true,
       mustChangePassword: false,
       token: customerToken,
+    },
+    {
+      id: shopTestIds.otherCustomerId,
+      email: "other-client@example.test",
+      displayName: "Другой клиент",
+      phoneNumber: "+73333333333",
+      role: "CUSTOMER" as const,
+      active: true,
+      mustChangePassword: false,
+      token: otherCustomerToken,
     },
   ];
   const products = [

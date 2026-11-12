@@ -251,6 +251,12 @@ object ApiClient {
         JSONObject().put("accept", accept),
     ).getJSONObject("order").toShopOrder()
 
+    fun cancelPickupShopOrder(token: String, orderId: String): ShopOrder = request(
+        "PATCH",
+        "/shop/orders/$orderId/cancel",
+        token,
+    ).getJSONObject("order").toShopOrder()
+
     fun updateShopOrderStatus(token: String, orderId: String, status: String): ShopOrder {
         require(status in setOf("CONFIRMED", "COMPLETED", "CANCELLED"))
         return request(

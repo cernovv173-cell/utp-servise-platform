@@ -161,10 +161,12 @@ export const CraftCard = ({
 export const CustomerOrderCard = ({
   order,
   onDeliveryResponse,
+  onCancelPickup,
   isResponding,
 }: {
   order: ShopOrder;
   onDeliveryResponse: (orderId: string, accept: boolean) => void;
+  onCancelPickup: (orderId: string) => void;
   isResponding: boolean;
 }) => {
   const deliveryStatus =
@@ -259,6 +261,19 @@ export const CustomerOrderCard = ({
           </span>
         )}
       </p>
+      {order.status === "PENDING" && order.deliveryMethod === "PICKUP" && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-slate-500">Можно отменить до подтверждения наличия.</p>
+          <button
+            type="button"
+            disabled={isResponding}
+            onClick={() => onCancelPickup(order.id)}
+            className="min-h-10 rounded-xl border border-slate-300 px-3 text-sm font-semibold hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-600 dark:hover:bg-slate-800"
+          >
+            Отменить самовывоз
+          </button>
+        </div>
+      )}
     </article>
   );
 };

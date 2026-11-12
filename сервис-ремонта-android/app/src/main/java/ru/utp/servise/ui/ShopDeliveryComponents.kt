@@ -107,6 +107,8 @@ internal fun CustomerShopOrderCard(
     order: ShopOrder,
     onAcceptDelivery: () -> Unit,
     onDeclineDelivery: () -> Unit,
+    onCancelPickup: () -> Unit,
+    isBusy: Boolean,
 ) {
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -147,6 +149,21 @@ internal fun CustomerShopOrderCard(
                             }
                         }
                     }
+                }
+            }
+            if (order.deliveryMethod == "PICKUP" && order.status == "PENDING") {
+                Text(
+                    "Самовывоз можно отменить до подтверждения наличия.",
+                    fontSize = 11.sp,
+                    color = UtpMuted,
+                )
+                OutlinedButton(
+                    onClick = onCancelPickup,
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                ) {
+                    Text(if (isBusy) "Отменяем…" else "Отменить самовывоз")
                 }
             }
         }

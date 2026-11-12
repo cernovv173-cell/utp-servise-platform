@@ -13,6 +13,7 @@ import {
   type ShopCraftItem,
   type ShopOrder,
   type ShopProduct,
+  cancelPickupShopOrder,
   createShopOrder,
   getMyShopOrders,
   getShopCraftItems,
@@ -178,8 +179,12 @@ const ShopStorefrontPage = () => {
           : "Заказ отправлен. Администратор проверит наличие.",
       );
     },
-    onError: () =>
-      toast.error("Не удалось отправить заказ. Обновите каталог и попробуйте ещё раз."),
+    onError: (error) =>
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Не удалось отправить заказ. Обновите каталог и попробуйте ещё раз.",
+      ),
   });
 
   const deliveryResponseMutation = useMutation({
@@ -190,6 +195,16 @@ const ShopStorefrontPage = () => {
       toast.success(accept ? "Согласие отправлено администратору." : "Заказ отменён.");
     },
     onError: () => toast.error("Не удалось отправить ответ. Обновите список заказов."),
+  });
+
+  const pickupCancellationMutation = useMutation({
+    mutationFn: ({ orderId }: { orderId: string }) => cancelPickupShopOrder(token!, orderId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["shop-orders", token] });
+      toast.success("Заказ на самовывоз отменён.");
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Не удалось отменить заказ."),
   });
 
   if (!ready) {
@@ -403,7 +418,10 @@ const ShopStorefrontPage = () => {
                   onDeliveryResponse={(orderId, accept) =>
                     deliveryResponseMutation.mutate({ orderId, accept })
                   }
-                  isResponding={deliveryResponseMutation.isPending}
+                  onCancelPickup={(orderId) => pickupCancellationMutation.mutate({ orderId })}
+                  isResponding={
+                    deliveryResponseMutation.isPending || pickupCancellationMutation.isPending
+                  }
                 />
               ))}
             </div>

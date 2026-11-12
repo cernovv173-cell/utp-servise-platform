@@ -1242,6 +1242,11 @@ export const respondToShopDeliveryOffer = (token: string, orderId: string, accep
     body: JSON.stringify({ accept }),
   });
 
+export const cancelPickupShopOrder = (token: string, orderId: string) =>
+  apiRequest<{ order: ShopOrder }>(`/shop/orders/${orderId}/cancel`, token, {
+    method: "PATCH",
+  });
+
 export const updateShopOrderStatus = (
   token: string,
   orderId: string,

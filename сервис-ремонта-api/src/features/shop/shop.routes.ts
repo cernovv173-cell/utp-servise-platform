@@ -122,6 +122,13 @@ const unavailableProduct = () =>
     "Один из товаров больше недоступен. Обновите корзину.",
   );
 
+const insufficientShopStock = (name: string) =>
+  new HttpError(
+    409,
+    "SHOP_STOCK_INSUFFICIENT",
+    `Недостаточно «${name}» в наличии. Уменьшите количество в корзине и попробуйте ещё раз.`,
+  );
+
 export const createShopRouter = (
   database: DatabaseClient,
   storage: MediaStorage = projectMediaStorage,
@@ -294,8 +301,13 @@ export const createShopRouter = (
         const orderItems = items.map((item) => {
           if (item.catalogItemId) {
             const product = productById.get(item.catalogItemId);
-            if (!product || product.stockQuantity === 0)
-              throw unavailableProduct();
+            if (!product) throw unavailableProduct();
+            if (
+              product.stockQuantity !== null &&
+              product.stockQuantity < item.quantity
+            ) {
+              throw insufficientShopStock(product.name);
+            }
             return {
               catalogItemId: product.id,
               craftItemId: null,
@@ -307,7 +319,10 @@ export const createShopRouter = (
           const craft = item.craftItemId
             ? craftById.get(item.craftItemId)
             : undefined;
-          if (!craft || craft.stockQuantity === 0) throw unavailableProduct();
+          if (!craft) throw unavailableProduct();
+          if (craft.stockQuantity < item.quantity) {
+            throw insufficientShopStock(craft.title);
+          }
           return {
             catalogItemId: null,
             craftItemId: craft.id,
@@ -371,6 +386,73 @@ export const createShopRouter = (
         take: 100,
       });
       response.json({ orders });
+    },
+  );
+
+  router.patch(
+    "/shop/orders/:orderId/cancel",
+    requireAuth,
+    requireRoles("CUSTOMER"),
+    validateRequest({ params: orderIdParams }),
+    async (_request, response) => {
+      const customer = getAuthenticatedUser(response);
+      const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const { order, shouldNotify } = await database.$transaction(
+        async (transaction) => {
+          await transaction.$queryRaw`
+          SELECT "id" FROM "shop_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
+        `;
+          const current = await transaction.shopOrder.findUnique({
+            where: { id: orderId },
+            include: orderInclude,
+          });
+          if (!current || current.customerId !== customer.id) {
+            throw new HttpError(
+              404,
+              "SHOP_ORDER_NOT_FOUND",
+              "Заказ магазина не найден.",
+            );
+          }
+          if (current.deliveryMethod !== "PICKUP") {
+            throw new HttpError(
+              409,
+              "SHOP_ORDER_NOT_CANCELLABLE",
+              "Самостоятельно отменить можно только ожидающий заказ на самовывоз.",
+            );
+          }
+          if (current.status === "CANCELLED") {
+            return { order: current, shouldNotify: false };
+          }
+          if (current.status !== "PENDING") {
+            throw new HttpError(
+              409,
+              "SHOP_ORDER_NOT_CANCELLABLE",
+              "Самостоятельно отменить можно только ожидающий заказ на самовывоз.",
+            );
+          }
+          return {
+            order: await transaction.shopOrder.update({
+              where: { id: orderId },
+              data: { status: "CANCELLED", cancelledAt: new Date() },
+              include: orderInclude,
+            }),
+            shouldNotify: true,
+          };
+        },
+      );
+
+      if (shouldNotify) {
+        await sendShopNotificationToAdministrators(
+          database,
+          {
+            title: "Самовывоз в магазине отменён",
+            body: "Клиент отменил ожидающий заказ на самовывоз.",
+            data: { type: "shop_order_updated", orderId: order.id },
+          },
+          sendNotification,
+        );
+      }
+      response.json({ order });
     },
   );
 
