@@ -13,7 +13,7 @@ test("a customer can sign in with the generated username and temporary password"
   const user = {
     id: "22222222-2222-4222-8222-222222222222",
     email: null,
-    login: "enot-0123456789abcdef",
+    login: "a2b3c4d5",
     displayName: "Клиент",
     phoneNumber: "+79995550001",
     gender: null,
@@ -54,7 +54,7 @@ test("a customer can sign in with the generated username and temporary password"
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        email: "ENOT-0123456789ABCDEF",
+        email: "A2B3C4D5",
         password,
         portal: "CUSTOMER",
       }),

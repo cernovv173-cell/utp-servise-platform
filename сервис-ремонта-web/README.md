@@ -213,10 +213,12 @@ unique service number. The barcode is derived at display time, so it adds no dat
 not used to confirm payment or release an order.
 
 Administrators can also start a repair order from the fixed “СТАРТ / СТОП — Создать заявку” action.
-The form supports an existing client or registering a new client with their email as the login;
-the generated temporary password is shown once after account creation, and the client must change
-it at first sign-in. If order creation fails after account registration, the client remains in the
-customer list and the order can be retried for that account. The administrator also selects whether
+The form supports an existing client or registering a new client. The API generates a short,
+8-character login and a temporary password, which the client must change at first sign-in. For an
+email-backed customer, the credentials are shown once after account creation; for a customer without
+email, the temporary password is delivered through MAX after the customer verifies their phone.
+If order creation fails after account registration, the client remains in the customer list and the
+order can be retried for that account. The administrator also selects whether
 the repair will take place at the client's address or at the service center. For a home visit the
 form records the customer's approximate one-way distance from Pushkino's boundary and shows the
 25 ₽/km estimate; an administrator or assigned technician checks the city and distance manually in
@@ -312,8 +314,8 @@ The support inbox refreshes every five seconds and alerts administrators to new 
 with notifications opening the matching support conversation.
 Administrators can correct request details in any status; customers can edit only their own requests
 before technician assignment. Service lines and paid financial documents keep their separate
-lifecycle safeguards. The staff section of `/admin` can create technician accounts with one-time
-temporary passwords that must be changed on first sign-in; customer self-registration remains on
+lifecycle safeguards. The staff section of `/admin` can create staff accounts with short 8-character
+logins and one-time temporary passwords that must be changed on first sign-in; customer self-registration remains on
 `/login` and cannot create staff or administrator accounts.
 
 ## Customer repair guides

@@ -143,8 +143,8 @@ catalog balances; technicians can read active item balances. A tracked zero bala
 spare part or product. Administrators can create a repair order for an
 active customer through `POST /admin/orders`; its creation is recorded in order history. The
 administrator can create a customer record through `POST /admin/customers`. When an administrator
-creates a customer without an email, the API generates a unique `enot-…` login and temporary
-password, but never returns that password to the admin client. The API stores the pending password
+creates a customer without an email, the API generates a unique, easy-to-read 8-character login and
+temporary password, but never returns that password to the admin client. The API stores the pending password
 only as AES-256-GCM ciphertext keyed from the server-only `PASSWORD_RESET_CODE_SECRET`; a successful
 MAX delivery clears the ciphertext. A customer without an email also receives these credentials
 after their first repair order if their MAX account is already linked.
@@ -181,8 +181,8 @@ its status. `GET /orders?archive=active` and `GET /orders?archive=archived` retu
 role-scoped list. Omitting `archive` retains the unfiltered legacy response.
 
 Administrators can load an individual repair record through `GET /admin/orders/:orderId`. `POST /staff`
-creates staff logins with a generated temporary password and mandatory password change on first
-sign-in. A full administrator can create another `ADMIN`; an `ADMIN_ASSISTANT` is stored with the
+creates staff accounts with a unique 8-character login, a generated temporary password, and mandatory
+password change on first sign-in. A full administrator can create another `ADMIN`; an `ADMIN_ASSISTANT` is stored with the
 same operational administrator permissions but cannot create an `ADMIN`. Administrators and assistants
 can create assistants. Staff-list responses omit permanently terminated accounts, while the user
 record and order history remain stored. Customer self-registration remains separate at

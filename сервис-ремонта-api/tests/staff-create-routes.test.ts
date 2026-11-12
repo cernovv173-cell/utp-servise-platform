@@ -74,7 +74,7 @@ test("administrators create staff with an ordinary login and a one-time six-char
 
   assert.equal(response.status, 201);
   const result = await response.json();
-  assert.match(result.staff.login, /^enot-[a-f0-9]{16}$/);
+  assert.match(result.staff.login, /^[a-hjkmnp-z2-9]{8}$/u);
   assert.equal(result.temporaryPassword.length, 6);
   assert.equal(result.staff.mustChangePassword, true);
   assert.equal("passwordHash" in result.staff, false);

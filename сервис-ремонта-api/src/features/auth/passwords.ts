@@ -61,9 +61,13 @@ export const performDummyPasswordCheck = async (
 
 const TEMPORARY_PASSWORD_ALPHABET =
   "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+const ACCOUNT_LOGIN_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 
 export const generateAccountLogin = (): string =>
-  `enot-${randomBytes(8).toString("hex")}`;
+  Array.from(
+    { length: 8 },
+    () => ACCOUNT_LOGIN_ALPHABET[randomInt(ACCOUNT_LOGIN_ALPHABET.length)],
+  ).join("");
 
 export const generateTemporaryPassword = (): string =>
   Array.from(

@@ -100,7 +100,7 @@ test("admin can create an email-less customer without exposing the temporary pas
   assert.equal(response.status, 201);
   const body = await response.json();
   assert.equal(body.customer.email, null);
-  assert.match(body.customer.login, /^enot-[a-f0-9]{16}$/u);
+  assert.match(body.customer.login, /^[a-hjkmnp-z2-9]{8}$/u);
   assert.equal(body.credentialDelivery.channel, "MAX");
   assert.equal(body.credentialDelivery.status, "PENDING");
   assert.equal("temporaryPassword" in body, false);
@@ -151,7 +151,7 @@ test("an existing MAX customer receives login credentials on their first order",
       customer.id,
     );
     assert.ok(credentials);
-    assert.match(credentials.login, /^enot-[a-f0-9]{16}$/u);
+    assert.match(credentials.login, /^[a-hjkmnp-z2-9]{8}$/u);
     assert.equal(credentials.maxUserId, customer.maxUserId);
     assert.equal(update?.login, credentials.login);
     assert.equal(update?.mustChangePassword, true);

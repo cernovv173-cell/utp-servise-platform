@@ -150,7 +150,7 @@ test("admins can create customers with forced password rotation and manage their
   assert.equal(createdBody.customer.email, "new@example.test");
   assert.equal(createdBody.customer.displayName, "Новый клиент");
   assert.equal("passwordHash" in createdBody.customer, false);
-  assert.match(createdBody.customer.login, /^enot-[a-f0-9]{16}$/);
+  assert.match(createdBody.customer.login, /^[a-hjkmnp-z2-9]{8}$/u);
   assert.equal(createdBody.temporaryPassword.length, 6);
   assert.equal(lastCreate?.role, "CUSTOMER");
   assert.equal(lastCreate?.mustChangePassword, true);
