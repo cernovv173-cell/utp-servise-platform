@@ -14,6 +14,7 @@ const {
   partId,
   craftItemId,
   emptyCraftItemId,
+  draftCraftItemId,
   orderId,
   secondOrderId,
 } = shopTestIds;
@@ -48,6 +49,25 @@ test("public shop lists only active products without exposing exact stock", asyn
     "OUT_OF_STOCK",
   );
   assert.equal("stockQuantity" in body.products[0]!, false);
+});
+
+test("public shop handmade catalog exposes only published craft items", async (t) => {
+  const { request } = await createShopRoutesHarness((callback) =>
+    t.after(callback),
+  );
+  const response = await request("/shop/craft-items");
+  assert.equal(response.status, 200);
+  const body = (await response.json()) as {
+    items: Array<{ id: string; title: string; stockQuantity: number }>;
+  };
+  assert.deepEqual(
+    body.items.map(({ id }) => id),
+    [craftItemId, emptyCraftItemId],
+  );
+  assert.equal(
+    body.items.some(({ id }) => id === draftCraftItemId),
+    false,
+  );
 });
 
 test("customer order snapshots server prices and waits for admin confirmation", async (t) => {
@@ -92,8 +112,15 @@ test("ready handmade goods use the store cart and stock is reserved and restored
   assert.equal(created.status, 201);
   const createdBody = (await created.json()) as { order: Record<string, any> };
   assert.equal(createdBody.order.totalRub, 1050);
-  assert.ok(createdBody.order.items.some((item: Record<string, any>) => item.craftItemId === craftItemId));
-  assert.equal(craftItems.find((item) => item.id === craftItemId)?.stockQuantity, 3);
+  assert.ok(
+    createdBody.order.items.some(
+      (item: Record<string, any>) => item.craftItemId === craftItemId,
+    ),
+  );
+  assert.equal(
+    craftItems.find((item) => item.id === craftItemId)?.stockQuantity,
+    3,
+  );
 
   const confirmed = await request(
     `/admin/shop/orders/${orderId}/status`,
@@ -102,7 +129,10 @@ test("ready handmade goods use the store cart and stock is reserved and restored
     "PATCH",
   );
   assert.equal(confirmed.status, 200);
-  assert.equal(craftItems.find((item) => item.id === craftItemId)?.stockQuantity, 1);
+  assert.equal(
+    craftItems.find((item) => item.id === craftItemId)?.stockQuantity,
+    1,
+  );
 
   const cancelled = await request(
     `/admin/shop/orders/${orderId}/status`,
@@ -111,7 +141,10 @@ test("ready handmade goods use the store cart and stock is reserved and restored
     "PATCH",
   );
   assert.equal(cancelled.status, 200);
-  assert.equal(craftItems.find((item) => item.id === craftItemId)?.stockQuantity, 3);
+  assert.equal(
+    craftItems.find((item) => item.id === craftItemId)?.stockQuantity,
+    3,
+  );
 
   const unavailable = await request(
     "/shop/orders",

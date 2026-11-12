@@ -100,8 +100,8 @@ fun CustomerShopScreen(
     var cart by remember(user.id) { mutableStateOf(readShopCart(context, user.id)) }
     var customerNote by remember(user.id) { mutableStateOf("") }
     var deliveryMethod by remember(user.id) { mutableStateOf("PICKUP") }
-    var deliveryArea by remember(user.id) { mutableStateOf("MOSCOW") }
-    var deliveryCity by remember(user.id) { mutableStateOf("Москва") }
+    var deliveryArea by remember(user.id) { mutableStateOf("MOSCOW_REGION") }
+    var deliveryCity by remember(user.id) { mutableStateOf("Пушкино") }
     var deliveryAddress by remember(user.id) { mutableStateOf("") }
     var deliveryRequestNote by remember(user.id) { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
@@ -271,11 +271,6 @@ fun CustomerShopScreen(
                     CustomerShopDeliveryForm(
                         deliveryMethod = deliveryMethod,
                         onDeliveryMethodChange = { deliveryMethod = it },
-                        deliveryArea = deliveryArea,
-                        onDeliveryAreaChange = { area ->
-                            deliveryArea = area
-                            deliveryCity = if (area == "MOSCOW") "Москва" else ""
-                        },
                         deliveryCity = deliveryCity,
                         onDeliveryCityChange = { deliveryCity = it },
                         deliveryAddress = deliveryAddress,
@@ -306,8 +301,8 @@ fun CustomerShopScreen(
                                     cart = emptyMap()
                                     customerNote = ""
                                     deliveryMethod = "PICKUP"
-                                    deliveryArea = "MOSCOW"
-                                    deliveryCity = "Москва"
+                                    deliveryArea = "MOSCOW_REGION"
+                                    deliveryCity = "Пушкино"
                                     deliveryAddress = ""
                                     deliveryRequestNote = ""
                                     saveShopCart(context, user.id, emptyMap())
@@ -329,7 +324,7 @@ fun CustomerShopScreen(
                         Text("Отправить заказ · ${shopPrice(totalRub)}")
                     }
                     Text(
-                        "Наличие проверит администратор. Для доставки он сначала предложит цену и срок; заказ будет подтверждён после вашего согласия. Онлайн-оплаты нет.",
+                        "Доставка доступна для готовых товаров и изделий. Администратор вручную проверит адрес и предложит цену и срок; заказ подтвердится только после вашего согласия. Доставку заказного изделия обсудим после изготовления. Онлайн-оплаты нет.",
                         fontSize = 11.sp,
                         color = UtpMuted,
                     )

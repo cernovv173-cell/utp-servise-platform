@@ -35,8 +35,6 @@ internal fun deliveryAreaLabel(area: String?): String = when (area) {
 internal fun CustomerShopDeliveryForm(
     deliveryMethod: String,
     onDeliveryMethodChange: (String) -> Unit,
-    deliveryArea: String,
-    onDeliveryAreaChange: (String) -> Unit,
     deliveryCity: String,
     onDeliveryCityChange: (String) -> Unit,
     deliveryAddress: String,
@@ -68,34 +66,14 @@ internal fun CustomerShopDeliveryForm(
         }
         if (deliveryMethod == "COURIER") {
             Text(
-                "Доставка по Москве и Московской области. Администратор проверит адрес и сообщит стоимость и срок.",
+                "Курьер — по Пушкино и ближайшему Подмосковью. Укажите населённый пункт: администратор проверит адрес и отдельно предложит цену и срок.",
                 fontSize = 12.sp,
                 color = UtpMuted,
             )
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (deliveryArea == "MOSCOW") {
-                    Button(onClick = { onDeliveryAreaChange("MOSCOW") }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Москва")
-                    }
-                } else {
-                    OutlinedButton(onClick = { onDeliveryAreaChange("MOSCOW") }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Москва")
-                    }
-                }
-                if (deliveryArea == "MOSCOW_REGION") {
-                    Button(onClick = { onDeliveryAreaChange("MOSCOW_REGION") }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Московская область")
-                    }
-                } else {
-                    OutlinedButton(onClick = { onDeliveryAreaChange("MOSCOW_REGION") }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Московская область")
-                    }
-                }
-            }
             OutlinedTextField(
                 value = deliveryCity,
                 onValueChange = { onDeliveryCityChange(it.take(120)) },
-                label = { Text("Город или населённый пункт") },
+                label = { Text("Населённый пункт") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true,
@@ -114,6 +92,11 @@ internal fun CustomerShopDeliveryForm(
                 label = { Text("Комментарий курьеру (необязательно)") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
+            )
+            Text(
+                "Самовывоз доступен из Пушкино. Для более дальнего адреса администратор сообщит, сможем ли доставить.",
+                fontSize = 11.sp,
+                color = UtpMuted,
             )
         }
     }

@@ -114,13 +114,23 @@ it records the handoff after payment and receiving have been arranged outside th
 online payment integration. Permanently deleting a customer releases any still-confirmed shop-order
 stock before removing that customer's shop order history.
 
-The shop's optional courier pilot covers Moscow and the Moscow Region. Existing orders and new orders
-without a delivery choice use pickup. Customers requesting a courier select the region and enter a
-locality and address; the administrator checks the exact address and manually offers a delivery fee
-and time window. The customer must accept the current offer before an administrator can confirm the
-order and reserve stock. Revising an offer clears the prior acceptance; declining cancels the
-still-unconfirmed order without reserving stock. The delivery fee is stored separately from the goods
-subtotal, and no courier API or online payment provider is connected for this pilot.
+Published ready-to-sell handmade goods are listed by `GET /shop/craft-items` and can be ordered in the
+same cart as active catalog products. The public listing contains only published craft records; its
+image endpoint serves only images attached to published records. Order lines retain a craft-item link
+and the server snapshots the current title and price, checks stock, and reserves/restores inventory
+with the same transactional rules as ordinary products. Made-to-order requests remain a separate
+`/craft-orders` workflow; shipping for such work is discussed after the item is made.
+
+The first courier pilot is presented in the Android and Web storefronts as pickup from Pushkino or
+manual courier delivery in Pushkino and nearby Moscow Region localities. Pickup is the default;
+courier orders start with the locality set to Pushkino and `MOSCOW_REGION`. The administrator manually
+checks each address, may decline an out-of-zone request, and offers a separate fee and time window.
+The customer must accept the current offer before an administrator can confirm the order and reserve
+stock. Revising an offer clears the prior acceptance; declining cancels the still-unconfirmed order
+without reserving stock. The delivery fee is stored separately from the goods subtotal, and no courier
+API or online payment provider is connected. The API continues to accept the older `MOSCOW` area code
+for compatibility with existing clients; the displayed pilot zone is a manual check, not automatic
+geocoding.
 
 Adding a tracked spare part or product to an open order decrements inventory atomically with the new
 order line. Removing that line returns its quantity. In an unpaid completed-order receipt, an

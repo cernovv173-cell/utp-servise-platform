@@ -99,7 +99,7 @@ fun CraftsScreen(
                         enabled = customTitle.trim().length >= 2 && customNote.trim().length >= 2,
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Отправить заявку") }
-                    Text("Цена и сроки заказного изделия уточняются администратором. Онлайн-оплата не подключена.", fontSize = 11.sp, color = UtpMuted)
+                    Text("Цена и срок изготовления уточняются отдельно. Доставку согласуем после готовности изделия; онлайн-оплаты нет.", fontSize = 11.sp, color = UtpMuted)
                 }
             }
             Text("Мои заявки", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)

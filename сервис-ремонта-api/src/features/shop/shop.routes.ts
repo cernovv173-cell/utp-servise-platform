@@ -33,7 +33,8 @@ const orderItemsBody = z
   .max(50)
   .refine(
     (items) =>
-      new Set(items.map((item) => item.catalogItemId ?? item.craftItemId)).size === items.length,
+      new Set(items.map((item) => item.catalogItemId ?? item.craftItemId))
+        .size === items.length,
     "Каждый товар можно добавить в заказ только один раз.",
   );
 
@@ -88,6 +89,10 @@ const createOrderBody = z
   });
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
+const craftImageParams = z.object({
+  craftItemId: z.string().uuid(),
+  objectId: z.string().trim().min(1).max(255),
+});
 const orderStatusBody = z
   .object({ status: z.enum(["CONFIRMED", "COMPLETED", "CANCELLED"]) })
   .strict();
@@ -149,6 +154,46 @@ export const createShopRouter = (
       })),
     });
   });
+
+  router.get("/shop/craft-items", async (_request, response) => {
+    const items = await database.craftItem.findMany({
+      where: { isPublished: true },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        priceRub: true,
+        imageObjectId: true,
+        stockQuantity: true,
+        customOrderAvailable: true,
+      },
+      orderBy: { createdAt: "desc" },
+      take: 200,
+    });
+    response.json({ items });
+  });
+
+  router.get(
+    "/shop/craft-items/:craftItemId/images/:objectId",
+    validateRequest({ params: craftImageParams }),
+    async (_request, response) => {
+      const { craftItemId, objectId } =
+        paramsOf<z.infer<typeof craftImageParams>>(response);
+      const item = await database.craftItem.findFirst({
+        where: { id: craftItemId, isPublished: true, imageObjectId: objectId },
+        select: { id: true },
+      });
+      if (!item) {
+        throw new HttpError(404, "IMAGE_NOT_FOUND", "Фотография не найдена.");
+      }
+      const image = await storage.download(objectId);
+      response
+        .setHeader("Content-Type", image.contentType)
+        .setHeader("Cache-Control", "public, max-age=300")
+        .setHeader("X-Content-Type-Options", "nosniff")
+        .send(image.bytes);
+    },
+  );
 
   router.get(
     "/shop/products/:catalogItemId/images/:objectId",
@@ -246,7 +291,8 @@ export const createShopRouter = (
         const orderItems = items.map((item) => {
           if (item.catalogItemId) {
             const product = productById.get(item.catalogItemId);
-            if (!product || product.stockQuantity === 0) throw unavailableProduct();
+            if (!product || product.stockQuantity === 0)
+              throw unavailableProduct();
             return {
               catalogItemId: product.id,
               craftItemId: null,
@@ -400,15 +446,17 @@ export const createShopRouter = (
                 throw unavailableProduct();
               }
               if (product.stockQuantity !== null) {
-                const reserved = await transaction.repairCatalogItem.updateMany({
-                  where: {
-                    id: item.catalogItemId,
-                    type: "PRODUCT",
-                    active: true,
-                    stockQuantity: { gte: item.quantity },
+                const reserved = await transaction.repairCatalogItem.updateMany(
+                  {
+                    where: {
+                      id: item.catalogItemId,
+                      type: "PRODUCT",
+                      active: true,
+                      stockQuantity: { gte: item.quantity },
+                    },
+                    data: { stockQuantity: { decrement: item.quantity } },
                   },
-                  data: { stockQuantity: { decrement: item.quantity } },
-                });
+                );
                 if (reserved.count !== 1) {
                   throw new HttpError(
                     409,

@@ -100,14 +100,22 @@ recorded zero balance; deletion is blocked while the item is in an unfinished re
 estimate, or pending/confirmed shop order. Completed and cancelled order history keeps its saved
 names and prices after the catalog entry is removed.
 
-The separate `/shop` storefront uses only active product entries, never repair services or spare parts.
-Customers can browse the catalog, keep a per-account cart, and submit an order without online payment;
-the order stores the item names and prices at submission time. Product entries support an optional
-description and up to four protected product photos, managed from the shared catalog in Web or
-Android. Administrators review requests in the dedicated confirmation queue at `/admin/shop-orders`;
-the page also retains an all-orders view. They confirm availability before tracked stock is deducted,
-then can mark a confirmed order as handed over or cancel it. Cancelling a confirmed order restores
-its reserved stock. Payment and pickup are arranged outside the app, independently of repair requests.
+The `/shop` storefront has separate tabs for active catalog products and published ready-to-sell
+handmade goods. Both kinds of ready items share one account cart and one order; repair services and
+spare parts stay outside the shop. The server snapshots item names and prices, validates availability,
+and reserves tracked stock only when an administrator confirms the order. Cancellation restores the
+reserved stock. Customers can browse without signing in and submit orders from a customer account;
+there is no online payment. Handmade items with an available ready stock appear in the shop; customers
+can follow the separate `/crafts` flow to discuss made-to-order work. Delivery of made-to-order work
+is discussed after it is completed.
+
+Pickup is from Pushkino. The courier pilot is presented for Pushkino and nearby Moscow Region
+localities: the administrator checks each address and offers the delivery price and time manually.
+The customer must accept those terms before the order can be confirmed; delivery price is shown
+separately from the item subtotal. No courier API is connected. Administrators use the two tabs at
+`/admin/shop-orders` for shop orders and craft catalog/custom-order management; the shop tab retains
+the pending-confirmation queue and the all-orders view. The separate `/crafts` page remains available
+for direct custom-order handling.
 
 On `/checks`, administrators manage each completed order's receipt separately in the shared list:
 they can adjust its service and spare-part quantities, add one manual service or product line, and

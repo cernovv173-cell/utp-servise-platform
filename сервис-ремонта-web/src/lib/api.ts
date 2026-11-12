@@ -512,6 +512,7 @@ export type ShopOrderStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED
 export type ShopOrderItem = {
   id: string;
   catalogItemId: string | null;
+  craftItemId: string | null;
   name: string;
   quantity: number;
   unitPriceRub: number;
@@ -604,6 +605,7 @@ export type CraftItem = {
   description: string;
   priceRub: number;
   imageObjectId: string | null;
+  stockQuantity: number;
   isPublished: boolean;
   customOrderAvailable: boolean;
 };
@@ -1174,6 +1176,23 @@ export const getRepairCatalog = (token: string, signal?: AbortSignal) =>
 export const getShopProducts = (signal?: AbortSignal) =>
   apiRequest<{ products: ShopProduct[] }>("/shop/products", null, { signal });
 
+export type ShopCraftItem = Pick<
+  CraftItem,
+  | "id"
+  | "title"
+  | "description"
+  | "priceRub"
+  | "imageObjectId"
+  | "stockQuantity"
+  | "customOrderAvailable"
+>;
+
+export const getShopCraftItems = (signal?: AbortSignal) =>
+  apiRequest<{ items: ShopCraftItem[] }>("/shop/craft-items", null, { signal });
+
+export const getShopCraftImageUrl = (craftItemId: string, objectId: string) =>
+  `${apiBase}/shop/craft-items/${encodeURIComponent(craftItemId)}/images/${encodeURIComponent(objectId)}`;
+
 export const getShopProductImageUrl = (productId: string, objectId: string) =>
   `${apiBase}/shop/products/${encodeURIComponent(productId)}/images/${encodeURIComponent(objectId)}`;
 
@@ -1186,7 +1205,9 @@ export const getAdminShopOrders = (token: string, signal?: AbortSignal) =>
 export const createShopOrder = (
   token: string,
   input: {
-    items: { catalogItemId: string; quantity: number }[];
+    items: (
+      { catalogItemId: string; quantity: number } | { craftItemId: string; quantity: number }
+    )[];
     customerNote: string;
     deliveryMethod: "PICKUP" | "COURIER";
     deliveryArea?: "MOSCOW" | "MOSCOW_REGION";
