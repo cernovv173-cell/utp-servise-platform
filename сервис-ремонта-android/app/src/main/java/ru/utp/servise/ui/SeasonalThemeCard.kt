@@ -34,10 +34,10 @@ private data class SeasonOption(
 )
 
 private val seasonOptions = listOf(
-    SeasonOption("SPRING", "Весна", "Свежие краски и весенние лепестки."),
-    SeasonOption("SUMMER", "Лето", "Тёплая палитра и солнечные блики."),
-    SeasonOption("AUTUMN", "Осень", "Осенние листья и мягкий дождь."),
-    SeasonOption("WINTER", "Зима", "Праздничные главные Web и Android; лёгкий снег только на сайте."),
+    SeasonOption("SPRING", "Весна", "Весенний енот, цветы и мягкие зелёные акценты."),
+    SeasonOption("SUMMER", "Лето", "Летний енот, солнечная палитра и мягкие блики."),
+    SeasonOption("AUTUMN", "Осень", "Осенний енот, золотые листья и мягкий дождь."),
+    SeasonOption("WINTER", "Зима", "Зимний енот, снеговик и ёлочка; лёгкий снег только на сайте."),
 )
 
 @Composable

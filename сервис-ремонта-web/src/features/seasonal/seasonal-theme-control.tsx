@@ -24,20 +24,25 @@ const seasonOptions: {
   {
     season: "SPRING",
     label: "Весна",
-    description: "Свежие краски и весенние лепестки.",
+    description: "Весенний енот, цветы и мягкие зелёные акценты.",
     icon: Leaf,
   },
-  { season: "SUMMER", label: "Лето", description: "Тёплая палитра и солнечные блики.", icon: Sun },
+  {
+    season: "SUMMER",
+    label: "Лето",
+    description: "Летний енот, солнечная палитра и мягкие блики.",
+    icon: Sun,
+  },
   {
     season: "AUTUMN",
     label: "Осень",
-    description: "Осенние листья и мягкий дождь.",
+    description: "Осенний енот, золотые листья и мягкий дождь.",
     icon: CloudSun,
   },
   {
     season: "WINTER",
     label: "Зима",
-    description: "Праздничные главные Web и Android; лёгкий снег только на сайте.",
+    description: "Зимний енот, снеговик и ёлочка; лёгкий снег только на сайте.",
     icon: Snowflake,
   },
 ];

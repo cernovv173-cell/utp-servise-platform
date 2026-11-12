@@ -23,8 +23,8 @@ import { PageTurn } from "@/features/public/page-turn";
 import { RepairScenes } from "@/features/public/repair-scenes";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 import { TypewriterText } from "@/features/public/typewriter-text";
+import { SeasonalHomeBanner } from "@/features/seasonal/seasonal-home-banner";
 import { getDisplayedSeason, useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
-import { WinterHomeBanner } from "@/features/seasonal/winter-home-banner";
 
 import { getCompany } from "@/lib/api";
 
@@ -63,7 +63,7 @@ export const PublicHome = () => {
   const company = companyQuery.data?.company;
   const services = (company?.services.length ? company.services : defaultServices).slice(0, 3);
   const serviceName = company?.name ?? "ЕНОТ СЕРВИС";
-  const isWinter = getDisplayedSeason(seasonalTheme.data?.activeSeason) === "WINTER";
+  const activeSeason = getDisplayedSeason(seasonalTheme.data?.activeSeason);
 
   return (
     <PublicSiteShell>
@@ -114,8 +114,8 @@ export const PublicHome = () => {
               </div>
             </Reveal>
             <Reveal className="min-w-0" delay={0.12}>
-              {isWinter ? (
-                <WinterHomeBanner className="h-full min-h-[380px]" />
+              {activeSeason !== "NONE" ? (
+                <SeasonalHomeBanner season={activeSeason} className="h-full min-h-[380px]" />
               ) : (
                 <div className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-7 text-white shadow-[0_24px_70px_rgba(37,99,235,0.18)] sm:p-9">
                   <div className="absolute -top-16 -right-16 size-56 rounded-full border border-white/20" />

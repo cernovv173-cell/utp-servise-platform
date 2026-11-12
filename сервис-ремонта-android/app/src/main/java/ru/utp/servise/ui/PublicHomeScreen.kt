@@ -89,7 +89,7 @@ fun PublicHomeScreen(
             }
         }
 
-        if (seasonalTheme == "WINTER") WinterSeasonalBanner()
+        if (seasonalTheme != "NONE") SeasonalHomeBanner(seasonalTheme)
 
         Card(colors = CardDefaults.cardColors(containerColor = UtpBlue), shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

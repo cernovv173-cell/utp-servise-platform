@@ -7,7 +7,7 @@ import { AuthProvider } from "@/features/auth/auth-provider";
 import { SeasonalSceneBackground } from "@/features/seasonal/seasonal-scene-background";
 import {
   getDisplayedSeason,
-  persistWinterPreviewSetting,
+  persistSeasonPreviewSetting,
   useSeasonalTheme,
 } from "@/features/seasonal/use-seasonal-theme";
 
@@ -22,7 +22,7 @@ const RootComponent = () => {
   }, []);
 
   useEffect(() => {
-    persistWinterPreviewSetting();
+    persistSeasonPreviewSetting();
   }, []);
 
   useEffect(() => {

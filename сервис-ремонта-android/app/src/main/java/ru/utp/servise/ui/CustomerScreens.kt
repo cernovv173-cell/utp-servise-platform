@@ -90,9 +90,9 @@ fun CustomerHomeScreen(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text("Привет, ${user.displayName.substringBefore(' ')}", color = UtpBlue, fontSize = 12.sp)
         }
-        if (seasonalTheme == "WINTER") {
+        if (seasonalTheme != "NONE") {
             Spacer(Modifier.height(12.dp))
-            WinterSeasonalBanner()
+            SeasonalHomeBanner(seasonalTheme)
         }
         Spacer(Modifier.height(18.dp))
         Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
