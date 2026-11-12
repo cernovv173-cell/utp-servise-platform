@@ -123,6 +123,12 @@ and the server snapshots the current title and price, checks stock, and reserves
 with the same transactional rules as ordinary products. Made-to-order requests remain a separate
 `/craft-orders` workflow; shipping for such work is discussed after the item is made.
 
+Active administrator assistants receive push notifications only for new and changed shop orders,
+including customer responses to courier offers. Ready handmade goods use the same shop-order
+notifications because they share the store cart; made-to-order craft requests, repair work, support
+chats, and other non-shop events do not notify assistants. Full administrators keep the existing
+notification behavior.
+
 The first courier pilot is presented in the Android and Web storefronts as pickup from Pushkino or
 manual courier delivery in Pushkino and nearby Moscow Region localities. Pickup is the default;
 courier orders start with the locality set to Pushkino and `MOSCOW_REGION`. The administrator manually

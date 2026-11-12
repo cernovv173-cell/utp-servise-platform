@@ -32,6 +32,14 @@ object NotificationChannels {
                 description = "Поздравления с победой — отдельный праздничный звук."
                 setSound(soundUri(context, "utp_notification_winner"), audioAttributes)
             },
+            NotificationChannel(
+                NotificationChannelRouting.SHOP_CHANNEL_ID,
+                "Заказы магазина",
+                NotificationManager.IMPORTANCE_DEFAULT,
+            ).apply {
+                description = "Новые заказы магазина и ответы клиентов по доставке."
+                setSound(soundUri(context, "utp_notification_spark"), audioAttributes)
+            },
         )
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

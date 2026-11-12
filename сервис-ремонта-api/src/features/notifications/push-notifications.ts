@@ -12,6 +12,11 @@ export { formatBirthdayGreeting } from "./birthday-greeting.js";
 const logger = createLogger();
 const FIREBASE_APP_NAME = "utp-servise-push";
 const MAX_MULTICAST_TOKENS = 500;
+const ADMIN_ASSISTANT_SHOP_NOTIFICATION_TYPES = new Set([
+  "shop_order_created",
+  "shop_order_updated",
+  "shop_delivery_response",
+]);
 
 export type PushNotification = {
   readonly title: string;
@@ -19,6 +24,19 @@ export type PushNotification = {
   readonly data: Readonly<Record<string, string>>;
   readonly androidTag?: string;
   readonly androidExpiresAt?: Date;
+};
+
+export const filterAdminAssistantPushRecipients = (
+  recipientUserIds: readonly string[],
+  adminAssistantIds: readonly string[],
+  notificationType: string | undefined,
+): string[] => {
+  const uniqueUserIds = [...new Set(recipientUserIds)];
+  if (ADMIN_ASSISTANT_SHOP_NOTIFICATION_TYPES.has(notificationType ?? "")) {
+    return uniqueUserIds;
+  }
+  const adminAssistantIdSet = new Set(adminAssistantIds);
+  return uniqueUserIds.filter((userId) => !adminAssistantIdSet.has(userId));
 };
 
 export type ChatMessageRecipients = {
@@ -115,8 +133,19 @@ export const sendPushNotification = async (
     const messaging = getMessagingClient();
     if (!messaging) return false;
 
+    const adminAssistants = await database.user.findMany({
+      where: { id: { in: userIds }, role: "ADMIN", isAdminAssistant: true },
+      select: { id: true },
+    });
+    const eligibleUserIds = filterAdminAssistantPushRecipients(
+      userIds,
+      adminAssistants.map(({ id }) => id),
+      notification.data.type,
+    );
+    if (eligibleUserIds.length === 0) return true;
+
     const devices = await database.pushDeviceToken.findMany({
-      where: { userId: { in: userIds } },
+      where: { userId: { in: eligibleUserIds } },
       select: { token: true },
     });
     if (devices.length === 0) return true;

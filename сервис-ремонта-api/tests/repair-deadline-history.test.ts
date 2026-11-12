@@ -37,8 +37,8 @@ test("deadline changes are recorded and unchanged deadlines do not notify again"
           : null,
     },
     user: {
-      findMany: async () => {
-        notificationAttempts += 1;
+      findMany: async ({ where }: { where: Record<string, unknown> }) => {
+        if (where.isAdminAssistant !== true) notificationAttempts += 1;
         return [];
       },
     },

@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 
 import { hashSessionToken } from "../../src/features/auth/auth.middleware.js";
+import type { PushNotification } from "../../src/features/notifications/push-notifications.js";
 import { createShopRouter } from "../../src/features/shop/shop.routes.js";
 import type { DatabaseClient } from "../../src/lib/database/database.js";
 import { errorHandler } from "../../src/lib/http/error-handler.js";
 
 export const shopTestIds = {
   adminId: "11111111-1111-4111-8111-111111111111",
+  assistantId: "11111111-1111-4111-8111-111111111112",
   customerId: "22222222-2222-4222-8222-222222222222",
   productId: "33333333-3333-4333-8333-333333333331",
   untrackedProductId: "33333333-3333-4333-8333-333333333332",
@@ -34,9 +36,21 @@ export const createShopRoutesHarness = async (
       displayName: "Администратор",
       phoneNumber: "+70000000000",
       role: "ADMIN" as const,
+      isAdminAssistant: false,
       active: true,
       mustChangePassword: false,
       token: adminToken,
+    },
+    {
+      id: shopTestIds.assistantId,
+      email: "assistant@example.test",
+      displayName: "Помощник администратора",
+      phoneNumber: "+72222222222",
+      role: "ADMIN" as const,
+      isAdminAssistant: true,
+      active: true,
+      mustChangePassword: false,
+      token: "H".repeat(48),
     },
     {
       id: shopTestIds.customerId,
@@ -108,9 +122,31 @@ export const createShopRoutesHarness = async (
   ];
   type TestOrder = Record<string, any>;
   const orders: TestOrder[] = [];
+  const sentNotifications: Array<{
+    recipientIds: string[];
+    notification: PushNotification;
+  }> = [];
+  const sendNotification = async (
+    _database: DatabaseClient,
+    recipientIds: readonly string[],
+    notification: PushNotification,
+  ): Promise<boolean> => {
+    sentNotifications.push({ recipientIds: [...recipientIds], notification });
+    return true;
+  };
   let itemSequence = 0;
   let orderSequence = 0;
   const client: Record<string, any> = {
+    user: {
+      findMany: async ({ where }: { where: Record<string, unknown> }) =>
+        users
+          .filter(
+            (user) =>
+              user.role === where.role &&
+              (where.active === undefined || user.active === where.active),
+          )
+          .map(({ id }) => ({ id })),
+    },
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
         const user = users.find(
@@ -281,7 +317,14 @@ export const createShopRoutesHarness = async (
 
   const app = express();
   app.use(express.json());
-  app.use("/api", createShopRouter(client as unknown as DatabaseClient));
+  app.use(
+    "/api",
+    createShopRouter(
+      client as unknown as DatabaseClient,
+      undefined,
+      sendNotification,
+    ),
+  );
   app.use(errorHandler);
   const server = app.listen(0);
   await once(server, "listening");
@@ -304,5 +347,5 @@ export const createShopRoutesHarness = async (
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
-  return { products, craftItems, orders, request };
+  return { products, craftItems, orders, sentNotifications, request };
 };

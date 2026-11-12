@@ -9,6 +9,8 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { sendPushNotification } from "../notifications/push-notifications.js";
+import { sendShopNotificationToAdministrators } from "./shop-notifications.js";
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
 const deliveryOfferBody = z
@@ -35,7 +37,10 @@ const adminOrderInclude = {
   },
 };
 
-export const createShopDeliveryRouter = (database: DatabaseClient): Router => {
+export const createShopDeliveryRouter = (
+  database: DatabaseClient,
+  sendNotification: typeof sendPushNotification = sendPushNotification,
+): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
 
@@ -45,43 +50,66 @@ export const createShopDeliveryRouter = (database: DatabaseClient): Router => {
     requireRoles("ADMIN"),
     validateRequest({ params: orderIdParams, body: deliveryOfferBody }),
     async (_request, response) => {
+      const actor = getAuthenticatedUser(response);
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
       const offer = bodyOf<z.infer<typeof deliveryOfferBody>>(response);
-      const order = await database.$transaction(async (transaction) => {
-        await transaction.$queryRaw`
+      const { order, shouldNotify } = await database.$transaction(
+        async (transaction) => {
+          await transaction.$queryRaw`
           SELECT "id" FROM "shop_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
         `;
-        const current = await transaction.shopOrder.findUnique({
-          where: { id: orderId },
-          include: { items: true },
-        });
-        if (!current) {
-          throw new HttpError(
-            404,
-            "SHOP_ORDER_NOT_FOUND",
-            "Заказ магазина не найден.",
-          );
-        }
-        if (
-          current.status !== "PENDING" ||
-          current.deliveryMethod !== "COURIER"
-        ) {
-          throw new HttpError(
-            409,
-            "SHOP_DELIVERY_OFFER_CONFLICT",
-            "Предложить доставку можно только для ожидающего курьерского заказа.",
-          );
-        }
-        return transaction.shopOrder.update({
-          where: { id: orderId },
-          data: {
-            deliveryFeeRub: offer.deliveryFeeRub,
-            deliveryWindow: offer.deliveryWindow.trim(),
-            deliveryOfferAcceptedAt: null,
+          const current = await transaction.shopOrder.findUnique({
+            where: { id: orderId },
+            include: { items: true },
+          });
+          if (!current) {
+            throw new HttpError(
+              404,
+              "SHOP_ORDER_NOT_FOUND",
+              "Заказ магазина не найден.",
+            );
+          }
+          if (
+            current.status !== "PENDING" ||
+            current.deliveryMethod !== "COURIER"
+          ) {
+            throw new HttpError(
+              409,
+              "SHOP_DELIVERY_OFFER_CONFLICT",
+              "Предложить доставку можно только для ожидающего курьерского заказа.",
+            );
+          }
+          const deliveryWindow = offer.deliveryWindow.trim();
+          const shouldNotify =
+            current.deliveryFeeRub !== offer.deliveryFeeRub ||
+            current.deliveryWindow !== deliveryWindow ||
+            current.deliveryOfferAcceptedAt !== null;
+          return {
+            order: await transaction.shopOrder.update({
+              where: { id: orderId },
+              data: {
+                deliveryFeeRub: offer.deliveryFeeRub,
+                deliveryWindow,
+                deliveryOfferAcceptedAt: null,
+              },
+              include: adminOrderInclude,
+            }),
+            shouldNotify,
+          };
+        },
+      );
+      if (shouldNotify) {
+        await sendShopNotificationToAdministrators(
+          database,
+          {
+            title: "Предложение доставки изменено",
+            body: "В заказе магазина обновлены цена или время доставки.",
+            data: { type: "shop_order_updated", orderId: order.id },
           },
-          include: adminOrderInclude,
-        });
-      });
+          sendNotification,
+          actor.id,
+        );
+      }
       response.json({ order });
     },
   );
@@ -95,43 +123,63 @@ export const createShopDeliveryRouter = (database: DatabaseClient): Router => {
       const customer = getAuthenticatedUser(response);
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
       const { accept } = bodyOf<z.infer<typeof deliveryResponseBody>>(response);
-      const order = await database.$transaction(async (transaction) => {
-        await transaction.$queryRaw`
+      const { order, shouldNotify } = await database.$transaction(
+        async (transaction) => {
+          await transaction.$queryRaw`
           SELECT "id" FROM "shop_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
         `;
-        const current = await transaction.shopOrder.findUnique({
-          where: { id: orderId },
-          include: { items: true },
-        });
-        if (!current || current.customerId !== customer.id) {
-          throw new HttpError(
-            404,
-            "SHOP_ORDER_NOT_FOUND",
-            "Заказ магазина не найден.",
-          );
-        }
-        if (
-          current.status !== "PENDING" ||
-          current.deliveryMethod !== "COURIER" ||
-          current.deliveryFeeRub === null ||
-          current.deliveryWindow === null
-        ) {
-          throw new HttpError(
-            409,
-            "SHOP_DELIVERY_OFFER_NOT_READY",
-            "Для этого заказа пока нет предложения доставки.",
-          );
-        }
-        if (accept && current.deliveryOfferAcceptedAt) return current;
-        const now = new Date();
-        return transaction.shopOrder.update({
-          where: { id: orderId },
-          data: accept
-            ? { deliveryOfferAcceptedAt: now }
-            : { status: "CANCELLED", cancelledAt: now },
-          include: orderInclude,
-        });
-      });
+          const current = await transaction.shopOrder.findUnique({
+            where: { id: orderId },
+            include: { items: true },
+          });
+          if (!current || current.customerId !== customer.id) {
+            throw new HttpError(
+              404,
+              "SHOP_ORDER_NOT_FOUND",
+              "Заказ магазина не найден.",
+            );
+          }
+          if (
+            current.status !== "PENDING" ||
+            current.deliveryMethod !== "COURIER" ||
+            current.deliveryFeeRub === null ||
+            current.deliveryWindow === null
+          ) {
+            throw new HttpError(
+              409,
+              "SHOP_DELIVERY_OFFER_NOT_READY",
+              "Для этого заказа пока нет предложения доставки.",
+            );
+          }
+          if (accept && current.deliveryOfferAcceptedAt) {
+            return { order: current, shouldNotify: false };
+          }
+          const now = new Date();
+          return {
+            order: await transaction.shopOrder.update({
+              where: { id: orderId },
+              data: accept
+                ? { deliveryOfferAcceptedAt: now }
+                : { status: "CANCELLED", cancelledAt: now },
+              include: orderInclude,
+            }),
+            shouldNotify: true,
+          };
+        },
+      );
+      if (shouldNotify) {
+        await sendShopNotificationToAdministrators(
+          database,
+          {
+            title: "Ответ по доставке магазина",
+            body: accept
+              ? "Клиент принял предложение доставки."
+              : "Клиент отклонил доставку; заказ отменён.",
+            data: { type: "shop_delivery_response", orderId },
+          },
+          sendNotification,
+        );
+      }
       response.json({ order });
     },
   );

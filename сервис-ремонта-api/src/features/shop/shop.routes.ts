@@ -13,7 +13,9 @@ import {
   type MediaStorage,
   projectMediaStorage,
 } from "../media/media-storage.js";
+import { sendPushNotification } from "../notifications/push-notifications.js";
 import { createShopDeliveryRouter } from "./shop-delivery.routes.js";
+import { sendShopNotificationToAdministrators } from "./shop-notifications.js";
 
 const orderItemsBody = z
   .array(
@@ -123,10 +125,11 @@ const unavailableProduct = () =>
 export const createShopRouter = (
   database: DatabaseClient,
   storage: MediaStorage = projectMediaStorage,
+  sendNotification: typeof sendPushNotification = sendPushNotification,
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
-  router.use(createShopDeliveryRouter(database));
+  router.use(createShopDeliveryRouter(database, sendNotification));
 
   router.get("/shop/products", async (_request, response) => {
     const products = await database.repairCatalogItem.findMany({
@@ -341,6 +344,16 @@ export const createShopRouter = (
         });
       });
 
+      await sendShopNotificationToAdministrators(
+        database,
+        {
+          title: "Новый заказ в магазине",
+          body: "Поступил новый заказ. Откройте приложение, чтобы посмотреть его детали.",
+          data: { type: "shop_order_created", orderId: order.id },
+        },
+        sendNotification,
+      );
+
       response.status(201).json({ order });
     },
   );
@@ -381,6 +394,7 @@ export const createShopRouter = (
     requireRoles("ADMIN"),
     validateRequest({ params: orderIdParams, body: orderStatusBody }),
     async (_request, response) => {
+      const actor = getAuthenticatedUser(response);
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
       const { status } = bodyOf<z.infer<typeof orderStatusBody>>(response);
       const order = await database.$transaction(async (transaction) => {
@@ -539,6 +553,21 @@ export const createShopRouter = (
           include: adminOrderInclude,
         });
       });
+      const statusLabels = {
+        CONFIRMED: "подтверждён",
+        COMPLETED: "выдан клиенту",
+        CANCELLED: "отменён",
+      } as const;
+      await sendShopNotificationToAdministrators(
+        database,
+        {
+          title: "Заказ в магазине обновлён",
+          body: `Статус заказа ${statusLabels[status]}.`,
+          data: { type: "shop_order_updated", orderId: order.id },
+        },
+        sendNotification,
+        actor.id,
+      );
       response.json({ order });
     },
   );

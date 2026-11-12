@@ -2,9 +2,56 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  filterAdminAssistantPushRecipients,
   getChatMessageRecipientIds,
   getRepairOrderNotificationRecipientIds,
 } from "../src/features/notifications/push-notifications.js";
+
+test("admin assistants receive store order and delivery-response notifications only", () => {
+  const assistantId = "assistant";
+  const recipients = ["administrator", assistantId, assistantId];
+
+  assert.deepEqual(
+    filterAdminAssistantPushRecipients(
+      recipients,
+      [assistantId],
+      "shop_order_created",
+    ),
+    ["administrator", assistantId],
+  );
+  assert.deepEqual(
+    filterAdminAssistantPushRecipients(
+      recipients,
+      [assistantId],
+      "shop_delivery_response",
+    ),
+    ["administrator", assistantId],
+  );
+  assert.deepEqual(
+    filterAdminAssistantPushRecipients(
+      recipients,
+      [assistantId],
+      "shop_order_updated",
+    ),
+    ["administrator", assistantId],
+  );
+  assert.deepEqual(
+    filterAdminAssistantPushRecipients(
+      recipients,
+      [assistantId],
+      "repair_order_update",
+    ),
+    ["administrator"],
+  );
+  assert.deepEqual(
+    filterAdminAssistantPushRecipients(
+      recipients,
+      [assistantId],
+      "support_chat_message",
+    ),
+    ["administrator"],
+  );
+});
 
 test("chat push targets chat participants and all administrators for a new customer message", () => {
   assert.deepEqual(

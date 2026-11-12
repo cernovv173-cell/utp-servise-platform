@@ -95,9 +95,8 @@ test("customer order snapshots server prices and waits for admin confirmation", 
 });
 
 test("ready handmade goods use the store cart and stock is reserved and restored", async (t) => {
-  const { craftItems, request } = await createShopRoutesHarness((callback) =>
-    t.after(callback),
-  );
+  const { craftItems, request, sentNotifications } =
+    await createShopRoutesHarness((callback) => t.after(callback));
   const created = await request(
     "/shop/orders",
     customerToken,
@@ -112,6 +111,16 @@ test("ready handmade goods use the store cart and stock is reserved and restored
   assert.equal(created.status, 201);
   const createdBody = (await created.json()) as { order: Record<string, any> };
   assert.equal(createdBody.order.totalRub, 1050);
+  assert.equal(sentNotifications.length, 1);
+  assert.deepEqual(sentNotifications[0]?.recipientIds, [
+    shopTestIds.adminId,
+    shopTestIds.assistantId,
+  ]);
+  assert.equal(
+    sentNotifications[0]?.notification.data.type,
+    "shop_order_created",
+  );
+  assert.equal(sentNotifications[0]?.notification.data.orderId, orderId);
   assert.ok(
     createdBody.order.items.some(
       (item: Record<string, any>) => item.craftItemId === craftItemId,
@@ -178,9 +187,8 @@ test("a customer cannot order spare parts, unavailable products, or override pri
 });
 
 test("admin confirmation reserves tracked stock, cancellation restores it, and completion is terminal", async (t) => {
-  const { products, request } = await createShopRoutesHarness((callback) =>
-    t.after(callback),
-  );
+  const { products, request, sentNotifications } =
+    await createShopRoutesHarness((callback) => t.after(callback));
   await request(
     "/shop/orders",
     customerToken,
@@ -194,6 +202,13 @@ test("admin confirmation reserves tracked stock, cancellation restores it, and c
     "PATCH",
   );
   assert.equal(confirmed.status, 200);
+  assert.equal(
+    sentNotifications[1]?.notification.data.type,
+    "shop_order_updated",
+  );
+  assert.deepEqual(sentNotifications[1]?.recipientIds, [
+    shopTestIds.assistantId,
+  ]);
   assert.equal(products.find(({ id }) => id === productId)?.stockQuantity, 3);
 
   const cancelled = await request(

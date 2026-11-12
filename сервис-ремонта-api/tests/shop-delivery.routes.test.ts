@@ -67,9 +67,8 @@ test("courier orders require an approved pilot city and a delivery address", asy
 });
 
 test("customer approval is required before admin can reserve courier-order stock", async (t) => {
-  const { products, request } = await createShopRoutesHarness((callback) =>
-    t.after(callback),
-  );
+  const { products, request, sentNotifications } =
+    await createShopRoutesHarness((callback) => t.after(callback));
   await request(
     "/shop/orders",
     customerToken,
@@ -106,6 +105,13 @@ test("customer approval is required before admin can reserve courier-order stock
   assert.equal(offerBody.order.deliveryFeeRub, 350);
   assert.equal(offerBody.order.deliveryWindow, "Завтра, 14:00–18:00");
   assert.equal(offerBody.order.deliveryOfferAcceptedAt, null);
+  assert.equal(
+    sentNotifications[1]?.notification.data.type,
+    "shop_order_updated",
+  );
+  assert.deepEqual(sentNotifications[1]?.recipientIds, [
+    shopTestIds.assistantId,
+  ]);
 
   const adminCannotRespond = await request(
     `/shop/orders/${shopTestIds.orderId}/delivery-response`,
@@ -126,6 +132,17 @@ test("customer approval is required before admin can reserve courier-order stock
     order: Record<string, any>;
   };
   assert.ok(acceptedBody.order.deliveryOfferAcceptedAt);
+  const deliveryResponseNotification = sentNotifications.find(
+    ({ notification }) => notification.data.type === "shop_delivery_response",
+  );
+  assert.equal(
+    deliveryResponseNotification?.notification.data.orderId,
+    shopTestIds.orderId,
+  );
+  assert.deepEqual(deliveryResponseNotification?.recipientIds, [
+    shopTestIds.adminId,
+    shopTestIds.assistantId,
+  ]);
   assert.equal(
     products.find(({ id }) => id === shopTestIds.productId)?.stockQuantity,
     5,
@@ -171,9 +188,8 @@ test("customer approval is required before admin can reserve courier-order stock
 });
 
 test("customer declining a delivery offer cancels it without reserving stock", async (t) => {
-  const { products, request } = await createShopRoutesHarness((callback) =>
-    t.after(callback),
-  );
+  const { products, request, sentNotifications } =
+    await createShopRoutesHarness((callback) => t.after(callback));
   await request(
     "/shop/orders",
     customerToken,
@@ -203,6 +219,11 @@ test("customer declining a delivery offer cancels it without reserving stock", a
     order: Record<string, any>;
   };
   assert.equal(declinedBody.order.status, "CANCELLED");
+  assert.ok(
+    sentNotifications.some(
+      ({ notification }) => notification.data.type === "shop_delivery_response",
+    ),
+  );
   assert.equal(
     products.find(({ id }) => id === shopTestIds.productId)?.stockQuantity,
     5,
