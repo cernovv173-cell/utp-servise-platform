@@ -2,7 +2,6 @@ package ru.utp.servise
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,22 +9,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.AdminChatInboxItem
+import ru.utp.servise.data.AdminQuickActionPreferences
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
@@ -63,6 +61,7 @@ import ru.utp.servise.registerAdminCampaignRoutes
 import ru.utp.servise.registerCustomerHelpRoutes
 import ru.utp.servise.registerTechnicianChatRoute
 import ru.utp.servise.ui.AdminChatInboxScreen
+import ru.utp.servise.ui.AdminQuickActionSettings
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminOrderCreationScreen
 import ru.utp.servise.ui.AdminShopOrdersScreen
@@ -78,6 +77,7 @@ import ru.utp.servise.ui.CustomerOffersScreen
 import ru.utp.servise.ui.CustomerDevicesScreen
 import ru.utp.servise.ui.CustomerManagementScreen
 import ru.utp.servise.ui.LoyaltyScreen
+import ru.utp.servise.ui.MovableAdminQuickAction
 import ru.utp.servise.ui.NewsFeedScreen
 import ru.utp.servise.ui.NewsManagementScreen
 import ru.utp.servise.ui.ProfileScreen
@@ -96,7 +96,6 @@ import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.TechnicianProfileScreen
 import ru.utp.servise.ui.SalaryScreen
 import ru.utp.servise.ui.SeasonalThemeCard
-import ru.utp.servise.ui.UtpBlue
 import ru.utp.servise.ui.WorkspaceSectionsScreen
 
 @Composable
@@ -140,6 +139,15 @@ internal fun AuthenticatedWorkspace(
 ) {
     val scope = rememberCoroutineScope()
     val appContext = LocalContext.current
+    val quickActionPreferences = remember(appContext, user.id) {
+        AdminQuickActionPreferences(appContext, user.id)
+    }
+    var quickActionVisible by remember(quickActionPreferences) {
+        mutableStateOf(quickActionPreferences.isVisible())
+    }
+    var quickActionPosition by remember(quickActionPreferences) {
+        mutableStateOf(quickActionPreferences.position())
+    }
     val onRefreshChat: (String) -> Unit = { orderId ->
         scope.launch {
             runCatching { withContext(Dispatchers.IO) { ApiClient.orderChat(token, orderId) } }
@@ -169,24 +177,6 @@ internal fun AuthenticatedWorkspace(
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                if (user.role == "ADMIN" && currentRoute != "admin/new-order") {
-                    ExtendedFloatingActionButton(
-                        onClick = { navController.navigate("admin/new-order") { launchSingleTop = true } },
-                        icon = { Text("⏻", fontSize = 20.sp) },
-                        text = {
-                            Column {
-                                Text("СТАРТ / СТОП", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-                                Text("Создать заявку", fontWeight = FontWeight.SemiBold)
-                            }
-                        },
-                        containerColor = UtpBlue,
-                        contentColor = Color.White,
-                    )
-                }
-            }
-        },
         bottomBar = {
             if (activeBottomRoute != null) {
                 NavigationBar {
@@ -208,20 +198,21 @@ internal fun AuthenticatedWorkspace(
             }
         },
     ) { insets ->
-        Column(Modifier.fillMaxSize().padding(insets)) {
-            BrandHeader()
-            if (errorMessage != null) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp)) {
-                    Text(errorMessage, Modifier.weight(1f), color = androidx.compose.material3.MaterialTheme.colorScheme.error)
-                    TextButton(onClick = onDismissError) { Text("×") }
+        Box(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().padding(insets)) {
+                BrandHeader()
+                if (errorMessage != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp)) {
+                        Text(errorMessage, Modifier.weight(1f), color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                        TextButton(onClick = onDismissError) { Text("×") }
+                    }
                 }
-            }
-            Box(Modifier.weight(1f)) {
-                NavHost(
-                    navController = navController,
-                    startDestination = destinations.first().route,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
+                Box(Modifier.weight(1f)) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = destinations.first().route,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
                     when (user.role) {
                         "CUSTOMER" -> {
                             registerCustomerHelpRoutes(
@@ -593,6 +584,18 @@ internal fun AuthenticatedWorkspace(
                                     onPasswordChanged,
                                     onLogout,
                                     onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
+                                    quickActionSettings = {
+                                        AdminQuickActionSettings(
+                                            visible = quickActionVisible,
+                                            onVisibilityChanged = { visible ->
+                                                quickActionPreferences.setVisible(visible)
+                                                quickActionVisible = visible
+                                            },
+                                            onResetPosition = {
+                                                quickActionPosition = quickActionPreferences.resetPosition()
+                                            },
+                                        )
+                                    },
                                 )
                             }
                         }
@@ -639,7 +642,19 @@ internal fun AuthenticatedWorkspace(
                             onBack = { navController.popBackStack() },
                         )
                     }
+                    }
                 }
+            }
+            if (user.role == "ADMIN" && currentRoute != "admin/new-order" && quickActionVisible) {
+                MovableAdminQuickAction(
+                    position = quickActionPosition,
+                    onPositionChanged = { position ->
+                        quickActionPosition = position
+                        quickActionPreferences.savePosition(position)
+                    },
+                    onClick = { navController.navigate("admin/new-order") { launchSingleTop = true } },
+                    modifier = Modifier.fillMaxSize().padding(insets).padding(16.dp),
+                )
             }
         }
     }
