@@ -254,6 +254,7 @@ internal fun AuthenticatedWorkspace(
                                     onOpenOffers = {
                                         navController.navigate("customer/offers") { launchSingleTop = true }
                                     },
+                                    seasonalTheme = seasonalTheme.activeSeason,
                                 )
                             }
                             composable("customer/shop") {

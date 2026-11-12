@@ -78,6 +78,7 @@ fun CustomerHomeScreen(
     onCampaignNavigate: (String) -> Unit,
     onContactAdministrator: () -> Unit,
     onOpenOffers: () -> Unit,
+    seasonalTheme: String = "NONE",
 ) {
     var companyPhone by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
@@ -88,6 +89,10 @@ fun CustomerHomeScreen(
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Text("Привет, ${user.displayName.substringBefore(' ')}", color = UtpBlue, fontSize = 12.sp)
+        }
+        if (seasonalTheme == "WINTER") {
+            Spacer(Modifier.height(12.dp))
+            WinterSeasonalBanner()
         }
         Spacer(Modifier.height(18.dp))
         Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {

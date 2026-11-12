@@ -372,6 +372,7 @@ private fun UtpServiseApp(
                 onAuthenticated = onAuthenticated,
                 onBusy = { busy = it },
                 onError = { errorMessage = it },
+                seasonalTheme = seasonalTheme.activeSeason,
             )
             user!!.mustChangePassword -> ChangeTemporaryPasswordScreen(
                 onChange = { oldPassword, newPassword, onDone ->

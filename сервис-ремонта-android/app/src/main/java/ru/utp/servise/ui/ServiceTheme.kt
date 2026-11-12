@@ -32,7 +32,7 @@ private fun seasonalColorScheme(base: ColorScheme, season: String, dark: Boolean
         "SPRING" -> if (dark) Color(0xFF83E6A0) else Color(0xFF16803C)
         "SUMMER" -> if (dark) Color(0xFFFFD166) else Color(0xFFA45C00)
         "AUTUMN" -> if (dark) Color(0xFFFFB382) else Color(0xFFA54116)
-        "WINTER" -> if (dark) Color(0xFF9BE8F8) else Color(0xFF137795)
+        "WINTER" -> if (dark) Color(0xFFFFBF72) else Color(0xFF9B5A24)
         else -> return base
     }
     val onAccent = if (dark) Color(0xFF102030) else Color.White
@@ -40,12 +40,14 @@ private fun seasonalColorScheme(base: ColorScheme, season: String, dark: Boolean
         "SPRING" -> if (dark) Color(0xFF14532D) else Color(0xFFDFF6E5)
         "SUMMER" -> if (dark) Color(0xFF693F00) else Color(0xFFFFF0C2)
         "AUTUMN" -> if (dark) Color(0xFF713414) else Color(0xFFFFE5D2)
+        "WINTER" -> if (dark) Color(0xFF5A3520) else Color(0xFFFFE8CE)
         else -> if (dark) Color(0xFF124A5B) else Color(0xFFDCEFFA)
     }
     val onAccentContainer = when (season) {
         "SPRING" -> if (dark) Color(0xFFD2FADF) else Color(0xFF0F4625)
         "SUMMER" -> if (dark) Color(0xFFFFE9B0) else Color(0xFF5B2E00)
         "AUTUMN" -> if (dark) Color(0xFFFFDCC6) else Color(0xFF4F1D05)
+        "WINTER" -> if (dark) Color(0xFFFFE2C2) else Color(0xFF5A351A)
         else -> if (dark) Color(0xFFC7F3FC) else Color(0xFF103D51)
     }
     return base.copy(

@@ -37,7 +37,7 @@ private val seasonOptions = listOf(
     SeasonOption("SPRING", "Весна", "Свежие краски и весенние лепестки."),
     SeasonOption("SUMMER", "Лето", "Тёплая палитра и солнечные блики."),
     SeasonOption("AUTUMN", "Осень", "Осенние листья и мягкий дождь."),
-    SeasonOption("WINTER", "Зима", "Зимний фон и падающий снег."),
+    SeasonOption("WINTER", "Зима", "Праздничные главные Web и Android; лёгкий снег только на сайте."),
 )
 
 @Composable

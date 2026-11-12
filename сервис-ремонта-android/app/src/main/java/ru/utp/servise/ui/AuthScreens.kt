@@ -49,7 +49,12 @@ import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.phoneNumberValidationError
 
 @Composable
-fun AuthNavigation(onAuthenticated: (String, AppUser) -> Unit, onBusy: (Boolean) -> Unit, onError: (String?) -> Unit) {
+fun AuthNavigation(
+    onAuthenticated: (String, AppUser) -> Unit,
+    onBusy: (Boolean) -> Unit,
+    onError: (String?) -> Unit,
+    seasonalTheme: String = "NONE",
+) {
     val controller = androidx.navigation.compose.rememberNavController()
     NavHost(controller, startDestination = "entry") {
         composable("entry") {
@@ -59,6 +64,7 @@ fun AuthNavigation(onAuthenticated: (String, AppUser) -> Unit, onBusy: (Boolean)
                 onTechnicianLogin = { controller.navigate("login/TECHNICIAN") },
                 onProcurementLogin = { controller.navigate("login/PROCUREMENT") },
                 onAdminLogin = { controller.navigate("login/ADMIN") },
+                seasonalTheme = seasonalTheme,
             )
         }
         composable("login/{portal}") { entry ->

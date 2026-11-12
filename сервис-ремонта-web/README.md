@@ -339,16 +339,19 @@ deleted.
 
 The root layout reads the public `GET /seasonal-theme` state and applies the active palette across
 Web pages; it refreshes the server state once per minute. When a theme is active, its computer-repair
-illustration fills a shared, fixed background behind every route, including sign-in, while seasonal
-particles move across the viewport: spring petals, summer light glints, autumn leaves, or winter
-snow. During the autumn theme, a 30-minute rain effect runs once per hour alongside the leaves.
+illustration remains a faint shared background behind every route, including sign-in. Spring petals,
+summer light glints and autumn leaves retain their seasonal motion; autumn rain runs for 30 minutes
+once per hour. Winter uses a warm, quiet palette, a New Year home banner with the service raccoon,
+snowman and tree, and a few slow snowflakes only on the home route. Motion is disabled when the visitor
+requests reduced motion. The banner appears on guest and signed-in home pages.
 The illustrations feature laptops, computer parts, and repair tools, not household appliances.
-Motion is disabled when the visitor requests reduced motion.
 Administrators manage seasonal appearance from the separate “Оформление” tab in the role navigation.
 Four switches enable spring, summer, autumn, or winter at any time; enabling one replaces the previous
 choice, and switching it off disables the seasonal theme. The selection is saved on the server and
 applies across Web and Android until the administrator changes it. No calendar season is calculated,
-displayed, or used to determine the active theme.
+displayed, or used to determine the active theme. A Web preview can be opened with
+`?winter-preview=1` to show winter styling without changing the shared server setting; `?winter-preview=0`
+clears that preview override for the current browser session.
 
 Signed-in customers receive in-app alerts for newly published news and promotions/giveaways, plus
 their repair reaching `READY_FOR_PICKUP` or `COMPLETED`. The customer header

@@ -50,6 +50,7 @@ fun PublicHomeScreen(
     onTechnicianLogin: () -> Unit,
     onProcurementLogin: () -> Unit,
     onAdminLogin: () -> Unit,
+    seasonalTheme: String = "NONE",
 ) {
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
     var review by remember { mutableStateOf<PublicReview?>(null) }
@@ -87,6 +88,8 @@ fun PublicHomeScreen(
                 Text("Сервис ремонта техники", color = UtpMuted, fontSize = 13.sp)
             }
         }
+
+        if (seasonalTheme == "WINTER") WinterSeasonalBanner()
 
         Card(colors = CardDefaults.cardColors(containerColor = UtpBlue), shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

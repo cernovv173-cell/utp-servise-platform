@@ -34,7 +34,12 @@ const seasonOptions: {
     description: "Осенние листья и мягкий дождь.",
     icon: CloudSun,
   },
-  { season: "WINTER", label: "Зима", description: "Зимний фон и падающий снег.", icon: Snowflake },
+  {
+    season: "WINTER",
+    label: "Зима",
+    description: "Праздничные главные Web и Android; лёгкий снег только на сайте.",
+    icon: Snowflake,
+  },
 ];
 
 export const SeasonalThemeControl = ({ token }: { token: string }) => {

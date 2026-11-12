@@ -23,6 +23,8 @@ import { PageTurn } from "@/features/public/page-turn";
 import { RepairScenes } from "@/features/public/repair-scenes";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 import { TypewriterText } from "@/features/public/typewriter-text";
+import { getDisplayedSeason, useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
+import { WinterHomeBanner } from "@/features/seasonal/winter-home-banner";
 
 import { getCompany } from "@/lib/api";
 
@@ -53,6 +55,7 @@ const steps = [
 ];
 
 export const PublicHome = () => {
+  const seasonalTheme = useSeasonalTheme();
   const companyQuery = useQuery({
     queryKey: ["public-company"],
     queryFn: ({ signal }) => getCompany(signal),
@@ -60,6 +63,7 @@ export const PublicHome = () => {
   const company = companyQuery.data?.company;
   const services = (company?.services.length ? company.services : defaultServices).slice(0, 3);
   const serviceName = company?.name ?? "ЕНОТ СЕРВИС";
+  const isWinter = getDisplayedSeason(seasonalTheme.data?.activeSeason) === "WINTER";
 
   return (
     <PublicSiteShell>
@@ -110,33 +114,37 @@ export const PublicHome = () => {
               </div>
             </Reveal>
             <Reveal className="min-w-0" delay={0.12}>
-              <div className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-7 text-white shadow-[0_24px_70px_rgba(37,99,235,0.18)] sm:p-9">
-                <div className="absolute -top-16 -right-16 size-56 rounded-full border border-white/20" />
-                <div className="relative">
-                  <div className="grid size-14 place-items-center rounded-2xl bg-white/15 text-2xl backdrop-blur">
-                    <RaccoonIcon motion="bounce" />
-                  </div>
-                  <h2 className="mt-10 max-w-md text-3xl leading-tight font-semibold">
-                    Вы знаете, что происходит с вашей техникой.
-                  </h2>
-                  <div className="mt-7 grid gap-3 text-sm text-blue-50">
-                    {[
-                      "Диагностика до начала работ",
-                      "Связь с сервисом в аккаунте",
-                      "Чек и гарантия после ремонта",
-                    ].map((item) => (
-                      <p key={item} className="flex items-center gap-2">
-                        <CheckCircle2
-                          size={17}
-                          className="shrink-0 text-cyan-200"
-                          aria-hidden="true"
-                        />
-                        {item}
-                      </p>
-                    ))}
+              {isWinter ? (
+                <WinterHomeBanner className="h-full min-h-[380px]" />
+              ) : (
+                <div className="relative overflow-hidden rounded-[2rem] border border-blue-100 bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-7 text-white shadow-[0_24px_70px_rgba(37,99,235,0.18)] sm:p-9">
+                  <div className="absolute -top-16 -right-16 size-56 rounded-full border border-white/20" />
+                  <div className="relative">
+                    <div className="grid size-14 place-items-center rounded-2xl bg-white/15 text-2xl backdrop-blur">
+                      <RaccoonIcon motion="bounce" />
+                    </div>
+                    <h2 className="mt-10 max-w-md text-3xl leading-tight font-semibold">
+                      Вы знаете, что происходит с вашей техникой.
+                    </h2>
+                    <div className="mt-7 grid gap-3 text-sm text-blue-50">
+                      {[
+                        "Диагностика до начала работ",
+                        "Связь с сервисом в аккаунте",
+                        "Чек и гарантия после ремонта",
+                      ].map((item) => (
+                        <p key={item} className="flex items-center gap-2">
+                          <CheckCircle2
+                            size={17}
+                            className="shrink-0 text-cyan-200"
+                            aria-hidden="true"
+                          />
+                          {item}
+                        </p>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </Reveal>
           </div>
         </section>

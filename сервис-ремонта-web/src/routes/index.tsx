@@ -15,12 +15,16 @@ import { getNewsWithNextTechnologyFact } from "@/features/news/technology-fact-q
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { PublicHome } from "@/features/public/public-home";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
+import { getDisplayedSeason, useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
+import { WinterHomeBanner } from "@/features/seasonal/winter-home-banner";
 
 import { getBanners, getCompany, getOrders } from "@/lib/api";
 import { createPageHead } from "@/lib/seo";
 
 const HomePage = () => {
   const { ready, token, user } = useAuth();
+  const seasonalTheme = useSeasonalTheme();
+  const isWinter = getDisplayedSeason(seasonalTheme.data?.activeSeason) === "WINTER";
   const orders = useQuery({
     queryKey: ["orders", token],
     queryFn: ({ signal }) => getOrders(token!, signal),
@@ -63,6 +67,7 @@ const HomePage = () => {
         title={`Здравствуйте, ${user?.displayName ?? ""}!`}
         description="Рады видеть вас в сервисе ремонта техники."
       />
+      {isWinter && <WinterHomeBanner className="mb-6 min-h-[220px]" />}
       <SectionCard className="mb-6 overflow-hidden border-0 bg-gradient-to-r from-blue-600 to-sky-500 text-white">
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div>

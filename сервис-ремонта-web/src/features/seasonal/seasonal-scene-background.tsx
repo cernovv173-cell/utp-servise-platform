@@ -61,21 +61,21 @@ const accentPositions = [
   { left: "52%", top: "8%", delay: 0.8, size: 20 },
 ];
 
-const snowPositions = Array.from({ length: 110 }, (_, index) => ({
+const snowPositions = Array.from({ length: 14 }, (_, index) => ({
   left: `${(index * 47 + 11) % 100}%`,
   delay: -((index * 13) % 24),
-  duration: 5 + ((index * 7) % 11),
-  size: 2 + ((index * 17) % 6),
-  drift: 24 + ((index * 19) % 115),
-  opacity: 0.42 + ((index * 23) % 50) / 100,
+  duration: 18 + ((index * 7) % 13),
+  size: 2 + ((index * 17) % 3),
+  drift: 12 + ((index * 19) % 44),
+  opacity: 0.2 + ((index * 23) % 18) / 100,
 }));
 
-const Snowstorm = ({ isNavigating }: { isNavigating: boolean }) => (
+const Snowfall = () => (
   <div className="absolute inset-0 overflow-hidden">
     {snowPositions.map((flake, index) => (
       <span
         key={`snow-${index}`}
-        className={`seasonal-snowflake absolute -top-3 block rounded-full ${isNavigating ? "seasonal-blizzard-flake" : "seasonal-snow-fall"}`}
+        className="seasonal-snowflake seasonal-snow-fall absolute -top-3 block rounded-full"
         style={
           {
             left: flake.left,
@@ -83,7 +83,7 @@ const Snowstorm = ({ isNavigating }: { isNavigating: boolean }) => (
             height: `${flake.size}px`,
             opacity: flake.opacity,
             animationDelay: `${flake.delay}s`,
-            animationDuration: `${flake.duration * (isNavigating ? 0.48 : 1)}s`,
+            animationDuration: `${flake.duration}s`,
             "--snow-drift": `${flake.drift}px`,
           } as React.CSSProperties
         }
@@ -129,12 +129,14 @@ const SeasonalRain = () => {
 };
 
 export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoice }) => {
-  const isNavigating = useRouterState({ select: (state) => state.isLoading });
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isHome = pathname === "/";
 
   if (season === "NONE") return null;
 
   const ParticleIcon = particleIcons[season];
   const visibleParticles = seasonalParticlePositions[season];
+  const isWinter = season === "WINTER";
   const particleMotion =
     season === "SUMMER"
       ? "seasonal-particle seasonal-sparkle"
@@ -148,9 +150,11 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <SeasonalArtwork
         season={season}
-        className="absolute inset-0 opacity-40 transition-opacity duration-700 dark:opacity-30"
+        className={`absolute inset-0 transition-opacity duration-700 ${isWinter ? "opacity-[0.12] dark:opacity-[0.1]" : "opacity-40 dark:opacity-30"}`}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-white/25 via-white/45 to-white/60 dark:from-[#070b18]/50 dark:via-[#070b18]/60 dark:to-[#070b18]/75" />
+      <div
+        className={`absolute inset-0 bg-gradient-to-b ${isWinter ? "from-white/45 via-white/65 to-white/75 dark:from-[#070b18]/65 dark:via-[#070b18]/75 dark:to-[#070b18]/85" : "from-white/25 via-white/45 to-white/60 dark:from-[#070b18]/50 dark:via-[#070b18]/60 dark:to-[#070b18]/75"}`}
+      />
       <div
         className={`seasonal-glow-pulse absolute top-1/4 -left-24 size-72 rounded-full bg-[var(--season-glow)] blur-3xl ${season === "SPRING" ? "seasonal-spring-glow" : ""}`}
       />
@@ -162,43 +166,45 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
           <div className="seasonal-sun-glint seasonal-sun-glint-three absolute bottom-[14%] left-[55%] size-28 rounded-full" />
         </>
       ) : null}
-      {visibleParticles.map((position, index) => (
-        <ParticleIcon
-          key={`${season}-${index}`}
-          aria-hidden="true"
-          size={
-            season === "AUTUMN"
-              ? 17 + (index % 4) * 4
-              : season === "SPRING"
-                ? 18 + (index % 4) * 5
-                : 16 + (index % 3) * 5
-          }
-          className={`absolute text-[var(--season-accent)] opacity-75 dark:opacity-80 ${particleMotion} ${season === "SPRING" ? `seasonal-spring-color-${index % 5}` : ""}`}
-          style={{
-            left: position.left,
-            top: position.top,
-            animationDelay: `${position.delay}s`,
-            animationDuration: `${position.duration}s`,
-          }}
-        />
-      ))}
-      {accentPositions.map((position, index) => {
-        const AccentIcon = accentIcons[season][index % accentIcons[season].length];
-        return (
-          <AccentIcon
-            key={`accent-${season}-${index}`}
-            size={position.size}
-            className="seasonal-orbit absolute text-[var(--season-accent)] opacity-55 drop-shadow-sm dark:opacity-70"
+      {!isWinter &&
+        visibleParticles.map((position, index) => (
+          <ParticleIcon
+            key={`${season}-${index}`}
+            aria-hidden="true"
+            size={
+              season === "AUTUMN"
+                ? 17 + (index % 4) * 4
+                : season === "SPRING"
+                  ? 18 + (index % 4) * 5
+                  : 16 + (index % 3) * 5
+            }
+            className={`absolute text-[var(--season-accent)] opacity-75 dark:opacity-80 ${particleMotion} ${season === "SPRING" ? `seasonal-spring-color-${index % 5}` : ""}`}
             style={{
               left: position.left,
               top: position.top,
               animationDelay: `${position.delay}s`,
+              animationDuration: `${position.duration}s`,
             }}
           />
-        );
-      })}
+        ))}
+      {!isWinter &&
+        accentPositions.map((position, index) => {
+          const AccentIcon = accentIcons[season][index % accentIcons[season].length];
+          return (
+            <AccentIcon
+              key={`accent-${season}-${index}`}
+              size={position.size}
+              className="seasonal-orbit absolute text-[var(--season-accent)] opacity-55 drop-shadow-sm dark:opacity-70"
+              style={{
+                left: position.left,
+                top: position.top,
+                animationDelay: `${position.delay}s`,
+              }}
+            />
+          );
+        })}
       {season === "AUTUMN" && <SeasonalRain />}
-      {season === "WINTER" && <Snowstorm isNavigating={isNavigating} />}
+      {isWinter && isHome && <Snowfall />}
     </div>
   );
 };

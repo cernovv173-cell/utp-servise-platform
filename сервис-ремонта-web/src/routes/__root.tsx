@@ -5,30 +5,38 @@ import { BrandLogo } from "@/components/brand-logo";
 
 import { AuthProvider } from "@/features/auth/auth-provider";
 import { SeasonalSceneBackground } from "@/features/seasonal/seasonal-scene-background";
-import { useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
+import {
+  getDisplayedSeason,
+  persistWinterPreviewSetting,
+  useSeasonalTheme,
+} from "@/features/seasonal/use-seasonal-theme";
 
 import { DEFAULT_DESCRIPTION, DEFAULT_SOCIAL_IMAGE, DEFAULT_TITLE, SITE_NAME } from "@/lib/seo";
 
 const RootComponent = () => {
   const seasonalTheme = useSeasonalTheme();
+  const activeSeason = getDisplayedSeason(seasonalTheme.data?.activeSeason);
 
   useEffect(() => {
     document.querySelectorAll("[data-static-seo]").forEach((element) => element.remove());
   }, []);
 
   useEffect(() => {
-    const activeSeason = seasonalTheme.data?.activeSeason;
+    persistWinterPreviewSetting();
+  }, []);
+
+  useEffect(() => {
     if (!activeSeason || activeSeason === "NONE") {
       delete document.documentElement.dataset.season;
       return;
     }
     document.documentElement.dataset.season = activeSeason.toLowerCase();
-  }, [seasonalTheme.data?.activeSeason]);
+  }, [activeSeason]);
 
   return (
     <div className="relative isolate min-h-dvh">
       <HeadContent />
-      <SeasonalSceneBackground season={seasonalTheme.data?.activeSeason ?? "NONE"} />
+      <SeasonalSceneBackground season={activeSeason} />
       <AuthProvider>
         <div className="relative z-10">
           <Outlet />

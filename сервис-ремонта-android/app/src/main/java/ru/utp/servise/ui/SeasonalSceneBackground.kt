@@ -66,7 +66,15 @@ fun SeasonalSceneBackground(season: String, dark: Boolean, modifier: Modifier = 
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .graphicsLayer(alpha = if (dark) 0.58f else 0.72f),
+                .graphicsLayer(
+                    alpha = if (season == "WINTER") {
+                        if (dark) 0.32f else 0.24f
+                    } else if (dark) {
+                        0.58f
+                    } else {
+                        0.72f
+                    },
+                ),
         )
         Box(
             modifier = Modifier
@@ -80,7 +88,7 @@ fun SeasonalSceneBackground(season: String, dark: Boolean, modifier: Modifier = 
                     ),
                 ),
         )
-        SeasonalParticleField(season, Modifier.fillMaxSize())
+        if (season != "WINTER") SeasonalParticleField(season, Modifier.fillMaxSize())
         if (season == "AUTUMN") {
             AutumnRainSchedule()
         }
