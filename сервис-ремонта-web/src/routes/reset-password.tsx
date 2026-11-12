@@ -42,7 +42,7 @@ const ResetPasswordPage = () => {
         await confirmPasswordReset(token, password);
       } else {
         await confirmPasswordResetWithCode(
-          String(values.get("email")).trim(),
+          String(values.get("identifier")).trim(),
           String(values.get("code")).trim(),
           password,
         );
@@ -80,20 +80,20 @@ const ResetPasswordPage = () => {
             <p className="mt-2 text-sm leading-6 text-slate-500">
               {token
                 ? "Старая ссылка действует 30 минут и используется один раз."
-                : "Введите адрес аккаунта и шестизначный код из письма или MAX. Код действует 30 минут; после пяти неверных попыток запросите новый."}{" "}
+                : "Введите почту или логин аккаунта и шестизначный код из письма или МАКС. Код действует 30 минут; после пяти неверных попыток запросите новый."}{" "}
               Придумайте пароль длиной не менее 8 символов.
             </p>
             <form onSubmit={submit} className="mt-6 grid gap-4">
               {!token && (
                 <>
                   <label className="grid gap-1.5 text-sm font-medium">
-                    Электронная почта аккаунта
+                    Электронная почта или логин
                     <input
                       required
-                      type="email"
-                      name="email"
+                      type="text"
+                      name="identifier"
                       maxLength={320}
-                      autoComplete="email"
+                      autoComplete="username"
                       className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
                     />
                   </label>
@@ -112,7 +112,7 @@ const ResetPasswordPage = () => {
                       className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal tracking-[0.3em] outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-950"
                     />
                     <span id="reset-code-help" className="text-xs font-normal text-slate-500">
-                      Код отправлен на привязанные к аккаунту каналы.
+                      Код отправлен на привязанные к аккаунту каналы связи.
                     </span>
                   </label>
                 </>

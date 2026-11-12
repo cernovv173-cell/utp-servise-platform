@@ -28,11 +28,13 @@ new password before submitting.
 
 Password recovery is available through `POST /auth/password-reset/request` and
 `POST /auth/password-reset/confirm`. Requests always return the same response to avoid revealing
-whether an address is registered. For active accounts the API sends a six-digit, single-use code and
+whether an account exists. The account identifier can be an email address or generated login; the
+legacy `email` request field remains accepted for existing clients. For active accounts the API sends a six-digit, single-use code and
 a link to the web `/reset-password` screen by email, and also through MAX when the customer has
-explicitly linked a MAX account. The code expires after 30 minutes; the API stores only its
+explicitly linked a MAX account. Accounts without email can recover through a linked MAX account.
+The same email or login is used when confirming the code. The code expires after 30 minutes; the API stores only its
 HMAC-SHA-256 digest, keyed by the server-only `PASSWORD_RESET_CODE_SECRET`, and accepts at most five
-incorrect code attempts. Password-reset requests are limited to five per normalized email address
+incorrect code attempts. Password-reset requests are limited to five per normalized identifier
 per 15 minutes, not per proxy IP, so customers sharing an ingress do not block one another. The
 confirm endpoint continues to accept unexpired legacy link tokens already sent before code recovery
 was introduced. Completing a reset sets an 8-character-minimum password, clears the

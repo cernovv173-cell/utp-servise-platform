@@ -60,8 +60,8 @@ object ApiClient {
         }
     }
 
-    fun requestPasswordReset(email: String) {
-        request("POST", "/auth/password-reset/request", body = JSONObject().put("email", email))
+    fun requestPasswordReset(identifier: String) {
+        request("POST", "/auth/password-reset/request", body = JSONObject().put("identifier", identifier))
     }
 
     fun register(

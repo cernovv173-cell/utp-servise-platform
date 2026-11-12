@@ -848,10 +848,10 @@ export const pollMaxLoginRequest = (pollToken: string) =>
     body: JSON.stringify({ pollToken }),
   });
 
-export const requestPasswordReset = (email: string) =>
+export const requestPasswordReset = (identifier: string) =>
   apiRequest<{ message: string }>("/auth/password-reset/request", null, {
     method: "POST",
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ identifier }),
   });
 
 export const confirmPasswordReset = (token: string, newPassword: string) =>
@@ -860,10 +860,14 @@ export const confirmPasswordReset = (token: string, newPassword: string) =>
     body: JSON.stringify({ token, newPassword }),
   });
 
-export const confirmPasswordResetWithCode = (email: string, code: string, newPassword: string) =>
+export const confirmPasswordResetWithCode = (
+  identifier: string,
+  code: string,
+  newPassword: string,
+) =>
   apiRequest<{ message: string }>("/auth/password-reset/confirm", null, {
     method: "POST",
-    body: JSON.stringify({ email, code, newPassword }),
+    body: JSON.stringify({ identifier, code, newPassword }),
   });
 
 export const registerRequest = (

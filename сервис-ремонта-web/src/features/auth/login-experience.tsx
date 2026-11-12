@@ -244,7 +244,7 @@ export const LoginExperience = ({
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             {recovering
-              ? "Укажите адрес аккаунта — мы отправим ссылку для создания нового пароля."
+              ? "Укажите почту или логин. Код придёт на привязанную почту и/или в МАКС."
               : "Войдите, чтобы управлять заявками, получать новости и видеть историю ремонта."}
           </p>
           {!isDialog && (
@@ -284,12 +284,13 @@ export const LoginExperience = ({
               </label>
             )}
             <label className="grid gap-1.5 text-sm font-medium">
-              {registering || recovering ? "Электронная почта" : "Электронная почта или логин"}
+              {registering ? "Электронная почта" : "Электронная почта или логин"}
               <input
                 required
-                type={registering || recovering ? "email" : "text"}
+                type={registering ? "email" : "text"}
                 name="email"
-                autoComplete={registering || recovering ? "email" : "username"}
+                autoComplete={registering ? "email" : "username"}
+                maxLength={320}
                 className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500 dark:border-slate-700 dark:bg-slate-900"
               />
             </label>
@@ -373,8 +374,8 @@ export const LoginExperience = ({
                 className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200"
               >
                 <p>
-                  Если аккаунт с таким адресом существует, код отправлен на почту и в привязанный
-                  MAX.
+                  Если аккаунт с такой почтой или логином существует и у него привязан канал связи,
+                  код отправлен на почту и/или в МАКС.
                 </p>
                 <Link
                   to="/reset-password"

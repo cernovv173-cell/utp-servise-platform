@@ -135,7 +135,7 @@ private fun LoginScreen(
         BrandHeader(modifier = Modifier.padding(bottom = 14.dp), subtitle = "Вход в личный кабинет")
         Text(if (recovering) "Восстановление пароля" else "Вход: ${portal.roleLabel()}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text(
-            if (recovering) "Укажите адрес аккаунта — мы отправим ссылку для создания нового пароля."
+            if (recovering) "Укажите почту или логин. Код придёт на привязанную почту и/или в МАКС."
             else "Введите адрес электронной почты или логин и пароль.",
             color = UtpMuted,
             modifier = Modifier.padding(top = 6.dp, bottom = 22.dp),
@@ -160,7 +160,7 @@ private fun LoginScreen(
         OutlinedTextField(
             email,
             { email = it },
-            label = { Text(if (recovering) "Электронная почта" else "Электронная почта или логин") },
+            label = { Text("Электронная почта или логин") },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             shape = RoundedCornerShape(14.dp),
@@ -178,7 +178,7 @@ private fun LoginScreen(
                         withContext(Dispatchers.IO) {
                             ru.utp.servise.data.ApiClient.requestPasswordReset(email.trim())
                         }
-                        recoveryMessage = "Если аккаунт с таким адресом существует, письмо отправлено. Откройте ссылку из письма в браузере, чтобы задать новый пароль."
+                        recoveryMessage = "Если аккаунт с такой почтой или логином существует и у него привязан канал связи, код отправлен на почту и/или в МАКС. Откройте ссылку из сообщения на сайте, укажите ту же почту или логин и введите код."
                     } catch (error: Throwable) {
                         onError(error.message ?: "Не удалось отправить запрос. Проверьте подключение.")
                     } finally {
@@ -186,7 +186,7 @@ private fun LoginScreen(
                     }
                 }
             }, modifier = Modifier.fillMaxWidth().height(52.dp), enabled = email.isNotBlank(), shape = RoundedCornerShape(15.dp)) {
-                Text("Отправить ссылку")
+                Text("Отправить код")
             }
             TextButton(onClick = { recovering = false; recoveryMessage = null; onError(null) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Вернуться ко входу")

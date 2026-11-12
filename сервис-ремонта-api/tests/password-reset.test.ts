@@ -15,7 +15,8 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 test("password reset sends a one-time code to email and linked MAX", async (t) => {
   const user = {
     id: "f8d491f0-1639-4ab9-a70f-90f0a88f0001",
-    email: "customer@example.test",
+    email: "customer@example.test" as string | null,
+    login: "a2b3c4d5",
     active: true,
     maxUserId: "123456789",
     passwordHash: await hashPassword("Old-password-123"),
@@ -40,8 +41,18 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
   let nextId = 0;
   const client = {
     user: {
-      findUnique: async ({ where }: { where: { email: string } }) =>
-        where.email === user.email ? user : null,
+      findFirst: async ({
+        where,
+      }: {
+        where: { OR: { email?: string; login?: string }[] };
+      }) =>
+        where.OR.some(
+          (item) =>
+            (item.email !== undefined && item.email === user.email) ||
+            (item.login !== undefined && item.login === user.login),
+        )
+          ? user
+          : null,
       update: async ({ data }: { data: Partial<typeof user> }) => {
         Object.assign(user, data);
         return user;
@@ -175,7 +186,7 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
   assert.equal(missingAccount.status, 202);
   assert.deepEqual(await missingAccount.json(), {
     message:
-      "Если аккаунт с таким адресом существует, мы отправили инструкции по восстановлению.",
+      "Если аккаунт с такой почтой или логином существует, мы отправили инструкции по восстановлению.",
   });
   assert.equal(sentMessage, undefined);
 
@@ -188,13 +199,22 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
     assert.equal(unknown.status, 202);
   }
 
+  const legacyEmailRequest = await fetch(`${baseUrl}/request`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ email: user.email }),
+  });
+  assert.equal(legacyEmailRequest.status, 202);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.ok(sentMessage);
+
   const requested = await fetch(`${baseUrl}/request`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       origin: "https://service.example.test",
     },
-    body: JSON.stringify({ email: user.email }),
+    body: JSON.stringify({ identifier: user.login.toUpperCase() }),
   });
   assert.equal(requested.status, 202);
   assert.equal(
@@ -210,10 +230,10 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
   assert.equal(resetUrl.origin, "https://service.example.test");
   assert.equal(resetUrl.pathname, "/reset-password");
   assert.equal(resetUrl.hash, "");
-  assert.equal(maxMessages.length, 1);
-  assert.equal(maxMessages[0]?.userId, user.maxUserId);
-  assert.ok(maxMessages[0]?.text.includes(sentMessage.resetCode));
-  assert.ok(maxMessages[0]?.text.includes(sentMessage.resetUrl));
+  assert.equal(maxMessages.length, 2);
+  assert.equal(maxMessages[1]?.userId, user.maxUserId);
+  assert.ok(maxMessages[1]?.text.includes(sentMessage.resetCode));
+  assert.ok(maxMessages[1]?.text.includes(sentMessage.resetUrl));
   assert.equal(resetTokens.size, 1);
   const tokenHash = createHmac("sha256", codeSecret)
     .update(`password-reset-code:v1:${user.id}:${sentMessage.resetCode}`)
@@ -225,7 +245,7 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      email: user.email,
+      identifier: user.login,
       code: sentMessage.resetCode,
       newPassword: "short7",
     }),
@@ -249,7 +269,7 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      email: user.email,
+      identifier: user.login,
       code: sentMessage.resetCode,
       newPassword: "New-password-8",
     }),
@@ -264,7 +284,7 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      email: user.email,
+      identifier: user.login,
       code: sentMessage.resetCode,
       newPassword: "Another-password-8",
     }),
@@ -293,11 +313,38 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
   });
   assert.equal(legacyConfirm.status, 200);
 
-  for (let index = 0; index < 4; index += 1) {
+  user.email = null;
+  const maxOnlyRequest = await fetch(`${baseUrl}/request`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ identifier: user.login }),
+  });
+  assert.equal(maxOnlyRequest.status, 202);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(maxMessages.length, 3);
+  const maxOnlyCode = maxMessages[2]?.text.match(/\b\d{6}\b/u)?.[0];
+  assert.ok(maxOnlyCode);
+  const maxOnlyConfirmed = await fetch(`${baseUrl}/confirm`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      identifier: user.login,
+      code: maxOnlyCode,
+      newPassword: "Max-recovered-Password-10",
+    }),
+  });
+  assert.equal(maxOnlyConfirmed.status, 200);
+  assert.equal(
+    await verifyPassword("Max-recovered-Password-10", user.passwordHash),
+    true,
+  );
+  user.email = "customer@example.test";
+
+  for (let index = 0; index < 3; index += 1) {
     const followUp = await fetch(`${baseUrl}/request`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: user.email }),
+      body: JSON.stringify({ identifier: user.login }),
     });
     assert.equal(followUp.status, 202);
   }
@@ -306,7 +353,7 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
   const limited = await fetch(`${baseUrl}/request`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ email: user.email }),
+    body: JSON.stringify({ identifier: user.login }),
   });
   assert.equal(limited.status, 429);
   assert.ok(Number(limited.headers.get("retry-after")) > 0);
@@ -317,7 +364,7 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        email: user.email,
+        identifier: user.login,
         code: incorrectCode,
         newPassword: "Locked-password-8",
       }),
@@ -329,7 +376,7 @@ test("password reset sends a one-time code to email and linked MAX", async (t) =
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
-      email: user.email,
+      identifier: user.login,
       code: finalCode,
       newPassword: "Locked-password-8",
     }),

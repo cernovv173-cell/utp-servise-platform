@@ -130,8 +130,9 @@ bonus points cannot be redeemed against craft orders. An administrator records t
 payment method after receiving payment outside the app, and the customer then receives 5% of the
 remaining cash amount as bonus points. This is not an online-payment flow.
 
-The `/login` screen can request a password-reset email. Its one-time link opens `/reset-password`,
-where the account owner can set a new password. The API enforces the 8-character minimum and
+The `/login` screen can request a password-reset code using the account email or generated login.
+The API sends it to the account's available linked channels (email and/or MAX); the customer enters
+the same identifier and code at `/reset-password`. The API enforces the 8-character minimum and
 invalidates active sessions after a successful reset.
 
 Customers see the shared default raccoon avatar in `/account` until they upload a profile photo.

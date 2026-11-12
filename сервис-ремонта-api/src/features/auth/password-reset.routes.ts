@@ -22,37 +22,38 @@ const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1_000;
 const RATE_LIMIT_MAX_REQUESTS = 5;
 const RATE_LIMIT_MAX_KEYS = 10_000;
 const RESET_CODE_MAX_ATTEMPTS = 5;
-const resetRequestSchema = z
-  .object({
-    email: z
-      .string()
-      .trim()
-      .email()
-      .max(320)
-      .transform((v) => v.toLowerCase()),
-  })
-  .strict();
+const accountIdentifierSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(320)
+  .transform((value) => value.toLowerCase());
+const resetRequestSchema = z.union([
+  z.object({ identifier: accountIdentifierSchema }).strict(),
+  // Keep accepting the old field so already-installed clients remain compatible.
+  z.object({ email: accountIdentifierSchema }).strict(),
+]);
 const resetTokenConfirmSchema = z
   .object({
     token: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
     newPassword: z.string().min(8).max(128),
   })
   .strict();
-const resetCodeConfirmSchema = z
-  .object({
-    email: z
-      .string()
-      .trim()
-      .email()
-      .max(320)
-      .transform((value) => value.toLowerCase()),
-    code: z
-      .string()
-      .trim()
-      .regex(/^\d{6}$/),
-    newPassword: z.string().min(8).max(128),
-  })
-  .strict();
+const resetCodeConfirmFields = {
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/),
+  newPassword: z.string().min(8).max(128),
+};
+const resetCodeConfirmSchema = z.union([
+  z
+    .object({ identifier: accountIdentifierSchema, ...resetCodeConfirmFields })
+    .strict(),
+  z
+    .object({ email: accountIdentifierSchema, ...resetCodeConfirmFields })
+    .strict(),
+]);
 const resetConfirmSchema = z.union([
   resetTokenConfirmSchema,
   resetCodeConfirmSchema,
@@ -95,7 +96,7 @@ const getCodeSecret = (secret: string | undefined): string => {
 
 const genericRequestResponse = {
   message:
-    "Если аккаунт с таким адресом существует, мы отправили инструкции по восстановлению.",
+    "Если аккаунт с такой почтой или логином существует, мы отправили инструкции по восстановлению.",
 };
 
 const parseTrustedOrigins = (configured: string): string[] =>
@@ -156,10 +157,10 @@ export const createPasswordResetRouter = (
   const limits = new Map<string, { startedAt: number; count: number }>();
 
   const getRateLimitRetryAfter = (
-    email: string,
+    identifier: string,
     timestamp: number,
   ): number | null => {
-    const key = createHash("sha256").update(email).digest("hex");
+    const key = createHash("sha256").update(identifier).digest("hex");
     const current = limits.get(key);
     if (current && timestamp - current.startedAt < RATE_LIMIT_WINDOW_MS) {
       if (current.count >= RATE_LIMIT_MAX_REQUESTS) {
@@ -192,8 +193,12 @@ export const createPasswordResetRouter = (
     validateRequest({ body: resetRequestSchema }),
     async (request, response, next) => {
       const timestamp = now();
-      const { email } = bodyOf<z.infer<typeof resetRequestSchema>>(response);
-      const retryAfter = getRateLimitRetryAfter(email, timestamp);
+      const requestBody = bodyOf<z.infer<typeof resetRequestSchema>>(response);
+      const identifier =
+        "identifier" in requestBody
+          ? requestBody.identifier
+          : requestBody.email;
+      const retryAfter = getRateLimitRetryAfter(identifier, timestamp);
       if (retryAfter !== null) {
         response.setHeader("Retry-After", String(retryAfter));
         response.status(429).json({
@@ -207,8 +212,8 @@ export const createPasswordResetRouter = (
       }
 
       try {
-        const user = await database.user.findUnique({
-          where: { email },
+        const user = await database.user.findFirst({
+          where: { OR: [{ email: identifier }, { login: identifier }] },
           select: { id: true, email: true, active: true, maxUserId: true },
         });
         if (!user?.active) {
@@ -330,8 +335,9 @@ export const createPasswordResetRouter = (
         }
         changed = await applyPasswordReset(reset, body.newPassword);
       } else {
-        const user = await database.user.findUnique({
-          where: { email: body.email },
+        const identifier = "identifier" in body ? body.identifier : body.email;
+        const user = await database.user.findFirst({
+          where: { OR: [{ email: identifier }, { login: identifier }] },
           select: { id: true, active: true },
         });
         if (!user?.active) {
