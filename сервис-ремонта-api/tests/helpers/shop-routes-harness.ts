@@ -14,6 +14,8 @@ export const shopTestIds = {
   untrackedProductId: "33333333-3333-4333-8333-333333333332",
   emptyProductId: "33333333-3333-4333-8333-333333333333",
   partId: "33333333-3333-4333-8333-333333333334",
+  craftItemId: "33333333-3333-4333-8333-333333333335",
+  emptyCraftItemId: "33333333-3333-4333-8333-333333333336",
   orderId: "44444444-4444-4444-8444-444444444444",
   secondOrderId: "44444444-4444-4444-8444-444444444445",
 } as const;
@@ -80,6 +82,22 @@ export const createShopRoutesHarness = async (
       active: true,
     },
   ];
+  const craftItems = [
+    {
+      id: shopTestIds.craftItemId,
+      title: "Керамическая чашка",
+      priceRub: 400,
+      stockQuantity: 3,
+      isPublished: true,
+    },
+    {
+      id: shopTestIds.emptyCraftItemId,
+      title: "Связанный шарф",
+      priceRub: 1200,
+      stockQuantity: 0,
+      isPublished: true,
+    },
+  ];
   type TestOrder = Record<string, any>;
   const orders: TestOrder[] = [];
   let itemSequence = 0;
@@ -138,6 +156,28 @@ export const createShopRoutesHarness = async (
         product.stockQuantity +=
           (data.stockQuantity.increment ?? 0) -
           (data.stockQuantity.decrement ?? 0);
+        return { count: 1 };
+      },
+    },
+    craftItem: {
+      findMany: async ({ where }: { where: Record<string, any> }) =>
+        craftItems.filter((item) => {
+          if (where.isPublished !== undefined && item.isPublished !== where.isPublished) return false;
+          if (where.id?.in && !where.id.in.includes(item.id)) return false;
+          return true;
+        }),
+      updateMany: async ({
+        where,
+        data,
+      }: {
+        where: Record<string, any>;
+        data: { stockQuantity: { decrement?: number; increment?: number } };
+      }) => {
+        const item = craftItems.find((entry) => entry.id === where.id);
+        if (!item) return { count: 0 };
+        if (where.isPublished !== undefined && item.isPublished !== where.isPublished) return { count: 0 };
+        if (where.stockQuantity?.gte !== undefined && item.stockQuantity < where.stockQuantity.gte) return { count: 0 };
+        item.stockQuantity += (data.stockQuantity.increment ?? 0) - (data.stockQuantity.decrement ?? 0);
         return { count: 1 };
       },
     },
@@ -242,5 +282,5 @@ export const createShopRoutesHarness = async (
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
-  return { products, orders, request };
+  return { products, craftItems, orders, request };
 };

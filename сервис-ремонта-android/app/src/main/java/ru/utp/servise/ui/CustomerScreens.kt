@@ -72,7 +72,6 @@ fun CustomerHomeScreen(
     onCreateRequest: () -> Unit,
     onOrders: () -> Unit,
     onShop: () -> Unit,
-    onCrafts: () -> Unit,
     onAbout: () -> Unit,
     onNews: () -> Unit,
     onLoyalty: () -> Unit,
@@ -161,8 +160,8 @@ fun CustomerHomeScreen(
             Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("🛍", fontSize = 24.sp)
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text("Магазин товаров", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("Отдельная корзина и заказы", fontSize = 12.sp, color = UtpMuted)
+                    Text("Магазин", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text("Товары и изделия ручной работы", fontSize = 12.sp, color = UtpMuted)
                 }
                 Text("›", fontSize = 24.sp, color = UtpMuted)
             }
@@ -174,17 +173,6 @@ fun CustomerHomeScreen(
                 Column(Modifier.weight(1f).padding(start = 12.dp)) {
                     Text("Написать администратору", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text("Задать вопрос напрямую в чат", fontSize = 12.sp, color = UtpMuted)
-                }
-                Text("›", fontSize = 24.sp, color = UtpMuted)
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Card(onClick = onCrafts, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("✿", fontSize = 24.sp, color = UtpBlue)
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text("Рукоделия", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("Готовые изделия и заказные работы", fontSize = 12.sp, color = UtpMuted)
                 }
                 Text("›", fontSize = 24.sp, color = UtpMuted)
             }

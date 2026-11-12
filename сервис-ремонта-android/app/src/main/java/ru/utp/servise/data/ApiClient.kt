@@ -196,11 +196,15 @@ object ApiClient {
         deliveryCity: String? = null,
         deliveryAddress: String? = null,
         deliveryRequestNote: String? = null,
+        craftItems: Map<String, Int> = emptyMap(),
     ): ShopOrder {
         require(deliveryMethod in setOf("PICKUP", "COURIER"))
         val bodyItems = JSONArray().apply {
             items.forEach { (catalogItemId, quantity) ->
                 put(JSONObject().put("catalogItemId", catalogItemId).put("quantity", quantity))
+            }
+            craftItems.forEach { (craftItemId, quantity) ->
+                put(JSONObject().put("craftItemId", craftItemId).put("quantity", quantity))
             }
         }
         val body = JSONObject()
@@ -363,16 +367,18 @@ object ApiClient {
     fun craftItems(token: String): List<CraftItem> = request("GET", "/craft-items", token)
         .getJSONArray("items").mapObjects { it.toCraftItem() }
 
-    fun createCraftItem(token: String, title: String, description: String, priceRub: Int, isPublished: Boolean, customOrderAvailable: Boolean): CraftItem = request(
+    fun createCraftItem(token: String, title: String, description: String, priceRub: Int, isPublished: Boolean, customOrderAvailable: Boolean, stockQuantity: Int = 0): CraftItem = request(
         "POST", "/craft-items", token,
         JSONObject().put("title", title).put("description", description).put("priceRub", priceRub)
-            .put("isPublished", isPublished).put("customOrderAvailable", customOrderAvailable),
+            .put("isPublished", isPublished).put("customOrderAvailable", customOrderAvailable)
+            .put("stockQuantity", stockQuantity.coerceIn(0, 100_000)),
     ).getJSONObject("item").toCraftItem()
 
-    fun updateCraftItem(token: String, itemId: String, priceRub: Int? = null, isPublished: Boolean? = null): CraftItem {
+    fun updateCraftItem(token: String, itemId: String, priceRub: Int? = null, isPublished: Boolean? = null, stockQuantity: Int? = null): CraftItem {
         val body = JSONObject()
         priceRub?.let { body.put("priceRub", it) }
         isPublished?.let { body.put("isPublished", it) }
+        stockQuantity?.let { body.put("stockQuantity", it.coerceIn(0, 100_000)) }
         return request("PATCH", "/craft-items/$itemId", token, body).getJSONObject("item").toCraftItem()
     }
 

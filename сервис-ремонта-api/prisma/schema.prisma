@@ -768,15 +768,18 @@ model ShopOrderItem {
   id            String             @id @default(uuid()) @db.Uuid
   orderId       String             @map("order_id") @db.Uuid
   catalogItemId String?            @map("catalog_item_id") @db.Uuid
+  craftItemId   String?            @map("craft_item_id") @db.Uuid
   name          String             @db.VarChar(160)
   quantity      Int
   unitPriceRub  Int                @map("unit_price_rub")
   stockDeducted Boolean            @default(false) @map("stock_deducted")
   order         ShopOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   catalogItem   RepairCatalogItem? @relation(fields: [catalogItemId], references: [id], onDelete: SetNull)
+  craftItem     CraftItem?         @relation(fields: [craftItemId], references: [id], onDelete: SetNull)
 
   @@index([orderId])
   @@index([catalogItemId])
+  @@index([craftItemId])
   @@map("shop_order_items")
 }
 
@@ -1035,6 +1038,7 @@ model CraftItem {
   title                String       @db.VarChar(160)
   description          String       @db.VarChar(4000)
   priceRub             Int          @map("price_rub")
+  stockQuantity        Int          @default(0) @map("stock_quantity")
   imageObjectId        String?      @map("image_object_id") @db.VarChar(255)
   isPublished          Boolean      @default(false) @map("is_published")
   customOrderAvailable Boolean      @default(true) @map("custom_order_available")
@@ -1043,6 +1047,7 @@ model CraftItem {
   updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
   createdBy            User?        @relation("CraftItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
   orders               CraftOrder[]
+  shopOrderItems       ShopOrderItem[]
 
   @@index([isPublished, createdAt])
   @@map("craft_items")

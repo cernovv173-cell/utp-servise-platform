@@ -37,8 +37,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.AppUser
+import ru.utp.servise.data.CraftItem
+import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.ShopOrder
 import ru.utp.servise.data.ShopProduct
+import ru.utp.servise.data.SiteBanner
+import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.readShopCart
 import ru.utp.servise.data.saveShopCart
 
@@ -59,17 +63,40 @@ private fun productAvailability(availability: String): String = when (availabili
     else -> "Наличие уточнит администратор"
 }
 
+private data class CustomerShopSnapshot(
+    val products: List<ShopProduct>,
+    val orders: List<ShopOrder>,
+    val crafts: List<CraftItem>,
+    val craftOrders: List<CraftOrder>,
+)
+
+private data class ShopCartLine(
+    val key: String,
+    val title: String,
+    val unitPriceRub: Int,
+    val quantity: Int,
+    val availableQuantity: Int?,
+)
+
 @Composable
 fun CustomerShopScreen(
     user: AppUser,
     token: String,
     runAction: RunAction,
     onBack: () -> Unit,
+    initialTab: String = "PRODUCTS",
+    staff: List<StaffMember> = emptyList(),
+    banners: List<SiteBanner> = emptyList(),
+    onCampaignNavigate: (String) -> Unit = {},
+    onRefresh: () -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     var products by remember { mutableStateOf<List<ShopProduct>>(emptyList()) }
     var orders by remember { mutableStateOf<List<ShopOrder>>(emptyList()) }
+    var crafts by remember { mutableStateOf<List<CraftItem>>(emptyList()) }
+    var craftOrders by remember { mutableStateOf<List<CraftOrder>>(emptyList()) }
+    var selectedTab by remember(user.id) { mutableStateOf(initialTab) }
     var cart by remember(user.id) { mutableStateOf(readShopCart(context, user.id)) }
     var customerNote by remember(user.id) { mutableStateOf("") }
     var deliveryMethod by remember(user.id) { mutableStateOf("PICKUP") }
@@ -86,11 +113,19 @@ fun CustomerShopScreen(
         loadError = null
         try {
             val loaded = withContext(Dispatchers.IO) {
-                ApiClient.shopProducts() to ApiClient.customerShopOrders(token)
+                CustomerShopSnapshot(
+                    products = ApiClient.shopProducts(),
+                    orders = ApiClient.customerShopOrders(token),
+                    crafts = ApiClient.craftItems(token),
+                    craftOrders = ApiClient.craftOrders(token),
+                )
             }
-            products = loaded.first
-            orders = loaded.second
-            val validIds = loaded.first.map { it.id }.toSet()
+            products = loaded.products
+            orders = loaded.orders
+            crafts = loaded.crafts
+            craftOrders = loaded.craftOrders
+            val validIds = loaded.products.map { it.id }.toSet() +
+                loaded.crafts.filter { it.stockQuantity > 0 }.map { "craft:${it.id}" }
             val cleanedCart = cart.filterKeys { it in validIds }
             cart = cleanedCart
             saveShopCart(context, user.id, cleanedCart)
@@ -103,19 +138,37 @@ fun CustomerShopScreen(
 
     LaunchedEffect(token, user.id) { reload() }
 
-    fun setQuantity(productId: String, quantity: Int) {
+    fun setQuantity(productId: String, quantity: Int, maximum: Int = 100) {
         val nextCart = if (quantity < 1) {
             cart - productId
         } else {
-            cart + (productId to quantity.coerceAtMost(100))
+            cart + (productId to quantity.coerceAtMost(maximum))
         }
         cart = nextCart
         saveShopCart(context, user.id, nextCart)
     }
 
-    val cartItems = products.filter { cart[it.id] != null }
-    val totalRub = cartItems.sumOf { product -> product.unitPriceRub * (cart[product.id] ?: 0) }
-    val hasOutOfStock = cartItems.any { it.availability == "OUT_OF_STOCK" }
+    val cartLines = products.mapNotNull { product ->
+        val quantity = cart[product.id] ?: return@mapNotNull null
+        ShopCartLine(
+            key = product.id,
+            title = product.name,
+            unitPriceRub = product.unitPriceRub,
+            quantity = quantity,
+            availableQuantity = if (product.availability == "OUT_OF_STOCK") 0 else null,
+        )
+    } + crafts.mapNotNull { craft ->
+        val key = "craft:${craft.id}"
+        val quantity = cart[key] ?: return@mapNotNull null
+        ShopCartLine(key, craft.title, craft.priceRub, quantity, craft.stockQuantity)
+    }
+    val totalRub = cartLines.sumOf { it.unitPriceRub * it.quantity }
+    val hasOutOfStock = cartLines.any { line ->
+        line.availableQuantity?.let { it < line.quantity } ?: false
+    }
+    val shopCart = cart.filterKeys { !it.startsWith("craft:") }
+    val craftCart = cart.filterKeys { it.startsWith("craft:") }
+        .mapKeys { (key, _) -> key.removePrefix("craft:") }
 
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
@@ -135,20 +188,26 @@ fun CustomerShopScreen(
             }
         }
 
-        if (isLoading && products.isEmpty()) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            ShopTabButton("Товары", selectedTab == "PRODUCTS", Modifier.weight(1f)) { selectedTab = "PRODUCTS" }
+            ShopTabButton("Рукоделие", selectedTab == "CRAFTS", Modifier.weight(1f)) { selectedTab = "CRAFTS" }
+            ShopTabButton("Корзина · ${cartLines.sumOf { it.quantity }}", selectedTab == "CART", Modifier.weight(1f)) { selectedTab = "CART" }
+        }
+
+        if (selectedTab == "PRODUCTS" && isLoading && products.isEmpty()) {
             Text("Загружаем товары…", color = UtpMuted)
-        } else if (loadError != null && products.isEmpty()) {
+        } else if (selectedTab == "PRODUCTS" && loadError != null && products.isEmpty()) {
             Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Text(loadError.orEmpty(), Modifier.fillMaxWidth().padding(16.dp), color = androidx.compose.material3.MaterialTheme.colorScheme.error)
             }
-        } else if (products.isEmpty()) {
+        } else if (selectedTab == "PRODUCTS" && products.isEmpty()) {
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("Товаров пока нет", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text("Администратор добавит и включит товары в каталоге.", Modifier.padding(top = 5.dp), color = UtpMuted, fontSize = 12.sp)
                 }
             }
-        } else {
+        } else if (selectedTab == "PRODUCTS") {
             products.forEach { product ->
                 CustomerShopProductCard(
                     product = product,
@@ -157,29 +216,49 @@ fun CustomerShopScreen(
                     onAdd = { setQuantity(product.id, (cart[product.id] ?: 0) + 1) },
                 )
             }
+        } else if (selectedTab == "CRAFTS") {
+            CraftsScreen(
+                token = token,
+                isAdmin = false,
+                items = crafts,
+                orders = craftOrders,
+                staff = staff,
+                runAction = runAction,
+                refresh = { onRefresh(); scope.launch { reload() } },
+                onBack = {},
+                banners = banners,
+                onCampaignNavigate = onCampaignNavigate,
+                embedded = true,
+                onAddToShopCart = { item ->
+                    val key = "craft:${item.id}"
+                    setQuantity(key, (cart[key] ?: 0) + 1, item.stockQuantity)
+                    selectedTab = "CART"
+                },
+            )
         }
 
+        if (selectedTab == "CART") {
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Корзина · ${cart.values.sum()} шт.", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-                if (cartItems.isEmpty()) {
+                Text("Корзина · ${cartLines.sumOf { it.quantity }} шт.", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                if (cartLines.isEmpty()) {
                     Text("Добавьте товары, чтобы отправить заказ.", fontSize = 12.sp, color = UtpMuted)
                 } else {
-                    cartItems.forEach { product ->
+                    cartLines.forEach { line ->
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.weight(1f)) {
-                                Text(product.name, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = UtpInk)
-                                Text(shopPrice(product.unitPriceRub * (cart[product.id] ?: 0)), fontSize = 12.sp, color = UtpMuted)
+                                Text(line.title, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = UtpInk)
+                                Text(shopPrice(line.unitPriceRub * line.quantity), fontSize = 12.sp, color = UtpMuted)
                             }
-                            OutlinedButton(onClick = { setQuantity(product.id, (cart[product.id] ?: 0) - 1) }) { Text("−") }
-                            Text("${cart[product.id]}", Modifier.padding(horizontal = 8.dp), color = UtpInk)
+                            OutlinedButton(onClick = { setQuantity(line.key, line.quantity - 1) }) { Text("−") }
+                            Text("${line.quantity}", Modifier.padding(horizontal = 8.dp), color = UtpInk)
                             OutlinedButton(
-                                onClick = { setQuantity(product.id, (cart[product.id] ?: 0) + 1) },
-                                enabled = (cart[product.id] ?: 0) < 100,
+                                onClick = { setQuantity(line.key, line.quantity + 1, line.availableQuantity ?: 100) },
+                                enabled = line.quantity < (line.availableQuantity ?: 100),
                             ) { Text("+") }
                         }
-                        if (product.availability == "OUT_OF_STOCK") {
-                            Text("${product.name}: нет в наличии — удалите товар из корзины.", color = androidx.compose.material3.MaterialTheme.colorScheme.error, fontSize = 11.sp)
+                        if (line.availableQuantity != null && line.quantity > line.availableQuantity) {
+                            Text("${line.title}: доступно ${line.availableQuantity} шт. Измените количество.", color = androidx.compose.material3.MaterialTheme.colorScheme.error, fontSize = 11.sp)
                         }
                     }
                     OutlinedTextField(
@@ -213,7 +292,8 @@ fun CustomerShopScreen(
                             runAction({
                                 ApiClient.createShopOrder(
                                     token = token,
-                                    items = cart,
+                                    items = shopCart,
+                                    craftItems = craftCart,
                                     customerNote = customerNote,
                                     deliveryMethod = deliveryMethod,
                                     deliveryArea = deliveryArea,
@@ -240,7 +320,7 @@ fun CustomerShopScreen(
                                 }
                             }
                         },
-                        enabled = cartItems.isNotEmpty() && !hasOutOfStock && !isLoading &&
+                        enabled = cartLines.isNotEmpty() && !hasOutOfStock && !isLoading &&
                             (deliveryMethod == "PICKUP" ||
                                 (deliveryCity.isNotBlank() && deliveryAddress.isNotBlank())),
                         modifier = Modifier.fillMaxWidth(),
@@ -284,7 +364,33 @@ fun CustomerShopScreen(
                 },
             )
         }
+        Text("Заявки на изготовление", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        if (craftOrders.isEmpty() && !isLoading) {
+            Text("Пока нет заявок на рукоделие.", fontSize = 12.sp, color = UtpMuted)
+        }
+        craftOrders.forEach { order ->
+            CustomerCraftOrderCard(order, token, runAction) { onRefresh(); scope.launch { reload() } }
+        }
         Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun ShopTabButton(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    if (selected) {
+        Button(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(12.dp)) {
+            Text(label, fontSize = 11.sp, maxLines = 1)
+        }
+    } else {
+        OutlinedButton(onClick = onClick, modifier = modifier, shape = RoundedCornerShape(12.dp)) {
+            Text(label, fontSize = 11.sp, maxLines = 1)
+        }
     }
 }
 

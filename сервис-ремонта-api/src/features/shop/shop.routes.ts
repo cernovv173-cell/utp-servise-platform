@@ -19,16 +19,21 @@ const orderItemsBody = z
   .array(
     z
       .object({
-        catalogItemId: z.string().uuid(),
+        catalogItemId: z.string().uuid().optional(),
+        craftItemId: z.string().uuid().optional(),
         quantity: z.number().int().min(1).max(100),
       })
-      .strict(),
+      .strict()
+      .refine(
+        (item) => Boolean(item.catalogItemId) !== Boolean(item.craftItemId),
+        "Укажите один товар для заказа.",
+      ),
   )
   .min(1)
   .max(50)
   .refine(
     (items) =>
-      new Set(items.map((item) => item.catalogItemId)).size === items.length,
+      new Set(items.map((item) => item.catalogItemId ?? item.craftItemId)).size === items.length,
     "Каждый товар можно добавить в заказ только один раз.",
   );
 
@@ -197,34 +202,69 @@ export const createShopRouter = (
       } = bodyOf<z.infer<typeof createOrderBody>>(response);
 
       const order = await database.$transaction(async (transaction) => {
-        const requestedIds = items.map((item) => item.catalogItemId);
-        const products = await transaction.repairCatalogItem.findMany({
-          where: {
-            id: { in: requestedIds },
-            type: "PRODUCT",
-            active: true,
-          },
-          select: {
-            id: true,
-            name: true,
-            unitPriceRub: true,
-            stockQuantity: true,
-          },
-        });
-        if (products.length !== items.length) throw unavailableProduct();
+        const requestedCatalogIds = items.flatMap((item) =>
+          item.catalogItemId ? [item.catalogItemId] : [],
+        );
+        const requestedCraftIds = items.flatMap((item) =>
+          item.craftItemId ? [item.craftItemId] : [],
+        );
+        const [products, crafts] = await Promise.all([
+          transaction.repairCatalogItem.findMany({
+            where: {
+              id: { in: requestedCatalogIds },
+              type: "PRODUCT",
+              active: true,
+            },
+            select: {
+              id: true,
+              name: true,
+              unitPriceRub: true,
+              stockQuantity: true,
+            },
+          }),
+          transaction.craftItem.findMany({
+            where: { id: { in: requestedCraftIds }, isPublished: true },
+            select: {
+              id: true,
+              title: true,
+              priceRub: true,
+              stockQuantity: true,
+            },
+          }),
+        ]);
+        if (
+          products.length !== requestedCatalogIds.length ||
+          crafts.length !== requestedCraftIds.length
+        ) {
+          throw unavailableProduct();
+        }
 
         const productById = new Map(
           products.map((product) => [product.id, product]),
         );
+        const craftById = new Map(crafts.map((craft) => [craft.id, craft]));
         const orderItems = items.map((item) => {
-          const product = productById.get(item.catalogItemId);
-          if (!product || product.stockQuantity === 0)
-            throw unavailableProduct();
+          if (item.catalogItemId) {
+            const product = productById.get(item.catalogItemId);
+            if (!product || product.stockQuantity === 0) throw unavailableProduct();
+            return {
+              catalogItemId: product.id,
+              craftItemId: null,
+              name: product.name,
+              quantity: item.quantity,
+              unitPriceRub: product.unitPriceRub,
+            };
+          }
+          const craft = item.craftItemId
+            ? craftById.get(item.craftItemId)
+            : undefined;
+          if (!craft || craft.stockQuantity === 0) throw unavailableProduct();
           return {
-            catalogItemId: product.id,
-            name: product.name,
+            catalogItemId: null,
+            craftItemId: craft.id,
+            name: craft.title,
             quantity: item.quantity,
-            unitPriceRub: product.unitPriceRub,
+            unitPriceRub: craft.priceRub,
           };
         });
         const totalRub = orderItems.reduce(
@@ -333,20 +373,12 @@ export const createShopRouter = (
             );
           }
           for (const item of current.items) {
-            if (!item.catalogItemId) throw unavailableProduct();
-            const product = await transaction.repairCatalogItem.findUnique({
-              where: { id: item.catalogItemId },
-              select: { type: true, active: true, stockQuantity: true },
-            });
-            if (!product || product.type !== "PRODUCT" || !product.active) {
-              throw unavailableProduct();
-            }
-            if (product.stockQuantity !== null) {
-              const reserved = await transaction.repairCatalogItem.updateMany({
+            let stockDeducted = false;
+            if (item.craftItemId) {
+              const reserved = await transaction.craftItem.updateMany({
                 where: {
-                  id: item.catalogItemId,
-                  type: "PRODUCT",
-                  active: true,
+                  id: item.craftItemId,
+                  isPublished: true,
                   stockQuantity: { gte: item.quantity },
                 },
                 data: { stockQuantity: { decrement: item.quantity } },
@@ -355,9 +387,41 @@ export const createShopRouter = (
                 throw new HttpError(
                   409,
                   "SHOP_STOCK_INSUFFICIENT",
-                  `Недостаточно товара «${item.name}» на складе. Заказ пока не подтверждён.`,
+                  `Недостаточно готовых изделий «${item.name}». Заказ пока не подтверждён.`,
                 );
               }
+              stockDeducted = true;
+            } else if (item.catalogItemId) {
+              const product = await transaction.repairCatalogItem.findUnique({
+                where: { id: item.catalogItemId },
+                select: { type: true, active: true, stockQuantity: true },
+              });
+              if (!product || product.type !== "PRODUCT" || !product.active) {
+                throw unavailableProduct();
+              }
+              if (product.stockQuantity !== null) {
+                const reserved = await transaction.repairCatalogItem.updateMany({
+                  where: {
+                    id: item.catalogItemId,
+                    type: "PRODUCT",
+                    active: true,
+                    stockQuantity: { gte: item.quantity },
+                  },
+                  data: { stockQuantity: { decrement: item.quantity } },
+                });
+                if (reserved.count !== 1) {
+                  throw new HttpError(
+                    409,
+                    "SHOP_STOCK_INSUFFICIENT",
+                    `Недостаточно товара «${item.name}» на складе. Заказ пока не подтверждён.`,
+                  );
+                }
+                stockDeducted = true;
+              }
+            } else {
+              throw unavailableProduct();
+            }
+            if (stockDeducted) {
               await transaction.shopOrderItem.update({
                 where: { id: item.id },
                 data: { stockDeducted: true },
@@ -387,15 +451,21 @@ export const createShopRouter = (
           for (const item of current.items.filter(
             (entry) => entry.stockDeducted,
           )) {
-            if (!item.catalogItemId) throw unavailableProduct();
-            const restored = await transaction.repairCatalogItem.updateMany({
-              where: {
-                id: item.catalogItemId,
-                type: "PRODUCT",
-                stockQuantity: { not: null },
-              },
-              data: { stockQuantity: { increment: item.quantity } },
-            });
+            const restored = item.craftItemId
+              ? await transaction.craftItem.updateMany({
+                  where: { id: item.craftItemId },
+                  data: { stockQuantity: { increment: item.quantity } },
+                })
+              : item.catalogItemId
+                ? await transaction.repairCatalogItem.updateMany({
+                    where: {
+                      id: item.catalogItemId,
+                      type: "PRODUCT",
+                      stockQuantity: { not: null },
+                    },
+                    data: { stockQuantity: { increment: item.quantity } },
+                  })
+                : { count: 0 };
             if (restored.count !== 1) {
               throw new HttpError(
                 409,

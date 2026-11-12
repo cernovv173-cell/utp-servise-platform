@@ -425,6 +425,7 @@ data class ShopProduct(
 data class ShopOrderItem(
     val id: String,
     val catalogItemId: String?,
+    val craftItemId: String? = null,
     val name: String,
     val quantity: Int,
     val unitPriceRub: Int,
@@ -471,6 +472,7 @@ data class CraftItem(
     val title: String,
     val description: String,
     val priceRub: Int,
+    val stockQuantity: Int = 0,
     val imageObjectId: String?,
     val isPublished: Boolean,
     val customOrderAvailable: Boolean,

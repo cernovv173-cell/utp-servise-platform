@@ -34,6 +34,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.CraftItem
+import ru.utp.servise.data.CraftOrder
+import ru.utp.servise.data.SiteBanner
+import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.ShopOrder
 
 private fun shopOrderStatusLabel(status: String): String = when (status) {
@@ -51,12 +55,19 @@ fun AdminShopOrdersScreen(
     runAction: RunAction,
     onBack: () -> Unit,
     onRefresh: () -> Unit,
+    craftItems: List<CraftItem> = emptyList(),
+    craftOrders: List<CraftOrder> = emptyList(),
+    staff: List<StaffMember> = emptyList(),
+    banners: List<SiteBanner> = emptyList(),
+    onCampaignNavigate: (String) -> Unit = {},
+    initialSection: String = "ORDERS",
 ) {
     val scope = rememberCoroutineScope()
     var orders by remember { mutableStateOf<List<ShopOrder>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var showAllOrders by remember { mutableStateOf(false) }
+    var selectedSection by remember { mutableStateOf(initialSection) }
 
     suspend fun reloadOrders() {
         isLoading = true
@@ -102,11 +113,24 @@ fun AdminShopOrdersScreen(
         TextButton(onClick = onBack) { Text("←  Управление") }
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Подтверждение заказов магазина", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("Проверьте наличие до подтверждения. Оплату и получение согласуйте с клиентом отдельно.", fontSize = 12.sp, color = UtpMuted)
+                Text("Магазин и рукоделие", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text("Заказы товаров и изделия ручной работы — в одном месте.", fontSize = 12.sp, color = UtpMuted)
             }
             TextButton(onClick = { scope.launch { reloadOrders() } }, enabled = !isLoading) { Text("Обновить") }
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (selectedSection == "ORDERS") {
+                Button(onClick = { selectedSection = "ORDERS" }, modifier = Modifier.weight(1f)) { Text("Заказы магазина") }
+            } else {
+                OutlinedButton(onClick = { selectedSection = "ORDERS" }, modifier = Modifier.weight(1f)) { Text("Заказы магазина") }
+            }
+            if (selectedSection == "CRAFTS") {
+                Button(onClick = { selectedSection = "CRAFTS" }, modifier = Modifier.weight(1f)) { Text("Рукоделие") }
+            } else {
+                OutlinedButton(onClick = { selectedSection = "CRAFTS" }, modifier = Modifier.weight(1f)) { Text("Рукоделие") }
+            }
+        }
+        if (selectedSection == "ORDERS") {
         if (isLoading && orders.isEmpty()) Text("Загружаем заказы…", color = UtpMuted)
         if (orders.isNotEmpty()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -156,6 +180,21 @@ fun AdminShopOrdersScreen(
                 onComplete = { changeStatus(order, "COMPLETED") },
                 onCancel = { changeStatus(order, "CANCELLED") },
                 onOfferDelivery = { fee, window -> offerDelivery(order, fee, window) },
+            )
+        }
+        } else {
+            CraftsScreen(
+                token = token,
+                isAdmin = true,
+                items = craftItems,
+                orders = craftOrders,
+                staff = staff,
+                runAction = runAction,
+                refresh = onRefresh,
+                onBack = {},
+                banners = banners,
+                onCampaignNavigate = onCampaignNavigate,
+                embedded = true,
             )
         }
     }

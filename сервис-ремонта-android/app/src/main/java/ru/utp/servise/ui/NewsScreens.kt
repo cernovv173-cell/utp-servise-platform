@@ -69,7 +69,6 @@ fun AdminManagementScreen(
     onChats: () -> Unit,
     onStaff: () -> Unit,
     onReviews: () -> Unit,
-    onCrafts: () -> Unit,
     onAbout: () -> Unit,
     onOrderChats: () -> Unit,
     onSupportChats: () -> Unit,
@@ -116,8 +115,7 @@ fun AdminManagementScreen(
         ManagementActionGroup(
             "Магазин",
             listOf(
-                ManagementAction("Заказы магазина", "Проверка наличия и дальнейшая выдача", Icons.Filled.ShoppingCart, onShopOrders),
-                ManagementAction("Рукоделия", "Изделия, цены, фото и заявки", Icons.Filled.Star, onCrafts),
+                ManagementAction("Магазин и рукоделие", "Товары, готовые изделия и заказы на изготовление", Icons.Filled.ShoppingCart, onShopOrders),
             ),
         ),
         ManagementActionGroup(

@@ -12,6 +12,8 @@ const {
   untrackedProductId,
   emptyProductId,
   partId,
+  craftItemId,
+  emptyCraftItemId,
   orderId,
   secondOrderId,
 } = shopTestIds;
@@ -70,6 +72,54 @@ test("customer order snapshots server prices and waits for admin confirmation", 
   assert.equal(body.order.customerNote, "Свяжитесь после 18:00");
   assert.equal(products.find(({ id }) => id === productId)?.stockQuantity, 5);
   assert.equal(orders.length, 1);
+});
+
+test("ready handmade goods use the store cart and stock is reserved and restored", async (t) => {
+  const { craftItems, request } = await createShopRoutesHarness((callback) =>
+    t.after(callback),
+  );
+  const created = await request(
+    "/shop/orders",
+    customerToken,
+    {
+      items: [
+        { catalogItemId: productId, quantity: 1 },
+        { craftItemId, quantity: 2 },
+      ],
+    },
+    "POST",
+  );
+  assert.equal(created.status, 201);
+  const createdBody = (await created.json()) as { order: Record<string, any> };
+  assert.equal(createdBody.order.totalRub, 1050);
+  assert.ok(createdBody.order.items.some((item: Record<string, any>) => item.craftItemId === craftItemId));
+  assert.equal(craftItems.find((item) => item.id === craftItemId)?.stockQuantity, 3);
+
+  const confirmed = await request(
+    `/admin/shop/orders/${orderId}/status`,
+    "A".repeat(48),
+    { status: "CONFIRMED" },
+    "PATCH",
+  );
+  assert.equal(confirmed.status, 200);
+  assert.equal(craftItems.find((item) => item.id === craftItemId)?.stockQuantity, 1);
+
+  const cancelled = await request(
+    `/admin/shop/orders/${orderId}/status`,
+    "A".repeat(48),
+    { status: "CANCELLED" },
+    "PATCH",
+  );
+  assert.equal(cancelled.status, 200);
+  assert.equal(craftItems.find((item) => item.id === craftItemId)?.stockQuantity, 3);
+
+  const unavailable = await request(
+    "/shop/orders",
+    customerToken,
+    { items: [{ craftItemId: emptyCraftItemId, quantity: 1 }] },
+    "POST",
+  );
+  assert.equal(unavailable.status, 409);
 });
 
 test("a customer cannot order spare parts, unavailable products, or override prices", async (t) => {

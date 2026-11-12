@@ -52,23 +52,32 @@ fun CraftsScreen(
     onBack: () -> Unit,
     banners: List<SiteBanner> = emptyList(),
     onCampaignNavigate: (String) -> Unit = {},
+    embedded: Boolean = false,
+    onAddToShopCart: (CraftItem) -> Unit = {},
 ) {
     var customTitle by remember { mutableStateOf("") }
     var customNote by remember { mutableStateOf("") }
     var customQuantity by remember { mutableStateOf("1") }
+    val contentModifier = if (embedded) {
+        Modifier.fillMaxWidth()
+    } else {
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+    }
     Column(
-        Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
+        contentModifier.background(UtpPale).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        TextButton(onClick = onBack) { Text("←  Назад") }
+        if (!embedded) TextButton(onClick = onBack) { Text("←  Назад") }
         Text("Рукоделия", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Готовые изделия и изготовление под заказ. Заявку обработает администратор.", fontSize = 13.sp, color = UtpMuted)
-        CampaignBannerCarousel(
-            banners = banners,
-            placement = "CRAFTS",
-            token = token,
-            onNavigate = onCampaignNavigate,
-        )
+        Text("Изделия ручной работы: готовые — в корзину, уникальные — обсудим и изготовим.", fontSize = 13.sp, color = UtpMuted)
+        if (!isAdmin) {
+            CampaignBannerCarousel(
+                banners = banners,
+                placement = "CRAFTS",
+                token = token,
+                onNavigate = onCampaignNavigate,
+            )
+        }
 
         if (isAdmin) {
             CraftItemManagementScreen(token, items, runAction, refresh)
@@ -76,7 +85,7 @@ fun CraftsScreen(
             orders.forEach { order -> AdminCraftOrderCard(order, token, staff, runAction, refresh) }
         } else {
             items.filter { it.isPublished }.forEach { item ->
-                CustomerCraftItemCard(item, token, runAction, refresh)
+                CustomerCraftItemCard(item, token, runAction, refresh, onAddToShopCart)
             }
             Spacer(Modifier.height(4.dp))
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
@@ -101,7 +110,13 @@ fun CraftsScreen(
 }
 
 @Composable
-private fun CustomerCraftItemCard(item: CraftItem, token: String, runAction: RunAction, refresh: () -> Unit) {
+private fun CustomerCraftItemCard(
+    item: CraftItem,
+    token: String,
+    runAction: RunAction,
+    refresh: () -> Unit,
+    onAddToShopCart: (CraftItem) -> Unit,
+) {
     var quantity by remember(item.id) { mutableStateOf("1") }
     var note by remember(item.id) { mutableStateOf("") }
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
@@ -110,11 +125,19 @@ private fun CustomerCraftItemCard(item: CraftItem, token: String, runAction: Run
             Text(item.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
             Text(item.description.ifBlank { "Готовое изделие ручной работы." }, fontSize = 13.sp, color = UtpMuted)
             Text("${item.priceRub} ₽", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpBlue)
-            OutlinedTextField(quantity, { quantity = it.filter(Char::isDigit).take(2) }, label = { Text("Количество") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
-            if (item.customOrderAvailable) {
-                OutlinedTextField(note, { note = it.take(2000) }, label = { Text("Пожелания, необязательно") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
+            if (item.stockQuantity > 0) {
+                Text("Готово сейчас · ${item.stockQuantity} шт.", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = UtpBlue)
+                Button(onClick = { onAddToShopCart(item) }, modifier = Modifier.fillMaxWidth()) { Text("Добавить готовое в корзину") }
             }
-            Button(onClick = { runAction({ ApiClient.createCraftOrder(token, item.id, null, quantity.toIntOrNull()?.coerceIn(1, 99) ?: 1, note.trim()) }) { refresh() } }, modifier = Modifier.fillMaxWidth()) { Text("Оставить заявку") }
+            if (item.customOrderAvailable) {
+                Text("Можно изготовить под заказ", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = UtpBlue)
+                OutlinedTextField(quantity, { quantity = it.filter(Char::isDigit).take(2) }, label = { Text("Количество для изготовления") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
+                OutlinedTextField(note, { note = it.take(2000) }, label = { Text("Пожелания, необязательно") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
+                Button(onClick = { runAction({ ApiClient.createCraftOrder(token, item.id, null, quantity.toIntOrNull()?.coerceIn(1, 99) ?: 1, note.trim()) }) { refresh() } }, modifier = Modifier.fillMaxWidth()) { Text("Обсудить изготовление") }
+            }
+            if (item.stockQuantity <= 0 && !item.customOrderAvailable) {
+                Text("Пока нет в наличии", fontSize = 12.sp, color = UtpMuted)
+            }
         }
     }
 }
@@ -125,6 +148,7 @@ private fun CraftItemManagementScreen(token: String, items: List<CraftItem>, run
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
+    var stockQuantity by remember { mutableStateOf("0") }
     var newOrderEnabled by remember { mutableStateOf(true) }
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -132,28 +156,35 @@ private fun CraftItemManagementScreen(token: String, items: List<CraftItem>, run
             OutlinedTextField(title, { title = it.take(160) }, label = { Text("Название") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
             OutlinedTextField(description, { description = it.take(4000) }, label = { Text("Описание") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
             OutlinedTextField(price, { price = it.filter(Char::isDigit).take(8) }, label = { Text("Цена, ₽") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
+            OutlinedTextField(stockQuantity, { stockQuantity = it.filter(Char::isDigit).take(6) }, label = { Text("Готовых изделий на складе, шт.") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
             OutlinedButton(onClick = { newOrderEnabled = !newOrderEnabled }) { Text(if (newOrderEnabled) "✓ Можно изготовить под заказ" else "Заказной вариант отключён") }
             Button(
                 onClick = {
-                    runAction({ ApiClient.createCraftItem(token, title.trim(), description.trim(), price.toIntOrNull() ?: 0, false, newOrderEnabled) }) { _ ->
-                        title = ""; description = ""; price = ""
+                    runAction({ ApiClient.createCraftItem(token, title.trim(), description.trim(), price.toIntOrNull() ?: 0, false, newOrderEnabled, stockQuantity.toIntOrNull() ?: 0) }) { _ ->
+                        title = ""; description = ""; price = ""; stockQuantity = "0"
                         refresh()
                     }
                 },
                 enabled = title.trim().length >= 2 && price.toIntOrNull() != null,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Сохранить изделие") }
-            Text("После сохранения выберите фото отдельной кнопкой в карточке.", fontSize = 11.sp, color = UtpMuted)
+            Text("Можно одновременно продавать готовые экземпляры и принимать заказы на изготовление. Фото добавляется после сохранения.", fontSize = 11.sp, color = UtpMuted)
         }
     }
     items.forEach { item ->
         var editedPrice by remember(item.id, item.priceRub) { mutableStateOf(item.priceRub.toString()) }
+        var editedStock by remember(item.id, item.stockQuantity) { mutableStateOf(item.stockQuantity.toString()) }
         Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
                 Text(item.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text("Готовых на складе: ${item.stockQuantity}", fontSize = 12.sp, color = UtpMuted)
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(editedPrice, { editedPrice = it.filter(Char::isDigit).take(8) }, label = { Text("Цена, ₽") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
                     TextButton(onClick = { runAction({ ApiClient.updateCraftItem(token, item.id, priceRub = editedPrice.toIntOrNull()) }) { refresh() } }) { Text("Сохранить цену") }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(editedStock, { editedStock = it.filter(Char::isDigit).take(6) }, label = { Text("Остаток, шт.") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    TextButton(onClick = { runAction({ ApiClient.updateCraftItem(token, item.id, stockQuantity = editedStock.toIntOrNull()) }) { refresh() } }) { Text("Сохранить остаток") }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = { runAction({ ApiClient.updateCraftItem(token, item.id, isPublished = !item.isPublished) }) { refresh() } }) { Text(if (item.isPublished) "Снять с публикации" else "Опубликовать") }
@@ -185,7 +216,7 @@ private fun AdminCraftOrderCard(order: CraftOrder, token: String, staff: List<St
 }
 
 @Composable
-private fun CustomerCraftOrderCard(order: CraftOrder, token: String, runAction: RunAction, refresh: () -> Unit) {
+internal fun CustomerCraftOrderCard(order: CraftOrder, token: String, runAction: RunAction, refresh: () -> Unit) {
     Card(
         shape = RoundedCornerShape(15.dp),
         colors = CardDefaults.cardColors(

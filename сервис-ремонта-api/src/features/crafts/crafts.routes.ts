@@ -25,6 +25,7 @@ const productBody = z
     title: z.string().trim().min(2).max(160),
     description: z.string().trim().max(4000),
     priceRub: z.number().int().min(0).max(10_000_000),
+    stockQuantity: z.number().int().min(0).max(100_000).optional(),
     customOrderAvailable: z.boolean().optional(),
     isPublished: z.boolean().optional(),
   })
@@ -108,6 +109,7 @@ export const createCraftsRouter = (
       const item = await database.craftItem.create({
         data: {
           ...input,
+          stockQuantity: input.stockQuantity ?? 0,
           customOrderAvailable: input.customOrderAvailable ?? true,
           isPublished: input.isPublished ?? false,
           createdById: user.id,
@@ -166,7 +168,7 @@ export const createCraftsRouter = (
           "CUSTOM_ORDER_DETAILS_REQUIRED",
           "Опишите, что нужно изготовить.",
         );
-      if (input.itemId && !item!.customOrderAvailable && input.note)
+      if (input.itemId && !item!.customOrderAvailable)
         throw new HttpError(
           400,
           "CUSTOM_ORDER_UNAVAILABLE",
