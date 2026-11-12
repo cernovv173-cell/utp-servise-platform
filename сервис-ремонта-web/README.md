@@ -100,14 +100,16 @@ recorded zero balance; deletion is blocked while the item is in an unfinished re
 estimate, or pending/confirmed shop order. Completed and cancelled order history keeps its saved
 names and prices after the catalog entry is removed.
 
-The `/shop` storefront has separate tabs for active catalog products and published ready-to-sell
-handmade goods. Both kinds of ready items share one account cart and one order; repair services and
-spare parts stay outside the shop. The server snapshots item names and prices, validates availability,
-and reserves tracked stock only when an administrator confirms the order. Cancellation restores the
-reserved stock. Customers can browse without signing in and submit orders from a customer account;
-there is no online payment. Handmade items with an available ready stock appear in the shop; customers
-can follow the separate `/crafts` flow to discuss made-to-order work. Delivery of made-to-order work
-is discussed after it is completed.
+The `/shop` storefront presents active catalog products and published handmade goods together in
+one mixed catalog. Handmade cards carry a label, but there is no separate ready-goods tab; both kinds
+of ready items share one account cart and one order. Repair services and spare parts stay outside the
+shop. The server snapshots item names and prices, validates availability, and reserves tracked stock
+only when an administrator confirms the order. Cancellation restores the reserved stock. Customers
+can browse without signing in and submit orders from a customer account; there is no online payment.
+Customers can follow the separate `/crafts` flow for made-to-order work. Delivery of made-to-order
+work is discussed after it is completed. Both an item-specific request and the general individual
+order form accept up to three JPG, PNG or WebP photos (5 MB per image); the photos are attached to
+the new order's protected chat so the customer and administrator can review them together.
 
 Pickup is from Pushkino. The courier pilot is presented for Pushkino and nearby Moscow Region
 localities: the administrator checks each address and offers the delivery price and time manually.
@@ -135,11 +137,11 @@ The API sends it to the account's available linked channels (email and/or MAX); 
 the same identifier and code at `/reset-password`. The API enforces the 8-character minimum and
 invalidates active sessions after a successful reset.
 
-Customers see the shared default raccoon avatar in `/account` until they upload a profile photo.
-They can replace it at any time with a JPEG, PNG or WEBP image up to 5 MB; uploaded photos stay
-protected and are visible to the owner, administrators and the technician assigned to that customer's
-repair. Existing custom avatars are preserved. The Android account profile uses the same default image
-and already supports replacing it.
+Customers and employees without a personal photo see the shared cyberpunk raccoon avatar in their
+account profile on the web and Android; staff avatars also appear in assignment, profile, and repair
+views in Android. The default is a display fallback for existing and newly created accounts, so it
+does not overwrite personal photos. Customer and technician photo uploads remain protected and keep
+their existing visibility rules.
 
 Customers can optionally save gender and date of birth in `/account`. The API sends one birthday
 push greeting per customer per year, using the Moscow calendar date and only to devices with a

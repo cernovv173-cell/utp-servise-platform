@@ -12,6 +12,7 @@ import {
   ModalHeader,
   ModalTitle,
 } from "@/components/modal";
+import { UserAvatar } from "@/components/user-avatar";
 
 import { clearCustomerLocalData } from "@/features/account/account-local-data";
 import { CustomerAvatarCard } from "@/features/account/customer-avatar-card";
@@ -162,6 +163,16 @@ const AccountPage = () => {
         {user?.role === "CUSTOMER" && token && <CustomerAvatarCard token={token} user={user} />}
         <SectionCard>
           <h2 className="font-semibold">Профиль</h2>
+          {user && user.role !== "CUSTOMER" && (
+            <div className="mt-3 flex items-center gap-3">
+              <UserAvatar
+                objectId={user.avatarObjectId}
+                alt={`Аватар сотрудника ${user.displayName}`}
+                className="size-14 rounded-full"
+              />
+              <span className="text-sm text-slate-500">Фирменный аватар сотрудника</span>
+            </div>
+          )}
           <p className="mt-1 text-sm text-slate-500">
             {user?.displayName} ·{" "}
             {user?.email ?? (user?.login ? `логин ${user.login}` : "вход через МАКС")}

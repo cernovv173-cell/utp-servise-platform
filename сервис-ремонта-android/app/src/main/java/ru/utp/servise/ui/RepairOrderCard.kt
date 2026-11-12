@@ -203,7 +203,7 @@ internal fun RepairOrderCard(
                         modifier = Modifier.padding(top = 7.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RemoteProjectImage(
+                        UserAvatar(
                             order.customerAvatarObjectId,
                             token,
                             Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)),
@@ -225,7 +225,7 @@ internal fun RepairOrderCard(
                         modifier = Modifier.padding(top = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        RemoteProjectImage(
+                        UserAvatar(
                             order.technicianAvatarObjectId,
                             token,
                             Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)),

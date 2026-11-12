@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
-import { ProtectedImage } from "@/components/protected-image";
+import { UserAvatar } from "@/components/user-avatar";
 
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -85,10 +85,10 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
         <>
           <SectionCard className="mb-5">
             <div className="flex flex-wrap items-center gap-4">
-              <ProtectedImage
+              <UserAvatar
                 objectId={profile.user.avatarObjectId}
                 alt={`Фото мастера ${profile.user.displayName}`}
-                className="size-20 rounded-full object-cover"
+                className="size-20 rounded-full"
               />
               <div className="min-w-0 flex-1">
                 <h2 className="text-xl font-semibold">{profile.user.displayName}</h2>

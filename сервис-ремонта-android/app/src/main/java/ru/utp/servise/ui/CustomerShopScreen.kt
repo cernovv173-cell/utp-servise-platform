@@ -96,7 +96,9 @@ fun CustomerShopScreen(
     var orders by remember { mutableStateOf<List<ShopOrder>>(emptyList()) }
     var crafts by remember { mutableStateOf<List<CraftItem>>(emptyList()) }
     var craftOrders by remember { mutableStateOf<List<CraftOrder>>(emptyList()) }
-    var selectedTab by remember(user.id) { mutableStateOf(initialTab) }
+    var selectedTab by remember(user.id, initialTab) {
+        mutableStateOf(resolveCustomerShopTab(initialTab))
+    }
     var cart by remember(user.id) { mutableStateOf(readShopCart(context, user.id)) }
     var customerNote by remember(user.id) { mutableStateOf("") }
     var deliveryMethod by remember(user.id) { mutableStateOf("PICKUP") }
@@ -107,6 +109,7 @@ fun CustomerShopScreen(
     var isLoading by remember { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
+    val catalogItems = remember(products, crafts) { combineShopCatalog(products, crafts) }
 
     suspend fun reload() {
         isLoading = true
@@ -177,8 +180,8 @@ fun CustomerShopScreen(
         TextButton(onClick = onBack) { Text("←  Назад") }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.weight(1f)) {
-                Text("Магазин товаров", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("Товары — отдельно от запчастей для ремонта", fontSize = 12.sp, color = UtpMuted)
+                Text("Магазин", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text("Товары и готовые изделия — в одном каталоге", fontSize = 12.sp, color = UtpMuted)
             }
             TextButton(onClick = { scope.launch { reload() } }, enabled = !isLoading) { Text("Обновить") }
         }
@@ -189,34 +192,57 @@ fun CustomerShopScreen(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-            ShopTabButton("Товары", selectedTab == "PRODUCTS", Modifier.weight(1f)) { selectedTab = "PRODUCTS" }
-            ShopTabButton("Рукоделие", selectedTab == "CRAFTS", Modifier.weight(1f)) { selectedTab = "CRAFTS" }
-            ShopTabButton("Корзина · ${cartLines.sumOf { it.quantity }}", selectedTab == "CART", Modifier.weight(1f)) { selectedTab = "CART" }
+            ShopTabButton("Каталог", selectedTab == CustomerShopTab.CATALOG, Modifier.weight(1f)) {
+                selectedTab = CustomerShopTab.CATALOG
+            }
+            ShopTabButton("Корзина · ${cartLines.sumOf { it.quantity }}", selectedTab == CustomerShopTab.CART, Modifier.weight(1f)) {
+                selectedTab = CustomerShopTab.CART
+            }
         }
 
-        if (selectedTab == "PRODUCTS" && isLoading && products.isEmpty()) {
-            Text("Загружаем товары…", color = UtpMuted)
-        } else if (selectedTab == "PRODUCTS" && loadError != null && products.isEmpty()) {
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-                Text(loadError.orEmpty(), Modifier.fillMaxWidth().padding(16.dp), color = androidx.compose.material3.MaterialTheme.colorScheme.error)
-            }
-        } else if (selectedTab == "PRODUCTS" && products.isEmpty()) {
-            Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Товаров пока нет", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("Администратор добавит и включит товары в каталоге.", Modifier.padding(top = 5.dp), color = UtpMuted, fontSize = 12.sp)
+        if (selectedTab == CustomerShopTab.CATALOG) {
+            when {
+                isLoading && catalogItems.isEmpty() -> Text("Загружаем каталог…", color = UtpMuted)
+                loadError != null && catalogItems.isEmpty() -> {
+                    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                        Text(loadError.orEmpty(), Modifier.fillMaxWidth().padding(16.dp), color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                    }
+                }
+                catalogItems.isEmpty() -> {
+                    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
+                        Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("В магазине пока нет товаров", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                            Text("Товары и готовые изделия ручной работы появятся здесь, как только их опубликуют.", Modifier.padding(top = 5.dp), color = UtpMuted, fontSize = 12.sp)
+                        }
+                    }
+                }
+                else -> catalogItems.forEach { entry ->
+                    when (entry) {
+                        is ShopCatalogEntry.Product -> {
+                            val product = entry.item
+                            CustomerShopProductCard(
+                                product = product,
+                                token = token,
+                                quantity = cart[product.id] ?: 0,
+                                onAdd = { setQuantity(product.id, (cart[product.id] ?: 0) + 1) },
+                            )
+                        }
+                        is ShopCatalogEntry.Craft -> {
+                            val item = entry.item
+                            CustomerCraftItemCard(
+                                item = item,
+                                token = token,
+                                runAction = runAction,
+                                refresh = { onRefresh(); scope.launch { reload() } },
+                                onAddToShopCart = { setQuantity("craft:${item.id}", (cart["craft:${item.id}"] ?: 0) + 1, item.stockQuantity) },
+                            )
+                        }
+                    }
                 }
             }
-        } else if (selectedTab == "PRODUCTS") {
-            products.forEach { product ->
-                CustomerShopProductCard(
-                    product = product,
-                    token = token,
-                    quantity = cart[product.id] ?: 0,
-                    onAdd = { setQuantity(product.id, (cart[product.id] ?: 0) + 1) },
-                )
+            if (loadError != null && catalogItems.isNotEmpty()) {
+                Text("Не удалось обновить каталог: ${loadError.orEmpty()}", color = androidx.compose.material3.MaterialTheme.colorScheme.error, fontSize = 12.sp)
             }
-        } else if (selectedTab == "CRAFTS") {
             CraftsScreen(
                 token = token,
                 isAdmin = false,
@@ -226,18 +252,19 @@ fun CustomerShopScreen(
                 runAction = runAction,
                 refresh = { onRefresh(); scope.launch { reload() } },
                 onBack = {},
-                banners = banners,
+                banners = emptyList(),
                 onCampaignNavigate = onCampaignNavigate,
                 embedded = true,
+                showReadyItems = false,
                 onAddToShopCart = { item ->
                     val key = "craft:${item.id}"
                     setQuantity(key, (cart[key] ?: 0) + 1, item.stockQuantity)
-                    selectedTab = "CART"
+                    selectedTab = CustomerShopTab.CART
                 },
             )
         }
 
-        if (selectedTab == "CART") {
+        if (selectedTab == CustomerShopTab.CART) {
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Корзина · ${cartLines.sumOf { it.quantity }} шт.", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)

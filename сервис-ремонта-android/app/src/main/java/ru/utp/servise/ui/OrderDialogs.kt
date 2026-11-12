@@ -54,7 +54,7 @@ internal fun AssignmentDialog(
                 technicians.forEach { member ->
                     TextButton(onClick = { onSelect(member.id) }) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            RemoteProjectImage(
+                            UserAvatar(
                                 member.avatarObjectId,
                                 token = token,
                                 modifier = Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)),

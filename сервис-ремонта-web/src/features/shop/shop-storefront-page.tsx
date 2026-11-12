@@ -21,10 +21,10 @@ import {
 } from "@/lib/api";
 
 import { type ShopCart, getShopCartCount, loadShopCart, setShopCartQuantity } from "./shop-cart";
+import { combineShopCatalog } from "./shop-catalog";
 import { type ShopCheckoutLine, ShopCheckoutPanel } from "./shop-checkout-panel";
 import { CraftCard, CustomerOrderCard, ProductCard } from "./shop-storefront-items";
 
-type StoreTab = "PRODUCTS" | "CRAFTS";
 const emptyProducts: ShopProduct[] = [];
 const emptyCrafts: ShopCraftItem[] = [];
 
@@ -41,7 +41,6 @@ const ShopStorefrontPage = () => {
     storageKey: cartStorageKey,
     cart: loadShopCart(cartStorageKey),
   }));
-  const [activeTab, setActiveTab] = useState<StoreTab>("PRODUCTS");
   const [customerNote, setCustomerNote] = useState("");
   const [deliveryMethod, setDeliveryMethod] = useState<"PICKUP" | "COURIER">("PICKUP");
   const [deliveryCity, setDeliveryCity] = useState("Пушкино");
@@ -62,6 +61,13 @@ const ShopStorefrontPage = () => {
   });
   const products = productsQuery.data?.products ?? emptyProducts;
   const crafts = craftsQuery.data?.items ?? emptyCrafts;
+  const catalogItems = useMemo(() => combineShopCatalog(products, crafts), [crafts, products]);
+  const isCatalogLoading = productsQuery.isLoading || craftsQuery.isLoading;
+  const hasCatalogError = productsQuery.isError || craftsQuery.isError;
+  const refreshCatalog = () => {
+    void productsQuery.refetch();
+    void craftsQuery.refetch();
+  };
   const cart = useMemo(() => {
     const storedCart =
       cartState.storageKey === cartStorageKey ? cartState.cart : loadShopCart(cartStorageKey);
@@ -223,155 +229,105 @@ const ShopStorefrontPage = () => {
 
       <div className="grid items-start gap-5 lg:grid-cols-[1.4fr_0.8fr]">
         <section aria-labelledby="shop-section-heading">
-          <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Разделы магазина">
-            {(
-              [
-                ["PRODUCTS", "Товары"],
-                ["CRAFTS", `Рукоделие${crafts.length ? ` · ${crafts.length}` : ""}`],
-              ] as const
-            ).map(([tab, label]) => (
-              <button
-                key={tab}
-                type="button"
-                role="tab"
-                aria-selected={activeTab === tab}
-                onClick={() => setActiveTab(tab)}
-                className={`min-h-10 rounded-xl px-4 text-sm font-semibold transition ${activeTab === tab ? "bg-blue-600 text-white" : "border border-slate-200 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"}`}
-              >
-                {label}
-              </button>
-            ))}
+          <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 id="shop-section-heading" className="text-lg font-semibold">
+                Каталог магазина
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Готовые товары и изделия ручной работы собраны вместе.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={refreshCatalog}
+              className="min-h-9 rounded-lg px-3 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:text-cyan-300 dark:hover:bg-blue-950/40"
+            >
+              Обновить каталог
+            </button>
           </div>
-          {activeTab === "PRODUCTS" ? (
-            <>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <h2 id="shop-section-heading" className="text-lg font-semibold">
-                  Товары
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => void productsQuery.refetch()}
-                  className="min-h-9 rounded-lg px-3 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:text-cyan-300 dark:hover:bg-blue-950/40"
-                >
-                  Обновить каталог
-                </button>
-              </div>
-              {productsQuery.isLoading && (
-                <SectionCard>
-                  <p className="text-sm text-slate-500">Загружаем товары…</p>
-                </SectionCard>
-              )}
-              {productsQuery.isError && (
-                <SectionCard>
-                  <p role="alert" className="text-sm text-rose-600">
-                    Не удалось загрузить товары. Попробуйте обновить каталог.
-                  </p>
-                </SectionCard>
-              )}
-              {!productsQuery.isLoading && !productsQuery.isError && products.length === 0 && (
-                <SectionCard className="py-10 text-center">
-                  <ShoppingBag size={30} className="mx-auto text-blue-500" aria-hidden="true" />
-                  <h3 className="mt-3 font-semibold">Товаров пока нет</h3>
-                  <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
-                    Когда администратор добавит товары, они появятся здесь.
-                  </p>
-                  {user?.role === "ADMIN" && (
-                    <Link
-                      to="/catalog"
-                      className="mt-4 inline-flex text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-300"
-                    >
-                      Перейти в каталог товаров
-                    </Link>
-                  )}
-                </SectionCard>
-              )}
-              {products.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {products.map((product: ShopProduct) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      quantity={cart[product.id] ?? 0}
-                      canOrder={canOrder}
-                      onAdd={() => setQuantity(product.id, (cart[product.id] ?? 0) + 1)}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <h2 id="shop-section-heading" className="text-lg font-semibold">
-                    Готовые изделия ручной работы
-                  </h2>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Их можно добавить к обычным товарам в одну корзину.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void craftsQuery.refetch()}
-                  className="min-h-9 rounded-lg px-3 text-sm font-medium text-blue-700 hover:bg-blue-50 dark:text-cyan-300 dark:hover:bg-blue-950/40"
-                >
-                  Обновить
-                </button>
-              </div>
-              {craftsQuery.isLoading && (
-                <SectionCard>
-                  <p className="text-sm text-slate-500">Загружаем изделия…</p>
-                </SectionCard>
-              )}
-              {craftsQuery.isError && (
-                <SectionCard>
-                  <p role="alert" className="text-sm text-rose-600">
-                    Не удалось загрузить изделия.
-                  </p>
-                </SectionCard>
-              )}
-              {!craftsQuery.isLoading && !craftsQuery.isError && crafts.length === 0 && (
-                <SectionCard className="py-8 text-center">
-                  <p className="text-sm text-slate-500">Опубликованных готовых изделий пока нет.</p>
-                  {user?.role === "ADMIN" && (
-                    <Link
-                      to="/crafts"
-                      className="mt-3 inline-flex text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-300"
-                    >
-                      Открыть управление рукоделием
-                    </Link>
-                  )}
-                </SectionCard>
-              )}
-              {crafts.length > 0 && (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {crafts.map((item) => (
-                    <CraftCard
-                      key={item.id}
-                      item={item}
-                      quantity={cart[`craft:${item.id}`] ?? 0}
-                      canOrder={canOrder}
-                      onAdd={() =>
-                        setQuantity(`craft:${item.id}`, (cart[`craft:${item.id}`] ?? 0) + 1)
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-              <SectionCard className="mt-4">
-                <p className="text-sm text-slate-600 dark:text-slate-300">
-                  Изготовление по индивидуальным пожеланиям оформляется отдельно; цену, срок и
-                  доставку согласуем после обсуждения и готовности изделия.
-                </p>
-                <Link
-                  to="/crafts"
-                  className="mt-3 inline-flex text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-300"
-                >
-                  Перейти к заказу изделия
-                </Link>
-              </SectionCard>
-            </>
+          {catalogItems.length === 0 && isCatalogLoading && (
+            <SectionCard>
+              <p className="text-sm text-slate-500">Загружаем каталог…</p>
+            </SectionCard>
           )}
+          {hasCatalogError && (
+            <SectionCard className="mb-3">
+              <p role="alert" className="text-sm text-rose-600">
+                {productsQuery.isError && craftsQuery.isError
+                  ? "Не удалось загрузить каталог. Попробуйте обновить его."
+                  : productsQuery.isError
+                    ? "Не удалось загрузить обычные товары; показываем доступные изделия ручной работы."
+                    : "Не удалось загрузить изделия ручной работы; показываем доступные товары."}
+              </p>
+            </SectionCard>
+          )}
+          {catalogItems.length === 0 && !isCatalogLoading && !hasCatalogError && (
+            <SectionCard className="py-10 text-center">
+              <ShoppingBag size={30} className="mx-auto text-blue-500" aria-hidden="true" />
+              <h3 className="mt-3 font-semibold">Пока нет опубликованных товаров</h3>
+              <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+                Когда в магазин добавят товары или готовые изделия ручной работы, они появятся
+                здесь.
+              </p>
+              {user?.role === "ADMIN" && (
+                <div className="mt-4 flex flex-wrap justify-center gap-4">
+                  <Link
+                    to="/catalog"
+                    className="text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-300"
+                  >
+                    Каталог товаров
+                  </Link>
+                  <Link
+                    to="/crafts"
+                    className="text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-300"
+                  >
+                    Изделия ручной работы
+                  </Link>
+                </div>
+              )}
+            </SectionCard>
+          )}
+          {catalogItems.length > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {catalogItems.map((entry) =>
+                entry.kind === "PRODUCT" ? (
+                  <ProductCard
+                    key={`product:${entry.product.id}`}
+                    product={entry.product}
+                    quantity={cart[entry.product.id] ?? 0}
+                    canOrder={canOrder}
+                    onAdd={() => setQuantity(entry.product.id, (cart[entry.product.id] ?? 0) + 1)}
+                  />
+                ) : (
+                  <CraftCard
+                    key={`craft:${entry.craft.id}`}
+                    item={entry.craft}
+                    quantity={cart[`craft:${entry.craft.id}`] ?? 0}
+                    canOrder={canOrder}
+                    onAdd={() =>
+                      setQuantity(
+                        `craft:${entry.craft.id}`,
+                        (cart[`craft:${entry.craft.id}`] ?? 0) + 1,
+                      )
+                    }
+                  />
+                ),
+              )}
+            </div>
+          )}
+          <SectionCard className="mt-4">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
+              Нужна вещь по индивидуальному запросу? Готовые изделия продаются в этом каталоге, а
+              цену и срок изготовления под заказ согласуем отдельно.
+            </p>
+            <Link
+              to="/crafts"
+              className="mt-3 inline-flex text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-300"
+            >
+              Обсудить изготовление на заказ
+            </Link>
+          </SectionCard>
         </section>
 
         <ShopCheckoutPanel

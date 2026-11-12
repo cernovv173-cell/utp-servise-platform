@@ -8,6 +8,7 @@ import { ProtectedImage } from "@/components/protected-image";
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { CraftOrderCard } from "@/features/crafts/craft-order-card";
+import { CraftOrderPhotoPicker } from "@/features/crafts/craft-order-photo-picker";
 
 import {
   createCraftItem,
@@ -17,6 +18,7 @@ import {
   getStaff,
   updateCraftItem,
   uploadAdminImage,
+  uploadCraftOrderChatImage,
 } from "@/lib/api";
 
 export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) => {
@@ -26,6 +28,8 @@ export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) =>
   const [note, setNote] = useState("");
   const [customTitle, setCustomTitle] = useState("");
   const [customNote, setCustomNote] = useState("");
+  const [itemPhotos, setItemPhotos] = useState<File[]>([]);
+  const [customPhotos, setCustomPhotos] = useState<File[]>([]);
   const items = useQuery({
     queryKey: ["craft-items", token],
     queryFn: ({ signal }) => getCraftItems(token!, signal),
@@ -46,15 +50,34 @@ export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) =>
     await client.invalidateQueries({ queryKey: ["craft-orders", token] });
   };
   const request = useMutation({
-    mutationFn: (input: { itemId?: string; customTitle?: string; note: string }) =>
-      createCraftOrder(token!, { ...input, quantity: 1 }),
-    onSuccess: async () => {
+    mutationFn: async (input: {
+      itemId?: string;
+      customTitle?: string;
+      note: string;
+      photos: File[];
+    }) => {
+      const { photos, ...orderInput } = input;
+      const { order } = await createCraftOrder(token!, { ...orderInput, quantity: 1 });
+      const uploads = await Promise.allSettled(
+        photos.map((file) => uploadCraftOrderChatImage(token!, order.id, file)),
+      );
+      return { failedPhotoCount: uploads.filter((upload) => upload.status === "rejected").length };
+    },
+    onSuccess: async ({ failedPhotoCount }) => {
       await refresh();
       setRequestingItem(null);
       setNote("");
       setCustomTitle("");
       setCustomNote("");
-      toast.success("Заявка сохранена — администратор свяжется с вами.");
+      setItemPhotos([]);
+      setCustomPhotos([]);
+      if (failedPhotoCount > 0) {
+        toast.error(
+          "Заявка создана, но не все фото прикрепились. Откройте чат заявки и отправьте их ещё раз.",
+        );
+      } else {
+        toast.success("Заявка сохранена — администратор свяжется с вами.");
+      }
     },
   });
   const isAdmin = user?.role === "ADMIN";
@@ -104,7 +127,7 @@ export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) =>
                   <form
                     onSubmit={(event: FormEvent<HTMLFormElement>) => {
                       event.preventDefault();
-                      request.mutate({ itemId: item.id, note });
+                      request.mutate({ itemId: item.id, note, photos: itemPhotos });
                     }}
                     className="mt-4 grid gap-2"
                   >
@@ -118,6 +141,11 @@ export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) =>
                         className="mt-1 w-full rounded-lg border border-slate-200 bg-white p-2 text-sm dark:border-slate-700 dark:bg-slate-950"
                       />
                     </label>
+                    <CraftOrderPhotoPicker
+                      files={itemPhotos}
+                      onChange={setItemPhotos}
+                      disabled={request.isPending}
+                    />
                     <button
                       disabled={request.isPending}
                       className="min-h-9 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white"
@@ -154,7 +182,7 @@ export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) =>
           <form
             onSubmit={(event: FormEvent<HTMLFormElement>) => {
               event.preventDefault();
-              request.mutate({ customTitle, note: customNote });
+              request.mutate({ customTitle, note: customNote, photos: customPhotos });
             }}
             className="mt-4 grid gap-3 md:grid-cols-2"
           >
@@ -181,6 +209,13 @@ export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) =>
                 className="rounded-lg border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-950"
               />
             </label>
+            <div className="md:col-span-2">
+              <CraftOrderPhotoPicker
+                files={customPhotos}
+                onChange={setCustomPhotos}
+                disabled={request.isPending}
+              />
+            </div>
             <button
               disabled={request.isPending}
               className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"

@@ -1,5 +1,7 @@
 package ru.utp.servise.ui
 
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -53,11 +55,14 @@ fun CraftsScreen(
     banners: List<SiteBanner> = emptyList(),
     onCampaignNavigate: (String) -> Unit = {},
     embedded: Boolean = false,
+    showReadyItems: Boolean = true,
     onAddToShopCart: (CraftItem) -> Unit = {},
 ) {
     var customTitle by remember { mutableStateOf("") }
     var customNote by remember { mutableStateOf("") }
     var customQuantity by remember { mutableStateOf("1") }
+    var customPhotos by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    val context = LocalContext.current
     val contentModifier = if (embedded) {
         Modifier.fillMaxWidth()
     } else {
@@ -68,8 +73,21 @@ fun CraftsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (!embedded) TextButton(onClick = onBack) { Text("←  Назад") }
-        Text("Рукоделия", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Изделия ручной работы: готовые — в корзину, уникальные — обсудим и изготовим.", fontSize = 13.sp, color = UtpMuted)
+        Text(
+            if (showReadyItems) "Рукоделия" else "Изготовление на заказ",
+            fontSize = 25.sp,
+            fontWeight = FontWeight.Bold,
+            color = UtpInk,
+        )
+        Text(
+            if (showReadyItems) {
+                "Готовые изделия можно добавить в корзину; индивидуальные — обсудим и изготовим."
+            } else {
+                "Готовые изделия уже собраны в общем каталоге магазина. Здесь можно отправить индивидуальную заявку."
+            },
+            fontSize = 13.sp,
+            color = UtpMuted,
+        )
         if (!isAdmin) {
             CampaignBannerCarousel(
                 banners = banners,
@@ -84,8 +102,10 @@ fun CraftsScreen(
             Text("Заявки на изделия", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
             orders.forEach { order -> AdminCraftOrderCard(order, token, staff, runAction, refresh) }
         } else {
-            items.filter { it.isPublished }.forEach { item ->
-                CustomerCraftItemCard(item, token, runAction, refresh, onAddToShopCart)
+            if (showReadyItems) {
+                items.filter { it.isPublished }.forEach { item ->
+                    CustomerCraftItemCard(item, token, runAction, refresh, onAddToShopCart)
+                }
             }
             Spacer(Modifier.height(4.dp))
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
@@ -94,8 +114,34 @@ fun CraftsScreen(
                     OutlinedTextField(customTitle, { customTitle = it.take(160) }, label = { Text("Что изготовить") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
                     OutlinedTextField(customNote, { customNote = it.take(2000) }, label = { Text("Описание и пожелания") }, modifier = Modifier.fillMaxWidth(), minLines = 3, shape = RoundedCornerShape(12.dp))
                     OutlinedTextField(customQuantity, { customQuantity = it.filter(Char::isDigit).take(2) }, label = { Text("Количество") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
+                    CraftOrderPhotoAttachments(customPhotos, { customPhotos = it })
                     Button(
-                        onClick = { runAction({ ApiClient.createCraftOrder(token, null, customTitle.trim(), customQuantity.toIntOrNull()?.coerceIn(1, 99) ?: 1, customNote.trim()) }) { customTitle = ""; customNote = ""; refresh() } },
+                        onClick = {
+                            val attachedPhotoCount = customPhotos.size
+                            runAction({
+                                createCraftOrderWithPhotos(
+                                    context = context,
+                                    token = token,
+                                    itemId = null,
+                                    customTitle = customTitle.trim(),
+                                    quantity = customQuantity.toIntOrNull()?.coerceIn(1, 99) ?: 1,
+                                    note = customNote.trim(),
+                                    photos = customPhotos,
+                                )
+                            }) { result ->
+                                val failedPhotoCount = result as? Int ?: 0
+                                customTitle = ""
+                                customNote = ""
+                                customPhotos = emptyList()
+                                refresh()
+                                val message = when {
+                                    failedPhotoCount > 0 -> "Заявка отправлена, но некоторые фото не прикрепились. Отправьте их в чате заявки."
+                                    attachedPhotoCount > 0 -> "Заявка отправлена, фото прикреплены."
+                                    else -> "Заявка отправлена. Администратор свяжется с вами."
+                                }
+                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                            }
+                        },
                         enabled = customTitle.trim().length >= 2 && customNote.trim().length >= 2,
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("Отправить заявку") }
@@ -105,12 +151,14 @@ fun CraftsScreen(
             Text("Мои заявки", fontSize = 18.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
             orders.forEach { CustomerCraftOrderCard(it, token, runAction, refresh) }
         }
-        if (items.isEmpty()) Text("В каталоге пока нет материалов.", color = UtpMuted)
+        if (items.isEmpty() && (isAdmin || showReadyItems)) {
+            Text("В каталоге пока нет материалов.", color = UtpMuted)
+        }
     }
 }
 
 @Composable
-private fun CustomerCraftItemCard(
+internal fun CustomerCraftItemCard(
     item: CraftItem,
     token: String,
     runAction: RunAction,
@@ -119,10 +167,13 @@ private fun CustomerCraftItemCard(
 ) {
     var quantity by remember(item.id) { mutableStateOf("1") }
     var note by remember(item.id) { mutableStateOf("") }
+    var photos by remember(item.id) { mutableStateOf<List<Uri>>(emptyList()) }
+    val context = LocalContext.current
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item.imageObjectId?.let { image -> RemoteProjectImage(image, token, Modifier.fillMaxWidth().height(180.dp), "Фото изделия ${item.title}") }
             Text(item.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+            Text("Ручная работа", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = UtpBlue)
             Text(item.description.ifBlank { "Готовое изделие ручной работы." }, fontSize = 13.sp, color = UtpMuted)
             Text("${item.priceRub} ₽", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpBlue)
             if (item.stockQuantity > 0) {
@@ -133,7 +184,36 @@ private fun CustomerCraftItemCard(
                 Text("Можно изготовить под заказ", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = UtpBlue)
                 OutlinedTextField(quantity, { quantity = it.filter(Char::isDigit).take(2) }, label = { Text("Количество для изготовления") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
                 OutlinedTextField(note, { note = it.take(2000) }, label = { Text("Пожелания, необязательно") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
-                Button(onClick = { runAction({ ApiClient.createCraftOrder(token, item.id, null, quantity.toIntOrNull()?.coerceIn(1, 99) ?: 1, note.trim()) }) { refresh() } }, modifier = Modifier.fillMaxWidth()) { Text("Обсудить изготовление") }
+                CraftOrderPhotoAttachments(photos, { photos = it })
+                Button(
+                    onClick = {
+                        val attachedPhotoCount = photos.size
+                        runAction({
+                            createCraftOrderWithPhotos(
+                                context = context,
+                                token = token,
+                                itemId = item.id,
+                                customTitle = null,
+                                quantity = quantity.toIntOrNull()?.coerceIn(1, 99) ?: 1,
+                                note = note.trim(),
+                                photos = photos,
+                            )
+                        }) { result ->
+                            val failedPhotoCount = result as? Int ?: 0
+                            quantity = "1"
+                            note = ""
+                            photos = emptyList()
+                            refresh()
+                            val message = when {
+                                failedPhotoCount > 0 -> "Заявка отправлена, но некоторые фото не прикрепились. Отправьте их в чате заявки."
+                                attachedPhotoCount > 0 -> "Заявка отправлена, фото прикреплены."
+                                else -> "Заявка отправлена."
+                            }
+                            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Обсудить изготовление") }
             }
             if (item.stockQuantity <= 0 && !item.customOrderAvailable) {
                 Text("Пока нет в наличии", fontSize = 12.sp, color = UtpMuted)

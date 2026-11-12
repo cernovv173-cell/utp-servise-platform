@@ -114,7 +114,7 @@ fun StaffManagementScreen(
         staff.forEach { member ->
             Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-                    RemoteProjectImage(
+                    UserAvatar(
                         objectId = member.avatarObjectId,
                         token = token,
                         modifier = Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)),

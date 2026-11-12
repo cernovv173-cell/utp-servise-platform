@@ -131,17 +131,6 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                     ),
                 ),
             ),
-            WorkspaceSectionGroup(
-                "Изделия",
-                listOf(
-                    WorkspaceDestination(
-                        "customer/crafts",
-                        "Ручная работа",
-                        Icons.Filled.Star,
-                        "Готовые изделия и заявки на заказ.",
-                    ),
-                ),
-            ),
         ),
     )
 

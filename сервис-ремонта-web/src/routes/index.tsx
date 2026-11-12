@@ -199,8 +199,10 @@ const HomePage = () => {
               motion="peek"
               className="grid size-11 place-items-center rounded-2xl bg-amber-50 text-2xl dark:bg-amber-950/40"
             />
-            <h3 className="mt-4 font-semibold">Ручная работа</h3>
-            <p className="mt-1 text-sm text-slate-500">Изделия и заказные варианты</p>
+            <h3 className="mt-4 font-semibold">Изготовление на заказ</h3>
+            <p className="mt-1 text-sm text-slate-500">
+              Готовые изделия — в общем каталоге магазина
+            </p>
           </SectionCard>
         </Link>
       </div>

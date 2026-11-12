@@ -66,7 +66,7 @@ fun TechnicianProfileScreen(
         Spacer(Modifier.height(12.dp))
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                     Column(Modifier.fillMaxWidth().padding(16.dp)) {
-                        RemoteProjectImage(profile?.avatarObjectId, token, Modifier.size(92.dp).clip(RoundedCornerShape(46.dp)), "Фото мастера")
+                        UserAvatar(profile?.avatarObjectId, token, Modifier.size(92.dp).clip(RoundedCornerShape(46.dp)), "Фото мастера")
                         if (editable) {
                             OutlinedTextField(fullName, { fullName = it.take(120) }, label = { Text("ФИО") }, modifier = Modifier.fillMaxWidth().padding(top = 10.dp), singleLine = true)
                             OutlinedTextField(phoneNumber, { phoneNumber = it.take(32) }, label = { Text("Номер телефона") }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp), singleLine = true)

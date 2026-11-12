@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
-import { ProtectedImage } from "@/components/protected-image";
+import { UserAvatar } from "@/components/user-avatar";
 
 import type { User } from "@/lib/api";
 import { uploadAvatar } from "@/lib/api";
@@ -24,19 +24,11 @@ export const CustomerAvatarCard = ({ token, user }: { token: string; user: User 
     <SectionCard>
       <h2 className="font-semibold">Фото профиля</h2>
       <div className="mt-4 flex flex-wrap items-center gap-4">
-        {user.avatarObjectId ? (
-          <ProtectedImage
-            objectId={user.avatarObjectId}
-            alt={`Фото профиля ${user.displayName}`}
-            className="size-20 rounded-full object-cover"
-          />
-        ) : (
-          <img
-            src="/customer-avatar-default.jpeg"
-            alt="Аватар по умолчанию — техно-енот"
-            className="size-20 rounded-full object-cover"
-          />
-        )}
+        <UserAvatar
+          objectId={user.avatarObjectId}
+          alt={`Аватар ${user.displayName}`}
+          className="size-20 rounded-full"
+        />
         <div className="min-w-0 flex-1">
           <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
             {user.avatarObjectId

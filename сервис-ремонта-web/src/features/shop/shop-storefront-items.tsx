@@ -116,6 +116,9 @@ export const CraftCard = ({
       </div>
     )}
     <div className="flex flex-1 flex-col p-5">
+      <span className="mb-2 w-fit rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
+        Ручная работа
+      </span>
       <h2 className="font-semibold">{item.title}</h2>
       <p className="mt-2 line-clamp-3 text-sm leading-5 whitespace-pre-wrap text-slate-600 dark:text-slate-300">
         {item.description || "Уникальное изделие ручной работы."}
