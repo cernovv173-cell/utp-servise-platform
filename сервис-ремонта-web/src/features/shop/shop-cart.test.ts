@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getShopCartCount, loadShopCart, setShopCartQuantity } from "./shop-cart";
+import {
+  getShopCartCount,
+  getUnresolvedShopCartKeys,
+  loadShopCart,
+  setShopCartQuantity,
+} from "./shop-cart";
 
 describe("shop cart", () => {
   const storage = new Map<string, string>();
@@ -31,5 +36,11 @@ describe("shop cart", () => {
 
   it("counts all items across product lines", () => {
     expect(getShopCartCount({ first: 2, second: 3 })).toBe(5);
+  });
+
+  it("detects saved cart items that are missing from the loaded catalog", () => {
+    expect(
+      getUnresolvedShopCartKeys({ product: 1, "craft:handmade": 2 }, new Set(["craft:handmade"])),
+    ).toEqual(["product"]);
   });
 });

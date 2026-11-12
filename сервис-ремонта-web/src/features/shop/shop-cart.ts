@@ -31,3 +31,8 @@ export const setShopCartQuantity = (
 
 export const getShopCartCount = (cart: ShopCart): number =>
   Object.values(cart).reduce((total, quantity) => total + quantity, 0);
+
+export const getUnresolvedShopCartKeys = (
+  cart: ShopCart,
+  resolvedKeys: ReadonlySet<string>,
+): string[] => Object.keys(cart).filter((key) => !resolvedKeys.has(key));

@@ -21,6 +21,7 @@ export const ShopCheckoutPanel = ({
   cartCount,
   subtotal,
   hasUnavailableItem,
+  hasUnresolvedCartItems,
   canOrder,
   busy,
   deliveryMethod,
@@ -40,6 +41,7 @@ export const ShopCheckoutPanel = ({
   cartCount: number;
   subtotal: number;
   hasUnavailableItem: boolean;
+  hasUnresolvedCartItems: boolean;
   canOrder: boolean;
   busy: boolean;
   deliveryMethod: "PICKUP" | "COURIER";
@@ -66,9 +68,17 @@ export const ShopCheckoutPanel = ({
           {cartCount}
         </span>
       </div>
+      {hasUnresolvedCartItems && (
+        <p role="alert" className="mt-3 text-sm leading-5 text-rose-600">
+          Не все позиции корзины удалось загрузить. Обновите каталог; заказ пока нельзя отправить,
+          корзина сохранится.
+        </p>
+      )}
       {lines.length === 0 ? (
         <p className="mt-4 text-sm text-slate-500">
-          Добавьте товары или готовые изделия ручной работы.
+          {hasUnresolvedCartItems
+            ? "Корзина содержит позиции, данные которых ещё не загружены."
+            : "Добавьте товары или готовые изделия ручной работы."}
         </p>
       ) : (
         <>
@@ -234,6 +244,7 @@ export const ShopCheckoutPanel = ({
               disabled={
                 busy ||
                 lines.length === 0 ||
+                hasUnresolvedCartItems ||
                 hasUnavailableItem ||
                 (deliveryMethod === "COURIER" && (!deliveryCity.trim() || !deliveryAddress.trim()))
               }

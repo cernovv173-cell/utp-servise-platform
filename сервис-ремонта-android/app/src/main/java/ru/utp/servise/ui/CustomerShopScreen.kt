@@ -83,6 +83,7 @@ fun CustomerShopScreen(
     user: AppUser,
     token: String,
     runAction: RunAction,
+    isActionBusy: Boolean = false,
     onBack: () -> Unit,
     initialTab: String = "PRODUCTS",
     staff: List<StaffMember> = emptyList(),
@@ -106,10 +107,15 @@ fun CustomerShopScreen(
     var deliveryCity by remember(user.id) { mutableStateOf("Пушкино") }
     var deliveryAddress by remember(user.id) { mutableStateOf("") }
     var deliveryRequestNote by remember(user.id) { mutableStateOf("") }
+    var isSubmittingShopOrder by remember(user.id) { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
     val catalogItems = remember(products, crafts) { combineShopCatalog(products, crafts) }
+
+    LaunchedEffect(isActionBusy) {
+        if (!isActionBusy) isSubmittingShopOrder = false
+    }
 
     suspend fun reload() {
         isLoading = true
@@ -268,6 +274,13 @@ fun CustomerShopScreen(
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Корзина · ${cartLines.sumOf { it.quantity }} шт.", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                if (loadError != null) {
+                    Text(
+                        "Не удалось обновить данные магазина. Корзина сохранена; нажмите «Обновить» перед отправкой заказа.",
+                        color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        fontSize = 12.sp,
+                    )
+                }
                 if (cartLines.isEmpty()) {
                     Text("Добавьте товары, чтобы отправить заказ.", fontSize = 12.sp, color = UtpMuted)
                 } else {
@@ -311,6 +324,8 @@ fun CustomerShopScreen(
                     }
                     Button(
                         onClick = {
+                            if (isSubmittingShopOrder || isActionBusy) return@Button
+                            isSubmittingShopOrder = true
                             runAction({
                                 ApiClient.createShopOrder(
                                     token = token,
@@ -342,13 +357,23 @@ fun CustomerShopScreen(
                                 }
                             }
                         },
-                        enabled = cartLines.isNotEmpty() && !hasOutOfStock && !isLoading &&
-                            (deliveryMethod == "PICKUP" ||
-                                (deliveryCity.isNotBlank() && deliveryAddress.isNotBlank())),
+                        enabled = canSubmitShopOrder(
+                            cartLineCount = cartLines.size,
+                            hasUnavailableItem = hasOutOfStock,
+                            isLoading = isLoading,
+                            hasLoadError = loadError != null,
+                            isSubmitting = isActionBusy || isSubmittingShopOrder,
+                            deliveryMethod = deliveryMethod,
+                            deliveryCity = deliveryCity,
+                            deliveryAddress = deliveryAddress,
+                        ),
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                     ) {
-                        Text("Отправить заказ · ${shopPrice(totalRub)}")
+                        Text(
+                            if (isActionBusy || isSubmittingShopOrder) "Отправляем…"
+                            else "Отправить заказ · ${shopPrice(totalRub)}",
+                        )
                     }
                     Text(
                         "Доставка доступна для готовых товаров и изделий. Администратор вручную проверит адрес и предложит цену и срок; заказ подтвердится только после вашего согласия. Доставку заказного изделия обсудим после изготовления. Онлайн-оплаты нет.",

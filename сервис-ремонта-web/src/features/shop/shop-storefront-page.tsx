@@ -20,7 +20,13 @@ import {
   respondToShopDeliveryOffer,
 } from "@/lib/api";
 
-import { type ShopCart, getShopCartCount, loadShopCart, setShopCartQuantity } from "./shop-cart";
+import {
+  type ShopCart,
+  getShopCartCount,
+  getUnresolvedShopCartKeys,
+  loadShopCart,
+  setShopCartQuantity,
+} from "./shop-cart";
 import { combineShopCatalog } from "./shop-catalog";
 import { type ShopCheckoutLine, ShopCheckoutPanel } from "./shop-checkout-panel";
 import { CraftCard, CustomerOrderCard, ProductCard } from "./shop-storefront-items";
@@ -117,6 +123,8 @@ const ShopStorefrontPage = () => {
     return [...productLines, ...craftLines];
   }, [cart, crafts, products]);
   const cartTotal = cartLines.reduce((total, line) => total + line.unitPriceRub * line.quantity, 0);
+  const resolvedCartKeys = new Set(cartLines.map((line) => line.key));
+  const hasUnresolvedCartItems = getUnresolvedShopCartKeys(cart, resolvedCartKeys).length > 0;
   const hasUnavailableItem = cartLines.some(
     (line) =>
       line.availability === "OUT_OF_STOCK" ||
@@ -335,6 +343,7 @@ const ShopStorefrontPage = () => {
           cartCount={getShopCartCount(cart)}
           subtotal={cartTotal}
           hasUnavailableItem={hasUnavailableItem}
+          hasUnresolvedCartItems={hasUnresolvedCartItems}
           canOrder={canOrder}
           busy={orderMutation.isPending}
           deliveryMethod={deliveryMethod}
