@@ -150,7 +150,7 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <SeasonalArtwork
         season={season}
-        className={`absolute inset-0 transition-opacity duration-700 ${isWinter ? "opacity-[0.12] dark:opacity-[0.1]" : "opacity-40 dark:opacity-30"}`}
+        className={`absolute inset-0 transition-opacity duration-700 ${isWinter ? "opacity-[0.24] dark:opacity-[0.2]" : "opacity-40 dark:opacity-30"}`}
       />
       <div
         className={`absolute inset-0 bg-gradient-to-b ${isWinter ? "from-white/45 via-white/65 to-white/75 dark:from-[#070b18]/65 dark:via-[#070b18]/75 dark:to-[#070b18]/85" : "from-white/25 via-white/45 to-white/60 dark:from-[#070b18]/50 dark:via-[#070b18]/60 dark:to-[#070b18]/75"}`}

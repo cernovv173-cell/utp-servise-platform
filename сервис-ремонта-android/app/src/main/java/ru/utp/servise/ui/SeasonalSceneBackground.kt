@@ -22,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -35,10 +36,10 @@ import kotlinx.coroutines.delay
 import ru.utp.servise.R
 
 private val seasonArtwork = mapOf(
-    "SPRING" to R.drawable.seasonal_spring,
-    "SUMMER" to R.drawable.seasonal_summer,
-    "AUTUMN" to R.drawable.seasonal_autumn,
-    "WINTER" to R.drawable.seasonal_winter,
+    "SPRING" to R.drawable.seasonal_spring_banner,
+    "SUMMER" to R.drawable.seasonal_summer_banner,
+    "AUTUMN" to R.drawable.seasonal_autumn_banner,
+    "WINTER" to R.drawable.new_year_raccoon,
 )
 
 private val seasonParticles = mapOf(
@@ -64,11 +65,12 @@ fun SeasonalSceneBackground(season: String, dark: Boolean, modifier: Modifier = 
             painter = painterResource(imageResource),
             contentDescription = null,
             contentScale = ContentScale.Crop,
+            alignment = Alignment.CenterEnd,
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer(
                     alpha = if (season == "WINTER") {
-                        if (dark) 0.32f else 0.24f
+                        if (dark) 0.52f else 0.38f
                     } else if (dark) {
                         0.58f
                     } else {

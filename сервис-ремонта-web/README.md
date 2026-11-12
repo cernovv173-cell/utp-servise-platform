@@ -344,14 +344,14 @@ deleted.
 ## Seasonal themes
 
 The root layout reads the public `GET /seasonal-theme` state and applies the active palette across
-Web pages; it refreshes the server state once per minute. When a theme is active, its computer-repair
-illustration remains a faint shared background behind every route, including sign-in. Spring petals,
+Web pages; it refreshes the server state once per minute. When a theme is active, the matching seasonal
+raccoon scene from the home banner also appears as a faint shared background behind every route,
+including sign-in. Spring petals,
 summer light glints and autumn leaves retain their seasonal motion; autumn rain runs for 30 minutes
 once per hour. Every season has its own home banner with the service raccoon: spring blossoms, a summer
 garden, autumn leaves, or the winter New Year scene with snowman and tree. Winter also has a few slow
 snowflakes only on the home route. Motion is disabled when the visitor requests reduced motion. Banners
 appear on guest and signed-in home pages.
-The illustrations feature laptops, computer parts, and repair tools, not household appliances.
 Administrators manage seasonal appearance from the separate “Оформление” tab in the role navigation.
 Four switches enable spring, summer, autumn, or winter at any time; enabling one replaces the previous
 choice, and switching it off disables the seasonal theme. The selection is saved on the server and
