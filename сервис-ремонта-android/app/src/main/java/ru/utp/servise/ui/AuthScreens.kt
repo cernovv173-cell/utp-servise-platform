@@ -56,9 +56,24 @@ fun AuthNavigation(
     seasonalTheme: String = "NONE",
 ) {
     val controller = androidx.navigation.compose.rememberNavController()
-    NavHost(controller, startDestination = "entry") {
-        composable("entry") {
+    NavHost(controller, startDestination = "welcome") {
+        composable("welcome") {
+            WelcomeStartScreen(
+                onContinue = { controller.navigate("choose-role") },
+                onExploreServices = { controller.navigate("public") },
+            )
+        }
+        composable("choose-role") {
+            LoginRoleSelectionScreen(
+                onBack = { controller.popBackStack() },
+                onContinue = { portal -> controller.navigate("login/$portal") },
+                onRegisterCustomer = { controller.navigate("register") },
+                onExploreServices = { controller.navigate("public") },
+            )
+        }
+        composable("public") {
             PublicHomeScreen(
+                onBackToStart = { controller.popBackStack() },
                 onRequest = { controller.navigate("register") },
                 onCustomerLogin = { controller.navigate("login/CUSTOMER") },
                 onTechnicianLogin = { controller.navigate("login/TECHNICIAN") },
@@ -71,6 +86,7 @@ fun AuthNavigation(
             LoginScreen(
                 portal = entry.arguments?.getString("portal") ?: "CUSTOMER",
                 onBack = { controller.popBackStack() },
+                onRegister = { controller.navigate("register") },
                 onAuthenticated = onAuthenticated,
                 onBusy = onBusy,
                 onError = onError,
@@ -91,6 +107,7 @@ fun AuthNavigation(
 private fun LoginScreen(
     portal: String,
     onBack: () -> Unit,
+    onRegister: () -> Unit,
     onAuthenticated: (String, AppUser) -> Unit,
     onBusy: (Boolean) -> Unit,
     onError: (String?) -> Unit,
@@ -244,6 +261,11 @@ private fun LoginScreen(
             }
             TextButton(onClick = { recovering = true; recoveryMessage = null; onError(null) }, modifier = Modifier.fillMaxWidth()) {
                 Text("Забыли пароль?")
+            }
+            if (portal == "CUSTOMER") {
+                TextButton(onClick = onRegister, modifier = Modifier.fillMaxWidth()) {
+                    Text("Нет аккаунта? Зарегистрироваться")
+                }
             }
         }
         PrivacyPolicyLink(modifier = Modifier.fillMaxWidth())

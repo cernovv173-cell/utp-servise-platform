@@ -22,6 +22,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +46,7 @@ import ru.utp.servise.data.PublicReview
 
 @Composable
 fun PublicHomeScreen(
+    onBackToStart: () -> Unit,
     onRequest: () -> Unit,
     onCustomerLogin: () -> Unit,
     onTechnicianLogin: () -> Unit,
@@ -77,6 +79,7 @@ fun PublicHomeScreen(
             .padding(horizontal = 20.dp, vertical = 22.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
+        TextButton(onClick = onBackToStart) { Text("←  Назад к началу") }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter = painterResource(R.drawable.utp_servise_logo),
