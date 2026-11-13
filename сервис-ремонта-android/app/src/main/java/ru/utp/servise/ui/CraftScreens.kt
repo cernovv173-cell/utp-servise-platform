@@ -164,6 +164,7 @@ internal fun CustomerCraftItemCard(
     runAction: RunAction,
     refresh: () -> Unit,
     onAddToShopCart: (CraftItem) -> Unit,
+    onOpenDetails: (() -> Unit)? = null,
 ) {
     var quantity by remember(item.id) { mutableStateOf("1") }
     var note by remember(item.id) { mutableStateOf("") }
@@ -174,6 +175,11 @@ internal fun CustomerCraftItemCard(
             item.imageObjectId?.let { image -> RemoteProjectImage(image, token, Modifier.fillMaxWidth().height(180.dp), "Фото изделия ${item.title}") }
             Text(item.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
             Text("Ручная работа", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = UtpBlue)
+            onOpenDetails?.let { openDetails ->
+                TextButton(onClick = openDetails, modifier = Modifier.align(Alignment.Start)) {
+                    Text("Подробнее об изделии")
+                }
+            }
             Text(item.description.ifBlank { "Готовое изделие ручной работы." }, fontSize = 13.sp, color = UtpMuted)
             Text("${item.priceRub} ₽", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpBlue)
             if (item.stockQuantity > 0) {

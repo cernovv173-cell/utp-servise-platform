@@ -38,7 +38,9 @@ internal data class WorkspaceNavigation(
 
     fun selectedTabRoute(currentRoute: String?): String? {
         if (currentRoute == null) return null
-        if (currentRoute in primaryRoutes) return currentRoute
+        primaryRoutes.firstOrNull { route ->
+            currentRoute == route || currentRoute.startsWith("$route/")
+        }?.let { return it }
         val isSectionRoute = sectionRoutes.any { route ->
             currentRoute == route || currentRoute.startsWith("$route/")
         }

@@ -73,6 +73,7 @@ import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
 import ru.utp.servise.ui.BrandHeader
 import ru.utp.servise.ui.CustomerShopScreen
+import ru.utp.servise.ui.CustomerShopProductDetailScreen
 import ru.utp.servise.ui.CustomerOffersScreen
 import ru.utp.servise.ui.CustomerDevicesScreen
 import ru.utp.servise.ui.CustomerManagementScreen
@@ -259,6 +260,42 @@ internal fun AuthenticatedWorkspace(
                                     banners = banners,
                                     onCampaignNavigate = onCampaignNavigate,
                                     onRefresh = refresh,
+                                    onOpenItemDetails = { kind, itemId ->
+                                        navController.navigate("customer/shop/item/$kind/$itemId")
+                                    },
+                                )
+                            }
+                            composable("customer/shop/cart") {
+                                CustomerShopScreen(
+                                    user = user,
+                                    token = token,
+                                    runAction = runAction,
+                                    isActionBusy = busy,
+                                    onBack = { navController.popBackStack() },
+                                    initialTab = "CART",
+                                    staff = staff,
+                                    banners = banners,
+                                    onCampaignNavigate = onCampaignNavigate,
+                                    onRefresh = refresh,
+                                    onOpenItemDetails = { kind, itemId ->
+                                        navController.navigate("customer/shop/item/$kind/$itemId")
+                                    },
+                                )
+                            }
+                            composable("customer/shop/item/{kind}/{itemId}") { entry ->
+                                CustomerShopProductDetailScreen(
+                                    kind = entry.arguments?.getString("kind").orEmpty(),
+                                    itemId = entry.arguments?.getString("itemId").orEmpty(),
+                                    token = token,
+                                    customerId = user.id,
+                                    onBack = { navController.popBackStack() },
+                                    onOpenCart = {
+                                        navController.navigate("customer/shop/cart") {
+                                            popUpTo("customer/shop/item/{kind}/{itemId}") { inclusive = true }
+                                            launchSingleTop = true
+                                        }
+                                    },
+                                    onOpenCustomOrder = { navController.navigate("customer/crafts") },
                                 )
                             }
                             composable("customer/news") {
@@ -293,6 +330,9 @@ internal fun AuthenticatedWorkspace(
                                     banners = banners,
                                     onCampaignNavigate = onCampaignNavigate,
                                     onRefresh = refresh,
+                                    onOpenItemDetails = { kind, itemId ->
+                                        navController.navigate("customer/shop/item/$kind/$itemId")
+                                    },
                                 )
                             }
                             composable("customer/orders") {

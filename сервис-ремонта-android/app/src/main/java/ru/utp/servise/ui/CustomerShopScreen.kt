@@ -21,6 +21,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +45,7 @@ import ru.utp.servise.data.ShopProduct
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.readShopCart
+import ru.utp.servise.data.observeShopCart
 import ru.utp.servise.data.saveShopCart
 
 private fun shopPrice(amount: Int): String =
@@ -90,6 +92,7 @@ fun CustomerShopScreen(
     banners: List<SiteBanner> = emptyList(),
     onCampaignNavigate: (String) -> Unit = {},
     onRefresh: () -> Unit = {},
+    onOpenItemDetails: (kind: String, itemId: String) -> Unit = { _, _ -> },
 ) {
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -112,6 +115,11 @@ fun CustomerShopScreen(
     var loadError by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
     val catalogItems = remember(products, crafts) { combineShopCatalog(products, crafts) }
+
+    DisposableEffect(context, user.id) {
+        val stopObserving = observeShopCart(context, user.id) { updatedCart -> cart = updatedCart }
+        onDispose { stopObserving() }
+    }
 
     LaunchedEffect(isActionBusy) {
         if (!isActionBusy) isSubmittingShopOrder = false
@@ -231,6 +239,7 @@ fun CustomerShopScreen(
                                 token = token,
                                 quantity = cart[product.id] ?: 0,
                                 onAdd = { setQuantity(product.id, (cart[product.id] ?: 0) + 1) },
+                                onOpenDetails = { onOpenItemDetails("product", product.id) },
                             )
                         }
                         is ShopCatalogEntry.Craft -> {
@@ -241,6 +250,7 @@ fun CustomerShopScreen(
                                 runAction = runAction,
                                 refresh = { onRefresh(); scope.launch { reload() } },
                                 onAddToShopCart = { setQuantity("craft:${item.id}", (cart["craft:${item.id}"] ?: 0) + 1, item.stockQuantity) },
+                                onOpenDetails = { onOpenItemDetails("craft", item.id) },
                             )
                         }
                     }
@@ -457,6 +467,7 @@ private fun CustomerShopProductCard(
     token: String,
     quantity: Int,
     onAdd: () -> Unit,
+    onOpenDetails: () -> Unit,
 ) {
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -489,6 +500,9 @@ private fun CustomerShopProductCard(
             }
             product.description?.takeIf { it.isNotBlank() }?.let {
                 Text(it, fontSize = 12.sp, lineHeight = 18.sp, color = UtpMuted)
+            }
+            TextButton(onClick = onOpenDetails, modifier = Modifier.align(Alignment.Start)) {
+                Text("Подробнее о товаре")
             }
         }
     }

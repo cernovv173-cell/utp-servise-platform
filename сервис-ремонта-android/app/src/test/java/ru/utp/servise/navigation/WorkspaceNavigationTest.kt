@@ -73,6 +73,8 @@ class WorkspaceNavigationTest {
         val administrator = workspaceNavigationForRole("ADMIN")
 
         assertEquals("customer/profile", customer.selectedTabRoute("customer/history"))
+        assertEquals("customer/shop", customer.selectedTabRoute("customer/shop/item/product/123"))
+        assertEquals("customer/shop", customer.selectedTabRoute("customer/shop/cart"))
         assertEquals("customer/profile", customer.selectedTabRoute("customer/guides/prepare-laptop"))
         assertEquals("customer/profile", customer.selectedTabRoute("customer/chats"))
         assertEquals("customer/profile", customer.selectedTabRoute("sections"))

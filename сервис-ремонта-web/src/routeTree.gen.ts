@@ -59,6 +59,7 @@ import { Route as UslugiRemontTelefonovRouteImport } from './routes/uslugi.remon
 import { Route as UslugiVosstanovlenieDannyhRouteImport } from './routes/uslugi.vosstanovlenie-dannyh'
 import { Route as UslugiZamenaEkranaRouteImport } from './routes/uslugi.zamena-ekrana'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
+import { Route as ProductKindItemIdRouteImport } from './routes/product.$kind.$itemId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -312,6 +313,11 @@ const AdminOrdersOrderIdRoute = AdminOrdersOrderIdRouteImport.update({
   path: '/$orderId',
   getParentRoute: () => AdminOrdersRoute,
 } as any)
+const ProductKindItemIdRoute = ProductKindItemIdRouteImport.update({
+  id: '/product/$kind/$itemId',
+  path: '/product/$kind/$itemId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -364,6 +370,7 @@ export interface FileRoutesByFullPath {
   '/guides/': typeof GuidesIndexRoute
   '/uslugi/': typeof UslugiIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
+  '/product/$kind/$itemId': typeof ProductKindItemIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -414,6 +421,7 @@ export interface FileRoutesByTo {
   '/guides': typeof GuidesIndexRoute
   '/uslugi': typeof UslugiIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
+  '/product/$kind/$itemId': typeof ProductKindItemIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -467,6 +475,7 @@ export interface FileRoutesById {
   '/guides/': typeof GuidesIndexRoute
   '/uslugi/': typeof UslugiIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
+  '/product/$kind/$itemId': typeof ProductKindItemIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -521,6 +530,7 @@ export interface FileRouteTypes {
     | '/guides/'
     | '/uslugi/'
     | '/admin/orders/$orderId'
+    | '/product/$kind/$itemId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -571,6 +581,7 @@ export interface FileRouteTypes {
     | '/guides'
     | '/uslugi'
     | '/admin/orders/$orderId'
+    | '/product/$kind/$itemId'
   id:
     | '__root__'
     | '/'
@@ -623,6 +634,7 @@ export interface FileRouteTypes {
     | '/guides/'
     | '/uslugi/'
     | '/admin/orders/$orderId'
+    | '/product/$kind/$itemId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -650,6 +662,7 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRouteWithChildren
   UslugiRoute: typeof UslugiRouteWithChildren
   StaffTechnicianIdRoute: typeof StaffTechnicianIdRoute
+  ProductKindItemIdRoute: typeof ProductKindItemIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1004,6 +1017,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminOrdersOrderIdRouteImport
       parentRoute: typeof AdminOrdersRoute
     }
+    '/product/$kind/$itemId': {
+      id: '/product/$kind/$itemId'
+      path: '/product/$kind/$itemId'
+      fullPath: '/product/$kind/$itemId'
+      preLoaderRoute: typeof ProductKindItemIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1129,6 +1149,7 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRouteWithChildren,
   UslugiRoute: UslugiRouteWithChildren,
   StaffTechnicianIdRoute: StaffTechnicianIdRoute,
+  ProductKindItemIdRoute: ProductKindItemIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -42,7 +42,12 @@ export const ProductCard = ({
 }) => (
   <article className="flex min-h-52 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
     {product.imageObjectIds.length > 0 ? (
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
+      <Link
+        to="/product/$kind/$itemId"
+        params={{ kind: "product", itemId: product.id }}
+        aria-label={`Подробнее о товаре: ${product.name}`}
+        className="mb-4 flex gap-2 overflow-x-auto pb-1 focus-visible:rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+      >
         {product.imageObjectIds.slice(0, 4).map((objectId, index) => (
           <img
             key={objectId}
@@ -52,14 +57,22 @@ export const ProductCard = ({
             className="size-24 shrink-0 rounded-xl bg-slate-100 object-cover dark:bg-slate-800"
           />
         ))}
-      </div>
+      </Link>
     ) : (
       <span className="mb-4 grid size-12 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-cyan-200">
         <PackageOpen size={23} aria-hidden="true" />
       </span>
     )}
     <div className="min-w-0">
-      <h2 className="font-semibold">{product.name}</h2>
+      <h2 className="font-semibold">
+        <Link
+          to="/product/$kind/$itemId"
+          params={{ kind: "product", itemId: product.id }}
+          className="rounded-sm hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:hover:text-cyan-300"
+        >
+          {product.name}
+        </Link>
+      </h2>
       {product.description && (
         <p className="mt-2 line-clamp-4 text-sm leading-5 whitespace-pre-wrap text-slate-600 dark:text-slate-300">
           {product.description}
@@ -104,12 +117,19 @@ export const CraftCard = ({
 }) => (
   <article className="flex min-h-72 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
     {item.imageObjectId ? (
-      <img
-        src={getShopCraftImageUrl(item.id, item.imageObjectId)}
-        alt={item.title}
-        loading="lazy"
-        className="h-48 w-full bg-slate-100 object-cover dark:bg-slate-800"
-      />
+      <Link
+        to="/product/$kind/$itemId"
+        params={{ kind: "craft", itemId: item.id }}
+        aria-label={`Подробнее об изделии: ${item.title}`}
+        className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+      >
+        <img
+          src={getShopCraftImageUrl(item.id, item.imageObjectId)}
+          alt={item.title}
+          loading="lazy"
+          className="h-48 w-full bg-slate-100 object-cover dark:bg-slate-800"
+        />
+      </Link>
     ) : (
       <div className="grid h-48 place-items-center bg-gradient-to-br from-amber-50 to-rose-50 text-amber-700 dark:from-amber-950/30 dark:to-rose-950/30 dark:text-amber-200">
         <Sparkles size={32} aria-hidden="true" />
@@ -119,7 +139,15 @@ export const CraftCard = ({
       <span className="mb-2 w-fit rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">
         Ручная работа
       </span>
-      <h2 className="font-semibold">{item.title}</h2>
+      <h2 className="font-semibold">
+        <Link
+          to="/product/$kind/$itemId"
+          params={{ kind: "craft", itemId: item.id }}
+          className="rounded-sm hover:text-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:hover:text-cyan-300"
+        >
+          {item.title}
+        </Link>
+      </h2>
       <p className="mt-2 line-clamp-3 text-sm leading-5 whitespace-pre-wrap text-slate-600 dark:text-slate-300">
         {item.description || "Уникальное изделие ручной работы."}
       </p>

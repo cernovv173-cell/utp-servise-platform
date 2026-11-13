@@ -101,15 +101,17 @@ estimate, or pending/confirmed shop order. Completed and cancelled order history
 names and prices after the catalog entry is removed.
 
 The `/shop` storefront presents active catalog products and published handmade goods together in
-one mixed catalog. Handmade cards carry a label, but there is no separate ready-goods tab; both kinds
-of ready items share one account cart and one order. Repair services and spare parts stay outside the
-shop. The server snapshots item names and prices, rejects a requested quantity above current tracked
-stock, and creates no order when the cart exceeds that balance. A new valid request remains pending;
-tracked stock is checked and deducted only when an administrator confirms it. Untracked products
-still require the administrator to check availability. Customers can cancel their own pending pickup
-orders before confirmation; courier orders continue through the separate delivery-offer response.
-Cancelling a confirmed order restores its reserved stock. Customers can browse without signing in and
-submit orders from a customer account; there is no online payment.
+one mixed catalog. Selecting a product or handmade item opens its own `/product/$kind/$itemId`
+page with the available photos, description, price, availability, and an add-to-cart action; it uses
+the same account cart as the storefront. Handmade cards carry a label, but there is no separate
+ready-goods tab; both kinds of ready items share one account cart and one order. Repair services and
+spare parts stay outside the shop. The server snapshots item names and prices, rejects a requested
+quantity above current tracked stock, and creates no order when the cart exceeds that balance. A new
+valid request remains pending; tracked stock is checked and deducted only when an administrator
+confirms it. Untracked products still require the administrator to check availability. Customers can
+cancel their own pending pickup orders before confirmation; courier orders continue through the
+separate delivery-offer response. Cancelling a confirmed order restores its reserved stock. Customers
+can browse without signing in and submit orders from a customer account; there is no online payment.
 Customers can follow the separate `/crafts` flow for made-to-order work. Delivery of made-to-order
 work is discussed after it is completed. Both an item-specific request and the general individual
 order form accept up to three JPG, PNG or WebP photos (5 MB per image); the photos are attached to
