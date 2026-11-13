@@ -14,16 +14,20 @@ class WorkspaceNavigationTest {
         val procurement = workspaceNavigationForRole("PROCUREMENT")
 
         assertEquals(5, customer.primaryDestinations.size)
-        assertEquals(4, technician.primaryDestinations.size)
-        assertEquals(5, administrator.primaryDestinations.size)
+        assertEquals(5, technician.primaryDestinations.size)
+        assertEquals(4, administrator.primaryDestinations.size)
         assertEquals(3, procurement.primaryDestinations.size)
         assertEquals(
             listOf("customer/home", "customer/orders", "customer/shop", "customer/loyalty", "customer/profile"),
             customer.primaryDestinations.map { it.route },
         )
         assertEquals(
-            listOf("technician/jobs", "technician/catalog", "technician/salary", "technician/profile"),
+            listOf("technician/home", "technician/jobs", "technician/catalog", "technician/salary", "technician/profile"),
             technician.primaryDestinations.map { it.route },
+        )
+        assertEquals(
+            listOf("admin/home", "admin/orders", "admin/manage", "admin/profile"),
+            administrator.primaryDestinations.map { it.route },
         )
         assertFalse(customer.primaryDestinations.any { it.route == "sections" })
         assertFalse(technician.primaryDestinations.any { it.route == "sections" })
@@ -80,6 +84,8 @@ class WorkspaceNavigationTest {
         assertEquals("customer/profile", customer.selectedTabRoute("sections"))
         assertEquals("technician/profile", technician.selectedTabRoute("technician/reviews"))
         assertEquals("technician/catalog", technician.selectedTabRoute("technician/catalog"))
+        assertEquals("technician/home", technician.selectedTabRoute("technician/home"))
+        assertEquals("admin/home", administrator.selectedTabRoute("admin/home"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/schedule"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/order-chats"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/offers"))
@@ -87,9 +93,9 @@ class WorkspaceNavigationTest {
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/loyalty"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/app-settings"))
         assertEquals("admin/manage", administrator.selectedTabRoute("app/version"))
-        assertEquals("admin/catalog", administrator.selectedTabRoute("admin/catalog"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("admin/catalog"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("admin/seasonal"))
         assertEquals(null, customer.selectedTabRoute("customer/new-order"))
-        assertEquals("admin/seasonal", administrator.selectedTabRoute("admin/seasonal"))
         assertEquals(null, administrator.selectedTabRoute("admin/new-order"))
     }
 }

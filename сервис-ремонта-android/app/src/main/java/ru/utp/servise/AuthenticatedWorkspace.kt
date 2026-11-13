@@ -71,6 +71,8 @@ import ru.utp.servise.ui.TechnicianCatalogScreen
 import ru.utp.servise.ui.CompanyScreen
 import ru.utp.servise.ui.CraftsScreen
 import ru.utp.servise.ui.CustomerHomeScreen
+import ru.utp.servise.ui.TechnicianHomeScreen
+import ru.utp.servise.ui.AdministratorHomeScreen
 import ru.utp.servise.ui.BrandHeader
 import ru.utp.servise.ui.CustomerShopScreen
 import ru.utp.servise.ui.CustomerShopProductDetailScreen
@@ -238,6 +240,9 @@ internal fun AuthenticatedWorkspace(
                                     orders = orders,
                                     onCreateRequest = { navController.navigate("customer/new-order") },
                                     onOrders = { navController.navigate("customer/orders") },
+                                    onShop = { navController.navigate("customer/shop") },
+                                    onLoyalty = { navController.navigate("customer/loyalty") },
+                                    onNews = { navController.navigate("customer/news") },
                                 )
                             }
                             composable("customer/shop") {
@@ -420,6 +425,16 @@ internal fun AuthenticatedWorkspace(
                                 onOpenChat = { navController.navigate("chat/$it") },
                                 onBack = { navController.popBackStack() },
                             )
+                            composable("technician/home") {
+                                TechnicianHomeScreen(
+                                    user = user,
+                                    orders = orders,
+                                    onOrders = { navController.navigate("technician/jobs") },
+                                    onCatalog = { navController.navigate("technician/catalog") },
+                                    onSalary = { navController.navigate("technician/salary") },
+                                    onProfile = { navController.navigate("technician/profile") },
+                                )
+                            }
                             composable("technician/jobs") { RepairOrdersScreen("Назначенные заказы", orders, user.role, token, emptyList(), catalogItems, false, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}, currentUserId = user.id) }
                             composable("technician/history") { RepairOrdersScreen("История ремонтов", orders, user.role, token, emptyList(), catalogItems, true, runAction, refresh, onChat = { navController.navigate("chat/$it") }, onReview = {}, currentUserId = user.id) }
                             composable("technician/catalog") { TechnicianCatalogScreen(catalogItems) }
@@ -494,6 +509,17 @@ internal fun AuthenticatedWorkspace(
                                 onError = onError,
                                 onBack = { navController.popBackStack() },
                             )
+                            composable("admin/home") {
+                                AdministratorHomeScreen(
+                                    user = user,
+                                    orders = orders,
+                                    onOrders = { navController.navigate("admin/orders") },
+                                    onSchedule = { navController.navigate("admin/schedule") },
+                                    onCustomers = { navController.navigate("admin/customers") },
+                                    onManagement = { navController.navigate("admin/manage") },
+                                    onCatalog = { navController.navigate("admin/catalog") },
+                                )
+                            }
                             composable("admin/orders") {
                                 RepairOrdersScreen(
                                     "Управление заказами", orders, user.role, token, staff,
@@ -531,6 +557,7 @@ internal fun AuthenticatedWorkspace(
                                     onOverview = { navController.navigate("admin/overview") },
                                     onSchedule = { navController.navigate("admin/schedule") },
                                     onProcurement = { navController.navigate("admin/procurement") },
+                                    onSeasonal = { navController.navigate("admin/seasonal") },
                                     onNews = { navController.navigate("admin/news") },
                                     onCatalog = { navController.navigate("admin/catalog") },
                                     onChats = { navController.navigate("admin/chats") },

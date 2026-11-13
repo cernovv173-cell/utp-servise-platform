@@ -138,6 +138,7 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
 
     "TECHNICIAN" -> WorkspaceNavigation(
         primaryDestinations = listOf(
+            WorkspaceDestination("technician/home", "Главная", Icons.Filled.Home),
             WorkspaceDestination("technician/jobs", "Заказы", Icons.AutoMirrored.Filled.List),
             WorkspaceDestination("technician/catalog", "Каталог", Icons.Filled.Search),
             WorkspaceDestination("technician/salary", "Зарплата", Icons.Filled.Star),
@@ -182,10 +183,9 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
 
     else -> WorkspaceNavigation(
         primaryDestinations = listOf(
+            WorkspaceDestination("admin/home", "Главная", Icons.Filled.Home),
             WorkspaceDestination("admin/orders", "Заявки", Icons.AutoMirrored.Filled.List),
             WorkspaceDestination("admin/manage", "Управление", Icons.Filled.Settings),
-            WorkspaceDestination("admin/seasonal", "Сезоны", Icons.Filled.Star),
-            WorkspaceDestination("admin/catalog", "Каталог", Icons.Filled.Search),
             WorkspaceDestination("admin/profile", "Профиль", Icons.Filled.Person),
         ),
         managementRoutes = setOf(
@@ -208,6 +208,7 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
             "admin/offers",
             "admin/banners",
             "admin/loyalty",
+            "admin/seasonal",
             "admin/app-settings",
             "app/version",
         ),

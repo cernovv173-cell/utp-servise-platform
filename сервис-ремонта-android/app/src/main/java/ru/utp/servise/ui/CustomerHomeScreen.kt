@@ -13,6 +13,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -37,6 +42,9 @@ fun CustomerHomeScreen(
     orders: List<RepairOrder>,
     onCreateRequest: () -> Unit,
     onOrders: () -> Unit,
+    onShop: () -> Unit,
+    onLoyalty: () -> Unit,
+    onNews: () -> Unit,
 ) {
     val activeOrders = remember(orders) { customerHomeActiveOrders(orders) }
 
@@ -88,6 +96,23 @@ fun CustomerHomeScreen(
                     Text("Оставить заявку")
                 }
             }
+        }
+
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                text = "Быстрый доступ",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = UtpInk,
+            )
+            DashboardQuickActionsGrid(
+                listOf(
+                    DashboardAction("Мои ремонты", "Статус и история", Icons.AutoMirrored.Filled.List, onOrders),
+                    DashboardAction("Магазин", "Товары и изделия", Icons.Filled.ShoppingCart, onShop),
+                    DashboardAction("Бонусы", "Программа лояльности", Icons.Filled.Star, onLoyalty),
+                    DashboardAction("Новости", "Новости и отзывы", Icons.Filled.Info, onNews),
+                ),
+            )
         }
 
         if (activeOrders.isNotEmpty()) {
