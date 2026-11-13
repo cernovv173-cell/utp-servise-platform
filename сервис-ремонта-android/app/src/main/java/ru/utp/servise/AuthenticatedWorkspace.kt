@@ -243,6 +243,7 @@ internal fun AuthenticatedWorkspace(
                                     onShop = { navController.navigate("customer/shop") },
                                     onLoyalty = { navController.navigate("customer/loyalty") },
                                     onNews = { navController.navigate("customer/news") },
+                                    onOffers = { navController.navigate("customer/offers") },
                                 )
                             }
                             composable("customer/shop") {

@@ -45,6 +45,7 @@ fun CustomerHomeScreen(
     onShop: () -> Unit,
     onLoyalty: () -> Unit,
     onNews: () -> Unit,
+    onOffers: () -> Unit,
 ) {
     val activeOrders = remember(orders) { customerHomeActiveOrders(orders) }
 
@@ -98,6 +99,28 @@ fun CustomerHomeScreen(
             }
         }
 
+        if (activeOrders.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "Текущий ремонт",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = UtpInk,
+                )
+                CustomerActiveRepairCard(
+                    order = activeOrders.first(),
+                    activeCount = activeOrders.size,
+                    onClick = onOrders,
+                )
+            }
+        }
+
+        CustomerOfferHomeBanners(
+            onOpenOffers = onOffers,
+            modifier = Modifier.fillMaxWidth(),
+            compact = true,
+        )
+
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 text = "Быстрый доступ",
@@ -113,22 +136,6 @@ fun CustomerHomeScreen(
                     DashboardAction("Новости", "Новости и отзывы", Icons.Filled.Info, onNews),
                 ),
             )
-        }
-
-        if (activeOrders.isNotEmpty()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Текущий ремонт",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = UtpInk,
-                )
-                CustomerActiveRepairCard(
-                    order = activeOrders.first(),
-                    activeCount = activeOrders.size,
-                    onClick = onOrders,
-                )
-            }
         }
 
         Spacer(Modifier.height(2.dp))

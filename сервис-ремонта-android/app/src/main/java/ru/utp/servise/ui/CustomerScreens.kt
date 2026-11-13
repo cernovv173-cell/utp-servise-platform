@@ -257,7 +257,7 @@ fun ProfileScreen(
                         (user.role == "CUSTOMER" && (gender != savedGender || birthDate != savedBirthDate)),
                     modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
                     shape = RoundedCornerShape(18.dp),
-                ) { Text("Сохранить телефон") }
+                ) { Text("Сохранить изменения") }
                 Text("ЕНОТ СЕРВИС · защищённый вход по электронной почте", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 11.dp))
             }
         }
