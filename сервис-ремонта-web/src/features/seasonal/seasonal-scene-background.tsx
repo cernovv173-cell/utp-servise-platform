@@ -2,8 +2,6 @@ import { useRouterState } from "@tanstack/react-router";
 import { Flower2, Leaf, Snowflake, Sparkles, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { SeasonalArtwork } from "@/features/seasonal/seasonal-artwork";
-
 import type { SeasonalSeason, SeasonalSeasonChoice } from "@/lib/api";
 
 const particleIcons = {
@@ -148,13 +146,6 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
 
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <SeasonalArtwork
-        season={season}
-        className={`absolute inset-0 transition-opacity duration-700 ${isWinter ? "opacity-[0.24] dark:opacity-[0.2]" : "opacity-40 dark:opacity-30"}`}
-      />
-      <div
-        className={`absolute inset-0 bg-gradient-to-b ${isWinter ? "from-white/45 via-white/65 to-white/75 dark:from-[#070b18]/65 dark:via-[#070b18]/75 dark:to-[#070b18]/85" : "from-white/25 via-white/45 to-white/60 dark:from-[#070b18]/50 dark:via-[#070b18]/60 dark:to-[#070b18]/75"}`}
-      />
       <div
         className={`seasonal-glow-pulse absolute top-1/4 -left-24 size-72 rounded-full bg-[var(--season-glow)] blur-3xl ${season === "SPRING" ? "seasonal-spring-glow" : ""}`}
       />

@@ -51,13 +51,6 @@ body {
 
 html[data-theme="dark"] body {
   background-color: #070b18;
-  background-image:
-    linear-gradient(180deg, rgb(7 11 24 / 54%), rgb(7 11 24 / 72%)), url("/repair-nebula-bg.png"),
-    radial-gradient(ellipse at 78% 0%, rgb(47 75 176 / 22%), transparent 35%),
-    radial-gradient(ellipse at 0% 72%, rgb(92 51 178 / 11%), transparent 34%);
-  background-position: center, center, center, center;
-  background-size: cover, cover, auto, auto;
-  background-attachment: fixed;
 }
 
 html[data-season="spring"] {
@@ -158,30 +151,18 @@ html[data-season="winter"] {
 
 html:not([data-theme="dark"])[data-season="spring"] body {
   background-color: #f0fbf2;
-  background-image:
-    radial-gradient(ellipse at 85% 0%, rgb(74 222 128 / 19%), transparent 36%),
-    radial-gradient(ellipse at 8% 82%, rgb(236 72 153 / 9%), transparent 28%);
 }
 
 html:not([data-theme="dark"])[data-season="summer"] body {
   background-color: #fff9e9;
-  background-image:
-    radial-gradient(ellipse at 85% 0%, rgb(251 191 36 / 24%), transparent 38%),
-    radial-gradient(ellipse at 8% 82%, rgb(249 115 22 / 10%), transparent 30%);
 }
 
 html:not([data-theme="dark"])[data-season="autumn"] body {
   background-color: #fff6ec;
-  background-image:
-    radial-gradient(ellipse at 85% 0%, rgb(249 115 22 / 20%), transparent 38%),
-    radial-gradient(ellipse at 8% 82%, rgb(234 88 12 / 9%), transparent 30%);
 }
 
 html:not([data-theme="dark"])[data-season="winter"] body {
   background-color: #f7f8fb;
-  background-image:
-    radial-gradient(ellipse at 85% 0%, rgb(245 196 133 / 22%), transparent 38%),
-    radial-gradient(ellipse at 8% 82%, rgb(143 178 207 / 13%), transparent 30%);
 }
 
 html[data-season] {
@@ -190,10 +171,6 @@ html[data-season] {
 
 html[data-theme="dark"][data-season] {
   --season-card-tint: color-mix(in srgb, var(--season-accent) 16%, #0b1220);
-}
-
-html[data-season] body {
-  background-attachment: fixed;
 }
 
 html[data-season] .seasonal-color-wash {
