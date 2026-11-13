@@ -208,6 +208,8 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
             "admin/offers",
             "admin/banners",
             "admin/loyalty",
+            "admin/app-settings",
+            "app/version",
         ),
     )
 }

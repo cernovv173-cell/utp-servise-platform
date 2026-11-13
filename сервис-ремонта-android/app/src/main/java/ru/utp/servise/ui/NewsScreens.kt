@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.AlertDialog
@@ -78,6 +79,7 @@ fun AdminManagementScreen(
     onOffers: () -> Unit,
     onBanners: () -> Unit,
     onLoyalty: () -> Unit,
+    onAppSettings: () -> Unit,
 ) {
     val groups = listOf(
         ManagementActionGroup(
@@ -125,6 +127,17 @@ fun AdminManagementScreen(
                 ManagementAction("Акции и розыгрыши", "Публикации, участники и результаты", Icons.Filled.Star, onOffers),
                 ManagementAction("Баннеры", "Изображения и размещение кампаний", Icons.Filled.Info, onBanners),
                 ManagementAction("О компании", "Описание, контакты, услуги и медиа", Icons.Filled.Info, onAbout),
+            ),
+        ),
+        ManagementActionGroup(
+            "Настройки",
+            listOf(
+                ManagementAction(
+                    "Настройки приложения",
+                    "Положение и видимость кнопки «Старт / Стоп»",
+                    Icons.Filled.Settings,
+                    onAppSettings,
+                ),
             ),
         ),
     )

@@ -85,6 +85,8 @@ class WorkspaceNavigationTest {
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/offers"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/banners"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/loyalty"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("admin/app-settings"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("app/version"))
         assertEquals("admin/catalog", administrator.selectedTabRoute("admin/catalog"))
         assertEquals(null, customer.selectedTabRoute("customer/new-order"))
         assertEquals("admin/seasonal", administrator.selectedTabRoute("admin/seasonal"))

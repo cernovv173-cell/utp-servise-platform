@@ -61,7 +61,7 @@ import ru.utp.servise.registerAdminCampaignRoutes
 import ru.utp.servise.registerCustomerHelpRoutes
 import ru.utp.servise.registerTechnicianChatRoute
 import ru.utp.servise.ui.AdminChatInboxScreen
-import ru.utp.servise.ui.AdminQuickActionSettings
+import ru.utp.servise.ui.AdminAppSettingsScreen
 import ru.utp.servise.ui.AdminManagementScreen
 import ru.utp.servise.ui.AdminOrderCreationScreen
 import ru.utp.servise.ui.AdminShopOrdersScreen
@@ -547,6 +547,23 @@ internal fun AuthenticatedWorkspace(
                                     onOffers = { navController.navigate("admin/offers") },
                                     onBanners = { navController.navigate("admin/banners") },
                                     onLoyalty = { navController.navigate("admin/loyalty") },
+                                    onAppSettings = { navController.navigate("admin/app-settings") { launchSingleTop = true } },
+                                )
+                            }
+                            composable("admin/app-settings") {
+                                AdminAppSettingsScreen(
+                                    visible = quickActionVisible,
+                                    onVisibilityChanged = { visible ->
+                                        quickActionPreferences.setVisible(visible)
+                                        quickActionVisible = visible
+                                    },
+                                    onResetPosition = {
+                                        quickActionPosition = quickActionPreferences.resetPosition()
+                                    },
+                                    onOpenVersion = {
+                                        navController.navigate("app/version") { launchSingleTop = true }
+                                    },
+                                    onBack = { navController.popBackStack() },
                                 )
                             }
                             composable("admin/overview") { ServiceDashboardScreen(token, onError) }
@@ -623,19 +640,6 @@ internal fun AuthenticatedWorkspace(
                                     onUserUpdated,
                                     onPasswordChanged,
                                     onLogout,
-                                    onOpenVersion = { navController.navigate("app/version") { launchSingleTop = true } },
-                                    quickActionSettings = {
-                                        AdminQuickActionSettings(
-                                            visible = quickActionVisible,
-                                            onVisibilityChanged = { visible ->
-                                                quickActionPreferences.setVisible(visible)
-                                                quickActionVisible = visible
-                                            },
-                                            onResetPosition = {
-                                                quickActionPosition = quickActionPreferences.resetPosition()
-                                            },
-                                        )
-                                    },
                                 )
                             }
                         }

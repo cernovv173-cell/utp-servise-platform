@@ -16,7 +16,7 @@ body {
 }
 
 .seasonal-scene-art {
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   opacity: 0.4;
 }
@@ -28,7 +28,7 @@ html[data-theme="dark"] .seasonal-scene-art {
 @media (max-aspect-ratio: 1/1) {
   .seasonal-scene-art {
     object-fit: cover;
-    object-position: 86% center;
+    object-position: 70% center;
     opacity: 0.3;
   }
 

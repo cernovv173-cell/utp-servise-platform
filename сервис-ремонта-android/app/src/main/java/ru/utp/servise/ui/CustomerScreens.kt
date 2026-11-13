@@ -229,7 +229,6 @@ fun ProfileScreen(
     onAccountDeleted: (() -> Unit)? = null,
     onOpenSections: (() -> Unit)? = null,
     onOpenVersion: (() -> Unit)? = null,
-    quickActionSettings: (@Composable () -> Unit)? = null,
 ) {
     val context = LocalContext.current
     var phoneNumber by remember(user.id) { mutableStateOf(user.phoneNumber.orEmpty()) }
@@ -272,8 +271,6 @@ fun ProfileScreen(
                 }
             }
         }
-        quickActionSettings?.invoke()
-        if (quickActionSettings != null) Spacer(Modifier.height(12.dp))
         Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(18.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {

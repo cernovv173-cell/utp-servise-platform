@@ -30,9 +30,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import ru.utp.servise.R
 
 private val seasonArtwork = mapOf(
@@ -63,7 +65,12 @@ fun SeasonalSceneBackground(season: String, dark: Boolean, modifier: Modifier = 
             painter = painterResource(imageResource),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            alignment = Alignment.CenterEnd,
+            alignment = Alignment { contentSize, containerSize, _ ->
+                IntOffset(
+                    x = ((containerSize.width - contentSize.width) * 0.4f).roundToInt(),
+                    y = ((containerSize.height - contentSize.height) * 0.5f).roundToInt(),
+                )
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer(
