@@ -125,6 +125,14 @@ and the server snapshots the current title and price, checks stock, and reserves
 with the same transactional rules as ordinary products. Made-to-order requests remain a separate
 `/craft-orders` workflow; shipping for such work is discussed after the item is made.
 
+Administrators can edit craft-item fields through `PATCH /craft-items/:itemId` after publication and
+manage up to three attached images through `POST` and `DELETE /craft-items/:itemId/images`. The
+legacy single-image endpoint replaces the gallery with one image for older clients. Permanent
+deletion through `DELETE /craft-items/:itemId` removes the listing and its photos, but is blocked
+while a craft request is open or a shop order is pending or confirmed. Completed and cancelled order
+snapshots remain available after deletion. Ordinary catalog-product galleries are also limited to
+three images by the API.
+
 Active administrator assistants receive push notifications only for new and changed shop orders,
 including customer responses to courier offers and cancellations of pending pickup orders. Ready handmade goods use the same shop-order
 notifications because they share the store cart; made-to-order craft requests, repair work, support

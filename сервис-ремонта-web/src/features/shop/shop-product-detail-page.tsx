@@ -8,6 +8,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { PublicAuthTrigger, PublicSiteShell } from "@/components/public-site-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { craftItemImageIds } from "@/features/crafts/craft-item-images";
 
 import {
   type ShopCraftItem,
@@ -227,20 +228,16 @@ const ShopProductDetailPage = ({ kind, itemId }: { kind: string; itemId: string 
 const ProductGallery = ({ item }: { item: ShopItem }) => {
   const images =
     item.kind === "product"
-      ? item.item.imageObjectIds.map((objectId, index) => ({
+      ? item.item.imageObjectIds.slice(0, 3).map((objectId, index) => ({
           objectId,
           label: `${item.item.name} — фото ${index + 1}`,
           src: getShopProductImageUrl(item.item.id, objectId),
         }))
-      : item.item.imageObjectId
-        ? [
-            {
-              objectId: item.item.imageObjectId,
-              label: item.item.title,
-              src: getShopCraftImageUrl(item.item.id, item.item.imageObjectId),
-            },
-          ]
-        : [];
+      : craftItemImageIds(item.item).map((objectId, index) => ({
+          objectId,
+          label: `${item.item.title} — фото ${index + 1}`,
+          src: getShopCraftImageUrl(item.item.id, objectId),
+        }));
   const [selectedIndex, setSelectedIndex] = useState(0);
   const selectedImage = images[selectedIndex] ?? images[0];
 

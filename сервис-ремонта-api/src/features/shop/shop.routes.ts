@@ -174,6 +174,7 @@ export const createShopRouter = (
         description: true,
         priceRub: true,
         imageObjectId: true,
+        imageObjectIds: true,
         stockQuantity: true,
         customOrderAvailable: true,
       },
@@ -190,7 +191,14 @@ export const createShopRouter = (
       const { craftItemId, objectId } =
         paramsOf<z.infer<typeof craftImageParams>>(response);
       const item = await database.craftItem.findFirst({
-        where: { id: craftItemId, isPublished: true, imageObjectId: objectId },
+        where: {
+          id: craftItemId,
+          isPublished: true,
+          OR: [
+            { imageObjectIds: { has: objectId } },
+            { imageObjectId: objectId },
+          ],
+        },
         select: { id: true },
       });
       if (!item) {

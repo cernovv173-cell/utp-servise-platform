@@ -106,7 +106,14 @@ fun CustomerShopProductDetailScreen(
         ?: craft?.description?.takeIf { it.isNotBlank() }
         ?: "Описание пока не добавлено."
     val priceRub = product?.unitPriceRub ?: craft?.priceRub
-    val photos = product?.imageObjectIds.orEmpty().ifEmpty { listOfNotNull(craft?.imageObjectId) }
+    val loadedProduct = product
+    val loadedCraft = craft
+    val photos = when {
+        loadedProduct != null -> loadedProduct.imageObjectIds.take(3)
+        loadedCraft != null -> loadedCraft.imageObjectIds.take(3)
+            .ifEmpty { listOfNotNull(loadedCraft.imageObjectId) }
+        else -> emptyList()
+    }
 
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),

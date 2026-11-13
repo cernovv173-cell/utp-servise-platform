@@ -19,6 +19,7 @@ const craft = (id: string, title: string): ShopCraftItem => ({
   description: "",
   priceRub: 100,
   imageObjectId: null,
+  imageObjectIds: [],
   stockQuantity: 1,
   customOrderAvailable: false,
 });

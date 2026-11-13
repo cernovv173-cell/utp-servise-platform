@@ -123,7 +123,10 @@ The customer must accept those terms before the order can be confirmed; delivery
 separately from the item subtotal. No courier API is connected. Administrators use the two tabs at
 `/admin/shop-orders` for shop orders and craft catalog/custom-order management; the shop tab retains
 the pending-confirmation queue and the all-orders view. The separate `/crafts` page remains available
-for direct custom-order handling.
+for direct custom-order handling. Administrators can edit a published craft card, add or remove up to
+three photos, and permanently delete it after confirmation. Deletion is refused while a related
+made-to-order request is open or a shop order is pending or confirmed; completed order history remains.
+Ordinary product galleries are limited to three photos as well.
 
 On `/checks`, administrators manage each completed order's receipt separately in the shared list:
 they can adjust its service and spare-part quantities, add one manual service or product line, and

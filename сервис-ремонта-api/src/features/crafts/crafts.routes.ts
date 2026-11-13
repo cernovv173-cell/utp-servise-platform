@@ -9,6 +9,10 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import {
+  type MediaStorage,
+  projectMediaStorage,
+} from "../media/media-storage.js";
 import { sendPushNotification } from "../notifications/push-notifications.js";
 import { calculateEarnedPoints } from "../orders/order-policy.js";
 import { calculateTechnicianSalaryRub } from "../salary/salary-calculation.js";
@@ -78,6 +82,7 @@ const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
 export const createCraftsRouter = (
   database: DatabaseClient,
   notify: typeof sendPushNotification = sendPushNotification,
+  storage: MediaStorage = projectMediaStorage,
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
@@ -132,6 +137,76 @@ export const createCraftsRouter = (
         data: input,
       });
       response.json({ item });
+    },
+  );
+
+  router.delete(
+    "/craft-items/:itemId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: productParams }),
+    async (_request, response) => {
+      const { itemId } = paramsOf<z.infer<typeof productParams>>(response);
+      const imageObjectIds = await database.$transaction(
+        async (transaction) => {
+          await transaction.$queryRaw`
+          SELECT "id" FROM "craft_items" WHERE "id" = ${itemId}::uuid FOR UPDATE
+        `;
+          const existing = await transaction.craftItem.findUnique({
+            where: { id: itemId },
+            select: { imageObjectId: true, imageObjectIds: true },
+          });
+          if (!existing) {
+            throw new HttpError(
+              404,
+              "CRAFT_ITEM_NOT_FOUND",
+              "Изделие не найдено.",
+            );
+          }
+
+          const activeCraftOrder = await transaction.craftOrder.findFirst({
+            where: {
+              itemId,
+              status: { in: ["REQUESTED", "ACCEPTED", "IN_PROGRESS"] },
+            },
+            select: { id: true },
+          });
+          if (activeCraftOrder) {
+            throw new HttpError(
+              409,
+              "CRAFT_ITEM_IN_OPEN_ORDER",
+              "Нельзя удалить изделие, пока есть незавершённая заявка на его изготовление. Сначала завершите или отмените её.",
+            );
+          }
+
+          const openShopOrderItem = await transaction.shopOrderItem.findFirst({
+            where: {
+              craftItemId: itemId,
+              order: { status: { in: ["PENDING", "CONFIRMED"] } },
+            },
+            select: { id: true },
+          });
+          if (openShopOrderItem) {
+            throw new HttpError(
+              409,
+              "CRAFT_ITEM_IN_OPEN_SHOP_ORDER",
+              "Нельзя удалить изделие, пока есть ожидающий или подтверждённый заказ магазина. Сначала завершите или отмените заказ.",
+            );
+          }
+
+          await transaction.craftItem.delete({ where: { id: itemId } });
+          return Array.from(
+            new Set([...existing.imageObjectIds, existing.imageObjectId]),
+          ).filter((objectId): objectId is string => objectId !== null);
+        },
+      );
+
+      await Promise.all(
+        imageObjectIds.map((objectId) =>
+          storage.delete(objectId).catch(() => undefined),
+        ),
+      );
+      response.status(204).end();
     },
   );
 

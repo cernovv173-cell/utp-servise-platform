@@ -473,7 +473,7 @@ private fun CustomerShopProductCard(
         Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (product.imageObjectIds.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    product.imageObjectIds.take(4).forEachIndexed { index, objectId ->
+                    product.imageObjectIds.take(3).forEachIndexed { index, objectId ->
                         RemoteProjectImage(
                             objectId = objectId,
                             token = token,

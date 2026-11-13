@@ -64,11 +64,11 @@ export const createCatalogProductImagesRouter = (
               "Товар не найден.",
             );
           }
-          if (current.imageObjectIds.length >= 4) {
+          if (current.imageObjectIds.length >= 3) {
             throw new HttpError(
               409,
               "CATALOG_PRODUCT_IMAGE_LIMIT",
-              "Для товара можно добавить не более четырёх фотографий.",
+              "Для товара можно добавить не более трёх фотографий.",
             );
           }
           return transaction.repairCatalogItem.update({

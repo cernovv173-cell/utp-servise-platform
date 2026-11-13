@@ -1034,18 +1034,19 @@ model Review {
 }
 
 model CraftItem {
-  id                   String       @id @default(uuid()) @db.Uuid
-  title                String       @db.VarChar(160)
-  description          String       @db.VarChar(4000)
-  priceRub             Int          @map("price_rub")
-  stockQuantity        Int          @default(0) @map("stock_quantity")
-  imageObjectId        String?      @map("image_object_id") @db.VarChar(255)
-  isPublished          Boolean      @default(false) @map("is_published")
-  customOrderAvailable Boolean      @default(true) @map("custom_order_available")
-  createdById          String?      @map("created_by_id") @db.Uuid
-  createdAt            DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy            User?        @relation("CraftItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  id                   String          @id @default(uuid()) @db.Uuid
+  title                String          @db.VarChar(160)
+  description          String          @db.VarChar(4000)
+  priceRub             Int             @map("price_rub")
+  stockQuantity        Int             @default(0) @map("stock_quantity")
+  imageObjectId        String?         @map("image_object_id") @db.VarChar(255)
+  imageObjectIds       String[]        @default([]) @map("image_object_ids")
+  isPublished          Boolean         @default(false) @map("is_published")
+  customOrderAvailable Boolean         @default(true) @map("custom_order_available")
+  createdById          String?         @map("created_by_id") @db.Uuid
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy            User?           @relation("CraftItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
   orders               CraftOrder[]
   shopOrderItems       ShopOrderItem[]
 

@@ -7,17 +7,16 @@ import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
+import { craftItemImageIds } from "@/features/crafts/craft-item-images";
+import { CraftItemManagement } from "@/features/crafts/craft-item-management";
 import { CraftOrderCard } from "@/features/crafts/craft-order-card";
 import { CraftOrderPhotoPicker } from "@/features/crafts/craft-order-photo-picker";
 
 import {
-  createCraftItem,
   createCraftOrder,
   getCraftItems,
   getCraftOrders,
   getStaff,
-  updateCraftItem,
-  uploadAdminImage,
   uploadCraftOrderChatImage,
 } from "@/lib/api";
 
@@ -93,14 +92,16 @@ export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) =>
         />
       )}
       {!embedded && <CampaignPlacement placement="CRAFTS" className="mb-5" />}
-      {isAdmin && <AdminCatalog items={items.data?.items ?? []} token={token!} onSaved={refresh} />}
+      {isAdmin && (
+        <CraftItemManagement items={items.data?.items ?? []} token={token!} onSaved={refresh} />
+      )}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {(items.data?.items ?? [])
           .filter((item) => isAdmin || (item.isPublished && item.customOrderAvailable))
           .map((item) => (
             <SectionCard key={item.id} className="overflow-hidden p-0">
               <ProtectedImage
-                objectId={item.imageObjectId}
+                objectId={craftItemImageIds(item)[0] ?? null}
                 alt={item.title}
                 loading="lazy"
                 className="h-52 w-full object-cover"
@@ -265,194 +266,5 @@ export const CraftsWorkspace = ({ embedded = false }: { embedded?: boolean }) =>
     <div className="space-y-5">{content}</div>
   ) : (
     <AppShell active="/crafts">{content}</AppShell>
-  );
-};
-
-const AdminCatalog = ({
-  items,
-  token,
-  onSaved,
-}: {
-  items: Awaited<ReturnType<typeof getCraftItems>>["items"];
-  token: string;
-  onSaved: () => Promise<void>;
-}) => {
-  const client = useQueryClient();
-  const create = useMutation({
-    mutationFn: (input: Parameters<typeof createCraftItem>[1]) => createCraftItem(token, input),
-    onSuccess: async () => {
-      await client.invalidateQueries({ queryKey: ["craft-items", token] });
-      await onSaved();
-    },
-  });
-  const update = useMutation({
-    mutationFn: ({
-      id,
-      data,
-    }: {
-      id: string;
-      data: { priceRub?: number; stockQuantity?: number; isPublished?: boolean };
-    }) => updateCraftItem(token, id, data),
-    onSuccess: () => client.invalidateQueries({ queryKey: ["craft-items", token] }),
-  });
-  return (
-    <SectionCard className="mb-6">
-      <h2 className="font-semibold">Управление изделиями</h2>
-      <form
-        onSubmit={(event: FormEvent<HTMLFormElement>) => {
-          event.preventDefault();
-          const form = event.currentTarget;
-          const data = new FormData(form);
-          const image = data.get("image");
-          create.mutate(
-            {
-              title: String(data.get("title")),
-              description: String(data.get("description")),
-              priceRub: Number(data.get("priceRub")),
-              stockQuantity: Number(data.get("stockQuantity") || 0),
-              isPublished: data.get("published") === "on",
-              customOrderAvailable: data.get("custom") === "on",
-            },
-            {
-              onSuccess: async ({ item }) => {
-                if (image instanceof File && image.size) {
-                  await uploadAdminImage(`/craft-items/${item.id}/image`, token, image);
-                }
-                form.reset();
-                await onSaved();
-              },
-            },
-          );
-        }}
-        className="mt-4 grid gap-3 md:grid-cols-2"
-      >
-        <label className="grid gap-1 text-sm font-medium">
-          Название
-          <input
-            name="title"
-            required
-            minLength={2}
-            maxLength={160}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-          />
-        </label>
-        <label className="grid gap-1 text-sm font-medium">
-          Цена, ₽
-          <input
-            name="priceRub"
-            type="number"
-            required
-            min={0}
-            max={10000000}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-          />
-        </label>
-        <label className="grid gap-1 text-sm font-medium">
-          Готово на складе, шт.
-          <input
-            name="stockQuantity"
-            type="number"
-            required
-            min={0}
-            max={100000}
-            defaultValue={0}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-          />
-        </label>
-        <label className="grid gap-1 text-sm font-medium md:col-span-2">
-          Описание
-          <textarea
-            name="description"
-            maxLength={4000}
-            rows={2}
-            className="rounded-lg border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-          />
-        </label>
-        <label className="grid gap-1 text-sm font-medium">
-          Фото
-          <input
-            name="image"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            className="text-xs"
-          />
-        </label>
-        <div className="grid content-center gap-2 text-sm">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="published" className="size-4 accent-blue-600" />
-            Опубликовать
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="custom"
-              defaultChecked
-              className="size-4 accent-blue-600"
-            />
-            Допускается заказной вариант
-          </label>
-        </div>
-        <button
-          disabled={create.isPending}
-          className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
-        >
-          Добавить изделие
-        </button>
-        {create.isError && (
-          <p role="alert" className="text-sm text-rose-600">
-            Не удалось сохранить. Проверьте цену и фото.
-          </p>
-        )}
-      </form>
-      <div className="mt-5 grid gap-2">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 p-3 dark:border-slate-800"
-          >
-            <span className="text-sm font-medium">{item.title}</span>
-            <div className="flex flex-wrap items-center gap-2">
-              <input
-                aria-label={`Цена изделия ${item.title}`}
-                key={`${item.id}-${item.priceRub}`}
-                type="number"
-                min={0}
-                max={10000000}
-                defaultValue={item.priceRub}
-                onBlur={(event) => {
-                  const priceRub = Number(event.currentTarget.value);
-                  if (priceRub !== item.priceRub)
-                    update.mutate({ id: item.id, data: { priceRub } });
-                }}
-                className="h-9 w-28 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-              />
-              <input
-                aria-label={`Остаток изделия ${item.title}`}
-                key={`${item.id}-${item.stockQuantity}`}
-                type="number"
-                min={0}
-                max={100000}
-                defaultValue={item.stockQuantity}
-                onBlur={(event) => {
-                  const stockQuantity = Number(event.currentTarget.value);
-                  if (stockQuantity !== item.stockQuantity)
-                    update.mutate({ id: item.id, data: { stockQuantity } });
-                }}
-                className="h-9 w-24 rounded-lg border border-slate-200 bg-white px-2 text-sm dark:border-slate-700 dark:bg-slate-950"
-              />
-              <span className="text-xs text-slate-500">готово</span>
-              <button
-                onClick={() =>
-                  update.mutate({ id: item.id, data: { isPublished: !item.isPublished } })
-                }
-                className="h-9 rounded-lg border border-slate-200 px-3 text-xs dark:border-slate-700"
-              >
-                {item.isPublished ? "Снять" : "Опубликовать"}
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </SectionCard>
   );
 };

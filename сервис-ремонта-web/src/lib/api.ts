@@ -605,9 +605,11 @@ export type CraftItem = {
   description: string;
   priceRub: number;
   imageObjectId: string | null;
+  imageObjectIds: string[];
   stockQuantity: number;
   isPublished: boolean;
   customOrderAvailable: boolean;
+  updatedAt?: string;
 };
 
 export type CraftOrder = {
@@ -1187,6 +1189,7 @@ export type ShopCraftItem = Pick<
   | "description"
   | "priceRub"
   | "imageObjectId"
+  | "imageObjectIds"
   | "stockQuantity"
   | "customOrderAvailable"
 >;
@@ -1859,7 +1862,10 @@ export const uploadCraftOrderChatImage = async (token: string, id: string, file:
   return response.json() as Promise<{ message: CraftOrderChatMessage }>;
 };
 
-export const createCraftItem = (token: string, item: Omit<CraftItem, "id" | "imageObjectId">) =>
+export const createCraftItem = (
+  token: string,
+  item: Omit<CraftItem, "id" | "imageObjectId" | "imageObjectIds">,
+) =>
   apiRequest<{ item: CraftItem }>("/craft-items", token, {
     method: "POST",
     body: JSON.stringify(item),
@@ -1870,6 +1876,34 @@ export const updateCraftItem = (token: string, id: string, item: Partial<CraftIt
     method: "PATCH",
     body: JSON.stringify(item),
   });
+
+export const deleteCraftItem = (token: string, id: string) =>
+  apiRequest<void>(`/craft-items/${id}`, token, { method: "DELETE" });
+
+export const uploadCraftItemImage = async (token: string, id: string, file: File) => {
+  const response = await fetch(`${apiBase}/craft-items/${id}/images`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": file.type },
+    body: file,
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+      message?: string;
+    } | null;
+    throw new Error(
+      body?.error?.message ?? body?.message ?? `Не удалось загрузить фото (${response.status}).`,
+    );
+  }
+  return response.json() as Promise<{ item: CraftItem }>;
+};
+
+export const deleteCraftItemImage = (token: string, id: string, objectId: string) =>
+  apiRequest<{ item: CraftItem }>(
+    `/craft-items/${id}/images/${encodeURIComponent(objectId)}`,
+    token,
+    { method: "DELETE" },
+  );
 
 export const getLoyalty = (token: string, signal?: AbortSignal) =>
   apiRequest<{ balance: number; transactions: LoyaltyTransaction[] }>("/loyalty/me", token, {

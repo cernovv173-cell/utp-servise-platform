@@ -21,6 +21,7 @@ import {
 } from "../notifications/push-notifications.js";
 import { canViewRepairOrder } from "../orders/order-policy.js";
 import { createCatalogProductImagesRouter } from "./catalog-product-images.routes.js";
+import { createCraftItemImagesRouter } from "./craft-item-images.routes.js";
 import { type MediaStorage, projectMediaStorage } from "./media-storage.js";
 import { createProtectedMediaRouter } from "./protected-media.routes.js";
 
@@ -263,7 +264,7 @@ export const createMediaRouter = (
       const { itemId } = paramsOf<z.infer<typeof craftItemParams>>(response);
       const item = await database.craftItem.findUnique({
         where: { id: itemId },
-        select: { id: true, imageObjectId: true },
+        select: { id: true, imageObjectId: true, imageObjectIds: true },
       });
       if (!item)
         throw new HttpError(404, "CRAFT_ITEM_NOT_FOUND", "Изделие не найдено.");
@@ -272,10 +273,19 @@ export const createMediaRouter = (
       try {
         const updated = await database.craftItem.update({
           where: { id: itemId },
-          data: { imageObjectId: objectId },
+          data: { imageObjectId: objectId, imageObjectIds: [objectId] },
         });
-        if (item.imageObjectId)
-          await storage.delete(item.imageObjectId).catch(() => undefined);
+        const previousImages = new Set([
+          ...item.imageObjectIds,
+          item.imageObjectId,
+        ]);
+        await Promise.all(
+          [...previousImages]
+            .filter((previousId) => previousId && previousId !== objectId)
+            .map((previousId) =>
+              storage.delete(previousId!).catch(() => undefined),
+            ),
+        );
         response.json({ item: updated });
       } catch (error) {
         await storage.delete(objectId).catch(() => undefined);
@@ -546,6 +556,7 @@ export const createMediaRouter = (
   );
 
   router.use(createCatalogProductImagesRouter(database, storage));
+  router.use(createCraftItemImagesRouter(database, storage));
   router.use(createProtectedMediaRouter(database, storage));
 
   return router;

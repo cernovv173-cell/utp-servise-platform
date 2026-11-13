@@ -476,6 +476,7 @@ data class CraftItem(
     val imageObjectId: String?,
     val isPublished: Boolean,
     val customOrderAvailable: Boolean,
+    val imageObjectIds: List<String> = emptyList(),
 )
 
 data class CraftOrderReceipt(

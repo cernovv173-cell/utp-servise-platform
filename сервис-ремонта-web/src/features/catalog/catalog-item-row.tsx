@@ -201,10 +201,10 @@ export const CatalogItemRow = ({
                 </button>
               </div>
             ))}
-            {item.imageObjectIds.length < 4 && (
+            {item.imageObjectIds.length < 3 && (
               <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900">
                 <ImagePlus size={16} aria-hidden="true" />
-                {`Фото ${item.imageObjectIds.length}/4 · добавить`}
+                {`Фото ${item.imageObjectIds.length}/3 · добавить`}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"

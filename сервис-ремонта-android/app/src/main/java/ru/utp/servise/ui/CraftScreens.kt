@@ -172,7 +172,9 @@ internal fun CustomerCraftItemCard(
     val context = LocalContext.current
     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
         Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            item.imageObjectId?.let { image -> RemoteProjectImage(image, token, Modifier.fillMaxWidth().height(180.dp), "Фото изделия ${item.title}") }
+            (item.imageObjectIds.firstOrNull() ?: item.imageObjectId)?.let { image ->
+                RemoteProjectImage(image, token, Modifier.fillMaxWidth().height(180.dp), "Фото изделия ${item.title}")
+            }
             Text(item.title, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
             Text("Ручная работа", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = UtpBlue)
             onOpenDetails?.let { openDetails ->
@@ -223,61 +225,6 @@ internal fun CustomerCraftItemCard(
             }
             if (item.stockQuantity <= 0 && !item.customOrderAvailable) {
                 Text("Пока нет в наличии", fontSize = 12.sp, color = UtpMuted)
-            }
-        }
-    }
-}
-
-@Composable
-private fun CraftItemManagementScreen(token: String, items: List<CraftItem>, runAction: RunAction, refresh: () -> Unit) {
-    val context = LocalContext.current
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    var stockQuantity by remember { mutableStateOf("0") }
-    var newOrderEnabled by remember { mutableStateOf(true) }
-    Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-        Column(Modifier.fillMaxWidth().padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Добавить изделие", fontWeight = FontWeight.SemiBold, color = UtpInk)
-            OutlinedTextField(title, { title = it.take(160) }, label = { Text("Название") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
-            OutlinedTextField(description, { description = it.take(4000) }, label = { Text("Описание") }, modifier = Modifier.fillMaxWidth(), minLines = 2, shape = RoundedCornerShape(12.dp))
-            OutlinedTextField(price, { price = it.filter(Char::isDigit).take(8) }, label = { Text("Цена, ₽") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
-            OutlinedTextField(stockQuantity, { stockQuantity = it.filter(Char::isDigit).take(6) }, label = { Text("Готовых изделий на складе, шт.") }, modifier = Modifier.fillMaxWidth(), singleLine = true, shape = RoundedCornerShape(12.dp))
-            OutlinedButton(onClick = { newOrderEnabled = !newOrderEnabled }) { Text(if (newOrderEnabled) "✓ Можно изготовить под заказ" else "Заказной вариант отключён") }
-            Button(
-                onClick = {
-                    runAction({ ApiClient.createCraftItem(token, title.trim(), description.trim(), price.toIntOrNull() ?: 0, false, newOrderEnabled, stockQuantity.toIntOrNull() ?: 0) }) { _ ->
-                        title = ""; description = ""; price = ""; stockQuantity = "0"
-                        refresh()
-                    }
-                },
-                enabled = title.trim().length >= 2 && price.toIntOrNull() != null,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Сохранить изделие") }
-            Text("Можно одновременно продавать готовые экземпляры и принимать заказы на изготовление. Фото добавляется после сохранения.", fontSize = 11.sp, color = UtpMuted)
-        }
-    }
-    items.forEach { item ->
-        var editedPrice by remember(item.id, item.priceRub) { mutableStateOf(item.priceRub.toString()) }
-        var editedStock by remember(item.id, item.stockQuantity) { mutableStateOf(item.stockQuantity.toString()) }
-        Card(shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Column(Modifier.fillMaxWidth().padding(13.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                Text(item.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
-                Text("Готовых на складе: ${item.stockQuantity}", fontSize = 12.sp, color = UtpMuted)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(editedPrice, { editedPrice = it.filter(Char::isDigit).take(8) }, label = { Text("Цена, ₽") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
-                    TextButton(onClick = { runAction({ ApiClient.updateCraftItem(token, item.id, priceRub = editedPrice.toIntOrNull()) }) { refresh() } }) { Text("Сохранить цену") }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(editedStock, { editedStock = it.filter(Char::isDigit).take(6) }, label = { Text("Остаток, шт.") }, modifier = Modifier.weight(1f), singleLine = true, shape = RoundedCornerShape(12.dp))
-                    TextButton(onClick = { runAction({ ApiClient.updateCraftItem(token, item.id, stockQuantity = editedStock.toIntOrNull()) }) { refresh() } }) { Text("Сохранить остаток") }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { runAction({ ApiClient.updateCraftItem(token, item.id, isPublished = !item.isPublished) }) { refresh() } }) { Text(if (item.isPublished) "Снять с публикации" else "Опубликовать") }
-                    PhotoPickerButton(label = if (item.imageObjectId == null) "Добавить фото" else "Заменить фото") { uri ->
-                        runAction({ ApiClient.uploadCraftImage(token, item.id, compressSelectedImage(context, uri)) }) { refresh() }
-                    }
-                }
             }
         }
     }

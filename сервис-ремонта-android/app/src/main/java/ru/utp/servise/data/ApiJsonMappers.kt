@@ -412,6 +412,11 @@ internal fun JSONObject.toCraftItem() = CraftItem(
     imageObjectId = nullableString("imageObjectId"),
     isPublished = optBoolean("isPublished"),
     customOrderAvailable = optBoolean("customOrderAvailable", true),
+    imageObjectIds = optJSONArray("imageObjectIds")?.let { images ->
+        (0 until images.length()).mapNotNull { index ->
+            images.optString(index).takeIf(String::isNotBlank)
+        }
+    } ?: listOfNotNull(nullableString("imageObjectId")),
 )
 
 internal fun JSONObject.toCraftOrder(): CraftOrder {

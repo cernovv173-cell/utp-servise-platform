@@ -380,17 +380,39 @@ object ApiClient {
             .put("stockQuantity", stockQuantity.coerceIn(0, 100_000)),
     ).getJSONObject("item").toCraftItem()
 
-    fun updateCraftItem(token: String, itemId: String, priceRub: Int? = null, isPublished: Boolean? = null, stockQuantity: Int? = null): CraftItem {
+    fun updateCraftItem(
+        token: String,
+        itemId: String,
+        title: String? = null,
+        description: String? = null,
+        priceRub: Int? = null,
+        isPublished: Boolean? = null,
+        stockQuantity: Int? = null,
+        customOrderAvailable: Boolean? = null,
+    ): CraftItem {
         val body = JSONObject()
+        title?.let { body.put("title", it) }
+        description?.let { body.put("description", it) }
         priceRub?.let { body.put("priceRub", it) }
         isPublished?.let { body.put("isPublished", it) }
         stockQuantity?.let { body.put("stockQuantity", it.coerceIn(0, 100_000)) }
+        customOrderAvailable?.let { body.put("customOrderAvailable", it) }
         return request("PATCH", "/craft-items/$itemId", token, body).getJSONObject("item").toCraftItem()
     }
 
-    fun uploadCraftImage(token: String, itemId: String, image: ByteArray) {
-        MediaApiClient.binaryRequest("POST", "/craft-items/$itemId/image", token, image)
+    fun deleteCraftItem(token: String, itemId: String) {
+        request("DELETE", "/craft-items/$itemId", token)
     }
+
+    fun uploadCraftItemImage(token: String, itemId: String, image: ByteArray) {
+        MediaApiClient.binaryRequest("POST", "/craft-items/$itemId/images", token, image)
+    }
+
+    fun deleteCraftItemImage(token: String, itemId: String, objectId: String): CraftItem = request(
+        "DELETE",
+        "/craft-items/$itemId/images/${android.net.Uri.encode(objectId)}",
+        token,
+    ).getJSONObject("item").toCraftItem()
 
     fun craftOrders(token: String): List<CraftOrder> = request("GET", "/craft-orders", token)
         .getJSONArray("orders").mapObjects { it.toCraftOrder() }

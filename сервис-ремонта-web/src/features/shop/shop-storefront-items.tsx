@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { MapPin, PackageOpen, Plus, Sparkles } from "lucide-react";
 
+import { craftItemImageIds } from "@/features/crafts/craft-item-images";
+
 import type { ShopCraftItem, ShopOrder, ShopOrderStatus, ShopProduct } from "@/lib/api";
 import { getShopCraftImageUrl, getShopProductImageUrl } from "@/lib/api";
 
@@ -48,7 +50,7 @@ export const ProductCard = ({
         aria-label={`Подробнее о товаре: ${product.name}`}
         className="mb-4 flex gap-2 overflow-x-auto pb-1 focus-visible:rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
       >
-        {product.imageObjectIds.slice(0, 4).map((objectId, index) => (
+        {product.imageObjectIds.slice(0, 3).map((objectId, index) => (
           <img
             key={objectId}
             src={getShopProductImageUrl(product.id, objectId)}
@@ -116,7 +118,7 @@ export const CraftCard = ({
   onAdd: () => void;
 }) => (
   <article className="flex min-h-72 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
-    {item.imageObjectId ? (
+    {craftItemImageIds(item)[0] ? (
       <Link
         to="/product/$kind/$itemId"
         params={{ kind: "craft", itemId: item.id }}
@@ -124,7 +126,7 @@ export const CraftCard = ({
         className="focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
       >
         <img
-          src={getShopCraftImageUrl(item.id, item.imageObjectId)}
+          src={getShopCraftImageUrl(item.id, craftItemImageIds(item)[0]!)}
           alt={item.title}
           loading="lazy"
           className="h-48 w-full bg-slate-100 object-cover dark:bg-slate-800"

@@ -395,9 +395,9 @@ fun CatalogManagementScreen(
                                 }
                             }
                         }
-                        if (item.imageObjectIds.size < 4) {
+                        if (item.imageObjectIds.size < 3) {
                             PhotoPickerButton(
-                                label = "Добавить фото · ${item.imageObjectIds.size}/4",
+                                label = "Добавить фото · ${item.imageObjectIds.size}/3",
                             ) { uri ->
                                 runAction({
                                     ApiClient.uploadCatalogProductImage(
