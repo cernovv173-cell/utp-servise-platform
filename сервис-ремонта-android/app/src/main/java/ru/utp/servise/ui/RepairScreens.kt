@@ -2,15 +2,18 @@ package ru.utp.servise.ui
 
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -18,8 +21,8 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -71,7 +74,7 @@ fun RepairOrdersScreen(
             else -> order.status != "COMPLETED" && order.status != "CANCELLED"
         }
     }
-    val displayedOrders = searchResults
+    val filteredOrders = searchResults
         ?.filter { order ->
             when {
                 showArchive -> order.archivedAt != null
@@ -81,95 +84,106 @@ fun RepairOrdersScreen(
             }
         }
         ?: visibleOrders
-    Column(
-        Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp, vertical = 14.dp),
+    val displayedOrders = prioritizeRepairOrders(filteredOrders, role)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().background(UtpPale),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Column(Modifier.weight(1f)) {
-                Text(title, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("${displayedOrders.size} заявок", fontSize = 12.sp, color = UtpMuted)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (role == "ADMIN" && !showCompleted && !showArchive && onCreateOrder != null) {
-                    Button(onClick = onCreateOrder, shape = RoundedCornerShape(11.dp)) { Text("Создать") }
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.weight(1f)) {
+                    Text(title, fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                    Text("${displayedOrders.size} заявок", fontSize = 12.sp, color = UtpMuted)
                 }
-                TextButton(onClick = refresh) { Text("Обновить") }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (role == "ADMIN" && !showCompleted && !showArchive && onCreateOrder != null) {
+                        Button(onClick = onCreateOrder, shape = RoundedCornerShape(11.dp)) { Text("Создать") }
+                    }
+                    TextButton(onClick = refresh) { Text("Обновить") }
+                }
             }
         }
-        headerContent?.invoke()
-        Row(
-            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(top = 8.dp, bottom = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            FilterChip(
-                selected = !showArchive && !showCompleted,
-                onClick = { showArchive = false; showCompleted = false; searchResults = null },
-                label = { Text("Активные · ${orders.count { it.archivedAt == null && it.status != "COMPLETED" && it.status != "CANCELLED" }}") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
-                    selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer,
-                ),
-            )
-            FilterChip(
-                selected = !showArchive && showCompleted,
-                onClick = { showArchive = false; showCompleted = true; searchResults = null },
-                label = { Text("Завершённые · ${orders.count { it.archivedAt == null && (it.status == "COMPLETED" || it.status == "CANCELLED") }}") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
-                    selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-            )
-            FilterChip(
-                selected = showArchive,
-                onClick = { showArchive = true; showCompleted = false; searchResults = null },
-                label = { Text("Архив · ${orders.count { it.archivedAt != null }}") },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
-                    selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
-                ),
-            )
-        }
-        if (role == "ADMIN") {
-            OutlinedTextField(
-                value = searchText,
-                onValueChange = { searchText = it; searchResults = null },
-                label = { Text("Поиск по сервисному номеру") },
-                placeholder = { Text("Например, SRV-2026-000001") },
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-            )
-            OutlinedButton(
-                onClick = {
-                    runAction({ ApiClient.searchOrders(token, searchText) }) { result ->
-                        searchResults = (result as? List<*>)
-                            ?.filterIsInstance<RepairOrder>()
-                            ?: emptyList()
-                    }
-                },
-                enabled = searchText.trim().length >= 2,
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("Найти заявку") }
-        }
-        if (displayedOrders.isEmpty()) {
-            Card(
-                modifier = Modifier.padding(top = 10.dp),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+        headerContent?.let { content -> item { content() } }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(
-                    when {
-                        showArchive -> "В архиве пока нет заявок. Они переносятся автоматически после полуночи по времени Москвы."
-                        showCompleted -> "Завершённых ремонтов пока нет."
-                        else -> "Сейчас здесь нет заявок."
-                    },
-                    Modifier.padding(18.dp),
-                    color = UtpMuted,
+                FilterChip(
+                    selected = !showArchive && !showCompleted,
+                    onClick = { showArchive = false; showCompleted = false; searchResults = null },
+                    label = { Text("Активные · ${orders.count { it.archivedAt == null && it.status != "COMPLETED" && it.status != "CANCELLED" }}") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onPrimaryContainer,
+                    ),
+                )
+                FilterChip(
+                    selected = !showArchive && showCompleted,
+                    onClick = { showArchive = false; showCompleted = true; searchResults = null },
+                    label = { Text("Завершённые · ${orders.count { it.archivedAt == null && (it.status == "COMPLETED" || it.status == "CANCELLED") }}") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
+                        selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
+                    ),
+                )
+                FilterChip(
+                    selected = showArchive,
+                    onClick = { showArchive = true; showCompleted = false; searchResults = null },
+                    label = { Text("Архив · ${orders.count { it.archivedAt != null }}") },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = androidx.compose.material3.MaterialTheme.colorScheme.secondaryContainer,
+                        selectedLabelColor = androidx.compose.material3.MaterialTheme.colorScheme.onSecondaryContainer,
+                    ),
                 )
             }
         }
-        displayedOrders.forEach { order ->
+        if (role == "ADMIN") {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedTextField(
+                        value = searchText,
+                        onValueChange = { searchText = it; searchResults = null },
+                        label = { Text("Поиск по сервисному номеру") },
+                        placeholder = { Text("Например, SRV-2026-000001") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    OutlinedButton(
+                        onClick = {
+                            runAction({ ApiClient.searchOrders(token, searchText) }) { result ->
+                                searchResults = (result as? List<*>)
+                                    ?.filterIsInstance<RepairOrder>()
+                                    ?: emptyList()
+                            }
+                        },
+                        enabled = searchText.trim().length >= 2,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) { Text("Найти заявку") }
+                }
+            }
+        }
+        if (displayedOrders.isEmpty()) {
+            item {
+                Card(
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+                ) {
+                    Text(
+                        when {
+                            showArchive -> "В архиве пока нет заявок. Они переносятся автоматически после полуночи по времени Москвы."
+                            showCompleted -> "Завершённых ремонтов пока нет."
+                            else -> "Сейчас здесь нет заявок."
+                        },
+                        Modifier.padding(18.dp),
+                        color = UtpMuted,
+                    )
+                }
+            }
+        }
+        items(displayedOrders, key = { it.id }) { order ->
             RepairOrderCard(order, role, token, currentUserId, technicians, catalogItems, runAction, onChat, onReview)
         }
     }

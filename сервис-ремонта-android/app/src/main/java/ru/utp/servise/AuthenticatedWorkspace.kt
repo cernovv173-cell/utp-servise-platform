@@ -234,19 +234,10 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("customer/home") {
                                 CustomerHomeScreen(
-                                    user, token, news, technologyFact, banners,
-                                    { navController.navigate("customer/new-order") },
-                                    { navController.navigate("customer/orders") },
-                                    { navController.navigate("customer/shop") },
-                                    { navController.navigate("customer/about") },
-                                    { navController.navigate("customer/news") },
-                                    { navController.navigate("customer/loyalty") },
-                                    onCampaignNavigate,
-                                    { navController.navigate("customer/support-chat") },
-                                    onOpenOffers = {
-                                        navController.navigate("customer/offers") { launchSingleTop = true }
-                                    },
-                                    seasonalTheme = seasonalTheme.activeSeason,
+                                    user = user,
+                                    orders = orders,
+                                    onCreateRequest = { navController.navigate("customer/new-order") },
+                                    onOrders = { navController.navigate("customer/orders") },
                                 )
                             }
                             composable("customer/shop") {
@@ -299,7 +290,14 @@ internal fun AuthenticatedWorkspace(
                                 )
                             }
                             composable("customer/news") {
-                                NewsFeedScreen(token, news, reviews, banners, onCampaignNavigate)
+                                NewsFeedScreen(
+                                    token = token,
+                                    articles = news,
+                                    reviews = reviews,
+                                    banners = banners,
+                                    onCampaignNavigate = onCampaignNavigate,
+                                    technologyFact = technologyFact,
+                                )
                             }
                             composable("customer/offers") {
                                 CustomerOffersScreen(

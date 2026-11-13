@@ -3,13 +3,14 @@ package ru.utp.servise.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
@@ -41,41 +42,36 @@ fun PartsProcurementScreen(token: String, onError: (String) -> Unit) {
         loading = false
     }
 
-    Column(
-        Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(11.dp),
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().background(UtpPale),
+        contentPadding = PaddingValues(horizontal = 18.dp, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("Закупка запчастей", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text(
-            "Рекомендуемое количество рассчитано до минимального остатка.",
-            fontSize = 13.sp,
-            color = UtpMuted,
-        )
-        Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
-        ) {
-            Text(
-                "Детали из согласованных смет уже списаны со склада и не прибавляются повторно к закупке.",
-                Modifier.padding(14.dp),
-                fontSize = 12.sp,
-                lineHeight = 18.sp,
-                color = UtpMuted,
-            )
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Закупка запчастей", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text(
+                    "Только позиции ниже минимума; согласованные ремонты уже учтены.",
+                    fontSize = 13.sp,
+                    color = UtpMuted,
+                )
+            }
         }
-        if (loading) Text("Загружаем список…", color = UtpMuted)
+        if (loading) item { Text("Загружаем список…", color = UtpMuted) }
         if (!loading && items.isEmpty()) {
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                    Text("Пополнение не требуется", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("Складских запчастей достаточно для текущих порогов и ремонтов.", fontSize = 12.sp, color = UtpMuted)
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("Пополнение не требуется", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                        Text("Складских запчастей достаточно для текущих порогов и ремонтов.", fontSize = 12.sp, color = UtpMuted)
+                    }
                 }
             }
         }
-        items.forEach { item -> ProcurementCard(item) }
+        items(items, key = { it.id }) { item -> ProcurementCard(item) }
     }
 }
 

@@ -29,7 +29,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,176 +46,9 @@ import ru.utp.servise.R
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.ApiClient
-import ru.utp.servise.data.NewsArticle
-import ru.utp.servise.data.SiteBanner
-import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.clearShopCart
-import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.roleLabel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import java.time.LocalDate
-
-private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
-
-@Composable
-fun CustomerHomeScreen(
-    user: AppUser,
-    token: String,
-    news: List<NewsArticle>,
-    technologyFact: TechnologyFact?,
-    banners: List<SiteBanner>,
-    onCreateRequest: () -> Unit,
-    onOrders: () -> Unit,
-    onShop: () -> Unit,
-    onAbout: () -> Unit,
-    onNews: () -> Unit,
-    onLoyalty: () -> Unit,
-    onCampaignNavigate: (String) -> Unit,
-    onContactAdministrator: () -> Unit,
-    onOpenOffers: () -> Unit,
-    seasonalTheme: String = "NONE",
-) {
-    var companyPhone by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) {
-        companyPhone = withContext(Dispatchers.IO) {
-            runCatching { ApiClient.companyInfo().phone }.getOrNull()
-        }
-    }
-    Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("Привет, ${user.displayName.substringBefore(' ')}", color = UtpBlue, fontSize = 12.sp)
-        }
-        if (seasonalTheme != "NONE") {
-            Spacer(Modifier.height(12.dp))
-            SeasonalHomeBanner(seasonalTheme)
-        }
-        Spacer(Modifier.height(18.dp))
-        Card(shape = RoundedCornerShape(28.dp), colors = CardDefaults.cardColors(containerColor = UtpMint)) {
-            Column(Modifier.fillMaxWidth().padding(20.dp)) {
-                Text("Ремонт компьютеров и гаджетов", fontSize = 23.sp, lineHeight = 29.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("Опишите неисправность — мастер свяжется с вами и согласует стоимость.", fontSize = 13.sp, lineHeight = 19.sp, color = UtpMuted, modifier = Modifier.padding(top = 8.dp))
-                Button(onClick = onCreateRequest, modifier = Modifier.padding(top = 14.dp), shape = RoundedCornerShape(18.dp)) { Text("Оставить заявку  →") }
-                CompanyCallButton(
-                    phone = companyPhone,
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    label = companyPhone?.let { "Позвонить $it" } ?: "Позвонить в сервис",
-                )
-            }
-        }
-        technologyFact?.let { fact ->
-            Spacer(Modifier.height(12.dp))
-            TechnologyFactCard(fact)
-        }
-        Spacer(Modifier.height(23.dp))
-        CampaignBannerCarousel(
-            banners = banners,
-            placement = "HOME",
-            token = token,
-            onNavigate = onCampaignNavigate,
-        )
-        CustomerOfferHomeBanners(
-            onOpenOffers = onOpenOffers,
-            modifier = Modifier.padding(vertical = 14.dp),
-        )
-        Card(onClick = onLoyalty, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("★", fontSize = 24.sp, color = UtpBlue)
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text("Бонусы и история", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("10% после оплаты, списание до 30% чека", fontSize = 12.sp, color = UtpMuted)
-                }
-                Text("›", fontSize = 24.sp, color = UtpMuted)
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Text("Что нужно отремонтировать?", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Spacer(Modifier.height(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            deviceTypes.chunked(2).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                    row.forEach { device ->
-                        Card(onClick = onCreateRequest, modifier = Modifier.weight(1f), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-                            Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(device.icon(), fontSize = 24.sp, color = UtpBlue)
-                                Text(device.deviceLabel(), color = UtpInk, fontSize = 14.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 10.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Spacer(Modifier.height(22.dp))
-        Card(onClick = onOrders, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("◷", fontSize = 24.sp, color = UtpBlue)
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text("История и статус заказа", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("Все обращения — в одном месте", fontSize = 12.sp, color = UtpMuted)
-                }
-                Text("›", fontSize = 24.sp, color = UtpMuted)
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Card(onClick = onShop, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("🛍", fontSize = 24.sp)
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text("Магазин", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("Товары и изделия ручной работы", fontSize = 12.sp, color = UtpMuted)
-                }
-                Text("›", fontSize = 24.sp, color = UtpMuted)
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Card(onClick = onContactAdministrator, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("✉", fontSize = 24.sp, color = UtpBlue)
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text("Написать администратору", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("Задать вопрос напрямую в чат", fontSize = 12.sp, color = UtpMuted)
-                }
-                Text("›", fontSize = 24.sp, color = UtpMuted)
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Card(onClick = onAbout, shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("ℹ", fontSize = 24.sp, color = UtpBlue)
-                Column(Modifier.weight(1f).padding(start = 12.dp)) {
-                    Text("О компании", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    Text("Услуги, контакты и история сервиса", fontSize = 12.sp, color = UtpMuted)
-                }
-                Text("›", fontSize = 24.sp, color = UtpMuted)
-            }
-        }
-        val featuredNews = news.filter { it.isFeatured }
-        if (featuredNews.isNotEmpty()) {
-            Spacer(Modifier.height(24.dp))
-            Text("В центре внимания", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-            Spacer(Modifier.height(10.dp))
-            TimedCarousel(
-                items = featuredNews.take(2),
-                itemKey = { it.id },
-                collectionLabel = "новостей",
-                previousActionLabel = "Предыдущая новость",
-                nextActionLabel = "Следующая новость",
-            ) { article ->
-                CustomerNewsCard(article, token)
-            }
-        }
-        Spacer(Modifier.height(24.dp))
-        Text("Новости сервиса", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        TextButton(onClick = onNews) { Text("Все новости и отзывы →") }
-        Spacer(Modifier.height(10.dp))
-        if (news.isEmpty()) {
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-                Text("Пока нет новостей. Загляните сюда позже.", Modifier.padding(16.dp), color = UtpMuted, fontSize = 13.sp)
-            }
-        }
-        news.filterNot { it.isFeatured }.take(5).forEach { article -> CustomerNewsCard(article, token) }
-    }
-}
 
 @Composable
 fun ProfileScreen(
@@ -611,11 +443,4 @@ fun ProfileScreen(
             },
         )
     }
-}
-
-private fun String.icon(): String = when (this) {
-    "COMPUTER" -> "▣"
-    "LAPTOP" -> "▰"
-    "PHONE" -> "▯"
-    else -> "▤"
 }
