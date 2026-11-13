@@ -36,22 +36,20 @@ import kotlinx.coroutines.delay
 import ru.utp.servise.R
 
 private val seasonArtwork = mapOf(
-    "SPRING" to R.drawable.seasonal_spring_banner,
-    "SUMMER" to R.drawable.seasonal_summer_banner,
-    "AUTUMN" to R.drawable.seasonal_autumn_banner,
-    "WINTER" to R.drawable.new_year_raccoon,
+    "SPRING" to R.drawable.seasonal_brand_spring,
+    "SUMMER" to R.drawable.seasonal_brand_summer,
+    "AUTUMN" to R.drawable.seasonal_brand_autumn,
+    "WINTER" to R.drawable.seasonal_brand_winter,
 )
 
 private val seasonParticles = mapOf(
     "SPRING" to listOf("✿", "❀", "✿", "❀", "✿", "❀", "✿", "❀"),
     "SUMMER" to listOf("✦", "✧", "✦", "✧", "✦", "✧", "✦", "✧"),
     "AUTUMN" to listOf("🍂", "🍁", "🍂", "🍁", "🍂", "🍁", "🍂", "🍁"),
-    "WINTER" to listOf("❄", "❅", "❄", "❅", "❄", "❅", "❄", "❅"),
+    "WINTER" to List(24) { if (it % 2 == 0) "❄" else "❅" },
 )
 
-private val particleColumns = listOf(
-    0.04f, 0.17f, 0.30f, 0.43f, 0.56f, 0.69f, 0.82f, 0.94f,
-)
+private val particleColumns = List(24) { index -> ((index * 37 + 5) % 100) / 100f }
 
 private const val AUTUMN_RAIN_INTERVAL_MILLISECONDS = 60 * 60 * 1_000L
 private const val AUTUMN_RAIN_DURATION_MILLISECONDS = 30 * 60 * 1_000L
@@ -90,7 +88,7 @@ fun SeasonalSceneBackground(season: String, dark: Boolean, modifier: Modifier = 
                     ),
                 ),
         )
-        if (season != "WINTER") SeasonalParticleField(season, Modifier.fillMaxSize())
+        SeasonalParticleField(season, Modifier.fillMaxSize())
         if (season == "AUTUMN") {
             AutumnRainSchedule()
         }
@@ -186,10 +184,10 @@ private fun SeasonalParticleField(season: String, modifier: Modifier = Modifier)
             } else {
                 (progress * 5f).coerceAtMost(0.8f) * ((1f - progress) * 5f).coerceAtMost(1f)
             }
-            val particleColor = if (summer) {
-                MaterialTheme.colorScheme.tertiary
-            } else {
-                MaterialTheme.colorScheme.primary
+            val particleColor = when (season) {
+                "SUMMER" -> MaterialTheme.colorScheme.tertiary
+                "WINTER" -> Color(0xFFEAF6FF)
+                else -> MaterialTheme.colorScheme.primary
             }
 
             Text(

@@ -3,10 +3,10 @@ import type { CSSProperties } from "react";
 import type { SeasonalSeasonChoice } from "@/lib/api";
 
 const backgroundImageBySeason: Record<Exclude<SeasonalSeasonChoice, "NONE">, string> = {
-  SPRING: "/images/seasonal-spring.webp",
-  SUMMER: "/images/seasonal-summer.webp",
-  AUTUMN: "/images/seasonal-autumn.webp",
-  WINTER: "/images/seasonal-winter.webp",
+  SPRING: "/images/seasonal-brand-spring.webp",
+  SUMMER: "/images/seasonal-brand-summer.webp",
+  AUTUMN: "/images/seasonal-brand-autumn.webp",
+  WINTER: "/images/seasonal-brand-winter.webp",
 };
 
 const snowflakes = Array.from({ length: 60 }, (_, index) => ({
@@ -51,7 +51,7 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
         aria-hidden="true"
         loading="eager"
         decoding="async"
-        className="absolute inset-0 size-full object-cover object-center opacity-20 transition-opacity duration-700 dark:opacity-15"
+        className="seasonal-scene-art absolute inset-0 size-full transition-opacity duration-700"
       />
       {season === "WINTER" && <WinterSnowfall />}
     </div>

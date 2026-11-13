@@ -142,6 +142,7 @@ private fun CraftItemEditorCard(
     var customOrderAvailable by remember(item.id, item.customOrderAvailable) {
         mutableStateOf(item.customOrderAvailable)
     }
+    var isExpanded by remember(item.id) { mutableStateOf(false) }
     var confirmingDelete by remember(item.id) { mutableStateOf(false) }
     val imageIds = (item.imageObjectIds.ifEmpty { listOfNotNull(item.imageObjectId) }).distinct()
 
@@ -153,118 +154,130 @@ private fun CraftItemEditorCard(
             Modifier.fillMaxWidth().padding(13.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(item.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
-            Text(
-                if (item.isPublished) "Опубликовано" else "Черновик",
-                fontSize = 12.sp,
-                color = UtpMuted,
-            )
-            OutlinedTextField(
-                title,
-                { title = it.take(160) },
-                label = { Text("Название") },
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-            )
-            OutlinedTextField(
-                description,
-                { description = it.take(4000) },
-                label = { Text("Описание") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                shape = RoundedCornerShape(12.dp),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    price,
-                    { price = it.filter(Char::isDigit).take(8) },
-                    label = { Text("Цена, ₽") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                )
-                OutlinedTextField(
-                    stock,
-                    { stock = it.filter(Char::isDigit).take(6) },
-                    label = { Text("Остаток, шт.") },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                )
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = { isPublished = !isPublished }) {
-                    Text(if (isPublished) "Снять с публикации" else "Опубликовать")
-                }
-                OutlinedButton(onClick = { customOrderAvailable = !customOrderAvailable }) {
-                    Text(if (customOrderAvailable) "Заказ доступен" else "Заказ выключен")
-                }
-            }
-            Button(
-                onClick = {
-                    runAction({
-                        ApiClient.updateCraftItem(
-                            token = token,
-                            itemId = item.id,
-                            title = title.trim(),
-                            description = description.trim(),
-                            priceRub = price.toIntOrNull(),
-                            isPublished = isPublished,
-                            stockQuantity = stock.toIntOrNull(),
-                            customOrderAvailable = customOrderAvailable,
-                        )
-                    }) { refresh() }
-                },
-                enabled = title.trim().length >= 2 && price.toIntOrNull() != null && stock.toIntOrNull() != null,
-                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text("Сохранить изменения")
+                Column(Modifier.weight(1f)) {
+                    Text(item.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
+                    Text(
+                        if (item.isPublished) "Опубликовано" else "Черновик",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                    TextButton(onClick = { isExpanded = !isExpanded }) {
+                        Text(if (isExpanded) "Свернуть" else "Развернуть")
+                    }
+                    TextButton(onClick = { confirmingDelete = true }) {
+                        Text("Удалить", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
+                    }
+                }
             }
-
-            if (imageIds.isNotEmpty()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    imageIds.forEachIndexed { index, objectId ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            RemoteProjectImage(
-                                objectId = objectId,
+            if (isExpanded) {
+                OutlinedTextField(
+                    title,
+                    { title = it.take(160) },
+                    label = { Text("Название") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                )
+                OutlinedTextField(
+                    description,
+                    { description = it.take(4000) },
+                    label = { Text("Описание") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        price,
+                        { price = it.filter(Char::isDigit).take(8) },
+                        label = { Text("Цена, ₽") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                    OutlinedTextField(
+                        stock,
+                        { stock = it.filter(Char::isDigit).take(6) },
+                        label = { Text("Остаток, шт.") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                    )
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { isPublished = !isPublished }) {
+                        Text(if (isPublished) "Снять с публикации" else "Опубликовать")
+                    }
+                    OutlinedButton(onClick = { customOrderAvailable = !customOrderAvailable }) {
+                        Text(if (customOrderAvailable) "Заказ доступен" else "Заказ выключен")
+                    }
+                }
+                Button(
+                    onClick = {
+                        runAction({
+                            ApiClient.updateCraftItem(
                                 token = token,
-                                modifier = Modifier.size(76.dp),
-                                contentDescription = "Фото ${index + 1}: ${item.title}",
+                                itemId = item.id,
+                                title = title.trim(),
+                                description = description.trim(),
+                                priceRub = price.toIntOrNull(),
+                                isPublished = isPublished,
+                                stockQuantity = stock.toIntOrNull(),
+                                customOrderAvailable = customOrderAvailable,
                             )
-                            TextButton(
-                                onClick = {
-                                    runAction({ ApiClient.deleteCraftItemImage(token, item.id, objectId) }) {
-                                        refresh()
-                                    }
-                                },
-                            ) {
-                                Text("Удалить фото", fontSize = 11.sp)
+                        }) { refresh() }
+                    },
+                    enabled = title.trim().length >= 2 && price.toIntOrNull() != null && stock.toIntOrNull() != null,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Сохранить изменения")
+                }
+
+                if (imageIds.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        imageIds.forEachIndexed { index, objectId ->
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                RemoteProjectImage(
+                                    objectId = objectId,
+                                    token = token,
+                                    modifier = Modifier.size(76.dp),
+                                    contentDescription = "Фото ${index + 1}: ${item.title}",
+                                )
+                                TextButton(
+                                    onClick = {
+                                        runAction({ ApiClient.deleteCraftItemImage(token, item.id, objectId) }) {
+                                            refresh()
+                                        }
+                                    },
+                                ) {
+                                    Text("Удалить фото", fontSize = 11.sp)
+                                }
                             }
                         }
                     }
                 }
-            }
-            if (imageIds.size < 3) {
-                PhotoPickerButton(label = "Добавить фото · ${imageIds.size}/3") { uri ->
-                    runAction({
-                        ApiClient.uploadCraftItemImage(
-                            token,
-                            item.id,
-                            compressSelectedImage(context, uri),
-                        )
-                    }) { refresh() }
+                if (imageIds.size < 3) {
+                    PhotoPickerButton(label = "Добавить фото · ${imageIds.size}/3") { uri ->
+                        runAction({
+                            ApiClient.uploadCraftItemImage(
+                                token,
+                                item.id,
+                                compressSelectedImage(context, uri),
+                            )
+                        }) { refresh() }
+                    }
                 }
-            }
 
-            TextButton(
-                onClick = { confirmingDelete = true },
-                modifier = Modifier.align(Alignment.End),
-            ) {
-                Text("Удалить карточку полностью", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
             }
         }
     }
