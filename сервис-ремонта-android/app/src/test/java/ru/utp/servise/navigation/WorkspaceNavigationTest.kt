@@ -18,9 +18,10 @@ class WorkspaceNavigationTest {
         assertEquals(4, administrator.primaryDestinations.size)
         assertEquals(3, procurement.primaryDestinations.size)
         assertEquals(
-            listOf("customer/home", "customer/orders", "customer/shop", "customer/loyalty", "customer/profile"),
+            listOf("customer/home", "customer/orders", "customer/shop", "customer/chats", "customer/profile"),
             customer.primaryDestinations.map { it.route },
         )
+        assertEquals("Чат", customer.primaryDestinations[3].label)
         assertEquals(
             listOf("technician/home", "technician/jobs", "technician/catalog", "technician/salary", "technician/profile"),
             technician.primaryDestinations.map { it.route },
@@ -75,12 +76,12 @@ class WorkspaceNavigationTest {
 
         assertTrue(customerRoutes.contains("customer/devices"))
         assertTrue(customerRoutes.contains("customer/offers"))
+        assertTrue(customerRoutes.contains("customer/loyalty"))
         assertTrue(customerRoutes.contains("customer/news"))
         assertTrue(customerRoutes.contains("customer/guides"))
-        assertTrue(customerRoutes.contains("customer/chats"))
+        assertFalse(customerRoutes.contains("customer/chats"))
         assertTrue(customerRoutes.contains("customer/support-chat"))
         assertFalse(customerRoutes.contains("customer/shop"))
-        assertFalse(customerRoutes.contains("customer/loyalty"))
         assertFalse(customerRoutes.contains("customer/profile"))
         assertFalse(customerRoutes.any { it.startsWith("customer/game") })
         assertFalse(customerRoutes.contains("technician/profile"))
@@ -101,7 +102,7 @@ class WorkspaceNavigationTest {
         assertEquals("customer/shop", customer.selectedTabRoute("customer/shop/item/product/123"))
         assertEquals("customer/shop", customer.selectedTabRoute("customer/shop/cart"))
         assertEquals("customer/profile", customer.selectedTabRoute("customer/guides/prepare-laptop"))
-        assertEquals("customer/profile", customer.selectedTabRoute("customer/chats"))
+        assertEquals("customer/chats", customer.selectedTabRoute("customer/chats"))
         assertEquals("customer/profile", customer.selectedTabRoute("sections"))
         assertEquals("technician/profile", technician.selectedTabRoute("technician/reviews"))
         assertEquals("technician/catalog", technician.selectedTabRoute("technician/catalog"))

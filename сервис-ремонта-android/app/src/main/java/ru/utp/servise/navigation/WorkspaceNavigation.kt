@@ -58,7 +58,7 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
             WorkspaceDestination("customer/home", "Главная", Icons.Filled.Home),
             WorkspaceDestination("customer/orders", "Ремонты", Icons.AutoMirrored.Filled.List),
             WorkspaceDestination("customer/shop", "Магазин", Icons.Filled.ShoppingCart),
-            WorkspaceDestination("customer/loyalty", "Бонусы", Icons.Filled.Star),
+            WorkspaceDestination("customer/chats", "Чат", Icons.AutoMirrored.Filled.List),
             WorkspaceDestination("customer/profile", "Профиль", Icons.Filled.Person),
         ),
         sectionHubRoute = "sections",
@@ -82,13 +82,19 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                 ),
             ),
             WorkspaceSectionGroup(
-                "Предложения",
+                "Предложения и бонусы",
                 listOf(
                     WorkspaceDestination(
                         "customer/offers",
                         "Акции и розыгрыши",
                         Icons.Filled.Star,
                         "Участие в доступных предложениях сервиса.",
+                    ),
+                    WorkspaceDestination(
+                        "customer/loyalty",
+                        "Бонусы",
+                        Icons.Filled.Star,
+                        "Баланс и операции программы лояльности.",
                     ),
                 ),
             ),
@@ -106,12 +112,6 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                         "Полезные памятки",
                         Icons.Filled.Info,
                         "Советы перед обращением в сервис.",
-                    ),
-                    WorkspaceDestination(
-                        "customer/chats",
-                        "Чаты по заявкам",
-                        Icons.AutoMirrored.Filled.List,
-                        "Переписки по активным и завершённым ремонтам.",
                     ),
                     WorkspaceDestination(
                         "customer/about",
