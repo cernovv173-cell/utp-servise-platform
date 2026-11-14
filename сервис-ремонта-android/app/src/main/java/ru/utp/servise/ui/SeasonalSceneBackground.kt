@@ -30,12 +30,12 @@ fun SeasonalSceneBackground(season: String, modifier: Modifier = Modifier) {
             painter = painterResource(mascotResource),
             contentDescription = null,
             contentScale = ContentScale.Fit,
-            alignment = Alignment.BottomEnd,
+            alignment = Alignment.Center,
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .fillMaxWidth(0.52f)
-                .fillMaxHeight(0.56f)
-                .graphicsLayer(alpha = 0.44f),
+                .align(Alignment.Center)
+                .fillMaxWidth(0.64f)
+                .fillMaxHeight(0.72f)
+                .graphicsLayer(alpha = 0.25f),
         )
         if (season == "WINTER") {
             SeasonalWinterSnowfall(Modifier.fillMaxSize())
