@@ -90,7 +90,7 @@ fun UtpServiseTheme(season: String = "NONE", content: @Composable () -> Unit) {
         ),
         content = {
             Box(Modifier.fillMaxSize()) {
-                SeasonalSceneBackground(season = season, dark = dark)
+                SeasonalSceneBackground(season = season)
                 content()
             }
         },
