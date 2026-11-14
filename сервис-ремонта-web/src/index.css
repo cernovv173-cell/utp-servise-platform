@@ -15,6 +15,28 @@ body {
   background: #f4f6fc;
 }
 
+.seasonal-scene-art {
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.4;
+}
+
+html[data-theme="dark"] .seasonal-scene-art {
+  opacity: 0.28;
+}
+
+@media (max-aspect-ratio: 1/1) {
+  .seasonal-scene-art {
+    object-fit: cover;
+    object-position: 70% center;
+    opacity: 0.3;
+  }
+
+  html[data-theme="dark"] .seasonal-scene-art {
+    opacity: 0.22;
+  }
+}
+
 @keyframes price-ticker-scroll {
   from {
     transform: translate3d(0, 0, 0);

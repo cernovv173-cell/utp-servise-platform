@@ -2,11 +2,11 @@ import type { CSSProperties } from "react";
 
 import type { SeasonalSeasonChoice } from "@/lib/api";
 
-const mascotImageBySeason: Record<Exclude<SeasonalSeasonChoice, "NONE">, string> = {
-  SPRING: "/images/seasonal-mascot-spring.webp",
-  SUMMER: "/images/seasonal-mascot-summer.webp",
-  AUTUMN: "/images/seasonal-mascot-autumn.webp",
-  WINTER: "/images/seasonal-mascot-winter.webp",
+const backgroundImageBySeason: Record<Exclude<SeasonalSeasonChoice, "NONE">, string> = {
+  SPRING: "/images/seasonal-brand-spring.webp",
+  SUMMER: "/images/seasonal-brand-summer.webp",
+  AUTUMN: "/images/seasonal-brand-autumn.webp",
+  WINTER: "/images/seasonal-brand-winter.webp",
 };
 
 const snowflakes = Array.from({ length: 60 }, (_, index) => ({
@@ -46,12 +46,12 @@ export const SeasonalSceneBackground = ({ season }: { season: SeasonalSeasonChoi
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
       <img
-        src={mascotImageBySeason[season]}
+        src={backgroundImageBySeason[season]}
         alt=""
         aria-hidden="true"
         loading="eager"
         decoding="async"
-        className="absolute right-0 bottom-0 h-[58dvh] max-h-[680px] w-[min(36vw,440px)] object-contain object-right-bottom opacity-20 transition-opacity duration-700 max-[600px]:h-[48dvh] max-[600px]:w-[60vw] max-[600px]:opacity-15 dark:opacity-30 max-[600px]:dark:opacity-22"
+        className="seasonal-scene-art absolute inset-0 size-full transition-opacity duration-700"
       />
       {season === "WINTER" && <WinterSnowfall />}
     </div>
