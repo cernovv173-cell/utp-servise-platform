@@ -13,7 +13,7 @@ export const readExamples = async (signal?: AbortSignal): Promise<ExampleItem[]>
 };
 
 export const addExample = async (label: string): Promise<ExampleItem> => {
-  if (!label.trim()) throw new Error("Enter a label.");
+  if (!label.trim()) throw new Error("Укажите название.");
   const item = { id: items.length + 1, label: label.trim() };
   items = [...items, item];
   return item;

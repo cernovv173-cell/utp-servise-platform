@@ -99,6 +99,7 @@ import ru.utp.servise.ui.StaffManagementScreen
 import ru.utp.servise.ui.TechnicianProfileScreen
 import ru.utp.servise.ui.SalaryScreen
 import ru.utp.servise.ui.SeasonalThemeCard
+import ru.utp.servise.ui.ThemeMode
 import ru.utp.servise.ui.WorkspaceSectionsScreen
 
 @Composable
@@ -121,6 +122,8 @@ internal fun AuthenticatedWorkspace(
     referralProgram: ReferralProgram,
     seasonalTheme: SeasonalThemeState,
     onSeasonalThemeChanged: (SeasonalThemeState) -> Unit,
+    themeMode: ThemeMode,
+    onThemeModeChanged: (ThemeMode) -> Unit,
     salary: SalarySummary,
     adminChats: List<AdminChatInboxItem>,
     supportChats: List<SupportChatInboxItem>,
@@ -584,6 +587,8 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("admin/app-settings") {
                                 AdminAppSettingsScreen(
+                                    themeMode = themeMode,
+                                    onThemeModeChanged = onThemeModeChanged,
                                     visible = quickActionVisible,
                                     onVisibilityChanged = { visible ->
                                         quickActionPreferences.setVisible(visible)

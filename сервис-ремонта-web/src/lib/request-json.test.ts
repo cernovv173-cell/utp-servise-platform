@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiRequestError, isRejectedSessionError, requestJson as request } from "./request-json";
+import {
+  ApiRequestError,
+  isRejectedSessionError,
+  requestJson as request,
+  russianErrorMessage,
+} from "./request-json";
 
 describe("request transport", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -16,7 +21,9 @@ describe("request transport", () => {
 
   it("rejects HTTP errors instead of caching an error response as successful data", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("Unavailable", { status: 503 })));
-    await expect(request("/api/items")).rejects.toThrow("Не удалось выполнить запрос (503).");
+    await expect(request("/api/items")).rejects.toThrow(
+      "Сервис временно недоступен. Попробуйте повторить действие позже.",
+    );
   });
 
   it("shows a safe server-provided error message for rejected requests", async () => {
@@ -32,6 +39,28 @@ describe("request transport", () => {
         ),
     );
     await expect(request("/api/items")).rejects.toThrow("Сначала завершите заказ.");
+  });
+
+  it("translates non-Russian server errors while preserving Russian details", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ error: { code: "FAILED", message: "Invalid request" } }, { status: 400 }),
+        ),
+    );
+    await expect(request("/api/items")).rejects.toThrow(
+      "Проверьте введённые данные и попробуйте ещё раз.",
+    );
+    expect(russianErrorMessage("Сначала завершите заказ.", 409)).toBe("Сначала завершите заказ.");
+  });
+
+  it("shows network failures in Russian", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("Failed to fetch")));
+    await expect(request("/api/items")).rejects.toThrow(
+      "Не удалось подключиться к серверу. Проверьте интернет и повторите попытку.",
+    );
   });
 
   it("keeps the HTTP status and server error code on rejected requests", async () => {

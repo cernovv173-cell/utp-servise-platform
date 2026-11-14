@@ -33,7 +33,7 @@ declare module "@tanstack/react-router" {
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
-  throw new Error("Root element was not found");
+  throw new Error("Не найден корневой элемент страницы.");
 }
 
 createRoot(rootElement).render(

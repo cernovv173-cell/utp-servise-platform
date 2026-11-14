@@ -37,5 +37,8 @@ fun SeasonalSceneBackground(season: String, modifier: Modifier = Modifier) {
                 .fillMaxHeight(0.56f)
                 .graphicsLayer(alpha = 0.44f),
         )
+        if (season == "WINTER") {
+            SeasonalWinterSnowfall(Modifier.fillMaxSize())
+        }
     }
 }

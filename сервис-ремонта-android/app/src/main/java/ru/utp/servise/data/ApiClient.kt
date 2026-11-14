@@ -8,7 +8,23 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 
-class ApiException(val errorCode: String, override val message: String) : IOException(message)
+class ApiException(
+    val errorCode: String,
+    message: String,
+    cause: Throwable? = null,
+) : IOException(
+    russianUserError(
+        message,
+        when (errorCode) {
+            "AUTHENTICATION_REQUIRED", "INVALID_CREDENTIALS" -> "Не удалось войти. Проверьте данные и попробуйте ещё раз."
+            "FORBIDDEN", "INSUFFICIENT_PERMISSIONS" -> "Недостаточно прав для этого действия."
+            "NOT_FOUND" -> "Запрошенные данные не найдены. Обновите экран и попробуйте ещё раз."
+            "NETWORK_ERROR", "TIMEOUT" -> "Не удалось подключиться к серверу. Проверьте интернет и повторите попытку."
+            else -> "Не удалось выполнить запрос. Проверьте подключение и попробуйте ещё раз."
+        },
+    ),
+    cause,
+)
 
 object ApiClient {
     internal val baseUrl: String = BuildConfig.API_BASE_URL.trimEnd('/')
@@ -51,8 +67,10 @@ object ApiClient {
                 referralApplied = json.optBoolean("referralApplied"),
             )
             "failed", "expired" -> MaxLoginPoll.Failed(
-                message = json.optString("message").takeIf { it.isNotBlank() }
-                    ?: "Не удалось войти через МАКС. Попробуйте ещё раз.",
+                message = russianUserError(
+                    json.optString("message"),
+                    "Не удалось войти через МАКС. Попробуйте ещё раз.",
+                ),
                 expired = status == "expired",
             )
             "awaiting_contact" -> MaxLoginPoll.Pending(awaitingContact = true)
@@ -1256,9 +1274,19 @@ object ApiClient {
             val json = runCatching { JSONObject(responseText) }.getOrElse { JSONObject() }
             if (statusCode !in 200..299) {
                 val error = json.optJSONObject("error")
-                throw ApiException(error?.optString("code").orEmpty(), error?.optString("message").takeUnless { it.isNullOrBlank() } ?: "Не удалось выполнить запрос.")
+                throw ApiException(
+                    error?.optString("code").orEmpty(),
+                    error?.optString("message").takeUnless { it.isNullOrBlank() }
+                        ?: "Не удалось выполнить запрос.",
+                )
             }
             return json
+        } catch (failure: ApiException) {
+            throw failure
+        } catch (failure: java.net.SocketTimeoutException) {
+            throw ApiException("TIMEOUT", failure.message.orEmpty(), failure)
+        } catch (failure: IOException) {
+            throw ApiException("NETWORK_ERROR", failure.message.orEmpty(), failure)
         } finally {
             connection.disconnect()
         }

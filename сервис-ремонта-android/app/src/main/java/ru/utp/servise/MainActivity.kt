@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.google.firebase.FirebaseApp
@@ -41,6 +42,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.russianUserError
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.AdminChatInboxItem
 import ru.utp.servise.data.AuthResult
@@ -76,6 +78,9 @@ import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.UtpBlue
 import ru.utp.servise.ui.UtpPale
 import ru.utp.servise.ui.UtpServiseTheme
+import ru.utp.servise.ui.ThemeMode
+import ru.utp.servise.ui.readThemeMode
+import ru.utp.servise.ui.saveThemeMode
 import ru.utp.servise.data.phoneNumberValidationError
 
 class MainActivity : ComponentActivity() {
@@ -97,6 +102,8 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun SeasonalThemeHost(updateCheckTrigger: Int) {
+    val context = LocalContext.current
+    var themeMode by remember(context) { mutableStateOf(readThemeMode(context)) }
     var seasonalTheme by remember { mutableStateOf(SeasonalThemeState()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -105,10 +112,15 @@ private fun SeasonalThemeHost(updateCheckTrigger: Int) {
             delay(60_000)
         }
     }
-    UtpServiseTheme(season = seasonalTheme.activeSeason) {
+    UtpServiseTheme(season = seasonalTheme.activeSeason, dark = themeMode.isDark) {
         UtpServiseApp(
             seasonalTheme = seasonalTheme,
             onSeasonalThemeChanged = { seasonalTheme = it },
+            themeMode = themeMode,
+            onThemeModeChanged = { mode ->
+                saveThemeMode(context, mode)
+                themeMode = mode
+            },
             updateCheckTrigger = updateCheckTrigger,
         )
     }
@@ -118,6 +130,8 @@ private fun SeasonalThemeHost(updateCheckTrigger: Int) {
 private fun UtpServiseApp(
     seasonalTheme: SeasonalThemeState,
     onSeasonalThemeChanged: (SeasonalThemeState) -> Unit,
+    themeMode: ThemeMode,
+    onThemeModeChanged: (ThemeMode) -> Unit,
     updateCheckTrigger: Int,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -198,7 +212,10 @@ private fun UtpServiseApp(
                 onSuccess(result)
                 revision += 1
             } catch (failure: Throwable) {
-                errorMessage = failure.message ?: "Не удалось выполнить действие. Проверьте подключение к серверу."
+                errorMessage = russianUserError(
+                    failure.message,
+                    "Не удалось выполнить действие. Проверьте подключение к серверу.",
+                )
             } finally {
                 busy = false
             }
@@ -420,6 +437,8 @@ private fun UtpServiseApp(
             referralProgram = referralProgram,
             seasonalTheme = seasonalTheme,
             onSeasonalThemeChanged = onSeasonalThemeChanged,
+            themeMode = themeMode,
+            onThemeModeChanged = onThemeModeChanged,
             salary = salary,
             adminChats = adminChats,
             supportChats = supportChats,

@@ -42,6 +42,7 @@ import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.MaxLoginPoll
 import ru.utp.servise.data.MaxLoginStart
+import ru.utp.servise.data.russianUserError
 import java.time.Instant
 
 private enum class MaxLoginPhase { Idle, Starting, Waiting, Error }
@@ -98,7 +99,10 @@ internal fun MaxLoginCard(
                 phase = MaxLoginPhase.Waiting
                 openChat(started.url)
             } catch (failure: Throwable) {
-                message = failure.message ?: "Не удалось начать вход через МАКС. Попробуйте ещё раз."
+                message = russianUserError(
+                    failure.message,
+                    "Не удалось начать вход через МАКС. Попробуйте ещё раз.",
+                )
                 phase = MaxLoginPhase.Error
             } finally {
                 onBusy(false)
@@ -114,8 +118,10 @@ internal fun MaxLoginCard(
             val poll = runCatching {
                 withContext(Dispatchers.IO) { ApiClient.pollMaxLogin(started.pollToken) }
             }.getOrElse { failure ->
-                message = failure.message
-                    ?: "Не удалось получить подтверждение из МАКСа. Проверьте подключение."
+                message = russianUserError(
+                    failure.message,
+                    "Не удалось получить подтверждение из МАКСа. Проверьте подключение.",
+                )
                 phase = MaxLoginPhase.Error
                 session = null
                 return@LaunchedEffect
@@ -129,7 +135,10 @@ internal fun MaxLoginCard(
                 }
 
                 is MaxLoginPoll.Failed -> {
-                    message = poll.message
+                    message = russianUserError(
+                        poll.message,
+                        "Не удалось подтвердить вход через МАКС. Попробуйте ещё раз.",
+                    )
                     phase = MaxLoginPhase.Error
                     session = null
                     return@LaunchedEffect

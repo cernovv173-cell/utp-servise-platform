@@ -9,6 +9,7 @@ import {
   pollMaxLoginRequest,
   startMaxLoginRequest,
 } from "@/lib/api";
+import { russianErrorMessage } from "@/lib/request-json";
 
 type MaxLoginPhase = "idle" | "starting" | "waiting" | "error";
 
@@ -22,7 +23,7 @@ const openMaxChat = (url: string, popup: Window | null) => {
 
 const errorMessage = (failure: unknown): string =>
   failure instanceof Error
-    ? failure.message
+    ? russianErrorMessage(failure.message)
     : "Не удалось начать вход через МАКС. Попробуйте ещё раз.";
 
 export const MaxLogin = ({

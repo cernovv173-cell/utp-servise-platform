@@ -47,6 +47,7 @@ import kotlinx.coroutines.withContext
 import ru.utp.servise.BuildConfig
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.phoneNumberValidationError
+import ru.utp.servise.data.russianUserError
 
 @Composable
 fun AuthNavigation(
@@ -140,7 +141,7 @@ private fun LoginScreen(
                     vkTokenToLink = accessToken
                     onError("Для привязки VK ID к существующему аккаунту подтвердите его пароль.")
                 } else {
-                    onError(failure.message ?: "Не удалось выполнить вход через VK ID.")
+                    onError(russianUserError(failure.message, "Не удалось выполнить вход через VK ID."))
                 }
             } finally {
                 onBusy(false)
@@ -203,7 +204,12 @@ private fun LoginScreen(
                         }
                         recoveryMessage = "Если аккаунт с такой почтой или логином существует и у него привязан канал связи, код отправлен на почту и/или в МАКС. Откройте ссылку из сообщения на сайте, укажите ту же почту или логин и введите код."
                     } catch (error: Throwable) {
-                        onError(error.message ?: "Не удалось отправить запрос. Проверьте подключение.")
+                        onError(
+                            russianUserError(
+                                error.message,
+                                "Не удалось отправить запрос. Проверьте подключение.",
+                            ),
+                        )
                     } finally {
                         onBusy(false)
                     }
@@ -421,7 +427,12 @@ private fun performAuth(
             val result = withContext(Dispatchers.IO) { request() }
             onAuthenticated(result.accessToken, result.user)
         } catch (error: Throwable) {
-            onError(error.message ?: "Не удалось выполнить вход. Проверьте подключение.")
+            onError(
+                russianUserError(
+                    error.message,
+                    "Не удалось выполнить вход. Проверьте подключение.",
+                ),
+            )
         } finally {
             onBusy(false)
         }

@@ -2,8 +2,9 @@ package ru.utp.servise.ui
 
 import android.content.Context
 
-enum class ThemeMode(val title: String) {
-    DARK("Тёмная"),
+enum class ThemeMode(val title: String, val isDark: Boolean) {
+    LIGHT("Светлая", false),
+    DARK("Тёмная", true),
 }
 
 private const val PREFERENCES_NAME = "utp_app_settings"

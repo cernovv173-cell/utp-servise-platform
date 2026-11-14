@@ -2,6 +2,7 @@ package ru.utp.servise.data
 
 import android.net.Uri
 import org.json.JSONObject
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -37,6 +38,12 @@ object MediaApiClient {
                 )
             }
             return json
+        } catch (failure: ApiException) {
+            throw failure
+        } catch (failure: java.net.SocketTimeoutException) {
+            throw ApiException("TIMEOUT", failure.message.orEmpty(), failure)
+        } catch (failure: IOException) {
+            throw ApiException("NETWORK_ERROR", failure.message.orEmpty(), failure)
         } finally {
             connection.disconnect()
         }
@@ -67,6 +74,12 @@ object MediaApiClient {
                 )
             }
             return connection.inputStream.use { it.readBytes() }
+        } catch (failure: ApiException) {
+            throw failure
+        } catch (failure: java.net.SocketTimeoutException) {
+            throw ApiException("TIMEOUT", failure.message.orEmpty(), failure)
+        } catch (failure: IOException) {
+            throw ApiException("NETWORK_ERROR", failure.message.orEmpty(), failure)
         } finally {
             connection.disconnect()
         }

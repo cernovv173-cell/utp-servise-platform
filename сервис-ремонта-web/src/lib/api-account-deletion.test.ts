@@ -20,8 +20,12 @@ describe("deleteOwnAccount", () => {
   it.each([401, 409, 503])("surfaces a failed deletion response (%i)", async (status) => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(null, { status })));
 
-    await expect(deleteOwnAccount("session-token")).rejects.toThrow(
-      `Не удалось выполнить запрос (${status}).`,
-    );
+    const expectedMessage =
+      status === 401
+        ? "Сеанс завершён. Войдите в аккаунт и повторите действие."
+        : status === 409
+          ? "Данные уже изменились. Обновите страницу и повторите действие."
+          : "Сервис временно недоступен. Попробуйте повторить действие позже.";
+    await expect(deleteOwnAccount("session-token")).rejects.toThrow(expectedMessage);
   });
 });

@@ -7,6 +7,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,9 +60,12 @@ private fun seasonalColorScheme(base: ColorScheme, season: String, dark: Boolean
 }
 
 @Composable
-fun UtpServiseTheme(season: String = "NONE", content: @Composable () -> Unit) {
-    val dark = true
-    val baseColors = darkColorScheme(
+fun UtpServiseTheme(
+    season: String = "NONE",
+    dark: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val baseColors = if (dark) darkColorScheme(
             primary = Color(0xFF83E8FF),
             onPrimary = Color(0xFF002B44),
             primaryContainer = Color(0xFF173B74),
@@ -78,6 +82,23 @@ fun UtpServiseTheme(season: String = "NONE", content: @Composable () -> Unit) {
             onSurfaceVariant = Color(0xFFBECBEA),
             outline = Color(0xFF7183B2),
         )
+    else lightColorScheme(
+        primary = Color(0xFF2057A5),
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFFDCE8FF),
+        onPrimaryContainer = Color(0xFF112C55),
+        secondary = Color(0xFF654A9F),
+        secondaryContainer = Color(0xFFECE4FF),
+        onSecondaryContainer = Color(0xFF34205E),
+        tertiary = Color(0xFF925200),
+        background = Color(0xDDF4F6FC),
+        onBackground = Color(0xFF172033),
+        surface = Color(0xF2FFFFFF),
+        onSurface = Color(0xFF172033),
+        surfaceVariant = Color(0xFFE8EEF8),
+        onSurfaceVariant = Color(0xFF536079),
+        outline = Color(0xFF73809A),
+    )
     val colors = seasonalColorScheme(baseColors, season, dark)
     MaterialTheme(
         colorScheme = colors,

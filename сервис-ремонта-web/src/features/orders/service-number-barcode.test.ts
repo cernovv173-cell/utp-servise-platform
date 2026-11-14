@@ -11,6 +11,8 @@ describe("service number barcode", () => {
   });
 
   it("rejects an empty service number", () => {
-    expect(() => encodeServiceNumberBarcode(" ")).toThrow("Service number is required");
+    expect(() => encodeServiceNumberBarcode(" ")).toThrow(
+      "Для создания штрихкода нужен номер заявки.",
+    );
   });
 });

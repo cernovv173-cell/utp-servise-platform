@@ -1,9 +1,30 @@
-import { ApiRequestError, requestJson } from "@/lib/request-json";
+import { ApiRequestError, requestJson, russianErrorMessage } from "@/lib/request-json";
 
 export { ApiRequestError };
 
 const apiBase =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/u, "") ?? "";
+
+const localizedFetch = async (url: string, init: RequestInit) => {
+  try {
+    return await fetch(url, init);
+  } catch (failure) {
+    if (failure instanceof DOMException && failure.name === "AbortError") throw failure;
+    throw new ApiRequestError(
+      "NETWORK_ERROR",
+      0,
+      russianErrorMessage(failure instanceof Error ? failure.message : failure),
+    );
+  }
+};
+
+const readLocalizedJson = async <T>(response: Response, fallback: string): Promise<T> => {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new ApiRequestError("INVALID_RESPONSE", response.status, fallback);
+  }
+};
 
 export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
 export type StaffRole = Exclude<Role, "CUSTOMER"> | "ADMIN_ASSISTANT";
@@ -1853,13 +1874,16 @@ export const sendAdminSupportMessage = (token: string, customerId: string, conte
   });
 
 export const uploadCraftOrderChatImage = async (token: string, id: string, file: File) => {
-  const response = await fetch(`${apiBase}/craft-orders/${id}/chat/image`, {
+  const response = await localizedFetch(`${apiBase}/craft-orders/${id}/chat/image`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": file.type },
     body: file,
   });
   if (!response.ok) throw new Error(`Не удалось отправить фото (${response.status}).`);
-  return response.json() as Promise<{ message: CraftOrderChatMessage }>;
+  return readLocalizedJson<{ message: CraftOrderChatMessage }>(
+    response,
+    "Не удалось прочитать ответ сервера после загрузки фото.",
+  );
 };
 
 export const createCraftItem = (
@@ -1881,7 +1905,7 @@ export const deleteCraftItem = (token: string, id: string) =>
   apiRequest<void>(`/craft-items/${id}`, token, { method: "DELETE" });
 
 export const uploadCraftItemImage = async (token: string, id: string, file: File) => {
-  const response = await fetch(`${apiBase}/craft-items/${id}/images`, {
+  const response = await localizedFetch(`${apiBase}/craft-items/${id}/images`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": file.type },
     body: file,
@@ -1891,11 +1915,12 @@ export const uploadCraftItemImage = async (token: string, id: string, file: File
       error?: { message?: string };
       message?: string;
     } | null;
-    throw new Error(
-      body?.error?.message ?? body?.message ?? `Не удалось загрузить фото (${response.status}).`,
-    );
+    throw new Error(russianErrorMessage(body?.error?.message ?? body?.message, response.status));
   }
-  return response.json() as Promise<{ item: CraftItem }>;
+  return readLocalizedJson<{ item: CraftItem }>(
+    response,
+    "Не удалось прочитать ответ сервера после загрузки фотографии.",
+  );
 };
 
 export const deleteCraftItemImage = (token: string, id: string, objectId: string) =>
@@ -1984,13 +2009,13 @@ export const deleteBanner = (token: string, id: string) =>
   apiRequest<void>(`/banners/${id}`, token, { method: "DELETE" });
 
 export const uploadAdminMedia = async (path: string, token: string, file: File) => {
-  const response = await fetch(`${apiBase}${path}`, {
+  const response = await localizedFetch(`${apiBase}${path}`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": file.type },
     body: file,
   });
   if (!response.ok) throw new Error(`Не удалось загрузить медиафайл (${response.status}).`);
-  return response.json() as Promise<unknown>;
+  return readLocalizedJson<unknown>(response, "Не удалось прочитать результат загрузки файла.");
 };
 
 export const uploadAdminImage = uploadAdminMedia;
@@ -2000,7 +2025,7 @@ export const fetchProtectedMedia = async (
   objectId: string,
   signal?: AbortSignal,
 ) => {
-  const response = await fetch(`${apiBase}/media/${encodeURIComponent(objectId)}`, {
+  const response = await localizedFetch(`${apiBase}/media/${encodeURIComponent(objectId)}`, {
     signal,
     headers: { Authorization: `Bearer ${token}` },
   });

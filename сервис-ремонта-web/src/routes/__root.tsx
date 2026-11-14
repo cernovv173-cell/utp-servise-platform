@@ -53,16 +53,16 @@ const RouteError = () => (
         <BrandLogo className="size-10 rounded-xl border border-neutral-200" />
         ЕНОТ СЕРВИС
       </div>
-      <p className="font-mono text-xs tracking-widest text-red-700 uppercase">Application error</p>
-      <h1 className="mt-3 text-3xl font-semibold">This view could not be opened.</h1>
+      <p className="font-mono text-xs tracking-widest text-red-700 uppercase">Ошибка приложения</p>
+      <h1 className="mt-3 text-3xl font-semibold">Не удалось открыть эту страницу.</h1>
       <p className="mt-3 text-sm leading-6 text-neutral-600">
-        Return to the application root and try the action again.
+        Вернитесь на главную страницу и попробуйте ещё раз.
       </p>
       <Link
         className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-neutral-950 px-4 text-sm font-semibold text-white"
         to="/"
       >
-        Return home
+        На главную
       </Link>
     </section>
   </main>
@@ -74,9 +74,9 @@ const NotFound = () => (
       <BrandLogo className="mx-auto mb-5 size-16 rounded-2xl border border-neutral-200" />
       <p className="font-semibold">ЕНОТ СЕРВИС</p>
       <p className="font-mono text-sm text-neutral-600">404</p>
-      <h1 className="mt-3 text-3xl font-semibold">Page not found</h1>
+      <h1 className="mt-3 text-3xl font-semibold">Страница не найдена</h1>
       <Link className="mt-6 inline-flex text-sm font-semibold text-neutral-950 underline" to="/">
-        Return home
+        На главную
       </Link>
     </section>
   </main>
