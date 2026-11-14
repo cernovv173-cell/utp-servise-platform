@@ -179,6 +179,27 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
             WorkspaceDestination("procurement/catalog", "Товары", Icons.Filled.Search),
             WorkspaceDestination("procurement/profile", "Профиль", Icons.Filled.Person),
         ),
+        sectionHubRoute = "sections",
+        sectionParentRoute = "procurement/profile",
+        sectionGroups = listOf(
+            WorkspaceSectionGroup(
+                "Аккаунт и справка",
+                listOf(
+                    WorkspaceDestination(
+                        "procurement/profile",
+                        "Профиль",
+                        Icons.Filled.Person,
+                        "Контактные данные и настройки аккаунта.",
+                    ),
+                    WorkspaceDestination(
+                        "app/version",
+                        "О версии приложения",
+                        Icons.Filled.Info,
+                        "Информация о версии и обновлениях.",
+                    ),
+                ),
+            ),
+        ),
     )
 
     else -> WorkspaceNavigation(
@@ -187,6 +208,156 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
             WorkspaceDestination("admin/orders", "Заявки", Icons.AutoMirrored.Filled.List),
             WorkspaceDestination("admin/manage", "Управление", Icons.Filled.Settings),
             WorkspaceDestination("admin/profile", "Профиль", Icons.Filled.Person),
+        ),
+        sectionHubRoute = "sections",
+        sectionParentRoute = "admin/manage",
+        sectionGroups = listOf(
+            WorkspaceSectionGroup(
+                "Сервис и расписание",
+                listOf(
+                    WorkspaceDestination(
+                        "admin/overview",
+                        "Обзор сервиса",
+                        Icons.Filled.Info,
+                        "Сводные показатели и активность.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/schedule",
+                        "Расписание мастеров",
+                        Icons.AutoMirrored.Filled.List,
+                        "Загрузка и график работы.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/procurement",
+                        "Закупка запчастей",
+                        Icons.Filled.ShoppingCart,
+                        "Позиции, требующие пополнения.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/seasonal",
+                        "Сезонное оформление",
+                        Icons.Filled.Settings,
+                        "Настройка сезонного вида приложения.",
+                    ),
+                ),
+            ),
+            WorkspaceSectionGroup(
+                "Магазин и публикации",
+                listOf(
+                    WorkspaceDestination(
+                        "admin/catalog",
+                        "Каталог",
+                        Icons.Filled.Search,
+                        "Услуги, товары и запчасти.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/crafts",
+                        "Изделия и заказы",
+                        Icons.Filled.Build,
+                        "Изделия ручной работы и индивидуальные заявки.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/shop-orders",
+                        "Заказы магазина",
+                        Icons.Filled.ShoppingCart,
+                        "Заказы товаров и изделий.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/offers",
+                        "Акции и розыгрыши",
+                        Icons.Filled.Star,
+                        "Управление предложениями для клиентов.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/banners",
+                        "Баннеры",
+                        Icons.Filled.Info,
+                        "Публикации на главной странице.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/news",
+                        "Новости",
+                        Icons.Filled.Info,
+                        "Новости и объявления сервиса.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/loyalty",
+                        "Бонусная программа",
+                        Icons.Filled.Star,
+                        "Настройки программы лояльности.",
+                    ),
+                ),
+            ),
+            WorkspaceSectionGroup(
+                "Команда и общение",
+                listOf(
+                    WorkspaceDestination(
+                        "admin/staff",
+                        "Сотрудники",
+                        Icons.Filled.Person,
+                        "Профили мастеров и доступы.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/customers",
+                        "Клиенты",
+                        Icons.Filled.Person,
+                        "Карточки и обращения клиентов.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/chats",
+                        "Чаты поддержки",
+                        Icons.Filled.Info,
+                        "Входящие обращения клиентов.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/order-chats",
+                        "Чаты по заказам",
+                        Icons.AutoMirrored.Filled.List,
+                        "Переписки по ремонтам.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/support-chats",
+                        "Поддержка",
+                        Icons.Filled.Info,
+                        "Обращения в поддержку.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/reviews",
+                        "Отзывы",
+                        Icons.Filled.Star,
+                        "Отзывы клиентов и модерация.",
+                    ),
+                ),
+            ),
+            WorkspaceSectionGroup(
+                "Настройки и информация",
+                listOf(
+                    WorkspaceDestination(
+                        "admin/salary",
+                        "Зарплата",
+                        Icons.Filled.Star,
+                        "Начисления и расчёты.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/about",
+                        "О компании",
+                        Icons.Filled.Info,
+                        "Контакты и график работы.",
+                    ),
+                    WorkspaceDestination(
+                        "admin/app-settings",
+                        "Настройки приложения",
+                        Icons.Filled.Settings,
+                        "Параметры приложения.",
+                    ),
+                    WorkspaceDestination(
+                        "app/version",
+                        "О версии приложения",
+                        Icons.Filled.Info,
+                        "Информация о версии и обновлениях.",
+                    ),
+                ),
+            ),
         ),
         managementRoutes = setOf(
             "admin/salary",

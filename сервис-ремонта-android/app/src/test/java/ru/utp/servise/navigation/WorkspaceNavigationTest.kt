@@ -44,6 +44,26 @@ class WorkspaceNavigationTest {
             routes,
         )
         assertFalse(routes.any { it.startsWith("admin/") || it.startsWith("technician/") })
+        assertEquals("sections", procurement.sectionHubRoute)
+        val sectionRoutes = procurement.sectionGroups.flatMap { it.destinations }.map { it.route }
+        assertTrue(sectionRoutes.any { it == "app/version" })
+        assertTrue(sectionRoutes.all { it == "procurement/profile" || it == "app/version" })
+    }
+
+    @Test
+    fun `all authenticated roles have a secondary sections hub`() {
+        listOf("CUSTOMER", "TECHNICIAN", "PROCUREMENT", "ADMIN").forEach { role ->
+            val navigation = workspaceNavigationForRole(role)
+            assertEquals(role, "sections", navigation.sectionHubRoute)
+            assertTrue(navigation.sectionGroups.isNotEmpty())
+        }
+
+        val adminRoutes = workspaceNavigationForRole("ADMIN")
+            .sectionGroups.flatMap { it.destinations }.map { it.route }
+        assertTrue(adminRoutes.contains("admin/app-settings"))
+        assertTrue(adminRoutes.contains("admin/schedule"))
+        assertTrue(adminRoutes.contains("app/version"))
+        assertTrue(adminRoutes.all { it.startsWith("admin/") || it == "app/version" })
     }
 
     @Test
@@ -75,6 +95,7 @@ class WorkspaceNavigationTest {
         val customer = workspaceNavigationForRole("CUSTOMER")
         val technician = workspaceNavigationForRole("TECHNICIAN")
         val administrator = workspaceNavigationForRole("ADMIN")
+        val procurement = workspaceNavigationForRole("PROCUREMENT")
 
         assertEquals("customer/profile", customer.selectedTabRoute("customer/history"))
         assertEquals("customer/shop", customer.selectedTabRoute("customer/shop/item/product/123"))
@@ -85,7 +106,10 @@ class WorkspaceNavigationTest {
         assertEquals("technician/profile", technician.selectedTabRoute("technician/reviews"))
         assertEquals("technician/catalog", technician.selectedTabRoute("technician/catalog"))
         assertEquals("technician/home", technician.selectedTabRoute("technician/home"))
+        assertEquals("procurement/profile", procurement.selectedTabRoute("sections"))
+        assertEquals("procurement/profile", procurement.selectedTabRoute("app/version"))
         assertEquals("admin/home", administrator.selectedTabRoute("admin/home"))
+        assertEquals("admin/manage", administrator.selectedTabRoute("sections"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/schedule"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/order-chats"))
         assertEquals("admin/manage", administrator.selectedTabRoute("admin/offers"))

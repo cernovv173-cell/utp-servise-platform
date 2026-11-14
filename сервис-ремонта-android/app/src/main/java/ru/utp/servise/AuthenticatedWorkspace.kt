@@ -177,6 +177,12 @@ internal fun AuthenticatedWorkspace(
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val activeBottomRoute = workspaceNavigation.selectedTabRoute(currentRoute)
+    val openAllSections: () -> Unit = {
+        val route = workspaceNavigation.sectionHubRoute
+        if (route != null) {
+            navController.navigate(route) { launchSingleTop = true }
+        }
+    }
 
     Scaffold(
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
@@ -203,7 +209,7 @@ internal fun AuthenticatedWorkspace(
     ) { insets ->
         Box(Modifier.fillMaxSize()) {
             Column(Modifier.fillMaxSize().padding(insets)) {
-                BrandHeader()
+                BrandHeader(onOpenSections = openAllSections)
                 if (errorMessage != null) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp)) {
                         Text(errorMessage, Modifier.weight(1f), color = androidx.compose.material3.MaterialTheme.colorScheme.error)

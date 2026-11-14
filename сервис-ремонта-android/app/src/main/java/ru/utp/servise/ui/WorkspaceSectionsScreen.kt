@@ -35,8 +35,8 @@ internal fun WorkspaceSectionsScreen(
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Разделы", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("Дополнительные возможности вашего аккаунта", fontSize = 13.sp, color = UtpMuted)
+                Text("Все разделы", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text("Дополнительные разделы и функции аккаунта", fontSize = 13.sp, color = UtpMuted)
             }
         }
         groups.forEach { group ->
