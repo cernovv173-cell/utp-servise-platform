@@ -318,8 +318,10 @@ internal fun AuthenticatedWorkspace(
                                 CustomerOffersScreen(
                                     offers = customerOffers,
                                     busy = busy,
-                                    onParticipate = { offerId ->
-                                        runAction({ ApiClient.participateInCustomerOffer(token, offerId) }) {
+                                    onParticipate = { offerId, answerIndex ->
+                                        runAction({
+                                            ApiClient.participateInCustomerOffer(token, offerId, answerIndex)
+                                        }) {
                                             refresh()
                                         }
                                     },

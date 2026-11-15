@@ -25,6 +25,9 @@ const offer = (
   type,
   title: `Предложение ${id}`,
   content: "Условия предложения.",
+  quizQuestion: type === "QUIZ" ? "Вопрос квиза" : null,
+  quizOptions: type === "QUIZ" ? ["Ответ A", "Ответ B"] : [],
+  quizCorrectOption: null,
   firstPlacePrize: null,
   firstPlacePoints: 0,
   secondPlacePrize: null,
@@ -81,6 +84,18 @@ describe("customer event notifications", () => {
       Date.parse("2026-10-28T13:00:00.000Z"),
     );
     expect(atStart.events.map((event) => event.id)).toEqual(["news-new-news"]);
+  });
+
+  it("announces a quiz as a quiz rather than as a promotion", () => {
+    const result = collectCustomerNotifications(
+      [],
+      [offer("quiz-1", "2026-10-28T11:00:00.000Z", "2026-10-28T13:00:00.000Z", "QUIZ")],
+      [],
+      { newsIds: [], offerIds: [], orderStatuses: {} },
+      Date.parse("2026-10-28T12:00:00.000Z"),
+    );
+
+    expect(result.events[0]?.title).toBe("Опубликован новый квиз ЕНОТ СЕРВИС");
   });
 
   it("announces repair readiness and final completion once each", () => {

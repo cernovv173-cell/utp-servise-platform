@@ -747,7 +747,7 @@ export type SiteBanner = {
   placements: ("HOME" | "NEWS" | "SERVICE" | "CRAFTS" | "ABOUT" | "LOYALTY")[];
 };
 
-export type CustomerOfferType = "PROMOTION" | "GIVEAWAY";
+export type CustomerOfferType = "PROMOTION" | "GIVEAWAY" | "QUIZ";
 
 export type CustomerOfferReward = {
   prize: string | null;
@@ -765,6 +765,9 @@ export type CustomerOffer = {
   type: CustomerOfferType;
   title: string;
   content: string;
+  quizQuestion: string | null;
+  quizOptions: string[];
+  quizCorrectOption: number | null;
   firstPlacePrize: string | null;
   firstPlacePoints: number;
   secondPlacePrize: string | null;
@@ -778,7 +781,13 @@ export type CustomerOffer = {
   resultsPublishedAt: string | null;
   createdAt: string;
   participantCount: number;
-  myParticipation: { id: string; joinedAt: string; place: number | null } | null;
+  myParticipation: {
+    id: string;
+    joinedAt: string;
+    place: number | null;
+    answerIndex: number | null;
+    answerCorrect: boolean | null;
+  } | null;
   winners: CustomerOfferWinner[];
 };
 
@@ -813,6 +822,9 @@ export type CreateCustomerOfferInput = {
   type: CustomerOfferType;
   title: string;
   content: string;
+  quizQuestion: string | null;
+  quizOptions: string[];
+  quizCorrectOption: number | null;
   firstPlacePrize: string | null;
   firstPlacePoints: number;
   secondPlacePrize: string | null;
@@ -1956,11 +1968,19 @@ export const getPublicCustomerOffers = (signal?: AbortSignal) =>
     completedOffers?: PublicCompletedCustomerOffer[];
   }>("/public/offers", null, { signal });
 
-export const participateInCustomerOffer = (token: string, offerId: string) =>
+export const participateInCustomerOffer = (token: string, offerId: string, answerIndex?: number) =>
   apiRequest<{
-    participation: { id: string; joinedAt: string; place: number | null };
+    participation: {
+      id: string;
+      joinedAt: string;
+      place: number | null;
+      answerIndex: number | null;
+    };
     alreadyParticipating: boolean;
-  }>(`/offers/${offerId}/participate`, token, { method: "POST" });
+  }>(`/offers/${offerId}/participate`, token, {
+    method: "POST",
+    body: JSON.stringify(answerIndex === undefined ? {} : { answerIndex }),
+  });
 
 export const getAdminCustomerOffers = (token: string, signal?: AbortSignal) =>
   apiRequest<{ offers: AdminCustomerOffer[] }>("/admin/offers", token, { signal });

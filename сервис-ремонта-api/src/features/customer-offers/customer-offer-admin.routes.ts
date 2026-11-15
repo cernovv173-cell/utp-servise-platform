@@ -1,0 +1,341 @@
+import { type Router } from "express";
+
+import type { DatabaseClient } from "../../lib/database/database.js";
+import { HttpError } from "../../lib/http/http-error.js";
+import { validateRequest } from "../../lib/http/validate-request.js";
+import {
+  createRequireAuth,
+  getAuthenticatedUser,
+  requireRoles,
+} from "../auth/auth.middleware.js";
+import {
+  adminOfferInclude,
+  adminOfferResponse,
+  bodyOf,
+  createOfferBody,
+  offerParams,
+  paramsOf,
+  updateOfferBody,
+} from "./customer-offer-contracts.js";
+import { scheduleCustomerOfferPush } from "./customer-offer-push-delivery.js";
+import { getCustomerOfferReward } from "./customer-offer-rewards.js";
+import { scheduleCustomerOfferWinnerPush } from "./customer-offer-winner-push-delivery.js";
+import { selectRandomWinners } from "./winner-selection.js";
+
+export const registerCustomerOfferAdminRoutes = (
+  router: Router,
+  database: DatabaseClient,
+) => {
+  const requireAuth = createRequireAuth(database);
+
+  router.get(
+    "/admin/offers",
+    requireAuth,
+    requireRoles("ADMIN"),
+    async (_request, response) => {
+      const offers = await database.customerOffer.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: adminOfferInclude,
+      });
+      response.json({ offers: offers.map(adminOfferResponse) });
+    },
+  );
+
+  router.post(
+    "/admin/offers",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ body: createOfferBody }),
+    async (_request, response) => {
+      const user = getAuthenticatedUser(response);
+      const input = bodyOf<ReturnType<typeof createOfferBody.parse>>(response);
+      const isPrizeOffer = input.type === "GIVEAWAY" || input.type === "QUIZ";
+      const offer = await database.$transaction(async (transaction) => {
+        const created = await transaction.customerOffer.create({
+          data: {
+            type: input.type,
+            title: input.title,
+            content: input.content,
+            quizQuestion:
+              input.type === "QUIZ" ? input.quizQuestion?.trim() : null,
+            quizOptions: input.type === "QUIZ" ? input.quizOptions : [],
+            quizCorrectOption:
+              input.type === "QUIZ" ? input.quizCorrectOption : null,
+            firstPlacePrize: isPrizeOffer
+              ? input.firstPlacePrize?.trim() || null
+              : null,
+            firstPlacePoints: isPrizeOffer ? input.firstPlacePoints : 0,
+            secondPlacePrize: isPrizeOffer
+              ? input.secondPlacePrize?.trim() || null
+              : null,
+            secondPlacePoints: isPrizeOffer ? input.secondPlacePoints : 0,
+            thirdPlacePrize: isPrizeOffer
+              ? input.thirdPlacePrize?.trim() || null
+              : null,
+            thirdPlacePoints: isPrizeOffer ? input.thirdPlacePoints : 0,
+            startsAt: new Date(input.startsAt),
+            endsAt: new Date(input.endsAt),
+            isPublished: input.isPublished,
+            createdById: user.id,
+          },
+        });
+        if (created.isPublished) {
+          await scheduleCustomerOfferPush(transaction, created.id);
+        }
+        return created;
+      });
+      response.status(201).json({ offer });
+    },
+  );
+
+  router.patch(
+    "/admin/offers/:offerId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: offerParams, body: updateOfferBody }),
+    async (_request, response) => {
+      const { offerId } = paramsOf(response);
+      const input = bodyOf<ReturnType<typeof updateOfferBody.parse>>(response);
+      const offer = await database.$transaction(async (transaction) => {
+        const current = await transaction.customerOffer.findUnique({
+          where: { id: offerId },
+          select: { id: true, isPublished: true },
+        });
+        if (!current) {
+          throw new HttpError(
+            404,
+            "OFFER_NOT_FOUND",
+            "Акция, розыгрыш или квиз не найдены.",
+          );
+        }
+        const updated = await transaction.customerOffer.update({
+          where: { id: offerId },
+          data: { isPublished: input.isPublished },
+        });
+        if (!current.isPublished && updated.isPublished) {
+          await scheduleCustomerOfferPush(transaction, updated.id);
+        } else if (current.isPublished && !updated.isPublished) {
+          await transaction.customerOfferPushDelivery.deleteMany({
+            where: { offerId, sentAt: null },
+          });
+        }
+        return updated;
+      });
+      response.json({ offer });
+    },
+  );
+
+  router.delete(
+    "/admin/offers/:offerId",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: offerParams }),
+    async (_request, response) => {
+      const { offerId } = paramsOf(response);
+      const deleted = await database.customerOffer.deleteMany({
+        where: { id: offerId },
+      });
+      if (deleted.count === 0) {
+        throw new HttpError(
+          404,
+          "OFFER_NOT_FOUND",
+          "Акция, розыгрыш или квиз не найдены.",
+        );
+      }
+      response.status(204).end();
+    },
+  );
+
+  router.post(
+    "/admin/offers/:offerId/draw",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: offerParams }),
+    async (_request, response) => {
+      const { offerId } = paramsOf(response);
+      const result = await database.$transaction(async (transaction) => {
+        const offer = await transaction.customerOffer.findUnique({
+          where: { id: offerId },
+        });
+        if (!offer) {
+          throw new HttpError(
+            404,
+            "OFFER_NOT_FOUND",
+            "Предложение не найдено.",
+          );
+        }
+        if (offer.type !== "GIVEAWAY" && offer.type !== "QUIZ") {
+          throw new HttpError(
+            409,
+            "NOT_A_PRIZE_OFFER",
+            "Победителей можно выбрать только в розыгрыше или квизе.",
+          );
+        }
+        if (offer.drawnAt) {
+          throw new HttpError(
+            409,
+            "GIVEAWAY_ALREADY_DRAWN",
+            "Победители уже выбраны.",
+          );
+        }
+        if (offer.endsAt > new Date()) {
+          throw new HttpError(
+            409,
+            "GIVEAWAY_NOT_ENDED",
+            "Выбрать победителей можно после окончания приёма участников.",
+          );
+        }
+
+        const entries = await transaction.customerOfferParticipation.findMany({
+          where: {
+            offerId,
+            ...(offer.type === "QUIZ" ? { answerCorrect: true } : {}),
+          },
+          select: { id: true, customerId: true },
+        });
+        if (offer.type === "GIVEAWAY" && entries.length < 3) {
+          throw new HttpError(
+            409,
+            "GIVEAWAY_NEEDS_THREE_ENTRIES",
+            "Для розыгрыша трёх мест нужно не менее трёх участников.",
+          );
+        }
+
+        const winnersCount =
+          offer.type === "QUIZ" ? Math.min(3, entries.length) : 3;
+        const winners = selectRandomWinners(entries, winnersCount);
+        const drawnAt = new Date();
+        const claimed = await transaction.customerOffer.updateMany({
+          where: { id: offerId, drawnAt: null },
+          data: { drawnAt },
+        });
+        if (claimed.count !== 1) {
+          throw new HttpError(
+            409,
+            "GIVEAWAY_ALREADY_DRAWN",
+            "Победители уже выбраны.",
+          );
+        }
+        for (const [index, winner] of winners.entries()) {
+          await transaction.customerOfferParticipation.updateMany({
+            where: { id: winner.id, offerId, place: null },
+            data: { place: index + 1 },
+          });
+        }
+        const updatedOffer = await transaction.customerOffer.findUniqueOrThrow({
+          where: { id: offerId },
+          include: adminOfferInclude,
+        });
+        return adminOfferResponse(updatedOffer);
+      });
+      response.json({ offer: result });
+    },
+  );
+
+  router.post(
+    "/admin/offers/:offerId/publish-results",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ params: offerParams }),
+    async (_request, response) => {
+      const admin = getAuthenticatedUser(response);
+      const { offerId } = paramsOf(response);
+      const result = await database.$transaction(async (transaction) => {
+        const offer = await transaction.customerOffer.findUnique({
+          where: { id: offerId },
+          include: adminOfferInclude,
+        });
+        if (!offer) {
+          throw new HttpError(
+            404,
+            "OFFER_NOT_FOUND",
+            "Предложение не найдено.",
+          );
+        }
+        if (
+          (offer.type !== "GIVEAWAY" && offer.type !== "QUIZ") ||
+          !offer.drawnAt
+        ) {
+          throw new HttpError(
+            409,
+            "GIVEAWAY_NOT_DRAWN",
+            "Сначала выберите победителей.",
+          );
+        }
+        if (offer.resultsPublishedAt) return adminOfferResponse(offer);
+        const hasCompleteResults =
+          offer.type === "QUIZ"
+            ? offer.entries.length <= 3
+            : offer.entries.length === 3;
+        if (!hasCompleteResults) {
+          throw new HttpError(
+            409,
+            "GIVEAWAY_RESULTS_INCOMPLETE",
+            "В результатах должны быть все три места.",
+          );
+        }
+
+        const resultsPublishedAt = new Date();
+        const claimed = await transaction.customerOffer.updateMany({
+          where: {
+            id: offerId,
+            drawnAt: { not: null },
+            resultsPublishedAt: null,
+          },
+          data: { resultsPublishedAt },
+        });
+        if (claimed.count !== 1) {
+          const current = await transaction.customerOffer.findUniqueOrThrow({
+            where: { id: offerId },
+            include: adminOfferInclude,
+          });
+          if (current.resultsPublishedAt) return adminOfferResponse(current);
+          throw new HttpError(
+            409,
+            "GIVEAWAY_RESULTS_ALREADY_PUBLISHED",
+            "Результаты уже опубликованы.",
+          );
+        }
+
+        const rewards = offer.entries.flatMap((winner) => {
+          if (winner.place === null) return [];
+          const reward = getCustomerOfferReward(offer, winner.place);
+          if (!reward || reward.bonusPoints <= 0) return [];
+          return [
+            {
+              customerId: winner.customerId,
+              customerOfferId: offerId,
+              actorId: admin.id,
+              type: "OFFER_REWARD" as const,
+              points: reward.bonusPoints,
+              reason:
+                `Награда за ${winner.place}-е место в «${offer.title}»`.slice(
+                  0,
+                  255,
+                ),
+            },
+          ];
+        });
+        if (rewards.length > 0) {
+          await transaction.loyaltyTransaction.createMany({
+            data: rewards,
+            skipDuplicates: true,
+          });
+        }
+        await scheduleCustomerOfferWinnerPush(
+          transaction,
+          offerId,
+          offer.entries.map(({ customerId }) => customerId),
+        );
+
+        const updatedOffer = await transaction.customerOffer.findUniqueOrThrow({
+          where: { id: offerId },
+          include: adminOfferInclude,
+        });
+        return adminOfferResponse(updatedOffer);
+      });
+      response.json({ offer: result });
+    },
+  );
+};

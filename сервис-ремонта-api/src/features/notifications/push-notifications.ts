@@ -307,13 +307,15 @@ export const sendNewsPublicationNotification = async (
 };
 
 export const customerOfferPublicationNotificationContent = (
-  type: "PROMOTION" | "GIVEAWAY",
+  type: "PROMOTION" | "GIVEAWAY" | "QUIZ",
   offerTitle: string,
 ): { readonly title: string; readonly body: string } => ({
   title:
-    type === "GIVEAWAY"
-      ? "Опубликован новый розыгрыш ЕНОТ СЕРВИС"
-      : "Опубликована новая акция ЕНОТ СЕРВИС",
+    type === "QUIZ"
+      ? "Опубликован новый квиз ЕНОТ СЕРВИС"
+      : type === "GIVEAWAY"
+        ? "Опубликован новый розыгрыш ЕНОТ СЕРВИС"
+        : "Опубликована новая акция ЕНОТ СЕРВИС",
   body: offerTitle,
 });
 
@@ -321,7 +323,7 @@ export const sendCustomerOfferPublicationNotification = async (
   database: DatabaseClient,
   offer: {
     readonly id: string;
-    readonly type: "PROMOTION" | "GIVEAWAY";
+    readonly type: "PROMOTION" | "GIVEAWAY" | "QUIZ";
     readonly title: string;
     readonly endsAt: Date;
   },

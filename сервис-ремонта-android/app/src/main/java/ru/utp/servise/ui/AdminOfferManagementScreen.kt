@@ -18,6 +18,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,14 +39,6 @@ import kotlinx.coroutines.withContext
 import ru.utp.servise.data.AdminMarketingApi
 import ru.utp.servise.data.CustomerOffer
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-
-private data class OfferConfirmation(
-    val title: String,
-    val message: String,
-    val action: () -> Any?,
-)
 
 @Composable
 fun AdminOfferManagementScreen(
@@ -58,9 +51,29 @@ fun AdminOfferManagementScreen(
     val scope = rememberCoroutineScope()
     var offers by remember { mutableStateOf(emptyList<CustomerOffer>()) }
     var loading by remember { mutableStateOf(true) }
-    var offerType by remember { mutableStateOf("PROMOTION") }
-    var title by remember { mutableStateOf("") }
-    var content by remember { mutableStateOf("") }
+    var offerType by remember { mutableStateOf("QUIZ") }
+    var title by remember { mutableStateOf("Квиз ЕНОТА: не перегревай ноутбук") }
+    var content by remember {
+        mutableStateOf(
+            "Ответьте один раз. После завершения срока среди участников с правильным ответом " +
+                "случайно выберем до трёх победителей. Перед публикацией укажите призы или баллы " +
+                "и срок участия.",
+        )
+    }
+    var quizQuestion by remember {
+        mutableStateOf("Как лучше поставить ноутбук, чтобы его система охлаждения работала нормально?")
+    }
+    var quizOptions by remember {
+        mutableStateOf(
+            listOf(
+                "На мягкую поверхность, например плед",
+                "На ровную твёрдую поверхность, не закрывая вентиляционные отверстия",
+                "Плотно придвинуть вентиляционную решётку к стене",
+                "Накрыть ноутбук тканью во время работы",
+            ),
+        )
+    }
+    var correctOption by remember { mutableStateOf(1) }
     var startsAt by remember { mutableStateOf(Instant.now().toString()) }
     var endsAt by remember { mutableStateOf(Instant.now().plusSeconds(7 * 24 * 60 * 60L).toString()) }
     var prizes by remember { mutableStateOf(listOf("", "", "")) }
@@ -86,15 +99,45 @@ fun AdminOfferManagementScreen(
     val validDates = runCatching {
         Instant.parse(endsAt).isAfter(Instant.parse(startsAt))
     }.getOrDefault(false)
-    val validRewards = offerType != "GIVEAWAY" || (0..2).all { index ->
+    val validRewards = offerType != "GIVEAWAY" && offerType != "QUIZ" || (0..2).all { index ->
         rewardPoints[index] in 0..100_000 && (prizes[index].isNotBlank() || rewardPoints[index] > 0)
     }
-    val canCreate = !busy && title.trim().length >= 2 && content.isNotBlank() && validDates && validRewards
+    val validQuiz = offerType != "QUIZ" || (
+        quizQuestion.trim().length >= 3 &&
+            quizOptions.size in 2..6 &&
+            quizOptions.all { it.isNotBlank() } &&
+            quizOptions.map { it.trim().lowercase() }.distinct().size == quizOptions.size &&
+            correctOption in quizOptions.indices
+        )
+    val canCreate = !busy && title.trim().length >= 2 && content.isNotBlank() &&
+        validDates && validRewards && validQuiz
+
+    fun chooseOfferType(next: String) {
+        if (offerType == "QUIZ" && next != "QUIZ" && title == "Квиз ЕНОТА: не перегревай ноутбук") {
+            title = ""
+            content = ""
+        }
+        if (next == "QUIZ" && title.isBlank()) {
+            title = "Квиз ЕНОТА: не перегревай ноутбук"
+            content = "Ответьте один раз. После завершения срока среди участников с правильным ответом " +
+                "случайно выберем до трёх победителей. Перед публикацией укажите призы или баллы " +
+                "и срок участия."
+        }
+        offerType = next
+    }
 
     fun clearDraft() {
-        title = ""
-        content = ""
-        offerType = "PROMOTION"
+        title = "Квиз ЕНОТА: не перегревай ноутбук"
+        content = "Ответьте один раз. После завершения срока среди участников с правильным ответом случайно выберем до трёх победителей. Перед публикацией укажите призы или баллы и срок участия."
+        offerType = "QUIZ"
+        quizQuestion = "Как лучше поставить ноутбук, чтобы его система охлаждения работала нормально?"
+        quizOptions = listOf(
+            "На мягкую поверхность, например плед",
+            "На ровную твёрдую поверхность, не закрывая вентиляционные отверстия",
+            "Плотно придвинуть вентиляционную решётку к стене",
+            "Накрыть ноутбук тканью во время работы",
+        )
+        correctOption = 1
         startsAt = Instant.now().toString()
         endsAt = Instant.now().plusSeconds(7 * 24 * 60 * 60L).toString()
         prizes = listOf("", "", "")
@@ -108,7 +151,7 @@ fun AdminOfferManagementScreen(
     ) {
         item {
             TextButton(onClick = onBack) { Text("←  Управление") }
-            Text("Акции и розыгрыши", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+            Text("Акции, розыгрыши и квизы", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = UtpInk)
             Text(
                 "Черновики; публикация отправляет уведомление клиентам.",
                 fontSize = 12.sp,
@@ -128,22 +171,17 @@ fun AdminOfferManagementScreen(
                 ) {
                     Text("Новое предложение", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (offerType == "PROMOTION") {
-                            Button(onClick = {}, modifier = Modifier.weight(1f)) { Text("Акция") }
-                        } else {
-                            OutlinedButton(
-                                onClick = { offerType = "PROMOTION" },
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Акция") }
-                        }
-                        if (offerType == "GIVEAWAY") {
-                            Button(onClick = {}, modifier = Modifier.weight(1f)) { Text("Розыгрыш") }
-                        } else {
-                            OutlinedButton(
-                                onClick = { offerType = "GIVEAWAY" },
-                                modifier = Modifier.weight(1f),
-                            ) { Text("Розыгрыш") }
-                        }
+                        listOf("QUIZ" to "Квиз", "GIVEAWAY" to "Розыгрыш", "PROMOTION" to "Акция")
+                            .forEach { (value, label) ->
+                                if (offerType == value) {
+                                    Button(onClick = {}, modifier = Modifier.weight(1f)) { Text(label) }
+                                } else {
+                                    OutlinedButton(
+                                        onClick = { chooseOfferType(value) },
+                                        modifier = Modifier.weight(1f),
+                                    ) { Text(label) }
+                                }
+                            }
                     }
                     OutlinedTextField(
                         value = title,
@@ -162,6 +200,42 @@ fun AdminOfferManagementScreen(
                         maxLines = 7,
                         shape = RoundedCornerShape(12.dp),
                     )
+                    if (offerType == "QUIZ") {
+                        Text("Первый квиз: пример вопроса и вариантов ответа", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                        OutlinedTextField(
+                            value = quizQuestion,
+                            onValueChange = { quizQuestion = it.take(1000) },
+                            label = { Text("Вопрос") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            maxLines = 4,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        quizOptions.forEachIndexed { index, option ->
+                            OutlinedTextField(
+                                value = option,
+                                onValueChange = { value ->
+                                    quizOptions = quizOptions.toMutableList().also { it[index] = value.take(120) }
+                                },
+                                label = { Text("Вариант ${index + 1}") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                            )
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                RadioButton(
+                                    selected = correctOption == index,
+                                    onClick = { correctOption = index },
+                                )
+                                Text("Правильный ответ", fontSize = 12.sp, color = UtpMuted)
+                            }
+                        }
+                        Text(
+                            "Клиенты смогут ответить один раз; правильный вариант откроется после публикации итогов.",
+                            fontSize = 12.sp,
+                            color = UtpMuted,
+                        )
+                    }
                     ScheduleDateTimeField(
                         "Начало",
                         startsAt,
@@ -179,7 +253,7 @@ fun AdminOfferManagementScreen(
                             fontSize = 12.sp,
                         )
                     }
-                    if (offerType == "GIVEAWAY") {
+                    if (offerType == "GIVEAWAY" || offerType == "QUIZ") {
                         Text(
                             "Награды для трёх мест",
                             fontWeight = FontWeight.SemiBold,
@@ -235,13 +309,16 @@ fun AdminOfferManagementScreen(
                                     type = offerType,
                                     title = title,
                                     content = content,
-                                    prizes = if (offerType == "GIVEAWAY") {
+                                    prizes = if (offerType == "GIVEAWAY" || offerType == "QUIZ") {
                                         prizeValues
                                     } else {
                                         List(3) { null to 0 }
                                     },
                                     startsAt = startsAt,
                                     endsAt = endsAt,
+                                    quizQuestion = if (offerType == "QUIZ") quizQuestion else null,
+                                    quizOptions = if (offerType == "QUIZ") quizOptions else emptyList(),
+                                    quizCorrectOption = if (offerType == "QUIZ") correctOption else null,
                                 )
                             }) {
                                 clearDraft()
@@ -265,7 +342,7 @@ fun AdminOfferManagementScreen(
                 TextButton(onClick = ::reload, enabled = !loading && !busy) { Text("Обновить") }
             }
             if (loading) Text("Загрузка…", color = UtpMuted)
-            else if (offers.isEmpty()) Text("Пока нет акций и розыгрышей.", color = UtpMuted)
+            else if (offers.isEmpty()) Text("Пока нет акций, розыгрышей и квизов.", color = UtpMuted)
         }
         items(offers, key = { it.id }) { offer ->
             AdminOfferCard(
@@ -334,100 +411,3 @@ fun AdminOfferManagementScreen(
     }
 }
 
-@Composable
-private fun AdminOfferCard(
-    offer: CustomerOffer,
-    busy: Boolean,
-    onPublish: () -> Unit,
-    onDelete: () -> Unit,
-    onDraw: () -> Unit,
-    onPublishResults: () -> Unit,
-) {
-    val dateFormatter = remember {
-        DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm").withZone(ZoneId.systemDefault())
-    }
-    fun date(value: String) = runCatching {
-        dateFormatter.format(Instant.parse(value))
-    }.getOrDefault(value.take(16))
-    val canDraw = offer.type == "GIVEAWAY" && offer.drawnAt == null &&
-        offer.endsAt.let { runCatching { Instant.parse(it).isBefore(Instant.now()) }.getOrDefault(false) }
-    val hasUnpublishedResults = offer.type == "GIVEAWAY" &&
-        offer.drawnAt != null && offer.resultsPublishedAt == null
-
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface,
-        ),
-    ) {
-        Column(
-            Modifier.fillMaxWidth().padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(offer.title, fontWeight = FontWeight.Bold, color = UtpInk, fontSize = 16.sp)
-            val offerLabel = if (offer.type == "GIVEAWAY") "Розыгрыш" else "Акция"
-            val publicationLabel = if (offer.isPublished) "Опубликовано" else "Черновик"
-            Text("$offerLabel · $publicationLabel", color = UtpBlue, fontSize = 12.sp)
-            Text(offer.content, color = UtpMuted, fontSize = 13.sp)
-            Text("${date(offer.startsAt)} — ${date(offer.endsAt)}", color = UtpMuted, fontSize = 11.sp)
-            if (offer.type == "GIVEAWAY") {
-                Text("Участников: ${offer.participantCount}", color = UtpMuted, fontSize = 12.sp)
-                listOf(
-                    offer.firstPlacePrize to offer.firstPlacePoints,
-                    offer.secondPlacePrize to offer.secondPlacePoints,
-                    offer.thirdPlacePrize to offer.thirdPlacePoints,
-                ).forEachIndexed { index, reward ->
-                    val rewardText = buildString {
-                        append("${index + 1}-е место: ${reward.first ?: "приз не указан"}")
-                        if (reward.second > 0) append(" · ${reward.second} баллов")
-                    }
-                    Text(rewardText, color = UtpMuted, fontSize = 11.sp)
-                }
-                if (offer.drawnAt != null) {
-                    val resultsLabel = if (offer.resultsPublishedAt != null) {
-                        " · результаты опубликованы"
-                    } else {
-                        ""
-                    }
-                    Text(
-                        "Победители выбраны$resultsLabel",
-                        color = UtpBlue,
-                        fontSize = 11.sp,
-                    )
-                }
-                offer.winners.forEach { winner ->
-                    val winnerText = buildString {
-                        append("${winner.place}. ${winner.displayName}")
-                        winner.prize?.let { append(" — $it") }
-                        if (winner.bonusPoints > 0) append(" · ${winner.bonusPoints} баллов")
-                    }
-                    Text(winnerText, color = UtpMuted, fontSize = 11.sp)
-                }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                OutlinedButton(onClick = onPublish, enabled = !busy) {
-                    Text(if (offer.isPublished) "Снять" else "Опубликовать")
-                }
-                TextButton(onClick = onDelete, enabled = !busy) { Text("Удалить") }
-            }
-            if (canDraw) {
-                Button(
-                    onClick = onDraw,
-                    enabled = !busy && offer.participantCount >= 3,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Выбрать победителей")
-                }
-            }
-            if (hasUnpublishedResults) {
-                Button(
-                    onClick = onPublishResults,
-                    enabled = !busy,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Опубликовать результаты")
-                }
-            }
-        }
-    }
-}

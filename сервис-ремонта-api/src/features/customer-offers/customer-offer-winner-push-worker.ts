@@ -102,7 +102,7 @@ const processDelivery = async (
   if (
     !offer ||
     !offer.isPublished ||
-    offer.type !== "GIVEAWAY" ||
+    (offer.type !== "GIVEAWAY" && offer.type !== "QUIZ") ||
     !offer.resultsPublishedAt
   ) {
     await discardDelivery(database, delivery.id);

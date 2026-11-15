@@ -5,7 +5,9 @@ import type { CustomerOfferReward } from "./customer-offer-rewards.js";
 export const customerOfferWinnerNotificationContent = (
   offerTitle: string,
   reward: CustomerOfferReward,
+  offerType: "PROMOTION" | "GIVEAWAY" | "QUIZ" = "GIVEAWAY",
 ): { readonly title: string; readonly body: string } => {
+  const offerKind = offerType === "QUIZ" ? "квизе" : "розыгрыше";
   const details = [
     reward.prize?.trim() ? `Ваш приз: ${reward.prize.trim()}.` : null,
     reward.bonusPoints > 0
@@ -16,7 +18,7 @@ export const customerOfferWinnerNotificationContent = (
   return {
     title: "Поздравляем с победой! 🎉",
     body: [
-      `Вы заняли ${reward.place}-е место в розыгрыше «${offerTitle}» — поздравляем!`,
+      `Вы заняли ${reward.place}-е место в ${offerKind} «${offerTitle}» — поздравляем!`,
       ...details,
     ].join(" "),
   };
@@ -24,7 +26,11 @@ export const customerOfferWinnerNotificationContent = (
 
 export const sendCustomerOfferWinnerNotification = async (
   database: DatabaseClient,
-  offer: { readonly id: string; readonly title: string },
+  offer: {
+    readonly id: string;
+    readonly title: string;
+    readonly type?: "PROMOTION" | "GIVEAWAY" | "QUIZ";
+  },
   customerId: string,
   reward: CustomerOfferReward,
   notificationId: string,
@@ -36,7 +42,7 @@ export const sendCustomerOfferWinnerNotification = async (
   if (!device) return false;
 
   return sendPushNotification(database, [customerId], {
-    ...customerOfferWinnerNotificationContent(offer.title, reward),
+    ...customerOfferWinnerNotificationContent(offer.title, reward, offer.type),
     data: {
       type: "customer_offer_winner",
       offerId: offer.id,

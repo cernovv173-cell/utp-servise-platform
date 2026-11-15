@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Gift, Trophy } from "lucide-react";
+import { ArrowRight, CircleHelp, Gift, Trophy } from "lucide-react";
 
 import { PublicAuthTrigger } from "@/components/public-site-shell";
 
@@ -49,7 +49,7 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
     >
       <div className="mb-5">
         <p className="text-xs font-bold tracking-[0.18em] text-blue-600 uppercase dark:text-cyan-300">
-          Акции и розыгрыши
+          Акции, розыгрыши и квизы
         </p>
         <h2
           id="home-customer-offers-title"
@@ -62,8 +62,9 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
       {hasRunningOffers && (
         <div className="grid gap-4 lg:grid-cols-2">
           {offers.map((offer) => {
+            const isQuiz = offer.type === "QUIZ";
             const isGiveaway = offer.type === "GIVEAWAY";
-            const Icon = isGiveaway ? Trophy : Gift;
+            const Icon = isQuiz ? CircleHelp : isGiveaway ? Trophy : Gift;
             const rewards = [
               { place: 1, prize: offer.firstPlacePrize, points: offer.firstPlacePoints },
               { place: 2, prize: offer.secondPlacePrize, points: offer.secondPlacePoints },
@@ -73,7 +74,7 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
             return (
               <article
                 key={offer.id}
-                className={`relative flex min-h-64 flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white shadow-lg sm:p-8 ${isGiveaway ? "from-violet-800 via-indigo-700 to-purple-600" : "from-blue-800 via-sky-700 to-cyan-600"} ${offers.length === 1 ? "lg:col-span-2" : ""}`}
+                className={`relative flex min-h-64 flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white shadow-lg sm:p-8 ${isQuiz ? "from-emerald-800 via-teal-700 to-cyan-600" : isGiveaway ? "from-violet-800 via-indigo-700 to-purple-600" : "from-blue-800 via-sky-700 to-cyan-600"} ${offers.length === 1 ? "lg:col-span-2" : ""}`}
               >
                 <div className="flex items-start gap-4">
                   <span className="grid size-14 shrink-0 place-items-center rounded-2xl border border-white/25 bg-white/15 backdrop-blur">
@@ -81,7 +82,7 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
                   </span>
                   <div className="min-w-0">
                     <p className="text-xs font-bold tracking-[0.16em] text-white/80 uppercase">
-                      {isGiveaway ? "Розыгрыш" : "Акция"}
+                      {isQuiz ? "Квиз" : isGiveaway ? "Розыгрыш" : "Акция"}
                     </p>
                     <h3 className="mt-1 text-xl leading-tight font-bold sm:text-2xl">
                       {offer.title}
@@ -154,8 +155,12 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
                 className="border-b border-slate-200 px-5 py-4 last:border-b-0 dark:border-slate-700"
               >
                 <p className="text-xs font-semibold tracking-[0.12em] text-slate-400 uppercase">
-                  {offer.type === "GIVEAWAY" ? "Розыгрыш" : "Акция"} · завершён{" "}
-                  {formatResultDate(offer.endsAt)}
+                  {offer.type === "QUIZ"
+                    ? "Квиз"
+                    : offer.type === "GIVEAWAY"
+                      ? "Розыгрыш"
+                      : "Акция"}{" "}
+                  · завершён {formatResultDate(offer.endsAt)}
                 </p>
                 <CompletedOfferTitle className="mt-1 font-semibold text-slate-900 dark:text-white">
                   {offer.title}

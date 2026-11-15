@@ -539,6 +539,8 @@ internal fun JSONObject.toCustomerOffer(): CustomerOffer {
             id = value.getString("id"),
             joinedAt = value.getString("joinedAt"),
             place = if (value.isNull("place")) null else value.optInt("place"),
+            answerIndex = if (value.isNull("answerIndex")) null else value.optInt("answerIndex"),
+            answerCorrect = if (value.isNull("answerCorrect")) null else value.optBoolean("answerCorrect"),
         )
     }
     return CustomerOffer(
@@ -567,6 +569,11 @@ internal fun JSONObject.toCustomerOffer(): CustomerOffer {
                 bonusPoints = winner.optInt("bonusPoints"),
             )
         }.orEmpty(),
+        quizQuestion = nullableString("quizQuestion"),
+        quizOptions = optJSONArray("quizOptions")?.let { values ->
+            List(values.length()) { index -> values.optString(index) }
+        }.orEmpty(),
+        quizCorrectOption = if (isNull("quizCorrectOption")) null else optInt("quizCorrectOption"),
     )
 }
 

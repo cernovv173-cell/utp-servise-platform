@@ -33,6 +33,17 @@ test("winner push still congratulates a recipient when the prize is points only"
   );
 });
 
+test("quiz winner notifications identify the quiz", () => {
+  assert.equal(
+    customerOfferWinnerNotificationContent(
+      "Квиз ЕНОТА",
+      { place: 1, prize: null, bonusPoints: 100 },
+      "QUIZ",
+    ).body,
+    "Вы заняли 1-е место в квизе «Квиз ЕНОТА» — поздравляем! Вам начислено +100 бонусных баллов.",
+  );
+});
+
 test("winner push stays queued until the recipient registers a device", async () => {
   const delivery = {
     id: "delivery-1",
@@ -47,8 +58,8 @@ test("winner push stays queued until the recipient registers a device", async ()
     customerOffer: {
       findUnique: async () => ({
         id: "offer-1",
-        type: "GIVEAWAY",
-        title: "Охота за баллами",
+        type: "QUIZ",
+        title: "Квиз ЕНОТА",
         isPublished: true,
         resultsPublishedAt: new Date(),
         firstPlacePrize: "Смартфон",

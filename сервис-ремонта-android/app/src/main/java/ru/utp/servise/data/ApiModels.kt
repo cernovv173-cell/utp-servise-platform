@@ -565,6 +565,8 @@ data class CustomerOfferParticipation(
     val id: String,
     val joinedAt: String,
     val place: Int?,
+    val answerIndex: Int? = null,
+    val answerCorrect: Boolean? = null,
 )
 
 data class CustomerOfferWinner(
@@ -608,6 +610,9 @@ data class CustomerOffer(
     val participantCount: Int,
     val myParticipation: CustomerOfferParticipation?,
     val winners: List<CustomerOfferWinner>,
+    val quizQuestion: String? = null,
+    val quizOptions: List<String> = emptyList(),
+    val quizCorrectOption: Int? = null,
 )
 
 data class OrderChatMessage(

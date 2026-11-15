@@ -488,27 +488,34 @@ setting from the dedicated seasonal-appearance tab in Web or Android. The select
 existing `app_settings` row `seasonal_theme`, with no schema migration, and remains active until an
 administrator changes it. Both clients refresh the public state periodically.
 
-## Customer promotions and giveaways
+## Customer promotions, giveaways and quizzes
 
-Administrators create scheduled `PROMOTION` and `GIVEAWAY` offers through the authenticated admin
-endpoints and publish them for customers. A signed-in customer may join each published offer once while
-it is open. Promotions are participation campaigns only; they do not change repair-order prices.
+Administrators create scheduled `PROMOTION`, `GIVEAWAY`, and `QUIZ` offers through the authenticated
+admin endpoints and publish them for customers. A signed-in customer may join each published offer
+once while it is open. Promotions are participation campaigns only; they do not change repair-order
+prices. A quiz stores one question, 2–6 distinct answer choices, and a private correct-choice index.
+The API records one answer per customer and calculates correctness on the server. Neither the correct
+choice nor the customer's correctness is returned to customers until results are published.
 The public home page reads `GET /public/offers`. Its `offers` list contains published offers whose
 start time has arrived and whose end time is still in the future, with offer text, schedule, and
-giveaway rewards only. Its `completedOffers` list contains up to five recently finished published
+prize rewards only. It does not expose quiz questions, choices, or answer keys. Its `completedOffers`
+list contains up to five recently finished published
 offers after an administrator publishes the results; each item exposes the final place and display
 name of its winners, without customer identifiers. Participant counts and private participation
 remain available only through the authenticated customer/admin endpoints.
-Giveaways require a prize or bonus-point amount for each of the three places. After an offer closes,
-an administrator can draw three distinct participants; the selected names remain private until the
-administrator publishes the results. Publishing reveals the three-place podium and credits each
-winner's configured bonus points to the loyalty ledger in the same transaction. A unique ledger key
-prevents duplicate awards if results are published again. The additive
-`20261018200000_customer_offers` migration creates the offer and participation records and links
-award transactions without rewriting existing customer data.
+Giveaways require a prize or bonus-point amount for each of the three places. After a giveaway closes,
+an administrator can draw three distinct participants. A quiz draw happens only after it closes and
+selects up to three distinct participants from the correct-answer entries; it is valid to have fewer
+than three winners, including zero. Selected names remain private until the administrator publishes
+the results. Publishing quiz results also reveals the answer key and each participant's correctness;
+publishing any prize offer credits configured bonus points to the loyalty ledger in the same
+transaction. A unique ledger key prevents duplicate awards if results are published again. The
+additive `20261018200000_customer_offers` migration creates the original offer and participation
+records. `20261115195500_customer_offer_quiz` adds quiz fields and nullable answer data without
+rewriting existing customer or offer records.
 
-The first publication of a news article sends a customer push notification. Publishing a promotion
-or giveaway also creates a durable `customer_offer_push_deliveries` work item in the same database
+The first publication of a news article sends a customer push notification. Publishing a promotion,
+giveaway, or quiz also creates a durable `customer_offer_push_deliveries` work item in the same database
 transaction; the worker sends it as soon as it is published, skips unpublished or expired offers,
 and retries temporary Firebase delivery failures. An offer scheduled to start later can therefore
 be announced at publication; its Android notification expires at the configured end time. Repair-order status changes already notify the order's

@@ -50,9 +50,11 @@ export const collectCustomerNotifications = (
       events.push({
         id: `offer-${offer.id}`,
         title:
-          offer.type === "GIVEAWAY"
-            ? "Опубликован новый розыгрыш ЕНОТ СЕРВИС"
-            : "Опубликована новая акция ЕНОТ СЕРВИС",
+          offer.type === "QUIZ"
+            ? "Опубликован новый квиз ЕНОТ СЕРВИС"
+            : offer.type === "GIVEAWAY"
+              ? "Опубликован новый розыгрыш ЕНОТ СЕРВИС"
+              : "Опубликована новая акция ЕНОТ СЕРВИС",
         body: offer.title,
         route: "/offers",
       });

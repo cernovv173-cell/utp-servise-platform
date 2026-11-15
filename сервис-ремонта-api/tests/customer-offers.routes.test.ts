@@ -16,12 +16,16 @@ const technicianToken = "T".repeat(48);
 const promotionId = "11111111-1111-4111-8111-111111111111";
 const giveawayId = "22222222-2222-4222-8222-222222222222";
 const scheduledGiveawayId = "33333333-3333-4333-8333-333333333333";
+const quizId = "44444444-4444-4444-8444-444444444444";
 const unpublishedOfferId = "55555555-5555-4555-8555-555555555555";
 
 const makeOffer = (
   id: string,
   values: Partial<{
-    type: "PROMOTION" | "GIVEAWAY";
+    type: "PROMOTION" | "GIVEAWAY" | "QUIZ";
+    quizQuestion: string | null;
+    quizOptions: string[];
+    quizCorrectOption: number | null;
     firstPlacePrize: string | null;
     firstPlacePoints: number;
     secondPlacePrize: string | null;
@@ -39,6 +43,9 @@ const makeOffer = (
   type: "PROMOTION" as const,
   title: "Весенняя акция",
   content: "Запишитесь на участие в предложении.",
+  quizQuestion: null,
+  quizOptions: [],
+  quizCorrectOption: null,
   firstPlacePrize: null,
   firstPlacePoints: 0,
   secondPlacePrize: null,
@@ -119,6 +126,19 @@ const createHarness = () => {
       startsAt: new Date(Date.now() + 3_600_000),
       endsAt: new Date(Date.now() + 7_200_000),
     }),
+    makeOffer(quizId, {
+      type: "QUIZ",
+      title: "Квиз ЕНОТА: не перегревай ноутбук",
+      content:
+        "Ответьте один раз; победителя выберем среди правильных ответов.",
+      quizQuestion: "Как поставить ноутбук для нормального охлаждения?",
+      quizOptions: ["На плед", "На твёрдую поверхность, не закрывая отверстия"],
+      quizCorrectOption: 1,
+      firstPlacePrize: "Сервисный аксессуар",
+      firstPlacePoints: 100,
+      startsAt: new Date(Date.now() - 3_600_000),
+      endsAt: new Date(Date.now() + 3_600_000),
+    }),
     makeOffer(unpublishedOfferId, { isPublished: false }),
   ];
   const entries: Array<{
@@ -127,6 +147,8 @@ const createHarness = () => {
     customerId: string;
     joinedAt: Date;
     place: number | null;
+    answerIndex: number | null;
+    answerCorrect: boolean | null;
   }> = [
     {
       id: "entry-one",
@@ -134,6 +156,8 @@ const createHarness = () => {
       customerId: "customer-user",
       joinedAt: new Date(),
       place: null,
+      answerIndex: null,
+      answerCorrect: null,
     },
     {
       id: "entry-two",
@@ -141,6 +165,8 @@ const createHarness = () => {
       customerId: "customer-two",
       joinedAt: new Date(),
       place: null,
+      answerIndex: null,
+      answerCorrect: null,
     },
     {
       id: "entry-three",
@@ -148,6 +174,8 @@ const createHarness = () => {
       customerId: "customer-three",
       joinedAt: new Date(),
       place: null,
+      answerIndex: null,
+      answerCorrect: null,
     },
   ];
   const loyaltyTransactions: Array<Record<string, unknown>> = [];
@@ -179,6 +207,11 @@ const createHarness = () => {
     }
     if (filter.customerId && entry.customerId !== filter.customerId)
       return false;
+    if (
+      filter.answerCorrect !== undefined &&
+      entry.answerCorrect !== filter.answerCorrect
+    )
+      return false;
     if (filter.place?.not === null && entry.place === null) return false;
     if (filter.place === null && entry.place !== null) return false;
     return true;
@@ -200,6 +233,8 @@ const createHarness = () => {
           customerId: entry.customerId,
           joinedAt: entry.joinedAt,
           place: entry.place,
+          answerIndex: entry.answerIndex,
+          answerCorrect: entry.answerCorrect,
           customer: { displayName: customer.displayName },
         };
       }
@@ -208,6 +243,8 @@ const createHarness = () => {
         customerId: entry.customerId,
         joinedAt: entry.joinedAt,
         place: entry.place,
+        answerIndex: entry.answerIndex,
+        answerCorrect: entry.answerCorrect,
         customer: {
           displayName:
             users.find((user) => user.id === entry.customerId)?.displayName ??
@@ -254,7 +291,13 @@ const createHarness = () => {
                       field,
                       entry[
                         field as
-                          "id" | "offerId" | "customerId" | "joinedAt" | "place"
+                          | "id"
+                          | "offerId"
+                          | "customerId"
+                          | "joinedAt"
+                          | "place"
+                          | "answerIndex"
+                          | "answerCorrect"
                       ],
                     ];
                   },
@@ -522,29 +565,63 @@ const createHarness = () => {
     customerOfferParticipation: {
       findUnique: async ({
         where,
+        select,
       }: {
         where: { offerId_customerId: { offerId: string; customerId: string } };
-      }) =>
-        entries.find(
+        select?: Record<string, boolean>;
+      }) => {
+        const entry = entries.find(
           (entry) =>
             entry.offerId === where.offerId_customerId.offerId &&
             entry.customerId === where.offerId_customerId.customerId,
-        ) ?? null,
-      findMany: async ({ where }: { where: { offerId: string } }) =>
-        entries.filter((entry) => entry.offerId === where.offerId),
+        );
+        if (!entry || !select) return entry ?? null;
+        return Object.fromEntries(
+          Object.keys(select).map((field) => [
+            field,
+            entry[field as keyof typeof entry],
+          ]),
+        );
+      },
+      findMany: async ({
+        where,
+      }: {
+        where: { offerId: string; answerCorrect?: boolean };
+      }) =>
+        entries.filter(
+          (entry) =>
+            entry.offerId === where.offerId &&
+            (where.answerCorrect === undefined ||
+              entry.answerCorrect === where.answerCorrect),
+        ),
       create: async ({
         data,
+        select,
       }: {
-        data: { offerId: string; customerId: string };
+        data: {
+          offerId: string;
+          customerId: string;
+          answerIndex?: number | null;
+          answerCorrect?: boolean | null;
+        };
+        select?: Record<string, boolean>;
       }) => {
         const entry = {
           id: `entry-${entryNumber++}`,
           ...data,
           joinedAt: new Date(),
           place: null,
+          answerIndex: data.answerIndex ?? null,
+          answerCorrect: data.answerCorrect ?? null,
         };
         entries.push(entry);
-        return entry;
+        if (!select) return entry;
+        return Object.fromEntries(
+          Object.keys(select).map((field) => [
+            field,
+            entry[field as keyof typeof entry],
+          ]),
+        );
       },
       updateMany: async ({
         where,
@@ -625,7 +702,7 @@ test("customers join once, and administrators draw and publish three distinct wi
   const publicOffers = await publicOffersResponse.json();
   assert.deepEqual(
     publicOffers.offers.map((offer: { id: string }) => offer.id),
-    [promotionId],
+    [promotionId, quizId],
   );
   assert.equal(publicOffers.offers[0].participantCount, undefined);
   assert.equal(publicOffers.offers[0].myParticipation, undefined);
@@ -637,7 +714,7 @@ test("customers join once, and administrators draw and publish three distinct wi
   });
   assert.equal(listing.status, 200);
   const listingBody = await listing.json();
-  assert.equal(listingBody.offers.length, 3);
+  assert.equal(listingBody.offers.length, 4);
   assert.equal(
     listingBody.offers.find((offer: { id: string }) => offer.id === giveawayId)
       .winners.length,
@@ -754,7 +831,7 @@ test("customers join once, and administrators draw and publish three distinct wi
   const completedBody = await completedResponse.json();
   assert.deepEqual(
     completedBody.offers.map((offer: { id: string }) => offer.id),
-    [promotionId],
+    [promotionId, quizId],
   );
   assert.deepEqual(
     completedBody.completedOffers.map((offer: { id: string }) => offer.id),
@@ -807,6 +884,107 @@ test("customers join once, and administrators draw and publish three distinct wi
   assert.equal(repeatedPublish.status, 200);
   assert.equal(harness.loyaltyTransactions.length, 3);
   assert.equal(harness.winnerPushDeliveries.length, 3);
+});
+
+test("quiz answers are private, accepted once, and drawn only among correct answers", async (t) => {
+  const harness = createHarness();
+  await once(harness.server, "listening");
+  t.after(() => harness.server.close());
+  const address = harness.server.address();
+  assert.ok(address && typeof address !== "string");
+  const baseUrl = `http://127.0.0.1:${address.port}/api`;
+  const headers = (token: string) => ({ authorization: `Bearer ${token}` });
+
+  const correctAnswer = await fetch(`${baseUrl}/offers/${quizId}/participate`, {
+    method: "POST",
+    headers: {
+      ...headers(customerToken),
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ answerIndex: 1 }),
+  });
+  assert.equal(correctAnswer.status, 201);
+  const correctParticipation = await correctAnswer.json();
+  assert.equal(correctParticipation.participation.answerIndex, 1);
+  assert.equal(correctParticipation.participation.answerCorrect, undefined);
+
+  const wrongAnswer = await fetch(`${baseUrl}/offers/${quizId}/participate`, {
+    method: "POST",
+    headers: {
+      ...headers(secondCustomerToken),
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ answerIndex: 0 }),
+  });
+  assert.equal(wrongAnswer.status, 201);
+
+  const retry = await fetch(`${baseUrl}/offers/${quizId}/participate`, {
+    method: "POST",
+    headers: {
+      ...headers(customerToken),
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ answerIndex: 0 }),
+  });
+  assert.equal(retry.status, 200);
+  assert.equal((await retry.json()).participation.answerIndex, 1);
+  assert.equal(
+    harness.entries.filter((entry) => entry.offerId === quizId).length,
+    2,
+  );
+
+  const beforeDraw = await fetch(`${baseUrl}/offers`, {
+    headers: headers(customerToken),
+  });
+  const beforeDrawQuiz = (await beforeDraw.json()).offers.find(
+    (offer: { id: string }) => offer.id === quizId,
+  );
+  assert.deepEqual(beforeDrawQuiz.quizOptions, [
+    "На плед",
+    "На твёрдую поверхность, не закрывая отверстия",
+  ]);
+  assert.equal(beforeDrawQuiz.quizCorrectOption, null);
+  assert.equal(beforeDrawQuiz.myParticipation.answerIndex, 1);
+  assert.equal(beforeDrawQuiz.myParticipation.answerCorrect, null);
+
+  const quiz = harness.offers.find((offer) => offer.id === quizId);
+  assert.ok(quiz);
+  quiz.endsAt = new Date(Date.now() - 1_000);
+  const draw = await fetch(`${baseUrl}/admin/offers/${quizId}/draw`, {
+    method: "POST",
+    headers: headers(adminToken),
+  });
+  assert.equal(draw.status, 200);
+  const drawnQuiz = (await draw.json()).offer;
+  assert.equal(drawnQuiz.winners.length, 1);
+  assert.equal(drawnQuiz.winners[0].customerId, "customer-user");
+
+  const publish = await fetch(
+    `${baseUrl}/admin/offers/${quizId}/publish-results`,
+    {
+      method: "POST",
+      headers: headers(adminToken),
+    },
+  );
+  assert.equal(publish.status, 200);
+
+  const correctCustomerOffers = await fetch(`${baseUrl}/offers`, {
+    headers: headers(customerToken),
+  });
+  const publishedQuiz = (await correctCustomerOffers.json()).offers.find(
+    (offer: { id: string }) => offer.id === quizId,
+  );
+  assert.equal(publishedQuiz.quizCorrectOption, 1);
+  assert.equal(publishedQuiz.myParticipation.answerCorrect, true);
+  assert.equal(publishedQuiz.winners.length, 1);
+
+  const wrongCustomerOffers = await fetch(`${baseUrl}/offers`, {
+    headers: headers(secondCustomerToken),
+  });
+  const wrongCustomerQuiz = (await wrongCustomerOffers.json()).offers.find(
+    (offer: { id: string }) => offer.id === quizId,
+  );
+  assert.equal(wrongCustomerQuiz.myParticipation.answerCorrect, false);
 });
 
 test("only administrators create offers and each giveaway place requires a prize or points", async (t) => {
@@ -891,6 +1069,58 @@ test("only administrators create offers and each giveaway place requires a prize
     }),
   });
   assert.equal(invalidPromotion.status, 400);
+});
+
+test("administrators can save a quiz with a private answer key", async (t) => {
+  const harness = createHarness();
+  await once(harness.server, "listening");
+  t.after(() => harness.server.close());
+  const address = harness.server.address();
+  assert.ok(address && typeof address !== "string");
+  const url = `http://127.0.0.1:${address.port}/api/admin/offers`;
+  const body = {
+    type: "QUIZ",
+    title: "Квиз ЕНОТА: не перегревай ноутбук",
+    content: "Ответьте на вопрос и участвуйте в розыгрыше.",
+    quizQuestion: "Как поставить ноутбук для нормального охлаждения?",
+    quizOptions: ["На плед", "На твёрдую поверхность"],
+    quizCorrectOption: 1,
+    firstPlacePrize: "Аксессуар",
+    firstPlacePoints: 0,
+    secondPlacePrize: "Скидка",
+    secondPlacePoints: 0,
+    thirdPlacePrize: null,
+    thirdPlacePoints: 100,
+    startsAt: new Date(Date.now() + 60_000).toISOString(),
+    endsAt: new Date(Date.now() + 3_600_000).toISOString(),
+    isPublished: false,
+  };
+
+  const create = (input: typeof body) =>
+    fetch(url, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(input),
+    });
+  const response = await create(body);
+  assert.equal(response.status, 201);
+  const created = (await response.json()).offer;
+  assert.equal(created.type, "QUIZ");
+  assert.equal(created.quizQuestion, body.quizQuestion);
+  assert.deepEqual(created.quizOptions, body.quizOptions);
+  assert.equal(created.quizCorrectOption, 1);
+  assert.equal(created.isPublished, false);
+
+  const invalidAnswerKey = await create({ ...body, quizCorrectOption: 2 });
+  assert.equal(invalidAnswerKey.status, 400);
+  const repeatedChoices = await create({
+    ...body,
+    quizOptions: ["Одинаково", "одинаково"],
+  });
+  assert.equal(repeatedChoices.status, 400);
 });
 
 test("publishing an offer queues one notification and unpublishing cancels it", async (t) => {

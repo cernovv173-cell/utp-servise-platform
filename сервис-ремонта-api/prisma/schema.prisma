@@ -165,6 +165,7 @@ enum ReceiptPaymentMethod {
 enum CustomerOfferType {
   PROMOTION
   GIVEAWAY
+  QUIZ
 }
 
 model AppSetting {
@@ -1227,6 +1228,9 @@ model CustomerOffer {
   type                 CustomerOfferType
   title                String                            @db.VarChar(160)
   content              String                            @db.VarChar(8000)
+  quizQuestion         String?                           @map("quiz_question") @db.VarChar(1000)
+  quizOptions          String[]                          @default([]) @map("quiz_options")
+  quizCorrectOption    Int?                              @map("quiz_correct_option") @db.SmallInt
   firstPlacePrize      String?                           @map("first_place_prize") @db.VarChar(500)
   firstPlacePoints     Int                               @default(0) @map("first_place_points")
   secondPlacePrize     String?                           @map("second_place_prize") @db.VarChar(500)
@@ -1287,13 +1291,15 @@ model CustomerOfferWinnerPushDelivery {
 }
 
 model CustomerOfferParticipation {
-  id         String        @id @default(uuid()) @db.Uuid
-  offerId    String        @map("offer_id") @db.Uuid
-  customerId String        @map("customer_id") @db.Uuid
-  joinedAt   DateTime      @default(now()) @map("joined_at") @db.Timestamptz(3)
-  place      Int?          @db.SmallInt
-  offer      CustomerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
-  customer   User          @relation("CustomerOfferParticipant", fields: [customerId], references: [id], onDelete: Restrict)
+  id            String        @id @default(uuid()) @db.Uuid
+  offerId       String        @map("offer_id") @db.Uuid
+  customerId    String        @map("customer_id") @db.Uuid
+  joinedAt      DateTime      @default(now()) @map("joined_at") @db.Timestamptz(3)
+  place         Int?          @db.SmallInt
+  answerIndex   Int?          @map("answer_index") @db.SmallInt
+  answerCorrect Boolean?      @map("answer_correct")
+  offer         CustomerOffer @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  customer      User          @relation("CustomerOfferParticipant", fields: [customerId], references: [id], onDelete: Restrict)
 
   @@unique([offerId, customerId])
   @@unique([offerId, place])

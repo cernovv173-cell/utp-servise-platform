@@ -17,12 +17,18 @@ object AdminMarketingApi {
         prizes: List<Pair<String?, Int>>,
         startsAt: String,
         endsAt: String,
+        quizQuestion: String? = null,
+        quizOptions: List<String> = emptyList(),
+        quizCorrectOption: Int? = null,
     ): CustomerOffer {
         require(prizes.size == 3) { "Для розыгрыша нужны призы для трёх мест." }
         val body = JSONObject()
             .put("type", type)
             .put("title", title.trim())
             .put("content", content.trim())
+            .put("quizQuestion", quizQuestion ?: JSONObject.NULL)
+            .put("quizOptions", quizOptions.toJsonArray())
+            .put("quizCorrectOption", quizCorrectOption ?: JSONObject.NULL)
             .put("startsAt", startsAt)
             .put("endsAt", endsAt)
             .put("isPublished", false)
