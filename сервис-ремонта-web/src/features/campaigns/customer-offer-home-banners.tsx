@@ -9,7 +9,7 @@ import {
   getRunningCustomerOffers,
 } from "@/features/campaigns/customer-offer-home-banner-state";
 
-import { getPublicCustomerOffers } from "@/lib/api";
+import { getPublicCustomerOfferPrizeImageUrl, getPublicCustomerOffers } from "@/lib/api";
 import { useCurrentTime } from "@/lib/current-time";
 
 const formatEndDate = (value: string) =>
@@ -66,9 +66,24 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
             const isGiveaway = offer.type === "GIVEAWAY";
             const Icon = isQuiz ? CircleHelp : isGiveaway ? Trophy : Gift;
             const rewards = [
-              { place: 1, prize: offer.firstPlacePrize, points: offer.firstPlacePoints },
-              { place: 2, prize: offer.secondPlacePrize, points: offer.secondPlacePoints },
-              { place: 3, prize: offer.thirdPlacePrize, points: offer.thirdPlacePoints },
+              {
+                place: 1,
+                prize: offer.firstPlacePrize,
+                points: offer.firstPlacePoints,
+                imageObjectId: offer.firstPlacePrizeImageId,
+              },
+              {
+                place: 2,
+                prize: offer.secondPlacePrize,
+                points: offer.secondPlacePoints,
+                imageObjectId: offer.secondPlacePrizeImageId,
+              },
+              {
+                place: 3,
+                prize: offer.thirdPlacePrize,
+                points: offer.thirdPlacePoints,
+                imageObjectId: offer.thirdPlacePrizeImageId,
+              },
             ].filter((reward) => reward.prize || reward.points > 0);
 
             return (
@@ -96,18 +111,28 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
 
                 {rewards.length > 0 && (
                   <ul className="mt-4 grid gap-2 sm:grid-cols-3">
-                    {rewards.map(({ place, prize, points }) => (
+                    {rewards.map(({ place, prize, points, imageObjectId }) => (
                       <li
                         key={place}
-                        className="rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm"
+                        className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm"
                       >
-                        <span className="block text-xs font-semibold text-white/70">
-                          {place}-е место
-                        </span>
-                        <span className="mt-0.5 block font-medium">
-                          {[prize, points > 0 ? `${points} баллов` : null]
-                            .filter(Boolean)
-                            .join(" · ")}
+                        {imageObjectId && (
+                          <img
+                            src={getPublicCustomerOfferPrizeImageUrl(offer.id, place)}
+                            alt={`Фото приза за ${place}-е место`}
+                            className="size-16 shrink-0 rounded-lg object-cover"
+                            loading="lazy"
+                          />
+                        )}
+                        <span className="min-w-0">
+                          <span className="block text-xs font-semibold text-white/70">
+                            {place}-е место
+                          </span>
+                          <span className="mt-0.5 block font-medium">
+                            {[prize, points > 0 ? `${points} баллов` : null]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
                         </span>
                       </li>
                     ))}
@@ -165,18 +190,33 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
                 <CompletedOfferTitle className="mt-1 font-semibold text-slate-900 dark:text-white">
                   {offer.title}
                 </CompletedOfferTitle>
-                <p className="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                <div className="mt-2 flex items-start gap-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
                   <Trophy size={18} className="mt-1 shrink-0 text-amber-500" aria-hidden="true" />
-                  <span>
+                  <div className="grid gap-2">
                     <span className="font-semibold text-slate-900 dark:text-white">
                       Победители:
-                    </span>{" "}
+                    </span>
                     {[...offer.winners]
                       .sort((left, right) => left.place - right.place)
-                      .map((winner) => `${winner.place}-е место — ${winner.displayName}`)
-                      .join(" · ")}
-                  </span>
-                </p>
+                      .map((winner) => (
+                        <div key={winner.place} className="flex items-center gap-3">
+                          {winner.prizeImageId && (
+                            <img
+                              src={getPublicCustomerOfferPrizeImageUrl(offer.id, winner.place)}
+                              alt={`Фото приза за ${winner.place}-е место`}
+                              className="size-12 shrink-0 rounded-lg object-cover"
+                              loading="lazy"
+                            />
+                          )}
+                          <span>
+                            {winner.place}-е место — {winner.displayName}
+                            {winner.prize ? ` · ${winner.prize}` : ""}
+                            {winner.bonusPoints > 0 ? ` · ${winner.bonusPoints} баллов` : ""}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
               </article>
             ))}
           </div>

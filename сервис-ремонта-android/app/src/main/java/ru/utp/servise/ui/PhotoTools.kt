@@ -157,6 +157,40 @@ fun RemoteProjectImage(
 }
 
 @Composable
+fun RemotePublicOfferPrizeImage(
+    offerId: String,
+    place: Int,
+    modifier: Modifier = Modifier,
+    contentDescription: String? = null,
+) {
+    val bitmap by produceState<Bitmap?>(null, offerId, place) {
+        value = withContext(Dispatchers.IO) {
+            runCatching {
+                val bytes = ApiClient.downloadPublicOfferPrizeImage(offerId, place)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            }.getOrNull()
+        }
+    }
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap!!.asImageBitmap(),
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = ContentScale.Crop,
+        )
+    } else {
+        Box(
+            modifier = modifier
+                .clip(RoundedCornerShape(12.dp))
+                .background(UtpMint),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("Фото приза", fontSize = 11.sp, color = UtpMuted)
+        }
+    }
+}
+
+@Composable
 fun RemoteProjectVideo(
     objectId: String?,
     token: String,

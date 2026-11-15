@@ -2,6 +2,8 @@ import { type FormEvent, useState } from "react";
 
 import { type CreateCustomerOfferInput, type CustomerOfferType } from "@/lib/api";
 
+import { CustomerOfferPrizePhotoField } from "./customer-offer-prize-photo-field";
+
 const quizTitle = "Квиз ЕНОТА: не перегревай ноутбук";
 const quizContent =
   "Ответьте один раз. После завершения срока среди участников с правильным ответом случайно выберем до трёх победителей. Перед публикацией укажите призы или баллы и срок участия.";
@@ -18,10 +20,18 @@ const RewardFields = ({
   place,
   prizeName,
   pointsName,
+  imageFile,
+  inputKey,
+  disabled,
+  onImageChange,
 }: {
   place: number;
   prizeName: string;
   pointsName: string;
+  imageFile: File | null;
+  inputKey: number;
+  disabled: boolean;
+  onImageChange: (file: File | null) => void;
 }) => (
   <fieldset className="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
     <legend className="px-1 text-sm font-semibold">{place}-е место</legend>
@@ -48,6 +58,13 @@ const RewardFields = ({
         />
       </label>
     </div>
+    <CustomerOfferPrizePhotoField
+      place={place}
+      file={imageFile}
+      inputKey={inputKey}
+      disabled={disabled}
+      onChange={onImageChange}
+    />
   </fieldset>
 );
 
@@ -71,7 +88,11 @@ export const CustomerOfferCreateForm = ({
   saving: boolean;
   error: string;
   notice: string;
-  onCreate: (input: CreateCustomerOfferInput, clear: () => void) => void;
+  onCreate: (
+    input: CreateCustomerOfferInput,
+    prizeImages: (File | null)[],
+    clear: () => void,
+  ) => void;
 }) => {
   const [type, setType] = useState<CustomerOfferType>("QUIZ");
   const [title, setTitle] = useState(quizTitle);
@@ -80,6 +101,8 @@ export const CustomerOfferCreateForm = ({
   const [options, setOptions] = useState(starterOptions);
   const [correctOption, setCorrectOption] = useState(1);
   const [validationError, setValidationError] = useState("");
+  const [prizeImages, setPrizeImages] = useState<(File | null)[]>([null, null, null]);
+  const [photoInputKey, setPhotoInputKey] = useState(0);
   const hasPrizes = type === "GIVEAWAY" || type === "QUIZ";
 
   const clear = () => {
@@ -89,6 +112,8 @@ export const CustomerOfferCreateForm = ({
     setQuestion(starterQuestion);
     setOptions(starterOptions);
     setCorrectOption(1);
+    setPrizeImages([null, null, null]);
+    setPhotoInputKey((current) => current + 1);
     setValidationError("");
   };
 
@@ -111,6 +136,18 @@ export const CustomerOfferCreateForm = ({
     });
     if (hasPrizes && prizes.some(({ prize, points }) => !prize && points <= 0)) {
       setValidationError("Для каждого места укажите приз или количество баллов.");
+      return;
+    }
+    if (
+      hasPrizes &&
+      prizeImages.some(
+        (file) =>
+          file &&
+          (!(["image/jpeg", "image/png", "image/webp"] as string[]).includes(file.type) ||
+            file.size > 5 * 1024 * 1024),
+      )
+    ) {
+      setValidationError("Выберите фото JPG, PNG или WebP размером не более 5 МБ.");
       return;
     }
 
@@ -142,6 +179,7 @@ export const CustomerOfferCreateForm = ({
         endsAt: new Date(endsAt).toISOString(),
         isPublished: form.get("isPublished") === "on",
       },
+      hasPrizes ? prizeImages : [null, null, null],
       clear,
     );
   };
@@ -264,7 +302,18 @@ export const CustomerOfferCreateForm = ({
             случайно только среди правильно ответивших; мест может быть меньше трёх.
           </p>
           {rewardPlaces.map((reward) => (
-            <RewardFields key={reward.place} {...reward} />
+            <RewardFields
+              key={reward.place}
+              {...reward}
+              imageFile={prizeImages[reward.place - 1] ?? null}
+              inputKey={photoInputKey}
+              disabled={saving}
+              onImageChange={(file) =>
+                setPrizeImages((current) =>
+                  current.map((value, index) => (index === reward.place - 1 ? file : value)),
+                )
+              }
+            />
           ))}
         </div>
       )}

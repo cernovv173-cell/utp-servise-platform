@@ -137,10 +137,13 @@ export const customerOfferResponse = <
     quizOptions: string[];
     quizCorrectOption: number | null;
     firstPlacePrize: string | null;
+    firstPlacePrizeImageId: string | null;
     firstPlacePoints: number;
     secondPlacePrize: string | null;
+    secondPlacePrizeImageId: string | null;
     secondPlacePoints: number;
     thirdPlacePrize: string | null;
+    thirdPlacePrizeImageId: string | null;
     thirdPlacePoints: number;
     isPublished: boolean;
     startsAt: Date;
@@ -189,10 +192,13 @@ export const customerOfferResponse = <
         ? offer.quizCorrectOption
         : null,
     firstPlacePrize: offer.firstPlacePrize,
+    firstPlacePrizeImageId: offer.firstPlacePrizeImageId,
     firstPlacePoints: offer.firstPlacePoints,
     secondPlacePrize: offer.secondPlacePrize,
+    secondPlacePrizeImageId: offer.secondPlacePrizeImageId,
     secondPlacePoints: offer.secondPlacePoints,
     thirdPlacePrize: offer.thirdPlacePrize,
+    thirdPlacePrizeImageId: offer.thirdPlacePrizeImageId,
     thirdPlacePoints: offer.thirdPlacePoints,
     isPublished: offer.isPublished,
     startsAt: offer.startsAt,
@@ -226,10 +232,13 @@ export const adminOfferResponse = <
     quizOptions: string[];
     quizCorrectOption: number | null;
     firstPlacePrize: string | null;
+    firstPlacePrizeImageId: string | null;
     firstPlacePoints: number;
     secondPlacePrize: string | null;
+    secondPlacePrizeImageId: string | null;
     secondPlacePoints: number;
     thirdPlacePrize: string | null;
+    thirdPlacePrizeImageId: string | null;
     thirdPlacePoints: number;
     isPublished: boolean;
     startsAt: Date;
@@ -256,10 +265,13 @@ export const adminOfferResponse = <
   quizOptions: offer.quizOptions,
   quizCorrectOption: offer.quizCorrectOption,
   firstPlacePrize: offer.firstPlacePrize,
+  firstPlacePrizeImageId: offer.firstPlacePrizeImageId,
   firstPlacePoints: offer.firstPlacePoints,
   secondPlacePrize: offer.secondPlacePrize,
+  secondPlacePrizeImageId: offer.secondPlacePrizeImageId,
   secondPlacePoints: offer.secondPlacePoints,
   thirdPlacePrize: offer.thirdPlacePrize,
+  thirdPlacePrizeImageId: offer.thirdPlacePrizeImageId,
   thirdPlacePoints: offer.thirdPlacePoints,
   isPublished: offer.isPublished,
   startsAt: offer.startsAt,

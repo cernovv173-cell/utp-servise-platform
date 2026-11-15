@@ -13,10 +13,13 @@ const offer = (overrides: Partial<PublicCustomerOffer> = {}): PublicCustomerOffe
   title: "Предложение",
   content: "Описание предложения",
   firstPlacePrize: null,
+  firstPlacePrizeImageId: null,
   firstPlacePoints: 0,
   secondPlacePrize: null,
+  secondPlacePrizeImageId: null,
   secondPlacePoints: 0,
   thirdPlacePrize: null,
+  thirdPlacePrizeImageId: null,
   thirdPlacePoints: 0,
   startsAt: "2026-10-28T10:00:00.000Z",
   endsAt: "2026-10-28T18:00:00.000Z",
@@ -31,7 +34,15 @@ const completedOffer = (
   title: "Розыгрыш",
   endsAt: "2026-10-27T18:00:00.000Z",
   resultsPublishedAt: "2026-10-27T19:00:00.000Z",
-  winners: [{ place: 1, displayName: "Игорь", prize: "сертификат", bonusPoints: 0 }],
+  winners: [
+    {
+      place: 1,
+      displayName: "Игорь",
+      prize: "сертификат",
+      bonusPoints: 0,
+      prizeImageId: null,
+    },
+  ],
   ...overrides,
 });
 

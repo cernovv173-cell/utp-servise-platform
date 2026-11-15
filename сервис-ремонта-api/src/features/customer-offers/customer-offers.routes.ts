@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
@@ -8,6 +9,10 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import {
+  type MediaStorage,
+  projectMediaStorage,
+} from "../media/media-storage.js";
 import { registerCustomerOfferAdminRoutes } from "./customer-offer-admin.routes.js";
 import {
   bodyOf,
@@ -18,8 +23,21 @@ import {
 } from "./customer-offer-contracts.js";
 import { getCustomerOfferReward } from "./customer-offer-rewards.js";
 
+const publicPrizeImageParams = z.object({
+  offerId: z.string().uuid(),
+  place: z.enum(["1", "2", "3"]),
+});
+
+const publicPrizeImageParamsOf = (response: { locals: { input?: unknown } }) =>
+  (
+    response.locals.input as {
+      readonly params: z.infer<typeof publicPrizeImageParams>;
+    }
+  ).params;
+
 export const createCustomerOffersRouter = (
   database: DatabaseClient,
+  storage: MediaStorage = projectMediaStorage,
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
@@ -41,10 +59,13 @@ export const createCustomerOffersRouter = (
           title: true,
           content: true,
           firstPlacePrize: true,
+          firstPlacePrizeImageId: true,
           firstPlacePoints: true,
           secondPlacePrize: true,
+          secondPlacePrizeImageId: true,
           secondPlacePoints: true,
           thirdPlacePrize: true,
+          thirdPlacePrizeImageId: true,
           thirdPlacePoints: true,
           startsAt: true,
           endsAt: true,
@@ -66,10 +87,13 @@ export const createCustomerOffersRouter = (
           endsAt: true,
           resultsPublishedAt: true,
           firstPlacePrize: true,
+          firstPlacePrizeImageId: true,
           firstPlacePoints: true,
           secondPlacePrize: true,
+          secondPlacePrizeImageId: true,
           secondPlacePoints: true,
           thirdPlacePrize: true,
+          thirdPlacePrizeImageId: true,
           thirdPlacePoints: true,
           entries: {
             where: { place: { not: null } },
@@ -101,12 +125,64 @@ export const createCustomerOffersRouter = (
               displayName: entry.customer.displayName,
               prize: reward?.prize ?? null,
               bonusPoints: reward?.bonusPoints ?? 0,
+              prizeImageId:
+                entry.place === 1
+                  ? offer.firstPlacePrizeImageId
+                  : entry.place === 2
+                    ? offer.secondPlacePrizeImageId
+                    : offer.thirdPlacePrizeImageId,
             },
           ];
         }),
       })),
     });
   });
+
+  router.get(
+    "/public/offers/:offerId/prizes/:place/image",
+    validateRequest({ params: publicPrizeImageParams }),
+    async (_request, response) => {
+      const { offerId, place: placeParam } = publicPrizeImageParamsOf(response);
+      const place = Number(placeParam);
+      const now = new Date();
+      const offer = await database.customerOffer.findFirst({
+        where: {
+          id: offerId,
+          type: { in: ["GIVEAWAY", "QUIZ"] },
+          isPublished: true,
+          OR: [
+            { startsAt: { lte: now }, endsAt: { gt: now } },
+            {
+              endsAt: { lte: now },
+              resultsPublishedAt: { not: null, lte: now },
+            },
+          ],
+        },
+        select: {
+          firstPlacePrizeImageId: true,
+          secondPlacePrizeImageId: true,
+          thirdPlacePrizeImageId: true,
+        },
+      });
+      const objectId = offer
+        ? place === 1
+          ? offer.firstPlacePrizeImageId
+          : place === 2
+            ? offer.secondPlacePrizeImageId
+            : offer.thirdPlacePrizeImageId
+        : null;
+      if (!objectId) {
+        throw new HttpError(404, "IMAGE_NOT_FOUND", "Фотография не найдена.");
+      }
+
+      const media = await storage.download(objectId);
+      response
+        .setHeader("Content-Type", media.contentType)
+        .setHeader("Cache-Control", "public, max-age=60")
+        .setHeader("X-Content-Type-Options", "nosniff")
+        .send(media.bytes);
+    },
+  );
 
   router.get(
     "/offers",
@@ -242,7 +318,7 @@ export const createCustomerOffersRouter = (
     },
   );
 
-  registerCustomerOfferAdminRoutes(router, database);
+  registerCustomerOfferAdminRoutes(router, database, storage);
   return router;
 };
 

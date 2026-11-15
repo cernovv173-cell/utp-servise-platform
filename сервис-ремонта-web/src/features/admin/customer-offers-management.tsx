@@ -15,10 +15,12 @@ import {
   getAdminCustomerOffers,
   publishAdminCustomerOfferResults,
   updateAdminCustomerOffer,
+  uploadAdminCustomerOfferPrizeImage,
 } from "@/lib/api";
 import { useCurrentTime } from "@/lib/current-time";
 
 import { CustomerOfferCreateForm } from "./customer-offer-create-form";
+import { CustomerOfferPrizeImageControl } from "./customer-offer-prize-image-control";
 
 const formatDate = (value: string) => new Date(value).toLocaleString("ru-RU");
 
@@ -55,10 +57,52 @@ export const CustomerOffersManagement = () => {
   };
 
   const create = useMutation({
-    mutationFn: (input: CreateCustomerOfferInput) => createAdminCustomerOffer(token!, input),
-    onSuccess: async () => {
+    mutationFn: async ({
+      input,
+      prizeImages,
+    }: {
+      input: CreateCustomerOfferInput;
+      prizeImages: (File | null)[];
+      clear: () => void;
+    }) => {
+      const selectedImages = prizeImages
+        .map((file, index) => (file ? { file, place: index + 1 } : null))
+        .filter((image): image is { file: File; place: number } => image !== null);
+      const created = await createAdminCustomerOffer(token!, {
+        ...input,
+        isPublished: selectedImages.length > 0 ? false : input.isPublished,
+      });
+      let photosSaved = true;
+      for (const { file, place } of selectedImages) {
+        try {
+          await uploadAdminCustomerOfferPrizeImage(token!, created.offer.id, place, file);
+        } catch {
+          photosSaved = false;
+          break;
+        }
+      }
+      let publishFailed = false;
+      if (photosSaved && selectedImages.length > 0 && input.isPublished) {
+        try {
+          await updateAdminCustomerOffer(token!, created.offer.id, true);
+        } catch {
+          publishFailed = true;
+        }
+      }
+      return { photosSaved, publishFailed, hasPhotos: selectedImages.length > 0 };
+    },
+    onSuccess: async (result, variables) => {
+      variables.clear();
       setError("");
-      setNotice("Предложение сохранено. Оно будет видно клиентам по заданному расписанию.");
+      setNotice(
+        !result.photosSaved
+          ? "Черновик сохранён, но не все фото загрузились. Добавьте их в списке предложений."
+          : result.publishFailed
+            ? "Фото сохранены, но опубликовать предложение не удалось — оно осталось черновиком."
+            : result.hasPhotos && variables.input.isPublished
+              ? "Фото сохранены, предложение опубликовано по заданному расписанию."
+              : "Предложение сохранено. Оно будет видно клиентам по заданному расписанию.",
+      );
       await refresh();
     },
     onError: () => setError("Не удалось сохранить предложение. Проверьте даты и призы."),
@@ -111,10 +155,14 @@ export const CustomerOffersManagement = () => {
     onError: () => setError("Не удалось опубликовать результаты. Повторите попытку."),
   });
 
-  const handleCreate = (input: CreateCustomerOfferInput, clear: () => void) => {
+  const handleCreate = (
+    input: CreateCustomerOfferInput,
+    prizeImages: (File | null)[],
+    clear: () => void,
+  ) => {
     setError("");
     setNotice("");
-    create.mutate(input, { onSuccess: clear });
+    create.mutate({ input, prizeImages, clear });
   };
 
   return (
@@ -218,12 +266,31 @@ export const CustomerOffersManagement = () => {
                         { prize: offer.secondPlacePrize, points: offer.secondPlacePoints },
                         { prize: offer.thirdPlacePrize, points: offer.thirdPlacePoints },
                       ][place - 1]!;
+                      const imageObjectId = [
+                        offer.firstPlacePrizeImageId,
+                        offer.secondPlacePrizeImageId,
+                        offer.thirdPlacePrizeImageId,
+                      ][place - 1]!;
                       return (
-                        <p key={place}>
-                          <span className="font-semibold">{place}-е место:</span>{" "}
-                          {reward.prize || "без отдельного подарка"}
-                          {reward.points > 0 ? ` · ${reward.points} баллов` : ""}
-                        </p>
+                        <div
+                          key={place}
+                          className="grid gap-2 border-b border-slate-200 pb-2 last:border-0 last:pb-0 dark:border-slate-800"
+                        >
+                          <p>
+                            <span className="font-semibold">{place}-е место:</span>{" "}
+                            {reward.prize || "без отдельного подарка"}
+                            {reward.points > 0 ? ` · ${reward.points} баллов` : ""}
+                          </p>
+                          {token && (
+                            <CustomerOfferPrizeImageControl
+                              token={token}
+                              offerId={offer.id}
+                              place={place}
+                              imageObjectId={imageObjectId}
+                              onChanged={refresh}
+                            />
+                          )}
+                        </div>
                       );
                     })}
                   </div>

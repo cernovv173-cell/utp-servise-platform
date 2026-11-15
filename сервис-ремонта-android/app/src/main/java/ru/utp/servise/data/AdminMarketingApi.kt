@@ -50,6 +50,21 @@ object AdminMarketingApi {
         ApiClient.request("DELETE", "/admin/offers/$offerId", token)
     }
 
+    fun uploadOfferPrizeImage(token: String, offerId: String, place: Int, image: ByteArray) {
+        require(place in 1..3)
+        MediaApiClient.binaryRequest(
+            "POST",
+            "/admin/offers/$offerId/prizes/$place/image",
+            token,
+            image,
+        )
+    }
+
+    fun deleteOfferPrizeImage(token: String, offerId: String, place: Int) {
+        require(place in 1..3)
+        ApiClient.request("DELETE", "/admin/offers/$offerId/prizes/$place/image", token)
+    }
+
     fun drawOffer(token: String, offerId: String): CustomerOffer = ApiClient.request(
         "POST", "/admin/offers/$offerId/draw", token,
     ).getJSONObject("offer").toCustomerOffer()

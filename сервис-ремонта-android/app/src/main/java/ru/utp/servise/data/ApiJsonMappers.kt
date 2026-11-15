@@ -574,6 +574,9 @@ internal fun JSONObject.toCustomerOffer(): CustomerOffer {
             List(values.length()) { index -> values.optString(index) }
         }.orEmpty(),
         quizCorrectOption = if (isNull("quizCorrectOption")) null else optInt("quizCorrectOption"),
+        firstPlacePrizeImageId = nullableString("firstPlacePrizeImageId"),
+        secondPlacePrizeImageId = nullableString("secondPlacePrizeImageId"),
+        thirdPlacePrizeImageId = nullableString("thirdPlacePrizeImageId"),
     )
 }
 
@@ -590,6 +593,9 @@ internal fun JSONObject.toPublicCustomerOffer() = PublicCustomerOffer(
     thirdPlacePoints = optInt("thirdPlacePoints"),
     startsAt = getString("startsAt"),
     endsAt = getString("endsAt"),
+    firstPlacePrizeImageId = nullableString("firstPlacePrizeImageId"),
+    secondPlacePrizeImageId = nullableString("secondPlacePrizeImageId"),
+    thirdPlacePrizeImageId = nullableString("thirdPlacePrizeImageId"),
 )
 
 internal fun JSONObject.toOrderChat() = OrderChat(

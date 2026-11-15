@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -15,6 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import android.net.Uri
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,7 +34,10 @@ internal data class OfferConfirmation(
 @Composable
 internal fun AdminOfferCard(
     offer: CustomerOffer,
+    token: String,
     busy: Boolean,
+    onUploadPrizeImage: (Int, Uri) -> Unit,
+    onRemovePrizeImage: (Int) -> Unit,
     onPublish: () -> Unit,
     onDelete: () -> Unit,
     onDraw: () -> Unit,
@@ -83,15 +88,39 @@ internal fun AdminOfferCard(
             if (isPrizeOffer) {
                 Text("Участников: ${offer.participantCount}", color = UtpMuted, fontSize = 12.sp)
                 listOf(
-                    offer.firstPlacePrize to offer.firstPlacePoints,
-                    offer.secondPlacePrize to offer.secondPlacePoints,
-                    offer.thirdPlacePrize to offer.thirdPlacePoints,
+                    Triple(offer.firstPlacePrize, offer.firstPlacePoints, offer.firstPlacePrizeImageId),
+                    Triple(offer.secondPlacePrize, offer.secondPlacePoints, offer.secondPlacePrizeImageId),
+                    Triple(offer.thirdPlacePrize, offer.thirdPlacePoints, offer.thirdPlacePrizeImageId),
                 ).forEachIndexed { index, reward ->
                     val rewardText = buildString {
                         append("${index + 1}-е место: ${reward.first ?: "приз не указан"}")
                         if (reward.second > 0) append(" · ${reward.second} баллов")
                     }
                     Text(rewardText, color = UtpMuted, fontSize = 11.sp)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        reward.third?.let { objectId ->
+                            RemoteProjectImage(
+                                objectId = objectId,
+                                token = token,
+                                modifier = Modifier.size(64.dp),
+                                contentDescription = "Фото приза за ${index + 1}-е место",
+                            )
+                        }
+                        PhotoPickerButton(
+                            label = if (reward.third == null) "Добавить фото" else "Заменить фото",
+                            enabled = !busy,
+                            onImageSelected = { onUploadPrizeImage(index + 1, it) },
+                        )
+                        if (reward.third != null) {
+                            TextButton(
+                                onClick = { onRemovePrizeImage(index + 1) },
+                                enabled = !busy,
+                            ) { Text("Удалить") }
+                        }
+                    }
                 }
                 if (offer.drawnAt != null) {
                     val resultsLabel = if (offer.resultsPublishedAt != null) " · результаты опубликованы" else ""

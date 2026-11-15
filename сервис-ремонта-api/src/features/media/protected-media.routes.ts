@@ -197,16 +197,34 @@ export const createProtectedMediaRouter = (
                       if (!canViewRepairOrder(user.role, user.id, intake.order))
                         invalidMedia();
                     } else {
-                      const catalogProduct =
-                        await database.repairCatalogItem.findFirst({
+                      const customerOffer =
+                        await database.customerOffer.findFirst({
                           where: {
-                            type: "PRODUCT",
-                            imageObjectIds: { has: objectId },
-                            ...(user.role === "ADMIN" ? {} : { active: true }),
+                            OR: [
+                              { firstPlacePrizeImageId: objectId },
+                              { secondPlacePrizeImageId: objectId },
+                              { thirdPlacePrizeImageId: objectId },
+                            ],
+                            ...(user.role === "ADMIN"
+                              ? {}
+                              : { isPublished: true }),
                           },
                           select: { id: true },
                         });
-                      if (!catalogProduct) invalidMedia();
+                      if (!customerOffer) {
+                        const catalogProduct =
+                          await database.repairCatalogItem.findFirst({
+                            where: {
+                              type: "PRODUCT",
+                              imageObjectIds: { has: objectId },
+                              ...(user.role === "ADMIN"
+                                ? {}
+                                : { active: true }),
+                            },
+                            select: { id: true },
+                          });
+                        if (!catalogProduct) invalidMedia();
+                      }
                     }
                   }
                 }

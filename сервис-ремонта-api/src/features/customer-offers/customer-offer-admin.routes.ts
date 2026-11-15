@@ -1,13 +1,23 @@
-import { type Router } from "express";
+import express, {
+  type Request,
+  type RequestHandler,
+  type Router,
+} from "express";
+import { z } from "zod";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
+import { validateImage } from "../../lib/storage/project-images.js";
 import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import {
+  type MediaStorage,
+  projectMediaStorage,
+} from "../media/media-storage.js";
 import {
   adminOfferInclude,
   adminOfferResponse,
@@ -17,16 +27,30 @@ import {
   paramsOf,
   updateOfferBody,
 } from "./customer-offer-contracts.js";
+import { registerCustomerOfferPrizeImageAdminRoutes } from "./customer-offer-prize-image-admin.routes.js";
 import { scheduleCustomerOfferPush } from "./customer-offer-push-delivery.js";
 import { getCustomerOfferReward } from "./customer-offer-rewards.js";
 import { scheduleCustomerOfferWinnerPush } from "./customer-offer-winner-push-delivery.js";
 import { selectRandomWinners } from "./winner-selection.js";
 
+const prizeImageIds = (offer: {
+  firstPlacePrizeImageId: string | null;
+  secondPlacePrizeImageId: string | null;
+  thirdPlacePrizeImageId: string | null;
+}) =>
+  [
+    offer.firstPlacePrizeImageId,
+    offer.secondPlacePrizeImageId,
+    offer.thirdPlacePrizeImageId,
+  ].filter((objectId): objectId is string => Boolean(objectId));
+
 export const registerCustomerOfferAdminRoutes = (
   router: Router,
   database: DatabaseClient,
+  storage: MediaStorage = projectMediaStorage,
 ) => {
   const requireAuth = createRequireAuth(database);
+  registerCustomerOfferPrizeImageAdminRoutes(router, database, storage);
 
   router.get(
     "/admin/offers",
@@ -133,6 +157,22 @@ export const registerCustomerOfferAdminRoutes = (
     validateRequest({ params: offerParams }),
     async (_request, response) => {
       const { offerId } = paramsOf(response);
+      const existing = await database.customerOffer.findUnique({
+        where: { id: offerId },
+        select: {
+          id: true,
+          firstPlacePrizeImageId: true,
+          secondPlacePrizeImageId: true,
+          thirdPlacePrizeImageId: true,
+        },
+      });
+      if (!existing) {
+        throw new HttpError(
+          404,
+          "OFFER_NOT_FOUND",
+          "Акция, розыгрыш или квиз не найдены.",
+        );
+      }
       const deleted = await database.customerOffer.deleteMany({
         where: { id: offerId },
       });
@@ -143,6 +183,11 @@ export const registerCustomerOfferAdminRoutes = (
           "Акция, розыгрыш или квиз не найдены.",
         );
       }
+      await Promise.all(
+        prizeImageIds(existing).map((objectId) =>
+          storage.delete(objectId).catch(() => undefined),
+        ),
+      );
       response.status(204).end();
     },
   );

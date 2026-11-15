@@ -1224,32 +1224,35 @@ model SiteBanner {
 }
 
 model CustomerOffer {
-  id                   String                            @id @default(uuid()) @db.Uuid
-  type                 CustomerOfferType
-  title                String                            @db.VarChar(160)
-  content              String                            @db.VarChar(8000)
-  quizQuestion         String?                           @map("quiz_question") @db.VarChar(1000)
-  quizOptions          String[]                          @default([]) @map("quiz_options")
-  quizCorrectOption    Int?                              @map("quiz_correct_option") @db.SmallInt
-  firstPlacePrize      String?                           @map("first_place_prize") @db.VarChar(500)
-  firstPlacePoints     Int                               @default(0) @map("first_place_points")
-  secondPlacePrize     String?                           @map("second_place_prize") @db.VarChar(500)
-  secondPlacePoints    Int                               @default(0) @map("second_place_points")
-  thirdPlacePrize      String?                           @map("third_place_prize") @db.VarChar(500)
-  thirdPlacePoints     Int                               @default(0) @map("third_place_points")
-  isPublished          Boolean                           @default(false) @map("is_published")
-  startsAt             DateTime                          @map("starts_at") @db.Timestamptz(3)
-  endsAt               DateTime                          @map("ends_at") @db.Timestamptz(3)
-  drawnAt              DateTime?                         @map("drawn_at") @db.Timestamptz(3)
-  resultsPublishedAt   DateTime?                         @map("results_published_at") @db.Timestamptz(3)
-  createdById          String?                           @map("created_by_id") @db.Uuid
-  createdAt            DateTime                          @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime                          @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy            User?                             @relation("CustomerOfferCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  entries              CustomerOfferParticipation[]
-  rewardTransactions   LoyaltyTransaction[]              @relation("CustomerOfferReward")
-  pushDelivery         CustomerOfferPushDelivery?
-  winnerPushDeliveries CustomerOfferWinnerPushDelivery[]
+  id                      String                            @id @default(uuid()) @db.Uuid
+  type                    CustomerOfferType
+  title                   String                            @db.VarChar(160)
+  content                 String                            @db.VarChar(8000)
+  quizQuestion            String?                           @map("quiz_question") @db.VarChar(1000)
+  quizOptions             String[]                          @default([]) @map("quiz_options")
+  quizCorrectOption       Int?                              @map("quiz_correct_option") @db.SmallInt
+  firstPlacePrize         String?                           @map("first_place_prize") @db.VarChar(500)
+  firstPlacePrizeImageId  String?                           @map("first_place_prize_image_id") @db.VarChar(255)
+  firstPlacePoints        Int                               @default(0) @map("first_place_points")
+  secondPlacePrize        String?                           @map("second_place_prize") @db.VarChar(500)
+  secondPlacePrizeImageId String?                           @map("second_place_prize_image_id") @db.VarChar(255)
+  secondPlacePoints       Int                               @default(0) @map("second_place_points")
+  thirdPlacePrize         String?                           @map("third_place_prize") @db.VarChar(500)
+  thirdPlacePrizeImageId  String?                           @map("third_place_prize_image_id") @db.VarChar(255)
+  thirdPlacePoints        Int                               @default(0) @map("third_place_points")
+  isPublished             Boolean                           @default(false) @map("is_published")
+  startsAt                DateTime                          @map("starts_at") @db.Timestamptz(3)
+  endsAt                  DateTime                          @map("ends_at") @db.Timestamptz(3)
+  drawnAt                 DateTime?                         @map("drawn_at") @db.Timestamptz(3)
+  resultsPublishedAt      DateTime?                         @map("results_published_at") @db.Timestamptz(3)
+  createdById             String?                           @map("created_by_id") @db.Uuid
+  createdAt               DateTime                          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime                          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy               User?                             @relation("CustomerOfferCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  entries                 CustomerOfferParticipation[]
+  rewardTransactions      LoyaltyTransaction[]              @relation("CustomerOfferReward")
+  pushDelivery            CustomerOfferPushDelivery?
+  winnerPushDeliveries    CustomerOfferWinnerPushDelivery[]
 
   @@index([isPublished, startsAt, endsAt])
   @@index([type, endsAt])

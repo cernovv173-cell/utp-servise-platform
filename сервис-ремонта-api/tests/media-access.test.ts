@@ -35,8 +35,12 @@ test("media accepts real image and MP4 signatures and rejects mislabeled or empt
   });
 });
 
-test("avatars and order photos remain visible only to their account or order participants", async (t) => {
-  const tokens = { owner: "O".repeat(48), stranger: "S".repeat(48) };
+test("avatars, order photos, and offer prizes remain visible only to authorized users", async (t) => {
+  const tokens = {
+    owner: "O".repeat(48),
+    stranger: "S".repeat(48),
+    admin: "A".repeat(48),
+  };
   const owner = {
     id: "11111111-1111-4111-8111-111111111111",
     email: "owner@example.test",
@@ -54,9 +58,17 @@ test("avatars and order photos remain visible only to their account or order par
     displayName: "Другой клиент",
     role: "CUSTOMER" as const,
   };
+  const admin = {
+    ...owner,
+    id: "33333333-3333-4333-8333-333333333333",
+    email: "admin@example.test",
+    displayName: "Администратор",
+    role: "ADMIN" as const,
+  };
   const sessions = [
     { ...owner, token: tokens.owner },
     { ...stranger, token: tokens.stranger },
+    { ...admin, token: tokens.admin },
   ];
   let storedBytes = jpegFixture;
   let objectIdSequence = 0;
@@ -113,13 +125,41 @@ test("avatars and order photos remain visible only to their account or order par
       findFirst: async () => null,
     },
     repairOrderPhoto: {
-      findUnique: async () => ({
-        order: { customerId: owner.id, assignedTechnicianId: null },
-      }),
+      findUnique: async ({ where }: { where: { objectId: string } }) =>
+        where.objectId === "image-2"
+          ? { order: { customerId: owner.id, assignedTechnicianId: null } }
+          : null,
       create: async ({ data }: { data: Record<string, unknown> }) => ({
         id: "55555555-5555-4555-8555-555555555555",
         ...data,
       }),
+    },
+    repairOrderIntake: {
+      findFirst: async () => null,
+    },
+    customerOffer: {
+      findFirst: async ({
+        where,
+      }: {
+        where: {
+          OR: Array<Record<string, string>>;
+          isPublished?: boolean;
+        };
+      }) => {
+        const imageId = where.OR.flatMap(Object.values).find(Boolean);
+        if (imageId === "published-offer-prize")
+          return { id: "published-offer" };
+        if (
+          imageId === "draft-offer-prize" &&
+          where.isPublished === undefined
+        ) {
+          return { id: "draft-offer" };
+        }
+        return null;
+      },
+    },
+    repairCatalogItem: {
+      findFirst: async () => null,
     },
   };
   const app = express();
@@ -170,4 +210,20 @@ test("avatars and order photos remain visible only to their account or order par
   assert.equal(visiblePhoto.status, 200);
   assert.equal(visiblePhoto.headers.get("content-type"), "image/jpeg");
   assert.deepEqual(Buffer.from(await visiblePhoto.arrayBuffer()), jpegFixture);
+
+  const visibleOfferPrize = await fetch(
+    `${baseUrl}/media/published-offer-prize`,
+    { headers: { authorization: `Bearer ${tokens.owner}` } },
+  );
+  assert.equal(visibleOfferPrize.status, 200);
+
+  const hiddenDraftPrize = await fetch(`${baseUrl}/media/draft-offer-prize`, {
+    headers: { authorization: `Bearer ${tokens.owner}` },
+  });
+  assert.equal(hiddenDraftPrize.status, 404);
+
+  const adminDraftPrize = await fetch(`${baseUrl}/media/draft-offer-prize`, {
+    headers: { authorization: `Bearer ${tokens.admin}` },
+  });
+  assert.equal(adminDraftPrize.status, 200);
 });

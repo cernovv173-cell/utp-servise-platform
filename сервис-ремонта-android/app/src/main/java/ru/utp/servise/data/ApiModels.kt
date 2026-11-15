@@ -589,6 +589,9 @@ data class PublicCustomerOffer(
     val thirdPlacePoints: Int,
     val startsAt: String,
     val endsAt: String,
+    val firstPlacePrizeImageId: String? = null,
+    val secondPlacePrizeImageId: String? = null,
+    val thirdPlacePrizeImageId: String? = null,
 )
 
 data class CustomerOffer(
@@ -613,6 +616,9 @@ data class CustomerOffer(
     val quizQuestion: String? = null,
     val quizOptions: List<String> = emptyList(),
     val quizCorrectOption: Int? = null,
+    val firstPlacePrizeImageId: String? = null,
+    val secondPlacePrizeImageId: String? = null,
+    val thirdPlacePrizeImageId: String? = null,
 )
 
 data class OrderChatMessage(

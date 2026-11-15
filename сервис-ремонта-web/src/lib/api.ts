@@ -769,10 +769,13 @@ export type CustomerOffer = {
   quizOptions: string[];
   quizCorrectOption: number | null;
   firstPlacePrize: string | null;
+  firstPlacePrizeImageId: string | null;
   firstPlacePoints: number;
   secondPlacePrize: string | null;
+  secondPlacePrizeImageId: string | null;
   secondPlacePoints: number;
   thirdPlacePrize: string | null;
+  thirdPlacePrizeImageId: string | null;
   thirdPlacePoints: number;
   isPublished: boolean;
   startsAt: string;
@@ -798,10 +801,13 @@ export type PublicCustomerOffer = Pick<
   | "title"
   | "content"
   | "firstPlacePrize"
+  | "firstPlacePrizeImageId"
   | "firstPlacePoints"
   | "secondPlacePrize"
+  | "secondPlacePrizeImageId"
   | "secondPlacePoints"
   | "thirdPlacePrize"
+  | "thirdPlacePrizeImageId"
   | "thirdPlacePoints"
   | "startsAt"
   | "endsAt"
@@ -813,7 +819,7 @@ export type PublicCompletedCustomerOffer = {
   title: string;
   endsAt: string;
   resultsPublishedAt: string;
-  winners: CustomerOfferWinner[];
+  winners: Array<CustomerOfferWinner & { prizeImageId: string | null }>;
 };
 
 export type AdminCustomerOffer = Omit<CustomerOffer, "myParticipation">;
@@ -1968,6 +1974,9 @@ export const getPublicCustomerOffers = (signal?: AbortSignal) =>
     completedOffers?: PublicCompletedCustomerOffer[];
   }>("/public/offers", null, { signal });
 
+export const getPublicCustomerOfferPrizeImageUrl = (offerId: string, place: number) =>
+  `${apiBase}/public/offers/${encodeURIComponent(offerId)}/prizes/${place}/image`;
+
 export const participateInCustomerOffer = (token: string, offerId: string, answerIndex?: number) =>
   apiRequest<{
     participation: {
@@ -1989,6 +1998,23 @@ export const createAdminCustomerOffer = (token: string, offer: CreateCustomerOff
   apiRequest<{ offer: AdminCustomerOffer }>("/admin/offers", token, {
     method: "POST",
     body: JSON.stringify(offer),
+  });
+
+export const uploadAdminCustomerOfferPrizeImage = (
+  token: string,
+  offerId: string,
+  place: number,
+  file: File,
+) =>
+  uploadAdminImage(
+    `/admin/offers/${encodeURIComponent(offerId)}/prizes/${place}/image`,
+    token,
+    file,
+  );
+
+export const deleteAdminCustomerOfferPrizeImage = (token: string, offerId: string, place: number) =>
+  apiRequest<void>(`/admin/offers/${encodeURIComponent(offerId)}/prizes/${place}/image`, token, {
+    method: "DELETE",
   });
 
 export const updateAdminCustomerOffer = (token: string, offerId: string, isPublished: boolean) =>

@@ -994,6 +994,9 @@ object ApiClient {
     fun downloadMedia(token: String, objectId: String): ByteArray =
         MediaApiClient.download(token, objectId)
 
+    fun downloadPublicOfferPrizeImage(offerId: String, place: Int): ByteArray =
+        MediaApiClient.downloadPublicOfferPrizeImage(offerId, place)
+
     fun updateStatus(token: String, orderId: String, status: String, note: String = ""): RepairOrder = request(
         "PATCH", "/orders/$orderId/status", token,
         JSONObject().put("status", status).put("note", note)

@@ -512,7 +512,13 @@ publishing any prize offer credits configured bonus points to the loyalty ledger
 transaction. A unique ledger key prevents duplicate awards if results are published again. The
 additive `20261018200000_customer_offers` migration creates the original offer and participation
 records. `20261115195500_customer_offer_quiz` adds quiz fields and nullable answer data without
-rewriting existing customer or offer records.
+rewriting existing customer or offer records. `20261115203000_customer_offer_prize_images` adds one
+nullable object-storage image ID for each prize place. Administrators can upload, replace, or remove
+JPEG, PNG, and WebP images up to 5 MB through the authenticated prize-image routes. Public home-page
+images are served only for published active offers or after published results. Signed-in customers
+can load images for published offers; administrators can also preview draft images through the
+authenticated media route. The database stores only opaque object IDs, and replacing or deleting a
+photo removes its previous stored object when possible.
 
 The first publication of a news article sends a customer push notification. Publishing a promotion,
 giveaway, or quiz also creates a durable `customer_offer_push_deliveries` work item in the same database

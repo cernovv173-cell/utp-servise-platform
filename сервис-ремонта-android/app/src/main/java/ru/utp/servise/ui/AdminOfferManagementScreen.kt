@@ -29,6 +29,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,9 @@ import kotlinx.coroutines.withContext
 import ru.utp.servise.data.AdminMarketingApi
 import ru.utp.servise.data.CustomerOffer
 import java.time.Instant
+import android.net.Uri
+
+private data class OfferCreateOutcome(val photoUploadFailed: Boolean)
 
 @Composable
 fun AdminOfferManagementScreen(
@@ -49,6 +53,7 @@ fun AdminOfferManagementScreen(
     onBack: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var offers by remember { mutableStateOf(emptyList<CustomerOffer>()) }
     var loading by remember { mutableStateOf(true) }
     var offerType by remember { mutableStateOf("QUIZ") }
@@ -78,6 +83,7 @@ fun AdminOfferManagementScreen(
     var endsAt by remember { mutableStateOf(Instant.now().plusSeconds(7 * 24 * 60 * 60L).toString()) }
     var prizes by remember { mutableStateOf(listOf("", "", "")) }
     var points by remember { mutableStateOf(listOf("0", "0", "0")) }
+    var prizePhotoUris by remember { mutableStateOf<List<Uri?>>(listOf(null, null, null)) }
     var confirmation by remember { mutableStateOf<OfferConfirmation?>(null) }
 
     fun reload() {
@@ -142,6 +148,7 @@ fun AdminOfferManagementScreen(
         endsAt = Instant.now().plusSeconds(7 * 24 * 60 * 60L).toString()
         prizes = listOf("", "", "")
         points = listOf("0", "0", "0")
+        prizePhotoUris = listOf(null, null, null)
     }
 
     LazyColumn(
@@ -289,6 +296,35 @@ fun AdminOfferManagementScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
                             )
+                            PhotoPickerButton(
+                                label = if (prizePhotoUris[index] == null) {
+                                    "Добавить фото приза"
+                                } else {
+                                    "Заменить фото приза"
+                                },
+                                enabled = !busy,
+                            ) { uri ->
+                                prizePhotoUris = prizePhotoUris.toMutableList().also {
+                                    it[index] = uri
+                                }
+                            }
+                            prizePhotoUris[index]?.let { uri ->
+                                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                    Text(
+                                        uri.lastPathSegment?.takeLast(40) ?: "Фото выбрано",
+                                        modifier = Modifier.weight(1f),
+                                        fontSize = 11.sp,
+                                        color = UtpMuted,
+                                    )
+                                    TextButton(
+                                        onClick = {
+                                            prizePhotoUris = prizePhotoUris.toMutableList().also {
+                                                it[index] = null
+                                            }
+                                        },
+                                    ) { Text("Убрать") }
+                                }
+                            }
                         }
                         if (!validRewards) {
                             Text(
@@ -304,7 +340,7 @@ fun AdminOfferManagementScreen(
                                 prizes[index].trim().takeIf(String::isNotEmpty) to rewardPoints[index]
                             }
                             runAction({
-                                AdminMarketingApi.createOffer(
+                                val offer = AdminMarketingApi.createOffer(
                                     token = token,
                                     type = offerType,
                                     title = title,
@@ -320,9 +356,32 @@ fun AdminOfferManagementScreen(
                                     quizOptions = if (offerType == "QUIZ") quizOptions else emptyList(),
                                     quizCorrectOption = if (offerType == "QUIZ") correctOption else null,
                                 )
+                                var photoUploadFailed = false
+                                for (index in prizePhotoUris.indices) {
+                                    val uri = prizePhotoUris[index] ?: continue
+                                    try {
+                                        withContext(Dispatchers.IO) {
+                                            val image = compressSelectedImage(context, uri)
+                                            AdminMarketingApi.uploadOfferPrizeImage(
+                                                token,
+                                                offer.id,
+                                                index + 1,
+                                                image,
+                                            )
+                                        }
+                                    } catch (_: Throwable) {
+                                        photoUploadFailed = true
+                                        break
+                                    }
+                                }
+                                OfferCreateOutcome(photoUploadFailed)
                             }) {
+                                val outcome = it as? OfferCreateOutcome
                                 clearDraft()
                                 reload()
+                                if (outcome?.photoUploadFailed == true) {
+                                    onError("Черновик сохранён, но фото не загрузились. Добавьте их в списке предложений.")
+                                }
                             }
                         },
                         enabled = canCreate,
@@ -347,7 +406,27 @@ fun AdminOfferManagementScreen(
         items(offers, key = { it.id }) { offer ->
             AdminOfferCard(
                 offer = offer,
+                token = token,
                 busy = busy,
+                onUploadPrizeImage = { place, uri ->
+                    runAction({
+                        withContext(Dispatchers.IO) {
+                            AdminMarketingApi.uploadOfferPrizeImage(
+                                token,
+                                offer.id,
+                                place,
+                                compressSelectedImage(context, uri),
+                            )
+                        }
+                    }) { reload() }
+                },
+                onRemovePrizeImage = { place ->
+                    runAction({
+                        withContext(Dispatchers.IO) {
+                            AdminMarketingApi.deleteOfferPrizeImage(token, offer.id, place)
+                        }
+                    }) { reload() }
+                },
                 onPublish = {
                     val nextPublished = !offer.isPublished
                     confirmation = OfferConfirmation(

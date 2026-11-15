@@ -316,6 +316,7 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("customer/offers") {
                                 CustomerOffersScreen(
+                                    token = token,
                                     offers = customerOffers,
                                     busy = busy,
                                     onParticipate = { offerId, answerIndex ->

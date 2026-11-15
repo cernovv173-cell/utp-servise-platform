@@ -85,6 +85,32 @@ object MediaApiClient {
         }
     }
 
+    fun downloadPublicOfferPrizeImage(offerId: String, place: Int): ByteArray {
+        require(place in 1..3)
+        val baseUrl = requireSecureBaseUrl()
+        val connection = URL(
+            "$baseUrl/api/public/offers/${Uri.encode(offerId)}/prizes/$place/image",
+        ).openConnection() as HttpURLConnection
+        try {
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 20_000
+            val statusCode = connection.responseCode
+            if (statusCode !in 200..299) {
+                throw ApiException("IMAGE_NOT_FOUND", "Фото приза временно недоступно.")
+            }
+            return connection.inputStream.use { it.readBytes() }
+        } catch (failure: ApiException) {
+            throw failure
+        } catch (failure: java.net.SocketTimeoutException) {
+            throw ApiException("TIMEOUT", failure.message.orEmpty(), failure)
+        } catch (failure: IOException) {
+            throw ApiException("NETWORK_ERROR", failure.message.orEmpty(), failure)
+        } finally {
+            connection.disconnect()
+        }
+    }
+
     private fun requireSecureBaseUrl(): String {
         val baseUrl = ApiClient.baseUrl
         if (baseUrl.isBlank()) {

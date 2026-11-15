@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +41,7 @@ import java.util.Locale
 
 @Composable
 fun CustomerOffersScreen(
+    token: String,
     offers: List<CustomerOffer>,
     busy: Boolean,
     onParticipate: (String, Int?) -> Unit,
@@ -104,6 +106,7 @@ fun CustomerOffersScreen(
             key(offer.id) {
                 CustomerOfferCard(
                     offer = offer,
+                    token = token,
                     currentTimeMillis = currentTimeMillis,
                     busy = busy,
                     onParticipate = { answerIndex -> onParticipate(offer.id, answerIndex) },
@@ -116,6 +119,7 @@ fun CustomerOffersScreen(
 @Composable
 private fun CustomerOfferCard(
     offer: CustomerOffer,
+    token: String,
     currentTimeMillis: Long,
     busy: Boolean,
     onParticipate: (Int?) -> Unit,
@@ -183,7 +187,7 @@ private fun CustomerOfferCard(
             }
 
             if (isGiveaway || isQuiz) {
-                OfferPrizes(offer)
+                OfferPrizes(offer, token)
                 Text("Участников: ${offer.participantCount}", fontSize = 12.sp, color = UtpMuted)
             } else {
                 Text(
@@ -278,26 +282,48 @@ private fun QuizAnswerOptions(
     }
 }
 
+private data class OfferPrizeDisplay(
+    val place: String,
+    val prize: String?,
+    val points: Int,
+    val imageObjectId: String?,
+)
+
 @Composable
-private fun OfferPrizes(offer: CustomerOffer) {
+private fun OfferPrizes(offer: CustomerOffer, token: String) {
     val prizes = listOf(
-        Triple("1 место", offer.firstPlacePrize, offer.firstPlacePoints),
-        Triple("2 место", offer.secondPlacePrize, offer.secondPlacePoints),
-        Triple("3 место", offer.thirdPlacePrize, offer.thirdPlacePoints),
-    ).filter { (_, prize, points) -> !prize.isNullOrBlank() || points > 0 }
+        OfferPrizeDisplay("1 место", offer.firstPlacePrize, offer.firstPlacePoints, offer.firstPlacePrizeImageId),
+        OfferPrizeDisplay("2 место", offer.secondPlacePrize, offer.secondPlacePoints, offer.secondPlacePrizeImageId),
+        OfferPrizeDisplay("3 место", offer.thirdPlacePrize, offer.thirdPlacePoints, offer.thirdPlacePrizeImageId),
+    ).filter { !it.prize.isNullOrBlank() || it.points > 0 || it.imageObjectId != null }
 
     if (prizes.isNotEmpty()) {
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Text("Призы", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-            prizes.forEach { (place, prize, points) ->
-                Text(
-                    listOfNotNull(
-                        "$place: ${prize?.takeIf(String::isNotBlank)}".takeIf { !prize.isNullOrBlank() },
-                        "$points баллов".takeIf { points > 0 },
-                    ).joinToString(" · "),
-                    fontSize = 12.sp,
-                    color = UtpMuted,
-                )
+            prizes.forEach { reward ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    reward.imageObjectId?.let { objectId ->
+                        RemoteProjectImage(
+                            objectId = objectId,
+                            token = token,
+                            modifier = Modifier.size(72.dp),
+                            contentDescription = "Фото приза за ${reward.place}",
+                        )
+                    }
+                    Text(
+                        listOfNotNull(
+                            "${reward.place}: ${reward.prize?.takeIf(String::isNotBlank)}".takeIf {
+                                !reward.prize.isNullOrBlank()
+                            },
+                            "${reward.points} баллов".takeIf { reward.points > 0 },
+                        ).joinToString(" · "),
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                    )
+                }
             }
         }
     }

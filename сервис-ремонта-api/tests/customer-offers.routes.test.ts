@@ -5,6 +5,7 @@ import { test } from "node:test";
 
 import { hashSessionToken } from "../src/features/auth/auth.middleware.js";
 import { createCustomerOffersRouter } from "../src/features/customer-offers/customer-offers.routes.js";
+import type { MediaStorage } from "../src/features/media/media-storage.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
@@ -27,10 +28,13 @@ const makeOffer = (
     quizOptions: string[];
     quizCorrectOption: number | null;
     firstPlacePrize: string | null;
+    firstPlacePrizeImageId: string | null;
     firstPlacePoints: number;
     secondPlacePrize: string | null;
+    secondPlacePrizeImageId: string | null;
     secondPlacePoints: number;
     thirdPlacePrize: string | null;
+    thirdPlacePrizeImageId: string | null;
     thirdPlacePoints: number;
     startsAt: Date;
     endsAt: Date;
@@ -47,10 +51,13 @@ const makeOffer = (
   quizOptions: [],
   quizCorrectOption: null,
   firstPlacePrize: null,
+  firstPlacePrizeImageId: null,
   firstPlacePoints: 0,
   secondPlacePrize: null,
+  secondPlacePrizeImageId: null,
   secondPlacePoints: 0,
   thirdPlacePrize: null,
+  thirdPlacePrizeImageId: null,
   thirdPlacePoints: 0,
   isPublished: true,
   startsAt: new Date(Date.now() - 60_000),
@@ -63,7 +70,7 @@ const makeOffer = (
   ...values,
 });
 
-const createHarness = () => {
+const createHarness = (storage?: MediaStorage) => {
   const users = [
     {
       id: "admin-user",
@@ -139,7 +146,7 @@ const createHarness = () => {
       startsAt: new Date(Date.now() - 3_600_000),
       endsAt: new Date(Date.now() + 3_600_000),
     }),
-    makeOffer(unpublishedOfferId, { isPublished: false }),
+    makeOffer(unpublishedOfferId, { type: "GIVEAWAY", isPublished: false }),
   ];
   const entries: Array<{
     id: string;
@@ -336,6 +343,36 @@ const createHarness = () => {
       },
     },
     customerOffer: {
+      findFirst: async ({
+        where,
+        select,
+      }: {
+        where: Record<string, any>;
+        select?: Record<string, boolean>;
+      }) => {
+        const now = new Date();
+        const offer = offers.find((candidate) => {
+          const active = candidate.startsAt <= now && candidate.endsAt > now;
+          const completed =
+            candidate.endsAt <= now && candidate.resultsPublishedAt !== null;
+          return (
+            candidate.id === where.id &&
+            candidate.isPublished === where.isPublished &&
+            (where.type?.in === undefined ||
+              where.type.in.includes(candidate.type)) &&
+            (active || completed)
+          );
+        });
+        if (!offer) return null;
+        return select
+          ? Object.fromEntries(
+              Object.keys(select).map((key) => [
+                key,
+                offer[key as keyof typeof offer],
+              ]),
+            )
+          : { ...offer };
+      },
       findMany: async ({
         where,
         include,
@@ -421,11 +458,11 @@ const createHarness = () => {
         data,
       }: {
         where: { id: string };
-        data: { isPublished: boolean };
+        data: Record<string, unknown>;
       }) => {
         const offer = offers.find((candidate) => candidate.id === where.id);
         assert.ok(offer);
-        offer.isPublished = data.isPublished;
+        Object.assign(offer, data);
         return offer;
       },
       updateMany: async ({
@@ -661,6 +698,7 @@ const createHarness = () => {
         return { count: data.length };
       },
     },
+    $queryRaw: async () => [],
   };
   Object.assign(client, {
     $transaction: async <T>(
@@ -672,7 +710,7 @@ const createHarness = () => {
   app.use(express.json());
   app.use(
     "/api",
-    createCustomerOffersRouter(client as unknown as DatabaseClient),
+    createCustomerOffersRouter(client as unknown as DatabaseClient, storage),
   );
   app.use(errorHandler);
   const server = app.listen(0);
@@ -686,6 +724,107 @@ const createHarness = () => {
     server,
   };
 };
+
+test("administrators manage prize photos and public access excludes unpublished offers", async (t) => {
+  const images = new Map<string, { bytes: Buffer; contentType: string }>();
+  const deletedIds: string[] = [];
+  let uploadCount = 0;
+  let downloadCount = 0;
+  const storage: MediaStorage = {
+    upload: async (bytes, contentType) => {
+      const objectId = `offer-prize-image-${++uploadCount}`;
+      images.set(objectId, { bytes: Buffer.from(bytes), contentType });
+      return objectId;
+    },
+    delete: async (objectId) => {
+      deletedIds.push(objectId);
+      images.delete(objectId);
+    },
+    download: async (objectId) => {
+      downloadCount += 1;
+      const image = images.get(objectId);
+      assert.ok(image);
+      return image;
+    },
+  };
+  const harness = createHarness(storage);
+  await once(harness.server, "listening");
+  t.after(() => harness.server.close());
+  const address = harness.server.address();
+  assert.ok(address && typeof address !== "string");
+  const baseUrl = `http://127.0.0.1:${address.port}/api`;
+  const headers = (token: string) => ({ authorization: `Bearer ${token}` });
+  const imageBytes = Buffer.from([0xff, 0xd8, 0xff]);
+  const upload = (
+    offerId: string,
+    place: number,
+    token: string,
+    bytes = imageBytes,
+  ) =>
+    fetch(`${baseUrl}/admin/offers/${offerId}/prizes/${place}/image`, {
+      method: "POST",
+      headers: { ...headers(token), "content-type": "image/jpeg" },
+      body: bytes,
+    });
+
+  const customerUpload = await upload(quizId, 1, customerToken);
+  assert.equal(customerUpload.status, 403);
+  assert.equal(uploadCount, 0);
+
+  const invalidUpload = await upload(
+    quizId,
+    1,
+    adminToken,
+    Buffer.from("not an image"),
+  );
+  assert.equal(invalidUpload.status, 400);
+  assert.equal(uploadCount, 0);
+
+  const firstUpload = await upload(quizId, 1, adminToken);
+  assert.equal(firstUpload.status, 201);
+  const firstObjectId = (await firstUpload.json()).objectId as string;
+  assert.equal(
+    harness.offers.find((offer) => offer.id === quizId)?.firstPlacePrizeImageId,
+    firstObjectId,
+  );
+
+  const publicImage = await fetch(
+    `${baseUrl}/public/offers/${quizId}/prizes/1/image`,
+  );
+  assert.equal(publicImage.status, 200);
+  assert.equal(publicImage.headers.get("content-type"), "image/jpeg");
+  assert.equal(publicImage.headers.get("x-content-type-options"), "nosniff");
+  assert.deepEqual(Buffer.from(await publicImage.arrayBuffer()), imageBytes);
+
+  const replacement = await upload(quizId, 1, adminToken);
+  assert.equal(replacement.status, 201);
+  const replacementId = (await replacement.json()).objectId as string;
+  assert.ok(deletedIds.includes(firstObjectId));
+  assert.equal(images.has(firstObjectId), false);
+
+  const hiddenUpload = await upload(unpublishedOfferId, 2, adminToken);
+  assert.equal(hiddenUpload.status, 201);
+  const hiddenObjectId = (await hiddenUpload.json()).objectId as string;
+  const downloadsBeforeDraftRead = downloadCount;
+  const hiddenPublicImage = await fetch(
+    `${baseUrl}/public/offers/${unpublishedOfferId}/prizes/2/image`,
+  );
+  assert.equal(hiddenPublicImage.status, 404);
+  assert.equal(downloadCount, downloadsBeforeDraftRead);
+  assert.equal(images.has(hiddenObjectId), true);
+
+  const removed = await fetch(
+    `${baseUrl}/admin/offers/${quizId}/prizes/1/image`,
+    { method: "DELETE", headers: headers(adminToken) },
+  );
+  assert.equal(removed.status, 204);
+  assert.equal(
+    harness.offers.find((offer) => offer.id === quizId)?.firstPlacePrizeImageId,
+    null,
+  );
+  assert.ok(deletedIds.includes(replacementId));
+  assert.equal(images.has(replacementId), false);
+});
 
 test("customers join once, and administrators draw and publish three distinct winners", async (t) => {
   const harness = createHarness();

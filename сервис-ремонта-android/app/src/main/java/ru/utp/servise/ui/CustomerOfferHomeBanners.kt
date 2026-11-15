@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -200,6 +201,7 @@ private fun CompactCustomerOfferCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
+                PublicOfferPrizeImages(offer)
             }
             Text(
                 when {
@@ -279,6 +281,7 @@ private fun CustomerOfferBanner(offer: PublicCustomerOffer, onOpenOffers: () -> 
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+            PublicOfferPrizeImages(offer)
             Button(
                 onClick = onOpenOffers,
                 modifier = Modifier.fillMaxWidth(),
@@ -295,6 +298,29 @@ private fun CustomerOfferBanner(offer: PublicCustomerOffer, onOpenOffers: () -> 
                         else -> "Подробнее об акции →"
                     },
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PublicOfferPrizeImages(offer: PublicCustomerOffer) {
+    val images = listOf(
+        1 to offer.firstPlacePrizeImageId,
+        2 to offer.secondPlacePrizeImageId,
+        3 to offer.thirdPlacePrizeImageId,
+    ).filter { it.second != null }
+    if (images.isEmpty()) return
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        images.forEach { (place, _) ->
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                RemotePublicOfferPrizeImage(
+                    offerId = offer.id,
+                    place = place,
+                    modifier = Modifier.size(72.dp),
+                    contentDescription = "Фото приза за $place место",
+                )
+                Text("$place место", fontSize = 10.sp, color = UtpMuted)
             }
         }
     }
