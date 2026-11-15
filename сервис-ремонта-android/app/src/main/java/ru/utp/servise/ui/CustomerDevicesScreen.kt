@@ -39,7 +39,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.Instant
 
-private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
+private val deviceTypes = listOf("COMPUTER", "LAPTOP")
 
 @Composable
 fun CustomerDevicesScreen(
@@ -214,8 +214,10 @@ private fun DeviceCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(13.dp),
             ) { Text("Сохранить напоминание") }
-            Button(onClick = onRepeat, enabled = !busy, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
-                Text("Повторить заявку")
+            if (device.deviceType == "COMPUTER" || device.deviceType == "LAPTOP") {
+                Button(onClick = onRepeat, enabled = !busy, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
+                    Text("Повторить заявку")
+                }
             }
             Text("История ремонта", fontWeight = FontWeight.SemiBold, color = UtpInk)
             if (device.repairOrders.isEmpty()) {

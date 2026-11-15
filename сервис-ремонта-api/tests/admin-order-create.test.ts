@@ -14,6 +14,7 @@ test("only admins create repair orders for active customers and creation is audi
   const adminId = "11111111-1111-4111-8111-111111111111";
   const customerId = "22222222-2222-4222-8222-222222222222";
   const orderId = "33333333-3333-4333-8333-333333333333";
+  const savedPhoneDeviceId = "44444444-4444-4444-8444-444444444444";
   const users = [
     {
       id: adminId,
@@ -58,6 +59,18 @@ test("only admins create repair orders for active customers and creation is audi
           ? { id: customerId, phoneNumber: users[1]!.phoneNumber }
           : null,
     },
+    customerDevice: {
+      findFirst: async ({ where }: { where: { id: string } }) =>
+        where.id === savedPhoneDeviceId
+          ? {
+              id: savedPhoneDeviceId,
+              deviceType: "PHONE",
+              brand: "Apple",
+              model: "iPhone",
+              serialNumber: null,
+            }
+          : null,
+    },
     $queryRaw: async () => [{ value: 81n }],
     repairOrder: {
       create: async ({ data }: { data: Record<string, unknown> }) => {
@@ -98,8 +111,8 @@ test("only admins create repair orders for active customers and creation is audi
   });
   const body = {
     customerId,
-    deviceType: "PHONE",
-    problem: "Телефон не включается",
+    deviceType: "COMPUTER",
+    problem: "Компьютер не включается",
     city: "Москва",
     street: "Тестовая",
     house: "1",
@@ -118,13 +131,36 @@ test("only admins create repair orders for active customers and creation is audi
   assert.equal(statusEvent?.actorId, adminId);
   assert.equal(statusEvent?.note, "Заявка создана администратором");
 
+  for (const deviceType of ["PHONE", "TABLET"]) {
+    const rejectedAdminOrder = await fetch(endpoint, {
+      method: "POST",
+      headers: headers(adminToken),
+      body: JSON.stringify({ ...body, deviceType }),
+    });
+    assert.equal(rejectedAdminOrder.status, 400);
+
+    const rejectedCustomerOrder = await fetch(
+      endpoint.replace("/admin/orders", "/orders"),
+      {
+        method: "POST",
+        headers: headers(customerToken),
+        body: JSON.stringify({
+          deviceType,
+          problem: "Устройство не включается",
+          contactPhone: users[1]!.phoneNumber,
+        }),
+      },
+    );
+    assert.equal(rejectedCustomerOrder.status, 400);
+  }
+
   const withoutAddress = await fetch(endpoint, {
     method: "POST",
     headers: headers(adminToken),
     body: JSON.stringify({
       customerId,
-      deviceType: "PHONE",
-      problem: "Телефон не включается",
+      deviceType: "COMPUTER",
+      problem: "Компьютер не включается",
       repairLocation: "SERVICE_CENTER",
       city: "",
       street: "",
@@ -143,8 +179,8 @@ test("only admins create repair orders for active customers and creation is audi
       method: "POST",
       headers: headers(customerToken),
       body: JSON.stringify({
-        deviceType: "PHONE",
-        problem: "Телефон не включается",
+        deviceType: "COMPUTER",
+        problem: "Компьютер не включается",
         contactPhone: users[1]!.phoneNumber,
       }),
     },
@@ -154,6 +190,21 @@ test("only admins create repair orders for active customers and creation is audi
   assert.equal(createdData?.city, null);
   assert.equal(createdData?.street, null);
   assert.equal(createdData?.house, null);
+
+  const savedPhoneDeviceOrder = await fetch(
+    endpoint.replace("/admin/orders", "/orders"),
+    {
+      method: "POST",
+      headers: headers(customerToken),
+      body: JSON.stringify({
+        deviceType: "COMPUTER",
+        customerDeviceId: savedPhoneDeviceId,
+        problem: "Проверка сохранённого устройства",
+        contactPhone: users[1]!.phoneNumber,
+      }),
+    },
+  );
+  assert.equal(savedPhoneDeviceOrder.status, 400);
 
   for (const repairLocation of [
     "CUSTOMER_ADDRESS",

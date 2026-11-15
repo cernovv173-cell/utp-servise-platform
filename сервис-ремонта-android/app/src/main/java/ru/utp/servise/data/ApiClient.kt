@@ -296,7 +296,7 @@ object ApiClient {
             unitPriceRub = price.getInt("unitPriceRub"),
             deviceTypes = price.optJSONArray("deviceTypes")?.let { values ->
                 List(values.length()) { index -> values.getString(index) }
-            } ?: listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET"),
+            } ?: listOf("COMPUTER", "LAPTOP"),
         )
     }
 
@@ -329,7 +329,7 @@ object ApiClient {
         stockQuantity: Int? = null,
         minimumStockQuantity: Int? = null,
         description: String? = null,
-        deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET"),
+        deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP"),
     ): CatalogItem {
         val body = JSONObject()
             .put("type", type)

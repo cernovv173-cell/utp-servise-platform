@@ -1,16 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { ServiceLandingPage } from "@/features/services/service-landing-page";
-import { phoneRepairPage } from "@/features/services/service-pages-content";
-
-import { createPageHead } from "@/lib/seo";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/uslugi/remont-telefonov")({
-  component: () => <ServiceLandingPage page={phoneRepairPage} />,
-  head: () =>
-    createPageHead({
-      title: phoneRepairPage.metaTitle,
-      description: phoneRepairPage.metaDescription,
-      path: phoneRepairPage.path,
-    }),
+  beforeLoad: () => {
+    throw redirect({ to: "/uslugi" });
+  },
 });

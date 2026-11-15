@@ -311,11 +311,11 @@ repair-redemption cap.
 
 ## Device-specific repair catalog
 
-Every service and spare part has one or more supported device types: `COMPUTER`, `LAPTOP`,
-`PHONE`, or `TABLET`. Repair requests store the selected device type; the Web and Android clients
-use it to filter the catalog, and the API rejects items that do not match the order. Products for
-the separate customer shop keep their existing workflow. Catalog managers can adjust the device
-types for each service or part.
+New repair requests and newly managed catalog entries support only `COMPUTER` and `LAPTOP`.
+The API rejects new requests for other device types. Existing `PHONE` and `TABLET` orders and their
+catalog compatibility remain readable for historical records and previously issued warranties;
+they cannot be selected for a new repair. Products for the separate customer shop keep their
+existing workflow.
 
 ## Intake, work orders, and order release
 

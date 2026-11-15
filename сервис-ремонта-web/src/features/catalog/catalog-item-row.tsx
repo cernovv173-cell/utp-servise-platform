@@ -57,7 +57,12 @@ export const CatalogItemRow = ({
   onSave: (input: CatalogItemUpdate) => void;
 }) => {
   const [type, setType] = useState(item.type);
-  const [deviceTypes, setDeviceTypes] = useState<RepairDeviceType[]>(item.deviceTypes);
+  const [deviceTypes, setDeviceTypes] = useState<RepairDeviceType[]>(() => {
+    const supported = item.deviceTypes.filter((deviceType) =>
+      repairDeviceTypes.includes(deviceType),
+    );
+    return supported.length > 0 ? supported : [...repairDeviceTypes];
+  });
   const [showEditor, setShowEditor] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -109,14 +114,16 @@ export const CatalogItemRow = ({
             </p>
             {item.type !== "PRODUCT" && (
               <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Подходит для устройств">
-                {item.deviceTypes.map((deviceType) => (
-                  <span
-                    key={deviceType}
-                    className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-medium text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-200"
-                  >
-                    {repairDeviceTypeLabels[deviceType]}
-                  </span>
-                ))}
+                {item.deviceTypes
+                  .filter((deviceType) => repairDeviceTypes.includes(deviceType))
+                  .map((deviceType) => (
+                    <span
+                      key={deviceType}
+                      className="rounded-full bg-cyan-50 px-2 py-0.5 text-[10px] font-medium text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-200"
+                    >
+                      {repairDeviceTypeLabels[deviceType]}
+                    </span>
+                  ))}
               </div>
             )}
             {item.active &&

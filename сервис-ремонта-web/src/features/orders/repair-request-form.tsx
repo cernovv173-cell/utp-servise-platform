@@ -44,7 +44,10 @@ export const RepairRequestForm = ({
   const [deviceType, setDeviceType] = useState("COMPUTER");
   const [repairLocation, setRepairLocation] = useState<RepairLocation>("SERVICE_CENTER");
   const [isWithinCity, setIsWithinCity] = useState(true);
-  const selectedDevice = devices.find((device) => device.id === selectedDeviceId);
+  const supportedDevices = devices.filter(
+    (device) => device.deviceType === "COMPUTER" || device.deviceType === "LAPTOP",
+  );
+  const selectedDevice = supportedDevices.find((device) => device.id === selectedDeviceId);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -53,7 +56,7 @@ export const RepairRequestForm = ({
     onSubmit(
       {
         deviceType: String(data.get("deviceType")),
-        ...(selectedDeviceId ? { customerDeviceId: selectedDeviceId } : {}),
+        ...(selectedDevice ? { customerDeviceId: selectedDevice.id } : {}),
         deviceBrand: String(data.get("deviceBrand") || "").trim(),
         deviceModel: String(data.get("deviceModel") || "").trim(),
         deviceSerialNumber: String(data.get("deviceSerialNumber") || "").trim(),
@@ -97,14 +100,12 @@ export const RepairRequestForm = ({
         >
           <option value="COMPUTER">ПК</option>
           <option value="LAPTOP">Ноутбук</option>
-          <option value="PHONE">Телефон</option>
-          <option value="TABLET">Планшет</option>
         </select>
       </label>
       {selectedDevice && (
         <input type="hidden" name="deviceType" value={selectedDevice.deviceType} />
       )}
-      {devices.length > 0 && (
+      {supportedDevices.length > 0 && (
         <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
           Сохранённая техника
           <select
@@ -113,7 +114,7 @@ export const RepairRequestForm = ({
             className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
           >
             <option value="">Новая техника — заполнить вручную</option>
-            {devices.map((device) => (
+            {supportedDevices.map((device) => (
               <option key={device.id} value={device.id}>
                 {[device.nickname, device.brand, device.model].filter(Boolean).join(" · ") ||
                   "Моя техника"}
@@ -129,7 +130,7 @@ export const RepairRequestForm = ({
       )}
       {selectedDeviceId && !selectedDevice && !devicesLoading && (
         <div className="rounded-xl bg-amber-50 p-3 text-sm text-amber-900 md:col-span-2 dark:bg-amber-950/40 dark:text-amber-100">
-          Сохранённая техника не найдена. Выберите ручной ввод и заполните данные устройства.
+          Для новой заявки выберите компьютер или ноутбук и укажите его данные вручную.
           <button
             type="button"
             onClick={() => setSelectedDeviceId("")}

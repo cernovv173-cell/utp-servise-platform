@@ -682,7 +682,7 @@ model RepairCatalogItem {
   type                 RepairOrderItemType
   name                 String                  @db.VarChar(160)
   description          String?                 @db.VarChar(2000)
-  deviceTypes          RepairDeviceType[]      @default([COMPUTER, LAPTOP, PHONE, TABLET]) @map("device_types")
+  deviceTypes          RepairDeviceType[]      @default([COMPUTER, LAPTOP]) @map("device_types")
   imageObjectIds       String[]                @default([]) @map("image_object_ids")
   unitPriceRub         Int                     @map("unit_price_rub")
   stockQuantity        Int?                    @map("stock_quantity")

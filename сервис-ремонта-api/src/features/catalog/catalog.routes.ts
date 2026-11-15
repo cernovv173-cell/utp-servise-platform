@@ -14,12 +14,13 @@ import {
   projectMediaStorage,
 } from "../media/media-storage.js";
 import { isInventoryCatalogItem } from "./catalog-policy.js";
+import { supportedRepairDeviceTypes } from "./repair-device-types.js";
 
 const catalogItemIdParams = z.object({
   catalogItemId: z.string().uuid(),
 });
 const itemType = z.enum(["SERVICE", "SPARE_PART", "PRODUCT"]);
-const deviceType = z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]);
+const deviceType = z.enum(supportedRepairDeviceTypes);
 const servicePriceQuery = z
   .object({ deviceType: deviceType.optional() })
   .strict();
@@ -118,6 +119,7 @@ export const createCatalogRouter = (
         where: {
           type: "SERVICE",
           active: true,
+          deviceTypes: { hasSome: [...supportedRepairDeviceTypes] },
           ...(requestedDeviceType
             ? { deviceTypes: { has: requestedDeviceType } }
             : {}),
@@ -142,6 +144,7 @@ export const createCatalogRouter = (
         where: {
           type: "SERVICE",
           active: true,
+          deviceTypes: { hasSome: [...supportedRepairDeviceTypes] },
           ...(requestedDeviceType
             ? { deviceTypes: { has: requestedDeviceType } }
             : {}),
@@ -226,12 +229,7 @@ export const createCatalogRouter = (
       const catalogItem = await database.repairCatalogItem.create({
         data: {
           ...input,
-          deviceTypes: input.deviceTypes ?? [
-            "COMPUTER",
-            "LAPTOP",
-            "PHONE",
-            "TABLET",
-          ],
+          deviceTypes: input.deviceTypes ?? ["COMPUTER", "LAPTOP"],
           stockQuantity: isInventoryCatalogItem(input.type)
             ? (input.stockQuantity ?? 0)
             : null,
@@ -263,7 +261,12 @@ export const createCatalogRouter = (
         `;
         const existing = await transaction.repairCatalogItem.findUnique({
           where: { id: catalogItemId },
-          select: { id: true, type: true, stockQuantity: true },
+          select: {
+            id: true,
+            type: true,
+            stockQuantity: true,
+            deviceTypes: true,
+          },
         });
         if (!existing)
           throw new HttpError(
@@ -333,6 +336,17 @@ export const createCatalogRouter = (
           where: { id: catalogItemId },
           data: {
             ...input,
+            ...(input.deviceTypes === undefined
+              ? {}
+              : {
+                  deviceTypes: [
+                    ...input.deviceTypes,
+                    ...(existing.deviceTypes ?? []).filter(
+                      (deviceType) =>
+                        deviceType === "PHONE" || deviceType === "TABLET",
+                    ),
+                  ],
+                }),
             ...(input.type === "SERVICE"
               ? { stockQuantity: null, minimumStockQuantity: null }
               : input.type !== undefined &&

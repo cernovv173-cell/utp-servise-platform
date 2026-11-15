@@ -36,7 +36,7 @@ import ru.utp.servise.data.OrderAddress
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.deviceLabel
 
-private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
+private val deviceTypes = listOf("COMPUTER", "LAPTOP")
 
 @Composable
 internal fun AssignmentDialog(
@@ -95,6 +95,7 @@ internal fun OrderEditDialog(
     var additionalPhone by remember(order.id) { mutableStateOf(order.additionalPhone.orEmpty()) }
     var additionalInfo by remember(order.id) { mutableStateOf(order.additionalInfo.orEmpty()) }
     var deviceMenu by remember { mutableStateOf(false) }
+    val editableDeviceTypes = deviceTypes + listOf(order.deviceType).filterNot(deviceTypes::contains)
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -114,7 +115,7 @@ internal fun OrderEditDialog(
                         Text("⌄")
                     }
                     DropdownMenu(expanded = deviceMenu, onDismissRequest = { deviceMenu = false }) {
-                        deviceTypes.forEach { item ->
+                        editableDeviceTypes.forEach { item ->
                             DropdownMenuItem(
                                 text = { Text(item.deviceLabel()) },
                                 onClick = { deviceType = item; deviceMenu = false },

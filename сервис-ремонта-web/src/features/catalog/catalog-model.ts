@@ -8,9 +8,9 @@ export const itemTypeLabels = {
 
 export const tracksStock = (type: RepairCatalogItem["type"]) => type !== "SERVICE";
 
-export const repairDeviceTypes: RepairDeviceType[] = ["COMPUTER", "LAPTOP", "PHONE", "TABLET"];
+export const repairDeviceTypes: RepairDeviceType[] = ["COMPUTER", "LAPTOP"];
 
-export const repairDeviceTypeLabels: Record<RepairDeviceType, string> = {
+export const repairDeviceTypeLabels: Record<string, string> = {
   COMPUTER: "ПК",
   LAPTOP: "Ноутбук",
   PHONE: "Телефон",

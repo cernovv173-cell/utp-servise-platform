@@ -276,7 +276,7 @@ and contact details, assigned technician contact, protected request photos, stat
 services/parts/products and totals, repair paperwork, and a standard release action with payment
 confirmation. All request cards in customer/staff lists and the administrator list start as compact
 summaries; opening a card reveals its details and available actions. Direct administrator order-detail
-links remain expanded. Each service and spare part is tagged for one or more of PC, laptop, phone, or tablet;
+links remain expanded. Each new service and spare part is tagged for PC and/or laptop; existing phone/tablet orders and their warranty history remain readable;
 requests and estimates show only matching catalog entries, and a selected saved device supplies its
 type automatically. Customers can edit or cancel their own requests only while they are new, and may
 leave one review with an optional photo after completion. Assigned technicians can advance their

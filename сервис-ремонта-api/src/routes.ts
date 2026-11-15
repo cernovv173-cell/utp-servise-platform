@@ -54,7 +54,7 @@ export const createApiRouter = ({
       response.json({
         company: {
           name: "ЕНОТ СЕРВИС",
-          description: "Ремонт компьютеров, ноутбуков, телефонов и планшетов.",
+          description: "Ремонт компьютеров и ноутбуков.",
           history: "",
           services: [],
           phone: "",

@@ -9,6 +9,7 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { supportedRepairDeviceTypes } from "../catalog/repair-device-types.js";
 
 const deviceIdParams = z.object({ deviceId: z.string().uuid() });
 const dateOnly = z
@@ -23,7 +24,7 @@ const dateOnly = z
   });
 
 const deviceFields = {
-  deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]),
+  deviceType: z.enum(supportedRepairDeviceTypes),
   nickname: z.string().trim().max(120).nullable().optional(),
   brand: z.string().trim().max(120).nullable().optional(),
   model: z.string().trim().max(160).nullable().optional(),

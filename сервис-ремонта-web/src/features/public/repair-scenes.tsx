@@ -7,11 +7,6 @@ const repairScenes = [
     title: "Компьютеры и ноутбуки",
   },
   {
-    image: "/images/repair-scenes/repair-devices-tools.webp",
-    alt: "Иллюстрация: смартфон, ноутбук и инструменты для ремонта",
-    title: "Телефоны и планшеты",
-  },
-  {
     image: "/images/repair-scenes/repair-laptop-internals.webp",
     alt: "Иллюстрация: разборка ноутбука для диагностики",
     title: "Диагностика и ремонт",
@@ -28,15 +23,14 @@ export const RepairScenes = () => (
         Техника, с которой мы работаем
       </h2>
       <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
-        Помогаем с компьютерами, ноутбуками, телефонами и планшетами — объясняем этапы и остаёмся на
-        связи.
+        Помогаем с компьютерами и ноутбуками — объясняем этапы ремонта и остаёмся на связи.
       </p>
       <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
         Иллюстрации сервисного направления.
       </p>
     </div>
 
-    <div className="grid gap-4 sm:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2">
       {repairScenes.map((scene, index) => (
         <Reveal key={scene.image} delay={index * 0.06} className="h-full">
           <figure className="group relative h-full overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-sm dark:border-[#405b9c]/40">

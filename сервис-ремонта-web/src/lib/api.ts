@@ -30,7 +30,7 @@ export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
 export type StaffRole = Exclude<Role, "CUSTOMER"> | "ADMIN_ASSISTANT";
 export type OrderArchiveView = "active" | "archived";
 export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
-export type RepairDeviceType = "COMPUTER" | "LAPTOP" | "PHONE" | "TABLET";
+export type RepairDeviceType = "COMPUTER" | "LAPTOP";
 export type RepairEstimate = {
   id: string;
   orderId: string;

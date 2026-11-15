@@ -347,7 +347,7 @@ internal fun JSONObject.toCatalogItem() = CatalogItem(
     }.orEmpty(),
     deviceTypes = optJSONArray("deviceTypes")?.let { values ->
         List(values.length()) { index -> values.getString(index) }
-    } ?: listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET"),
+    } ?: listOf("COMPUTER", "LAPTOP"),
 )
 
 internal fun JSONObject.toShopProduct() = ShopProduct(

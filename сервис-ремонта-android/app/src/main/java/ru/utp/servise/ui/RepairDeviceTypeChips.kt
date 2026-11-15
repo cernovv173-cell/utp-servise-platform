@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import ru.utp.servise.data.deviceLabel
 
-internal val repairDeviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
+internal val repairDeviceTypes = listOf("COMPUTER", "LAPTOP")
 internal const val ALL_REPAIR_DEVICE_TYPES = "ALL"
 
 @Composable

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Select } from "@/components/select";
 
 import { RepairOrderItemsEditor } from "@/features/admin/repair-order-items-editor";
+import { repairDeviceTypeLabels, repairDeviceTypes } from "@/features/catalog/catalog-model";
 
 import { type RepairCatalogItem, type RepairOrder, updateRepairOrder } from "@/lib/api";
 
@@ -46,6 +47,20 @@ export const RepairOrderEditor = ({
     onEditingChange?.(next);
   };
   const [deviceType, setDeviceType] = useState(order.deviceType);
+  const deviceTypeOptions = [
+    ...repairDeviceTypes.map((value) => ({
+      value,
+      label: repairDeviceTypeLabels[value],
+    })),
+    ...(repairDeviceTypes.includes(order.deviceType as (typeof repairDeviceTypes)[number])
+      ? []
+      : [
+          {
+            value: order.deviceType,
+            label: repairDeviceTypeLabels[order.deviceType] ?? order.deviceType,
+          },
+        ]),
+  ];
   const canEditItems =
     allowItemEditing &&
     !order.estimates?.length &&
@@ -135,12 +150,7 @@ export const RepairOrderEditor = ({
               ariaLabel="Тип устройства"
               value={deviceType}
               onValueChange={setDeviceType}
-              options={[
-                { value: "COMPUTER", label: "ПК" },
-                { value: "LAPTOP", label: "Ноутбук" },
-                { value: "PHONE", label: "Телефон" },
-                { value: "TABLET", label: "Планшет" },
-              ]}
+              options={deviceTypeOptions}
               className="dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
             />
           </label>

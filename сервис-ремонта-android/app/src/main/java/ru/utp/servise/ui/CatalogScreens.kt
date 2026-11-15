@@ -340,7 +340,7 @@ fun CatalogManagementScreen(
                     Text("${item.type.orderItemTypeLabel()} · ${item.name}", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     if (item.type == "SERVICE" || item.type == "SPARE_PART") {
                         Text(
-                            "Подходит для: ${item.deviceTypes.joinToString { it.deviceLabel() }}",
+                            "Подходит для: ${item.deviceTypes.filter { it in repairDeviceTypes }.joinToString { it.deviceLabel() }}",
                             fontSize = 11.sp,
                             color = UtpMuted,
                         )

@@ -17,26 +17,6 @@ const symptomOptions: Record<string, { id: string; label: string; summary: strin
     },
     { id: "heat", label: "Греется или шумит", summary: "Сильно греется или шумит." },
   ],
-  PHONE: [
-    { id: "power", label: "Не включается", summary: "Не включается." },
-    { id: "charge", label: "Не заряжается", summary: "Не заряжается или быстро разряжается." },
-    {
-      id: "screen",
-      label: "Разбит экран / нет изображения",
-      summary: "Повреждён экран или нет изображения.",
-    },
-    {
-      id: "sound",
-      label: "Проблема со звуком",
-      summary: "Не работает микрофон, динамик или звук искажён.",
-    },
-  ],
-  TABLET: [
-    { id: "power", label: "Не включается", summary: "Не включается." },
-    { id: "charge", label: "Не заряжается", summary: "Не заряжается или быстро разряжается." },
-    { id: "screen", label: "Проблема с экраном", summary: "Повреждён экран или нет изображения." },
-    { id: "slow", label: "Медленно работает", summary: "Работает медленно или зависает." },
-  ],
 };
 
 export const RepairSymptomGuide = ({

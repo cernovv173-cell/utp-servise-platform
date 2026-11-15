@@ -69,7 +69,7 @@ fun PublicHomeScreen(
     val services = company?.services?.filter(String::isNotBlank)?.take(4).orEmpty().ifEmpty {
         listOf(
             "Диагностика компьютеров и ноутбуков",
-            "Ремонт компьютеров, ноутбуков, телефонов и планшетов",
+            "Ремонт компьютеров и ноутбуков",
             "Настройка и профилактика техники",
         )
     }

@@ -145,6 +145,22 @@ test("customer devices are private, editable, and deletable by their owner", asy
   assert.equal(otherList.status, 200);
   assert.deepEqual((await otherList.json()).devices, []);
 
+  for (const deviceType of ["PHONE", "TABLET"]) {
+    const rejectedDevice = await fetch(baseUrl, {
+      method: "POST",
+      headers: {
+        ...headers(customerToken),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ deviceType }),
+    });
+    assert.equal(rejectedDevice.status, 400);
+  }
+  assert.deepEqual(
+    devices.map(({ id }) => id),
+    [deviceId],
+  );
+
   const forbiddenEdit = await fetch(`${baseUrl}/${deviceId}`, {
     method: "PATCH",
     headers: { ...headers(otherToken), "content-type": "application/json" },

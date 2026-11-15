@@ -84,8 +84,11 @@ test("customers can edit only their own new orders; administrators can edit orde
         ) {
           return { count: 0 };
         }
-        changes.push(data);
-        Object.assign(order, data, { updatedAt: new Date() });
+        const definedData = Object.fromEntries(
+          Object.entries(data).filter(([, value]) => value !== undefined),
+        );
+        changes.push(definedData);
+        Object.assign(order, definedData, { updatedAt: new Date() });
         return { count: 1 };
       },
       findUniqueOrThrow: async () => ({
@@ -145,6 +148,21 @@ test("customers can edit only their own new orders; administrators can edit orde
     "Экран ноутбука не включается",
   );
 
+  const unsupportedDeviceType = await fetch(endpoint, {
+    method: "PATCH",
+    headers: headers(tokens.owner),
+    body: JSON.stringify({ deviceType: "PHONE" }),
+  });
+  assert.equal(unsupportedDeviceType.status, 400);
+
+  const supportedDeviceType = await fetch(endpoint, {
+    method: "PATCH",
+    headers: headers(tokens.owner),
+    body: JSON.stringify({ deviceType: "COMPUTER" }),
+  });
+  assert.equal(supportedDeviceType.status, 200);
+  assert.equal(order.deviceType, "COMPUTER");
+
   const otherUser = await fetch(endpoint, {
     method: "PATCH",
     headers: headers(tokens.otherCustomer),
@@ -166,7 +184,7 @@ test("customers can edit only their own new orders; administrators can edit orde
     body: JSON.stringify({ address: "Москва, улица Новая, 10" }),
   });
   assert.equal(adminEdit.status, 200);
-  assert.equal(changes.length, 2);
+  assert.equal(changes.length, 3);
 
   order.status = "IN_PROGRESS";
   for (const status of [
@@ -187,5 +205,5 @@ test("customers can edit only their own new orders; administrators can edit orde
       `Исправление данных статуса ${status}`,
     );
   }
-  assert.equal(changes.length, 6);
+  assert.equal(changes.length, 7);
 });

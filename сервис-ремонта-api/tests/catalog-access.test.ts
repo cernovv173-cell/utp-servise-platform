@@ -58,6 +58,7 @@ test("only administrators manage the shared catalog and technicians see active p
       type: "SERVICE",
       name: "Диагностика",
       unitPriceRub: 1800,
+      deviceTypes: ["COMPUTER", "LAPTOP", "PHONE", "TABLET"],
       stockQuantity: null,
       active: true,
       createdById: "admin-1",
@@ -91,6 +92,7 @@ test("only administrators manage the shared catalog and technicians see active p
       createdById: "admin-1",
     },
   ];
+  const activeCatalogItemId = "33333333-3333-4333-8333-333333333334";
   const client = {
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) => {
@@ -302,6 +304,21 @@ test("only administrators manage the shared catalog and technicians see active p
   assert.equal(createdSparePart.createdById, "admin-1");
   assert.equal(createdSparePart.stockQuantity, 0);
   assert.equal(createdSparePart.minimumStockQuantity, 3);
+  assert.deepEqual(createdSparePart.deviceTypes, ["COMPUTER", "LAPTOP"]);
+
+  for (const deviceType of ["PHONE", "TABLET"]) {
+    const unsupportedCatalogItem = await fetch(baseUrl, {
+      method: "POST",
+      headers: headers(adminToken),
+      body: JSON.stringify({
+        type: "SERVICE",
+        name: `Услуга для ${deviceType}`,
+        unitPriceRub: 1,
+        deviceTypes: [deviceType],
+      }),
+    });
+    assert.equal(unsupportedCatalogItem.status, 400);
+  }
 
   const createProduct = await fetch(baseUrl, {
     method: "POST",
@@ -337,7 +354,30 @@ test("only administrators manage the shared catalog and technicians see active p
     7,
   );
 
-  const activeCatalogItemId = "33333333-3333-4333-8333-333333333334";
+  const unsupportedDeviceTypeUpdate = await fetch(
+    `${baseUrl}/${activeCatalogItemId}`,
+    {
+      method: "PATCH",
+      headers: headers(adminToken),
+      body: JSON.stringify({ deviceTypes: ["COMPUTER", "PHONE"] }),
+    },
+  );
+  assert.equal(unsupportedDeviceTypeUpdate.status, 400);
+
+  const preservedHistoricalDeviceTypes = await fetch(
+    `${baseUrl}/${activeCatalogItemId}`,
+    {
+      method: "PATCH",
+      headers: headers(adminToken),
+      body: JSON.stringify({ deviceTypes: ["LAPTOP"] }),
+    },
+  );
+  assert.equal(preservedHistoricalDeviceTypes.status, 200);
+  assert.deepEqual(
+    (await preservedHistoricalDeviceTypes.json()).catalogItem.deviceTypes,
+    ["LAPTOP", "PHONE", "TABLET"],
+  );
+
   const stockUpdate = await fetch(
     `${baseUrl}/33333333-3333-4333-8333-333333333335`,
     {

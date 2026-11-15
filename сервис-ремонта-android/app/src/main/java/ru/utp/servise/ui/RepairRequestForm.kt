@@ -56,12 +56,10 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val deviceTypes = listOf("COMPUTER", "LAPTOP", "PHONE", "TABLET")
+private val deviceTypes = listOf("COMPUTER", "LAPTOP")
 private val symptomOptions = mapOf(
     "COMPUTER" to listOf("Не включается" to "Не включается.", "Перегревается" to "Сильно шумит или перегревается.", "Нет изображения" to "Нет изображения на экране.", "Медленно работает" to "Работает медленно или зависает."),
     "LAPTOP" to listOf("Не включается" to "Не включается.", "Не заряжается" to "Не заряжается или быстро разряжается.", "Проблема с экраном" to "Есть проблема с изображением на экране.", "Греется" to "Сильно греется или шумит."),
-    "PHONE" to listOf("Не включается" to "Не включается.", "Не заряжается" to "Не заряжается или быстро разряжается.", "Проблема с экраном" to "Повреждён экран или нет изображения.", "Проблема со звуком" to "Не работает микрофон, динамик или звук искажён."),
-    "TABLET" to listOf("Не включается" to "Не включается.", "Не заряжается" to "Не заряжается или быстро разряжается.", "Проблема с экраном" to "Повреждён экран или нет изображения.", "Медленно работает" to "Работает медленно или зависает."),
 )
 
 @Composable
@@ -107,15 +105,18 @@ fun RepairRequestForm(
     var showTimePicker by remember { mutableStateOf(false) }
     val datePickerState = rememberDatePickerState()
     val timePickerState = rememberTimePickerState(initialHour = 10, initialMinute = 0, is24Hour = true)
-    val selectedCustomerDevice = customerDevices.firstOrNull { it.id == selectedCustomerDeviceId }
-    LaunchedEffect(initialDeviceId, customerDevices) {
-        val saved = customerDevices.firstOrNull { it.id == initialDeviceId }
+    val supportedCustomerDevices = customerDevices.filter { it.deviceType in deviceTypes }
+    val selectedCustomerDevice = supportedCustomerDevices.firstOrNull { it.id == selectedCustomerDeviceId }
+    LaunchedEffect(initialDeviceId, supportedCustomerDevices) {
+        val saved = supportedCustomerDevices.firstOrNull { it.id == initialDeviceId }
         if (saved != null) {
             selectedCustomerDeviceId = saved.id
             device = saved.deviceType
             deviceBrand = saved.brand.orEmpty()
             deviceModel = saved.model.orEmpty()
             deviceSerialNumber = saved.serialNumber.orEmpty()
+        } else if (initialDeviceId != null) {
+            selectedCustomerDeviceId = null
         }
     }
     val preferredAt = preferredDateMillis?.let { millis ->
@@ -175,7 +176,7 @@ fun RepairRequestForm(
             onNavigate = onCampaignNavigate,
             requireImage = true,
         )
-        if (customerDevices.isNotEmpty()) {
+        if (supportedCustomerDevices.isNotEmpty()) {
             var savedDeviceMenu by remember { mutableStateOf(false) }
             Box {
                 OutlinedButton(onClick = { savedDeviceMenu = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
@@ -197,7 +198,7 @@ fun RepairRequestForm(
                             savedDeviceMenu = false
                         },
                     )
-                    customerDevices.forEach { saved ->
+                    supportedCustomerDevices.forEach { saved ->
                         DropdownMenuItem(
                             text = { Text(saved.nickname ?: listOfNotNull(saved.brand, saved.model).joinToString(" ").ifBlank { saved.deviceType.deviceLabel() }) },
                             onClick = {

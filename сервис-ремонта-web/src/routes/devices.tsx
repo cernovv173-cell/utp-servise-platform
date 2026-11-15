@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { repairDeviceTypes } from "@/features/catalog/catalog-model";
 
 import {
   createCustomerDevice,
@@ -146,9 +147,9 @@ const DevicePage = () => {
                   onChange={(event) => setDeviceType(event.target.value)}
                   className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
                 >
-                  {Object.entries(deviceLabels).map(([value, label]) => (
+                  {repairDeviceTypes.map((value) => (
                     <option key={value} value={value}>
-                      {label}
+                      {deviceLabels[value]}
                     </option>
                   ))}
                 </select>
@@ -318,13 +319,15 @@ const DevicePage = () => {
                       </button>
                     </form>
                   </div>
-                  <Link
-                    to="/orders"
-                    search={{ device: device.id }}
-                    className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
-                  >
-                    Повторить заявку
-                  </Link>
+                  {(device.deviceType === "COMPUTER" || device.deviceType === "LAPTOP") && (
+                    <Link
+                      to="/orders"
+                      search={{ device: device.id }}
+                      className="mt-4 inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+                    >
+                      Повторить заявку
+                    </Link>
+                  )}
                   <div className="mt-5 border-t border-slate-200 pt-4 dark:border-slate-700">
                     <h3 className="text-sm font-semibold">История ремонта</h3>
                     {device.repairOrders?.length ? (

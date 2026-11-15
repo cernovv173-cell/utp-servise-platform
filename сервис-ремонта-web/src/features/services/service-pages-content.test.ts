@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { servicePages } from "./service-pages-content";
 
 describe("service page content", () => {
-  it("covers the five requested services with unique paths", () => {
-    expect(servicePages).toHaveLength(5);
+  it("covers the four currently offered services with unique paths", () => {
+    expect(servicePages).toHaveLength(4);
     expect(new Set(servicePages.map((page) => page.slug)).size).toBe(servicePages.length);
     expect(new Set(servicePages.map((page) => page.path)).size).toBe(servicePages.length);
     expect(new Set(servicePages.map((page) => page.metaTitle)).size).toBe(servicePages.length);

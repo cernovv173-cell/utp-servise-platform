@@ -38,7 +38,9 @@ internal fun CatalogItemEditDialog(
     var minimumStockText by remember(item.id) {
         mutableStateOf((item.minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY).toString())
     }
-    var selectedDeviceTypes by remember(item.id) { mutableStateOf(item.deviceTypes.toSet()) }
+    var selectedDeviceTypes by remember(item.id) {
+        mutableStateOf(item.deviceTypes.filter { it in repairDeviceTypes }.ifEmpty { repairDeviceTypes }.toSet())
+    }
     val price = priceText.toIntOrNull()
     val minimumStock = minimumStockText.toIntOrNull()
 

@@ -33,13 +33,9 @@ const companyInfoSchema = z
 
 const defaultCompanyInfo: z.infer<typeof companyInfoSchema> = {
   name: "ЕНОТ СЕРВИС",
-  description: "Ремонт компьютеров, ноутбуков, телефонов и планшетов.",
+  description: "Ремонт компьютеров и ноутбуков.",
   history: "",
-  services: [
-    "Диагностика",
-    "Ремонт компьютеров и ноутбуков",
-    "Ремонт телефонов и планшетов",
-  ],
+  services: ["Диагностика", "Ремонт компьютеров и ноутбуков"],
   phone: "",
   email: "",
   address: "",

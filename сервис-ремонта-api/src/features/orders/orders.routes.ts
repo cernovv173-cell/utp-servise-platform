@@ -11,6 +11,11 @@ import {
   requireRoles,
 } from "../auth/auth.middleware.js";
 import { isInventoryCatalogItem } from "../catalog/catalog-policy.js";
+import {
+  isSupportedRepairDeviceType,
+  storedRepairDeviceTypes,
+  supportedRepairDeviceTypes,
+} from "../catalog/repair-device-types.js";
 import { addTemporaryLoginToCustomer } from "../customers/customer-login-credentials.js";
 import { deliverPendingCustomerCredentials } from "../max/max-credential-delivery.js";
 import { scheduleMaxRepairNotification } from "../max/max-notifications.js";
@@ -70,7 +75,7 @@ const optionalAddressField = (minimumLength: number, maximumLength: number) =>
   );
 const createOrderBody = z
   .object({
-    deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]),
+    deviceType: z.enum(supportedRepairDeviceTypes),
     customerDeviceId: z.string().uuid().optional(),
     deviceBrand: z.string().trim().max(120).optional(),
     deviceModel: z.string().trim().max(160).optional(),
@@ -109,7 +114,7 @@ const createAdminOrderBody = createOrderBody
   .strict();
 const editOrderBody = z
   .object({
-    deviceType: z.enum(["COMPUTER", "LAPTOP", "PHONE", "TABLET"]).optional(),
+    deviceType: z.enum(storedRepairDeviceTypes).optional(),
     deviceBrand: z.string().trim().max(120).optional(),
     deviceModel: z.string().trim().max(160).optional(),
     deviceSerialNumber: z.string().trim().max(160).optional(),
@@ -483,6 +488,16 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         if (input.customerDeviceId && !savedDevice) {
           throw new HttpError(404, "DEVICE_NOT_FOUND", "Техника не найдена.");
         }
+        if (
+          savedDevice &&
+          !isSupportedRepairDeviceType(savedDevice.deviceType)
+        ) {
+          throw new HttpError(
+            400,
+            "UNSUPPORTED_REPAIR_DEVICE_TYPE",
+            "Новые заявки принимаются только на компьютеры и ноутбуки.",
+          );
+        }
         const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
           SELECT nextval('repair_service_number_seq') AS value
         `;
@@ -825,6 +840,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             id: true,
             customerId: true,
             assignedTechnicianId: true,
+            deviceType: true,
             status: true,
             updatedAt: true,
             city: true,
@@ -847,6 +863,18 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             409,
             "ORDER_NOT_EDITABLE",
             "Клиент может изменить данные заявки только до назначения мастера.",
+          );
+        }
+        if (
+          input.deviceType !== undefined &&
+          input.deviceType !== current.deviceType &&
+          (!isSupportedRepairDeviceType(current.deviceType) ||
+            !isSupportedRepairDeviceType(input.deviceType))
+        ) {
+          throw new HttpError(
+            400,
+            "UNSUPPORTED_REPAIR_DEVICE_TYPE",
+            "Новые заявки принимаются только на компьютеры и ноутбуки; тип ранее созданной заявки сохраняется.",
           );
         }
         const addressFieldsChanged = [
