@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock, Unlock, Upload, X } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
 import { ProtectedMedia } from "@/components/protected-media";
@@ -52,8 +53,10 @@ export const NewsAdmin = () => {
         file,
       ),
     onSuccess: () => client.invalidateQueries({ queryKey: ["news", token] }),
-    onError: () =>
-      setError("Не удалось загрузить фото или видео. Выберите изображение или MP4 до 20 МБ."),
+    onError: () => {
+      const message = "Не удалось загрузить фото или видео. Выберите изображение или MP4 до 20 МБ.";
+      setError(message);
+    },
   });
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -88,15 +91,17 @@ export const NewsAdmin = () => {
                 await updateNews(token!, article.id, { isPublished: true });
               }
             } catch {
-              setError(
-                "Черновик сохранён, но медиа не загрузилось. Добавьте файл к публикации ниже.",
-              );
+              const message =
+                "Черновик сохранён, но медиа не загрузилось. Добавьте файл к публикации ниже.";
+              setError(message);
+              toast.warning(message);
               await client.invalidateQueries({ queryKey: ["news", token] });
               return;
             }
           }
           formElement.reset();
           setKind("NEWS");
+          toast.success("Публикация сохранена.");
           await client.invalidateQueries({ queryKey: ["news", token] });
         },
       },

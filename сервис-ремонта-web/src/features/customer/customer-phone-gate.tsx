@@ -24,11 +24,12 @@ export const CustomerPhoneGate = () => {
       toast.success("Телефон сохранён");
     },
     onError: (failure) => {
-      setError(
+      const message =
         failure instanceof Error
           ? failure.message
-          : "Не удалось сохранить номер. Попробуйте ещё раз.",
-      );
+          : "Не удалось сохранить номер. Попробуйте ещё раз.";
+      setError(message);
+      toast.error(message);
     },
   });
 

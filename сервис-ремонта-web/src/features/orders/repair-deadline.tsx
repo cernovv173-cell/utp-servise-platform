@@ -1,5 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { type RepairOrder, setExpectedCompletion } from "@/lib/api";
 
@@ -69,8 +70,11 @@ export const RepairDeadlineEditor = ({
       setError("");
       await onSaved();
     },
-    onError: (cause) =>
-      setError(cause instanceof Error ? cause.message : "Не удалось сохранить срок."),
+    onError: (cause) => {
+      const message = cause instanceof Error ? cause.message : "Не удалось сохранить срок.";
+      setError(message);
+      toast.error(message);
+    },
   });
   const selectedIso = value ? new Date(value).toISOString() : null;
   const currentIso = order.expectedCompletionAt

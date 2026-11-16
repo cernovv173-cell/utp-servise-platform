@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { ProtectedImage } from "@/components/protected-image";
 
@@ -36,7 +37,9 @@ export const CustomerOfferPrizeImageControl = ({
       await uploadAdminCustomerOfferPrizeImage(token, offerId, place, file);
       await onChanged();
     } catch {
-      setError("Не удалось сохранить фото. Повторите попытку.");
+      const message = "Не удалось сохранить фото. Повторите попытку.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }
@@ -49,7 +52,9 @@ export const CustomerOfferPrizeImageControl = ({
       await deleteAdminCustomerOfferPrizeImage(token, offerId, place);
       await onChanged();
     } catch {
-      setError("Не удалось удалить фото. Обновите список и повторите попытку.");
+      const message = "Не удалось удалить фото. Обновите список и повторите попытку.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }

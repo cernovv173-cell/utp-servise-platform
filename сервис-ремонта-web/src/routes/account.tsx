@@ -119,8 +119,11 @@ const AccountPage = () => {
       setPasswordError(null);
       toast.success("Пароль изменён. Выполнен вход с новым паролем.");
     },
-    onError: () =>
-      setPasswordError("Не удалось сменить пароль. Проверьте текущий пароль и повторите попытку."),
+    onError: () => {
+      const message = "Не удалось сменить пароль. Проверьте текущий пароль и повторите попытку.";
+      setPasswordError(message);
+      toast.error(message);
+    },
   });
   const deleteAccountMutation = useMutation({
     mutationFn: () => deleteOwnAccount(token!),

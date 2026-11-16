@@ -1,5 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { BrandLogo } from "@/components/brand-logo";
 
@@ -48,8 +49,11 @@ const ResetPasswordPage = () => {
         );
       }
       setDone(true);
+      toast.success("Пароль изменён. Теперь войдите с новым паролем.");
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Не удалось изменить пароль.");
+      const message = failure instanceof Error ? failure.message : "Не удалось изменить пароль.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }

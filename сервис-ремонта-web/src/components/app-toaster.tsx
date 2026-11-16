@@ -6,8 +6,10 @@ import { Toaster } from "sonner";
 export const AppToaster = () => (
   <Toaster
     closeButton
+    duration={5000}
     richColors
-    position="bottom-right"
+    position="top-right"
+    visibleToasts={3}
     icons={{
       success: <CircleCheck className="size-5" aria-hidden="true" />,
       error: <CircleX className="size-5" aria-hidden="true" />,

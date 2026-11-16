@@ -1,5 +1,6 @@
 import { MessageCircle, RotateCcw, ShieldCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import {
   type AuthResponse,
@@ -49,6 +50,11 @@ export const MaxLogin = ({
   const successRef = useRef(onSuccess);
   const pollNowRef = useRef<() => void>(() => undefined);
 
+  const showError = (message: string) => {
+    setError(message);
+    toast.error(message);
+  };
+
   useEffect(() => {
     successRef.current = onSuccess;
   }, [onSuccess]);
@@ -60,7 +66,10 @@ export const MaxLogin = ({
         if (active) setAvailable(config.available);
       })
       .catch(() => {
-        if (active) setAvailable(false);
+        if (active) {
+          setAvailable(false);
+          toast.error("Не удалось проверить доступность входа через МАКС.");
+        }
       });
     return () => {
       active = false;
@@ -93,20 +102,20 @@ export const MaxLogin = ({
           return;
         }
         if (result.status === "failed" || result.status === "expired") {
-          setError(result.message);
+          showError(result.message);
           setPhase("error");
           return;
         }
         setPollStatus(result.status);
         if (Date.now() >= deadline) {
-          setError("Время ожидания истекло. Нажмите «Попробовать снова».");
+          showError("Время ожидания истекло. Нажмите «Попробовать снова».");
           setPhase("error");
           return;
         }
         timer = window.setTimeout(() => void tick(), 2_000);
       } catch (failure) {
         if (cancelled) return;
-        setError(errorMessage(failure));
+        showError(errorMessage(failure));
         setPhase("error");
       } finally {
         inFlight = false;
@@ -145,7 +154,7 @@ export const MaxLogin = ({
       openMaxChat(started.url, popup);
     } catch (failure) {
       popup?.close();
-      setError(errorMessage(failure));
+      showError(errorMessage(failure));
       setPhase("error");
     }
   };

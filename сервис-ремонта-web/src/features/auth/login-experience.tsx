@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, ClipboardList, MessageCircle } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import { toast } from "sonner";
 
 import { AppInstallButton } from "@/components/app-install-button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -86,6 +87,7 @@ export const LoginExperience = ({
       if (recovering) {
         await requestPasswordReset(String(values.get("email")));
         setRecoverySent(true);
+        toast.success("Инструкция по восстановлению отправлена.");
         return;
       }
       const enteredReferralCode = String(values.get("referralCode") ?? "").trim();
@@ -121,7 +123,9 @@ export const LoginExperience = ({
       if (isDialog) onClose?.();
       await navigate({ to: session.user.mustChangePassword ? "/account" : safeNextPath });
     } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Не удалось выполнить вход.");
+      const message = failure instanceof Error ? failure.message : "Не удалось выполнить вход.";
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(false);
     }

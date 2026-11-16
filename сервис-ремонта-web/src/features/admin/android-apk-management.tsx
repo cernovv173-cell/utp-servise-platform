@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { type FormEvent, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
 
@@ -32,6 +33,16 @@ export const AndroidApkManagement = () => {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmNotify, setConfirmNotify] = useState(false);
 
+  const showError = (message: string) => {
+    setError(message);
+    toast.error(message);
+  };
+  const showNotice = (message: string, warning = false) => {
+    setNotice(message);
+    if (warning) toast.warning(message);
+    else toast.success(message);
+  };
+
   const query = useQuery({
     queryKey: ["admin-android-app", token],
     queryFn: ({ signal }) => getAdminAndroidApk(token!, signal),
@@ -55,15 +66,16 @@ export const AndroidApkManagement = () => {
         result.apk.versionName && result.apk.versionCode !== null
           ? `Версия ${result.apk.versionName}, сборка ${result.apk.versionCode}. `
           : "APK загружен. ";
-      setNotice(
+      showNotice(
         result.cleanupPending
           ? `${versionSummary}Предыдущую копию не удалось удалить; повторите очистку ниже.`
           : `${versionSummary}Приложения с проверкой обновлений предложат её при следующем открытии; push-уведомление не отправлено.`,
+        result.cleanupPending,
       );
       await refresh();
     },
     onError: (failure) =>
-      setError(
+      showError(
         failure instanceof Error && failure.message
           ? failure.message
           : "Не удалось загрузить APK. Проверьте файл и повторите попытку.",
@@ -74,27 +86,29 @@ export const AndroidApkManagement = () => {
     mutationFn: () => deleteAndroidApk(token!),
     onSuccess: async (result) => {
       setConfirmDelete(false);
-      setNotice(
+      showNotice(
         result.cleanupPending
           ? "Ссылка на приложение отключена, но не все копии удалось удалить. Повторите очистку ниже."
           : "APK удалён и больше не предлагается для скачивания.",
+        result.cleanupPending,
       );
       await refresh();
     },
-    onError: () => setError("Не удалось удалить APK. Повторите попытку."),
+    onError: () => showError("Не удалось удалить APK. Повторите попытку."),
   });
 
   const cleanup = useMutation({
     mutationFn: () => cleanupAndroidApk(token!),
     onSuccess: async (result) => {
-      setNotice(
+      showNotice(
         result.cleanupPending
           ? "Некоторые старые копии пока не удалось удалить. Попробуйте ещё раз позже."
           : "Старые копии APK удалены из хранилища.",
+        result.cleanupPending,
       );
       await refresh();
     },
-    onError: () => setError("Не удалось завершить очистку старых APK."),
+    onError: () => showError("Не удалось завершить очистку старых APK."),
   });
 
   const notifyUsers = useMutation({
@@ -102,15 +116,17 @@ export const AndroidApkManagement = () => {
     onSuccess: (result) => {
       setConfirmNotify(false);
       setError("");
-      setNotice(
+      const warning = result.deviceCount === 0 || !result.deliverySucceeded;
+      showNotice(
         result.deviceCount === 0
           ? `Активных пользователей: ${result.recipientCount}. Рассылка не отправлена: нет зарегистрированных push-устройств.`
           : result.deliverySucceeded
             ? `Уведомление отправлено на ${result.deviceCount} зарегистрированных устройств.`
             : `Рассылка запущена для ${result.deviceCount} устройств, но часть уведомлений не доставлена.`,
+        warning,
       );
     },
-    onError: () => setError("Не удалось отправить уведомление об обновлении."),
+    onError: () => showError("Не удалось отправить уведомление об обновлении."),
   });
 
   const chooseFile = (selected: File | null) => {

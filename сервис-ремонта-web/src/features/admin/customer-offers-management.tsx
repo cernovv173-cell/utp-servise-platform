@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Lock, Unlock, X } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
 
@@ -42,6 +43,16 @@ export const CustomerOffersManagement = () => {
   const [notice, setNotice] = useState("");
   const [confirmDrawId, setConfirmDrawId] = useState<string | null>(null);
   const [confirmPublishId, setConfirmPublishId] = useState<string | null>(null);
+
+  const showError = (message: string) => {
+    setError(message);
+    toast.error(message);
+  };
+  const showNotice = (message: string, warning = false) => {
+    setNotice(message);
+    if (warning) toast.warning(message);
+    else toast.success(message);
+  };
 
   const query = useQuery({
     queryKey: ["admin-offers", token],
@@ -94,7 +105,8 @@ export const CustomerOffersManagement = () => {
     onSuccess: async (result, variables) => {
       variables.clear();
       setError("");
-      setNotice(
+      const warning = !result.photosSaved || result.publishFailed;
+      showNotice(
         !result.photosSaved
           ? "Черновик сохранён, но не все фото загрузились. Добавьте их в списке предложений."
           : result.publishFailed
@@ -102,32 +114,33 @@ export const CustomerOffersManagement = () => {
             : result.hasPhotos && variables.input.isPublished
               ? "Фото сохранены, предложение опубликовано по заданному расписанию."
               : "Предложение сохранено. Оно будет видно клиентам по заданному расписанию.",
+        warning,
       );
       await refresh();
     },
-    onError: () => setError("Не удалось сохранить предложение. Проверьте даты и призы."),
+    onError: () => showError("Не удалось сохранить предложение. Проверьте даты и призы."),
   });
 
   const setPublished = useMutation({
     mutationFn: ({ offerId, isPublished }: { offerId: string; isPublished: boolean }) =>
       updateAdminCustomerOffer(token!, offerId, isPublished),
     onSuccess: async (_result, variables) => {
-      setNotice(
+      showNotice(
         variables.isPublished ? "Предложение опубликовано." : "Предложение скрыто от клиентов.",
       );
       await refresh();
     },
-    onError: () => setError("Не удалось изменить публикацию предложения."),
+    onError: () => showError("Не удалось изменить публикацию предложения."),
   });
 
   const removeOffer = useMutation({
     mutationFn: (offerId: string) => deleteAdminCustomerOffer(token!, offerId),
     onSuccess: async () => {
       setError("");
-      setNotice("Акция или розыгрыш удалены вместе с записями участников.");
+      showNotice("Акция или розыгрыш удалены вместе с записями участников.");
       await refresh();
     },
-    onError: () => setError("Не удалось удалить публикацию. Обновите список и попробуйте снова."),
+    onError: () => showError("Не удалось удалить публикацию. Обновите список и попробуйте снова."),
   });
 
   const draw = useMutation({
@@ -135,24 +148,24 @@ export const CustomerOffersManagement = () => {
     onSuccess: async (_result, offerId) => {
       setConfirmDrawId(null);
       const offer = query.data?.offers.find((item) => item.id === offerId);
-      setNotice(
+      showNotice(
         offer?.type === "QUIZ"
           ? "Победители среди правильно ответивших выбраны. Проверьте результат и опубликуйте его отдельно."
           : "Победители выбраны. Проверьте три места и отдельно опубликуйте результаты.",
       );
       await refresh();
     },
-    onError: () => setError("Не удалось выбрать победителей. Проверьте срок и число участников."),
+    onError: () => showError("Не удалось выбрать победителей. Проверьте срок и число участников."),
   });
 
   const publishResults = useMutation({
     mutationFn: (offerId: string) => publishAdminCustomerOfferResults(token!, offerId),
     onSuccess: async () => {
       setConfirmPublishId(null);
-      setNotice("Результаты опубликованы; баллы за призовые места начислены победителям.");
+      showNotice("Результаты опубликованы; баллы за призовые места начислены победителям.");
       await refresh();
     },
-    onError: () => setError("Не удалось опубликовать результаты. Повторите попытку."),
+    onError: () => showError("Не удалось опубликовать результаты. Повторите попытку."),
   });
 
   const handleCreate = (
