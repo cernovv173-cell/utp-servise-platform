@@ -24,7 +24,7 @@ export const CustomerOfferPrizePhotoField = ({
   return (
     <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
       <label className="inline-flex min-h-10 cursor-pointer items-center justify-center rounded-xl border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:border-blue-900 dark:text-cyan-200 dark:hover:bg-blue-950/50">
-        {file ? "Заменить фото" : "Добавить фото приза"}
+        {file ? "Заменить фото" : "Добавить фото (необязательно)"}
         <input
           key={inputKey}
           type="file"

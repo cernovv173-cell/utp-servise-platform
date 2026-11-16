@@ -25,6 +25,13 @@ import { CustomerOfferPrizeImageControl } from "./customer-offer-prize-image-con
 
 const formatDate = (value: string) => new Date(value).toLocaleString("ru-RU");
 
+const getConfiguredRewardCount = (offer: AdminCustomerOffer) =>
+  [
+    { prize: offer.firstPlacePrize, points: offer.firstPlacePoints },
+    { prize: offer.secondPlacePrize, points: offer.secondPlacePoints },
+    { prize: offer.thirdPlacePrize, points: offer.thirdPlacePoints },
+  ].filter(({ prize, points }) => Boolean(prize?.trim()) || points > 0).length;
+
 const offerStatus = (offer: AdminCustomerOffer, now: number) => {
   if (!offer.isPublished) return "Черновик · скрыта от клиентов";
   if (new Date(offer.startsAt).getTime() > now) return "Запланирована";
@@ -273,26 +280,36 @@ export const CustomerOffersManagement = () => {
 
                 {(offer.type === "GIVEAWAY" || offer.type === "QUIZ") && (
                   <div className="grid gap-2 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-900/70">
-                    {[1, 2, 3].map((place) => {
-                      const reward = [
-                        { prize: offer.firstPlacePrize, points: offer.firstPlacePoints },
-                        { prize: offer.secondPlacePrize, points: offer.secondPlacePoints },
-                        { prize: offer.thirdPlacePrize, points: offer.thirdPlacePoints },
-                      ][place - 1]!;
-                      const imageObjectId = [
-                        offer.firstPlacePrizeImageId,
-                        offer.secondPlacePrizeImageId,
-                        offer.thirdPlacePrizeImageId,
-                      ][place - 1]!;
-                      return (
+                    {[
+                      {
+                        place: 1,
+                        prize: offer.firstPlacePrize,
+                        points: offer.firstPlacePoints,
+                        imageObjectId: offer.firstPlacePrizeImageId,
+                      },
+                      {
+                        place: 2,
+                        prize: offer.secondPlacePrize,
+                        points: offer.secondPlacePoints,
+                        imageObjectId: offer.secondPlacePrizeImageId,
+                      },
+                      {
+                        place: 3,
+                        prize: offer.thirdPlacePrize,
+                        points: offer.thirdPlacePoints,
+                        imageObjectId: offer.thirdPlacePrizeImageId,
+                      },
+                    ]
+                      .filter(({ prize, points }) => Boolean(prize?.trim()) || points > 0)
+                      .map(({ place, prize, points, imageObjectId }) => (
                         <div
                           key={place}
                           className="grid gap-2 border-b border-slate-200 pb-2 last:border-0 last:pb-0 dark:border-slate-800"
                         >
                           <p>
                             <span className="font-semibold">{place}-е место:</span>{" "}
-                            {reward.prize || "без отдельного подарка"}
-                            {reward.points > 0 ? ` · ${reward.points} баллов` : ""}
+                            {prize || "без отдельного подарка"}
+                            {points > 0 ? ` · ${points} баллов` : ""}
                           </p>
                           {token && (
                             <CustomerOfferPrizeImageControl
@@ -304,8 +321,7 @@ export const CustomerOffersManagement = () => {
                             />
                           )}
                         </div>
-                      );
-                    })}
+                      ))}
                   </div>
                 )}
 
@@ -338,16 +354,18 @@ export const CustomerOffersManagement = () => {
                 {(offer.type === "GIVEAWAY" || offer.type === "QUIZ") &&
                   ended &&
                   !offer.drawnAt &&
-                  (offer.type === "GIVEAWAY" && offer.participantCount < 3 ? (
+                  (offer.type === "GIVEAWAY" &&
+                  offer.participantCount < getConfiguredRewardCount(offer) ? (
                     <p className="text-xs text-amber-700 dark:text-amber-300">
-                      Для выбора трёх мест нужно не менее трёх участников.
+                      Для выбора {getConfiguredRewardCount(offer)} мест нужно не менее{" "}
+                      {getConfiguredRewardCount(offer)} участников.
                     </p>
                   ) : confirmDrawId === offer.id ? (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span>
                         {offer.type === "QUIZ"
-                          ? "Случайно выбрать до трёх победителей среди правильных ответов?"
-                          : "Случайно выбрать 1-е, 2-е и 3-е места?"}
+                          ? `Случайно выбрать до ${getConfiguredRewardCount(offer)} победителей среди правильных ответов?`
+                          : `Случайно выбрать ${getConfiguredRewardCount(offer)} призовых мест?`}
                       </span>
                       <button
                         type="button"

@@ -170,3 +170,9 @@ Production API доступен на `https://merge.app.amazi.pro`; `/health` о
 [`../docs/repair-visit-scenario.md`](../docs/repair-visit-scenario.md).
 
 Production API доступен на `https://merge.app.amazi.pro`; `/health` используется для проверки состояния. Игровые маршруты и 10 таблиц прогресса удаляются; ранее начисленные игровые баллы остаются в журнале бонусов. `assembleDebug` предназначен только для разработки; APK в RuStore не загружается автоматически. Для push нужны Firebase-конфигурация Android-клиента и серверный ключ.
+## Quiz and giveaway rewards
+
+In the offer editor, administrators may configure one, two, or three sequential prize places. The
+first place needs a prize description and/or points; later places can be omitted, but a third place
+requires a second. Prize photos are optional. Published cards show configured places only, and the
+server draws the configured number of giveaway winners (or up to that many correct quiz respondents).

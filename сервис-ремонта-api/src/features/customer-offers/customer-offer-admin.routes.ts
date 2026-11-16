@@ -29,7 +29,10 @@ import {
 } from "./customer-offer-contracts.js";
 import { registerCustomerOfferPrizeImageAdminRoutes } from "./customer-offer-prize-image-admin.routes.js";
 import { scheduleCustomerOfferPush } from "./customer-offer-push-delivery.js";
-import { getCustomerOfferReward } from "./customer-offer-rewards.js";
+import {
+  getConfiguredCustomerOfferRewardCount,
+  getCustomerOfferReward,
+} from "./customer-offer-rewards.js";
 import { scheduleCustomerOfferWinnerPush } from "./customer-offer-winner-push-delivery.js";
 import { selectRandomWinners } from "./winner-selection.js";
 
@@ -239,16 +242,23 @@ export const registerCustomerOfferAdminRoutes = (
           },
           select: { id: true, customerId: true },
         });
-        if (offer.type === "GIVEAWAY" && entries.length < 3) {
+        const rewardPlacesCount = getConfiguredCustomerOfferRewardCount(offer);
+        if (rewardPlacesCount === 0) {
           throw new HttpError(
             409,
-            "GIVEAWAY_NEEDS_THREE_ENTRIES",
-            "Для розыгрыша трёх мест нужно не менее трёх участников.",
+            "GIVEAWAY_NO_CONFIGURED_REWARDS",
+            "Укажите награду хотя бы для одного места перед жеребьёвкой.",
+          );
+        }
+        if (offer.type === "GIVEAWAY" && entries.length < rewardPlacesCount) {
+          throw new HttpError(
+            409,
+            "GIVEAWAY_NEEDS_ENOUGH_ENTRIES",
+            `Для розыгрыша ${rewardPlacesCount} мест нужно не менее ${rewardPlacesCount} участников.`,
           );
         }
 
-        const winnersCount =
-          offer.type === "QUIZ" ? Math.min(3, entries.length) : 3;
+        const winnersCount = Math.min(rewardPlacesCount, entries.length);
         const winners = selectRandomWinners(entries, winnersCount);
         const drawnAt = new Date();
         const claimed = await transaction.customerOffer.updateMany({
@@ -309,15 +319,16 @@ export const registerCustomerOfferAdminRoutes = (
           );
         }
         if (offer.resultsPublishedAt) return adminOfferResponse(offer);
+        const rewardPlacesCount = getConfiguredCustomerOfferRewardCount(offer);
         const hasCompleteResults =
           offer.type === "QUIZ"
-            ? offer.entries.length <= 3
-            : offer.entries.length === 3;
+            ? offer.entries.length <= rewardPlacesCount
+            : offer.entries.length === rewardPlacesCount;
         if (!hasCompleteResults) {
           throw new HttpError(
             409,
             "GIVEAWAY_RESULTS_INCOMPLETE",
-            "В результатах должны быть все три места.",
+            "В результатах должны быть все разыгранные места.",
           );
         }
 

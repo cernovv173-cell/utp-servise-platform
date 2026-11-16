@@ -51,6 +51,14 @@ internal fun AdminOfferCard(
     }.getOrDefault(value.take(16))
 
     val isPrizeOffer = offer.type == "GIVEAWAY" || offer.type == "QUIZ"
+    val rewardRows = listOf(
+        Triple(offer.firstPlacePrize, offer.firstPlacePoints, offer.firstPlacePrizeImageId),
+        Triple(offer.secondPlacePrize, offer.secondPlacePoints, offer.secondPlacePrizeImageId),
+        Triple(offer.thirdPlacePrize, offer.thirdPlacePoints, offer.thirdPlacePrizeImageId),
+    )
+    val configuredRewardCount = rewardRows.takeWhile { reward ->
+        !reward.first.isNullOrBlank() || reward.second > 0
+    }.size
     val canDraw = isPrizeOffer && offer.drawnAt == null &&
         offer.endsAt.let { runCatching { Instant.parse(it).isBefore(Instant.now()) }.getOrDefault(false) }
     val hasUnpublishedResults = isPrizeOffer && offer.drawnAt != null && offer.resultsPublishedAt == null
@@ -87,13 +95,9 @@ internal fun AdminOfferCard(
             }
             if (isPrizeOffer) {
                 Text("Участников: ${offer.participantCount}", color = UtpMuted, fontSize = 12.sp)
-                listOf(
-                    Triple(offer.firstPlacePrize, offer.firstPlacePoints, offer.firstPlacePrizeImageId),
-                    Triple(offer.secondPlacePrize, offer.secondPlacePoints, offer.secondPlacePrizeImageId),
-                    Triple(offer.thirdPlacePrize, offer.thirdPlacePoints, offer.thirdPlacePrizeImageId),
-                ).forEachIndexed { index, reward ->
+                rewardRows.take(configuredRewardCount).forEachIndexed { index, reward ->
                     val rewardText = buildString {
-                        append("${index + 1}-е место: ${reward.first ?: "приз не указан"}")
+                        append("${index + 1}-е место: ${reward.first ?: "без отдельного подарка"}")
                         if (reward.second > 0) append(" · ${reward.second} баллов")
                     }
                     Text(rewardText, color = UtpMuted, fontSize = 11.sp)
@@ -110,7 +114,7 @@ internal fun AdminOfferCard(
                             )
                         }
                         PhotoPickerButton(
-                            label = if (reward.third == null) "Добавить фото" else "Заменить фото",
+                            label = if (reward.third == null) "Добавить фото (необязательно)" else "Заменить фото",
                             enabled = !busy,
                             onImageSelected = { onUploadPrizeImage(index + 1, it) },
                         )
@@ -147,7 +151,8 @@ internal fun AdminOfferCard(
             if (canDraw) {
                 Button(
                     onClick = onDraw,
-                    enabled = !busy && (offer.type == "QUIZ" || offer.participantCount >= 3),
+                    enabled = !busy && configuredRewardCount > 0 &&
+                        (offer.type == "QUIZ" || offer.participantCount >= configuredRewardCount),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(if (offer.type == "QUIZ") "Выбрать победителей по правильным ответам" else "Выбрать победителей")

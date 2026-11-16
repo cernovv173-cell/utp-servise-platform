@@ -560,3 +560,11 @@ are routed to `repair_updates_soft_spark` by default; `customer_offer_winner` us
 `repair_winner_soft_spark`, which the Android app creates with the separate celebration sound.
 The new additive
 `20261028190000_customer_offer_push_deliveries` migration adds only the delivery queue.
+
+## Customer offers and rewards
+
+Giveaways and quizzes may define one, two, or three sequential prize places. The first place must
+have a prize description and/or bonus points; later places are optional, but a third place requires
+a second. Prize photos are optional and are stored separately from the offer. The draw selects only
+the configured number of giveaway winners (and up to that number of correct quiz respondents); result
+publication validates the actual configured places. Promotions do not use prize-place rewards.

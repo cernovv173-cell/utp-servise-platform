@@ -105,9 +105,14 @@ fun AdminOfferManagementScreen(
     val validDates = runCatching {
         Instant.parse(endsAt).isAfter(Instant.parse(startsAt))
     }.getOrDefault(false)
-    val validRewards = offerType != "GIVEAWAY" && offerType != "QUIZ" || (0..2).all { index ->
-        rewardPoints[index] in 0..100_000 && (prizes[index].isNotBlank() || rewardPoints[index] > 0)
+    val configuredRewardPlaces = (0..2).map { index ->
+        prizes[index].isNotBlank() || rewardPoints[index] > 0
     }
+    val validRewards = offerType != "GIVEAWAY" && offerType != "QUIZ" || (
+        rewardPoints.all { it in 0..100_000 } &&
+            configuredRewardPlaces[0] &&
+            !(configuredRewardPlaces[2] && !configuredRewardPlaces[1])
+        )
     val validQuiz = offerType != "QUIZ" || (
         quizQuestion.trim().length >= 3 &&
             quizOptions.size in 2..6 &&
@@ -262,9 +267,14 @@ fun AdminOfferManagementScreen(
                     }
                     if (offerType == "GIVEAWAY" || offerType == "QUIZ") {
                         Text(
-                            "Награды для трёх мест",
+                            "Награды (от 1 до 3 мест)",
                             fontWeight = FontWeight.SemiBold,
                             color = UtpInk,
+                        )
+                        Text(
+                            "Укажите награду для 1-го места. 2-е и 3-е можно оставить пустыми; если добавляете 3-е, заполните 2-е. Фото приза необязательно.",
+                            color = UtpMuted,
+                            fontSize = 12.sp,
                         )
                         (0..2).forEach { index ->
                             Text(
@@ -278,7 +288,7 @@ fun AdminOfferManagementScreen(
                                 onValueChange = { value ->
                                     prizes = prizes.toMutableList().also { it[index] = value.take(500) }
                                 },
-                                label = { Text("Приз") },
+                                label = { Text("Приз (необязательно)") },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
@@ -290,7 +300,7 @@ fun AdminOfferManagementScreen(
                                         points = points.toMutableList().also { it[index] = value }
                                     }
                                 },
-                                label = { Text("Баллы (0–100000)") },
+                                label = { Text("Баллы (необязательно, 0–100000)") },
                                 singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.fillMaxWidth(),
@@ -298,7 +308,7 @@ fun AdminOfferManagementScreen(
                             )
                             PhotoPickerButton(
                                 label = if (prizePhotoUris[index] == null) {
-                                    "Добавить фото приза"
+                                    "Добавить фото (необязательно)"
                                 } else {
                                     "Заменить фото приза"
                                 },
@@ -328,7 +338,7 @@ fun AdminOfferManagementScreen(
                         }
                         if (!validRewards) {
                             Text(
-                                "Для каждого места укажите приз или баллы.",
+                                "Добавьте приз и/или баллы для 1-го места; места заполняются по порядку.",
                                 color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                                 fontSize = 12.sp,
                             )

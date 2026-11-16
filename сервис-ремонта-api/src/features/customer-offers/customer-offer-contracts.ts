@@ -48,14 +48,22 @@ export const createOfferBody = z
         [body.thirdPlacePrize, body.thirdPlacePoints],
       ];
       return body.type === "GIVEAWAY" || body.type === "QUIZ"
-        ? rewards.every(
-            ([prize, prizePoints]) => Boolean(prize?.trim()) || prizePoints > 0,
-          )
+        ? (() => {
+            const configured = rewards.map(
+              ([prize, prizePoints]) =>
+                Boolean(prize?.trim()) || prizePoints > 0,
+            );
+            return (
+              configured.some(Boolean) &&
+              configured[0] === true &&
+              !(configured[2] && !configured[1])
+            );
+          })()
         : rewards.every(([prize, prizePoints]) => !prize && prizePoints === 0);
     },
     {
       message:
-        "Для каждого места розыгрыша или квиза укажите приз или баллы; для акции призовые баллы не задаются.",
+        "Укажите награду хотя бы для 1-го места; места заполняются по порядку. Для акции награды не задаются.",
       path: ["firstPlacePrize"],
     },
   )

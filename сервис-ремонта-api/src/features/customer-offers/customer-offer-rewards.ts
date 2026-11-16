@@ -38,3 +38,14 @@ export const getCustomerOfferReward = (
   place: number,
 ): CustomerOfferReward | undefined =>
   getCustomerOfferRewards(offer).find((reward) => reward.place === place);
+
+export const getConfiguredCustomerOfferRewardCount = (
+  offer: CustomerOfferRewardSource,
+): number => {
+  let count = 0;
+  for (const reward of getCustomerOfferRewards(offer)) {
+    if (!reward.prize?.trim() && reward.bonusPoints <= 0) break;
+    count += 1;
+  }
+  return count;
+};

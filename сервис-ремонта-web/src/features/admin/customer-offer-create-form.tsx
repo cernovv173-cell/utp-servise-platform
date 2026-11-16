@@ -37,7 +37,7 @@ const RewardFields = ({
     <legend className="px-1 text-sm font-semibold">{place}-е место</legend>
     <div className="grid gap-3 sm:grid-cols-2">
       <label className="grid gap-1.5 text-sm font-medium">
-        Приз
+        Приз (необязательно)
         <input
           name={prizeName}
           maxLength={500}
@@ -46,7 +46,7 @@ const RewardFields = ({
         />
       </label>
       <label className="grid gap-1.5 text-sm font-medium">
-        Баллы победителю
+        Баллы (необязательно)
         <input
           name={pointsName}
           type="number"
@@ -134,8 +134,11 @@ export const CustomerOfferCreateForm = ({
       const points = Number(form.get(pointsName) ?? 0);
       return { prize, points };
     });
-    if (hasPrizes && prizes.some(({ prize, points }) => !prize && points <= 0)) {
-      setValidationError("Для каждого места укажите приз или количество баллов.");
+    const configuredPlaces = prizes.map(({ prize, points }) => Boolean(prize) || points > 0);
+    if (hasPrizes && (!configuredPlaces[0] || (configuredPlaces[2] && !configuredPlaces[1]))) {
+      setValidationError(
+        "Укажите награду для 1-го места; 2-е и 3-е можно оставить пустыми, но места заполняются по порядку.",
+      );
       return;
     }
     if (
@@ -298,8 +301,9 @@ export const CustomerOfferCreateForm = ({
         <div className="grid gap-3">
           <h3 className="text-sm font-semibold">Награды по местам</h3>
           <p className="text-xs leading-5 text-slate-500">
-            Для каждого места задайте приз, баллы или оба варианта. Для квиза победители выбираются
-            случайно только среди правильно ответивших; мест может быть меньше трёх.
+            Укажите приз и/или баллы для 1-го места. 2-е и 3-е места можно не заполнять; если
+            добавляете 3-е, заполните и 2-е. Фото приза необязательно. Для квиза победителей
+            выбираем случайно среди правильно ответивших.
           </p>
           {rewardPlaces.map((reward) => (
             <RewardFields

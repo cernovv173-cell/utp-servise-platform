@@ -119,25 +119,27 @@ const OfferCard = ({
       {(isGiveaway || isQuiz) && (
         <div className="grid gap-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900/70">
           <p className="font-semibold">Призы</p>
-          {rewards.map((reward) => (
-            <div
-              key={reward.place}
-              className="flex items-center gap-3 text-slate-600 dark:text-slate-300"
-            >
-              {reward.imageObjectId && (
-                <ProtectedImage
-                  objectId={reward.imageObjectId}
-                  alt={`Фото приза за ${reward.place}-е место`}
-                  className="size-16 shrink-0 rounded-lg object-cover"
-                />
-              )}
-              <p>
-                {reward.place}-е место: {reward.prize || ""}
-                {reward.prize && reward.bonusPoints > 0 ? " · " : ""}
-                {reward.bonusPoints > 0 ? `${reward.bonusPoints} баллов` : ""}
-              </p>
-            </div>
-          ))}
+          {rewards
+            .filter((reward) => Boolean(reward.prize?.trim()) || reward.bonusPoints > 0)
+            .map((reward) => (
+              <div
+                key={reward.place}
+                className="flex items-center gap-3 text-slate-600 dark:text-slate-300"
+              >
+                {reward.imageObjectId && (
+                  <ProtectedImage
+                    objectId={reward.imageObjectId}
+                    alt={`Фото приза за ${reward.place}-е место`}
+                    className="size-16 shrink-0 rounded-lg object-cover"
+                  />
+                )}
+                <p>
+                  {reward.place}-е место: {reward.prize || ""}
+                  {reward.prize && reward.bonusPoints > 0 ? " · " : ""}
+                  {reward.bonusPoints > 0 ? `${reward.bonusPoints} баллов` : ""}
+                </p>
+              </div>
+            ))}
         </div>
       )}
 

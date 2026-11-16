@@ -1126,7 +1126,7 @@ test("quiz answers are private, accepted once, and drawn only among correct answ
   assert.equal(wrongCustomerQuiz.myParticipation.answerCorrect, false);
 });
 
-test("only administrators create offers and each giveaway place requires a prize or points", async (t) => {
+test("offer rewards allow one, two, or three places without prize photos", async (t) => {
   const harness = createHarness();
   await once(harness.server, "listening");
   t.after(() => harness.server.close());
@@ -1169,6 +1169,7 @@ test("only administrators create offers and each giveaway place requires a prize
   assert.equal(adminCreate.status, 201);
   const created = await adminCreate.json();
   assert.equal(created.offer.firstPlacePoints, 250);
+  assert.equal(created.offer.firstPlacePrizeImageId, null);
   assert.equal(created.offer.isPublished, true);
   assert.equal(harness.offerPushDeliveries.length, 1);
   assert.equal(harness.offerPushDeliveries[0]?.offerId, created.offer.id);
@@ -1180,7 +1181,7 @@ test("only administrators create offers and each giveaway place requires a prize
       Date.parse(body.startsAt),
   );
 
-  const invalidGiveaway = await fetch(baseUrl, {
+  const twoPlaceGiveaway = await fetch(baseUrl, {
     method: "POST",
     headers: {
       authorization: `Bearer ${adminToken}`,
@@ -1190,9 +1191,61 @@ test("only administrators create offers and each giveaway place requires a prize
       ...body,
       thirdPlacePrize: null,
       thirdPlacePoints: 0,
+      isPublished: false,
     }),
   });
-  assert.equal(invalidGiveaway.status, 400);
+  assert.equal(twoPlaceGiveaway.status, 201);
+
+  const onePlaceGiveaway = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      ...body,
+      secondPlacePrize: null,
+      secondPlacePoints: 0,
+      thirdPlacePrize: null,
+      thirdPlacePoints: 0,
+      isPublished: false,
+    }),
+  });
+  assert.equal(onePlaceGiveaway.status, 201);
+
+  const invalidGap = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      ...body,
+      secondPlacePrize: null,
+      secondPlacePoints: 0,
+      isPublished: false,
+    }),
+  });
+  assert.equal(invalidGap.status, 400);
+
+  const noRewards = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      ...body,
+      firstPlacePrize: null,
+      firstPlacePoints: 0,
+      secondPlacePrize: null,
+      secondPlacePoints: 0,
+      thirdPlacePrize: null,
+      thirdPlacePoints: 0,
+      isPublished: false,
+    }),
+  });
+  assert.equal(noRewards.status, 400);
 
   const invalidPromotion = await fetch(baseUrl, {
     method: "POST",

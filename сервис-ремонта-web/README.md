@@ -382,3 +382,10 @@ news, offers, or orders page. If the customer grants browser notification permis
 shown as a system notification while the site tab is open in the background; when the site is visible
 or system notifications are unavailable, it appears inside the site. Closed-browser push is not
 configured for Web.
+
+## Quiz and giveaway rewards
+
+Administrators can configure rewards for one, two, or three sequential places. The first place needs
+a prize description and/or points; second and third places may be left blank (a third requires a
+second). Photos are optional. The public offer card shows only configured places, and the draw uses
+the configured count; quizzes draw only among correct answers. Promotions do not have prize places.
