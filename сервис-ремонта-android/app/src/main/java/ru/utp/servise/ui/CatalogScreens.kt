@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -30,19 +29,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CatalogItem
-import ru.utp.servise.data.deviceLabel
 import ru.utp.servise.data.orderItemTypeLabel
 
 internal const val DEFAULT_MINIMUM_STOCK_QUANTITY = 3
 
-private fun isRestockNeeded(stockQuantity: Int?, minimumStockQuantity: Int?): Boolean =
+internal fun isRestockNeeded(stockQuantity: Int?, minimumStockQuantity: Int?): Boolean =
     stockQuantity != null &&
         (stockQuantity == 0 ||
             stockQuantity <= (minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY))
@@ -132,8 +129,10 @@ fun CatalogManagementScreen(
     refresh: () -> Unit,
     onBack: () -> Unit,
 ) {
-    val context = LocalContext.current
     var showRestockOnly by remember { mutableStateOf(false) }
+    var servicesExpanded by remember { mutableStateOf(false) }
+    var sparePartsExpanded by remember { mutableStateOf(false) }
+    var productsExpanded by remember { mutableStateOf(false) }
     var type by remember { mutableStateOf("SERVICE") }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
@@ -165,6 +164,9 @@ fun CatalogManagementScreen(
     }).filter { item ->
         item.type == "PRODUCT" || deviceTypeFilter == ALL_REPAIR_DEVICE_TYPES || deviceTypeFilter in item.deviceTypes
     }
+    val serviceItems = visibleCatalogItems.filter { it.type == "SERVICE" }
+    val sparePartItems = visibleCatalogItems.filter { it.type == "SPARE_PART" }
+    val productItems = visibleCatalogItems.filter { it.type == "PRODUCT" }
 
     Column(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp),
@@ -331,97 +333,59 @@ fun CatalogManagementScreen(
                 color = UtpMuted,
             )
         }
-        visibleCatalogItems.forEach { item ->
-            val stockQuantity = item.stockQuantity
-            val isTrackedActiveItem = item.active && item.type != "SERVICE" && stockQuantity != null
-            val minimumStockQuantity = item.minimumStockQuantity
-            Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-                Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                    Text("${item.type.orderItemTypeLabel()} · ${item.name}", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                    if (item.type == "SERVICE" || item.type == "SPARE_PART") {
-                        Text(
-                            "Подходит для: ${item.deviceTypes.filter { it in repairDeviceTypes }.joinToString { it.deviceLabel() }}",
-                            fontSize = 11.sp,
-                            color = UtpMuted,
-                        )
-                    }
-                    Text(
-                        "${item.unitPriceRub} ₽ · ${if (item.active) "Активна" else "Скрыта из выбора"}" +
-                            if (item.type != "SERVICE") {
-                                " · ${item.stockQuantity?.let { "$it шт. в наличии" } ?: "остаток не задан"}" +
-                                    if (item.stockQuantity != null) {
-                                        " · порог ${minimumStockQuantity ?: DEFAULT_MINIMUM_STOCK_QUANTITY} шт."
-                                    } else ""
-                            } else "",
-                        fontSize = 12.sp,
-                        color = UtpMuted,
-                        modifier = Modifier.padding(top = 3.dp),
-                    )
-                    if (isTrackedActiveItem && isRestockNeeded(stockQuantity, minimumStockQuantity)) {
-                        Text(
-                            if (stockQuantity == 0) "Закончилась — пополните запас"
-                            else "Мало на складе — осталось $stockQuantity шт.",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (stockQuantity == 0) androidx.compose.material3.MaterialTheme.colorScheme.error else UtpAmber,
-                            modifier = Modifier.padding(top = 5.dp),
-                        )
-                    }
-                    if (item.type == "PRODUCT") {
-                        item.description?.takeIf { it.isNotBlank() }?.let {
-                            Text(it, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 6.dp))
-                        }
-                        if (item.imageObjectIds.isNotEmpty()) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.padding(top = 8.dp),
-                            ) {
-                                item.imageObjectIds.take(4).forEachIndexed { index, objectId ->
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        RemoteProjectImage(
-                                            objectId = objectId,
-                                            token = token,
-                                            modifier = Modifier.size(72.dp),
-                                            contentDescription = "Фото ${index + 1}: ${item.name}",
-                                        )
-                                        TextButton(
-                                            onClick = {
-                                                runAction({
-                                                    ApiClient.deleteCatalogProductImage(token, item.id, objectId)
-                                                }) { refresh() }
-                                            },
-                                        ) { Text("Удалить", fontSize = 10.sp) }
-                                    }
-                                }
-                            }
-                        }
-                        if (item.imageObjectIds.size < 3) {
-                            PhotoPickerButton(
-                                label = "Добавить фото · ${item.imageObjectIds.size}/3",
-                            ) { uri ->
-                                runAction({
-                                    ApiClient.uploadCatalogProductImage(
-                                        token,
-                                        item.id,
-                                        compressSelectedImage(context, uri),
-                                    )
-                                }) { refresh() }
-                            }
-                        }
-                    }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { editedItem = item }) { Text("Изменить") }
-                        TextButton(
-                            onClick = {
-                                runAction({ ApiClient.updateCatalogItem(token, item.copy(active = !item.active)) }) {}
-                            },
-                        ) { Text(if (item.active) "Отключить" else "Включить") }
-                        TextButton(onClick = { pendingDeleteItem = item }) {
-                            Text("Удалить навсегда", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
-            }
+        CatalogManagementSection(
+            title = "Услуги",
+            items = serviceItems,
+            expanded = servicesExpanded,
+            onToggle = { servicesExpanded = !servicesExpanded },
+        ) { item ->
+            CatalogManagementItemCard(
+                item = item,
+                token = token,
+                runAction = runAction,
+                refresh = refresh,
+                onEdit = { editedItem = it },
+                onToggleActive = { current ->
+                    runAction({ ApiClient.updateCatalogItem(token, current.copy(active = !current.active)) }) {}
+                },
+                onDelete = { pendingDeleteItem = it },
+            )
+        }
+        CatalogManagementSection(
+            title = "Запчасти",
+            items = sparePartItems,
+            expanded = sparePartsExpanded,
+            onToggle = { sparePartsExpanded = !sparePartsExpanded },
+        ) { item ->
+            CatalogManagementItemCard(
+                item = item,
+                token = token,
+                runAction = runAction,
+                refresh = refresh,
+                onEdit = { editedItem = it },
+                onToggleActive = { current ->
+                    runAction({ ApiClient.updateCatalogItem(token, current.copy(active = !current.active)) }) {}
+                },
+                onDelete = { pendingDeleteItem = it },
+            )
+        }
+        CatalogManagementSection(
+            title = "Товары",
+            items = productItems,
+            expanded = productsExpanded,
+            onToggle = { productsExpanded = !productsExpanded },
+        ) { item ->
+            CatalogManagementItemCard(
+                item = item,
+                token = token,
+                runAction = runAction,
+                refresh = refresh,
+                onEdit = { editedItem = it },
+                onToggleActive = { current ->
+                    runAction({ ApiClient.updateCatalogItem(token, current.copy(active = !current.active)) }) {}
+                },
+                onDelete = { pendingDeleteItem = it },
+            )
         }
         Spacer(Modifier.height(4.dp))
     }
