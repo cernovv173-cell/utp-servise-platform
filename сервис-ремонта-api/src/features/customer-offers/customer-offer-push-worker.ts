@@ -6,6 +6,10 @@ const logger = createLogger();
 const WORKER_INTERVAL_MILLISECONDS = 5_000;
 const DELIVERY_LOCK_MILLISECONDS = 90_000;
 const MAX_ATTEMPTS_PER_TICK = 20;
+const isSupportedOfferType = (
+  type: string,
+): type is "PROMOTION" | "GIVEAWAY" =>
+  type === "PROMOTION" || type === "GIVEAWAY";
 
 type ClaimedCustomerOfferPush = {
   readonly id: string;
@@ -64,6 +68,12 @@ const processDelivery = async (
     });
     return;
   }
+  if (!isSupportedOfferType(offer.type)) {
+    await database.customerOfferPushDelivery.deleteMany({
+      where: { id: delivery.id, sentAt: null },
+    });
+    return;
+  }
   if (offer.endsAt <= now) {
     await database.customerOfferPushDelivery.updateMany({
       where: { id: delivery.id, sentAt: null },
@@ -74,7 +84,10 @@ const processDelivery = async (
 
   const delivered = await sendCustomerOfferPublicationNotification(
     database,
-    offer,
+    {
+      ...offer,
+      type: offer.type as "PROMOTION" | "GIVEAWAY",
+    },
     delivery.id,
   );
   if (delivered) {

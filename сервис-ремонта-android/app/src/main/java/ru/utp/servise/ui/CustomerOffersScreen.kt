@@ -9,13 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,7 +25,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,7 +41,7 @@ fun CustomerOffersScreen(
     token: String,
     offers: List<CustomerOffer>,
     busy: Boolean,
-    onParticipate: (String, Int?) -> Unit,
+    onParticipate: (String) -> Unit,
 ) {
     var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
@@ -54,7 +51,7 @@ fun CustomerOffersScreen(
         }
     }
 
-    val visibleOffers = offers.sortedWith(
+    val visibleOffers = offers.filter { it.type == "PROMOTION" || it.type == "GIVEAWAY" }.sortedWith(
         compareBy<CustomerOffer> {
             when {
                 currentTimeMillis < offerTime(it.startsAt) -> 1
@@ -63,7 +60,6 @@ fun CustomerOffersScreen(
             }
         }.thenBy { offerTime(it.startsAt) },
     )
-    val hasPublishedQuiz = visibleOffers.any { it.type == "QUIZ" }
 
     Column(
         modifier = Modifier
@@ -73,7 +69,7 @@ fun CustomerOffersScreen(
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Акции, розыгрыши и квизы", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Text("Акции и розыгрыши", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
         Text(
             "Участвуйте в предложениях сервиса и следите за опубликованными результатами.",
             fontSize = 13.sp,
@@ -82,24 +78,7 @@ fun CustomerOffersScreen(
         )
 
         if (visibleOffers.isEmpty()) {
-            Text("Пока нет опубликованных акций, розыгрышей и квизов.", color = UtpMuted)
-        }
-        if (!hasPublishedQuiz) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Квиз в разработке 👨‍💻", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                    Text(
-                        "Готовим первый вопрос о правильном уходе за компьютерами и ноутбуками.",
-                        fontSize = 13.sp,
-                        color = UtpMuted,
-                        lineHeight = 19.sp,
-                    )
-                }
-            }
+            Text("Пока нет опубликованных акций и розыгрышей.", color = UtpMuted)
         }
 
         visibleOffers.forEach { offer ->
@@ -109,7 +88,7 @@ fun CustomerOffersScreen(
                     token = token,
                     currentTimeMillis = currentTimeMillis,
                     busy = busy,
-                    onParticipate = { answerIndex -> onParticipate(offer.id, answerIndex) },
+                    onParticipate = { onParticipate(offer.id) },
                 )
             }
         }
@@ -122,18 +101,15 @@ private fun CustomerOfferCard(
     token: String,
     currentTimeMillis: Long,
     busy: Boolean,
-    onParticipate: (Int?) -> Unit,
+    onParticipate: () -> Unit,
 ) {
-    var selectedOption by remember(offer.id) { mutableStateOf(offer.myParticipation?.answerIndex) }
     val startsAt = offerTime(offer.startsAt)
     val endsAt = offerTime(offer.endsAt)
     val isUpcoming = currentTimeMillis < startsAt
     val isActive = currentTimeMillis >= startsAt && currentTimeMillis < endsAt
-    val isQuiz = offer.type == "QUIZ"
     val isGiveaway = offer.type == "GIVEAWAY"
     val hasJoined = offer.myParticipation != null
     val resultsArePublished = offer.resultsPublishedAt != null
-    val answerIndex = offer.myParticipation?.answerIndex ?: selectedOption
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -145,11 +121,7 @@ private fun CustomerOfferCard(
             verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             Text(
-                when {
-                    isQuiz -> "Квиз"
-                    isGiveaway -> "Розыгрыш"
-                    else -> "Акция"
-                },
+                if (isGiveaway) "Розыгрыш" else "Акция",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = UtpBlue,
@@ -164,29 +136,7 @@ private fun CustomerOfferCard(
                 color = UtpMuted,
             )
 
-            if (isQuiz) {
-                QuizAnswerOptions(
-                    offer = offer,
-                    selectedIndex = answerIndex,
-                    enabled = !hasJoined && isActive,
-                    resultsArePublished = resultsArePublished,
-                    onSelect = { selectedOption = it },
-                )
-                if (hasJoined && resultsArePublished) {
-                    Text(
-                        if (offer.myParticipation?.answerCorrect == true) {
-                            "Вы ответили правильно — участвуете в розыгрыше."
-                        } else {
-                            "Ваш ответ был неверным. Спасибо за участие!"
-                        },
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = UtpBlue,
-                    )
-                }
-            }
-
-            if (isGiveaway || isQuiz) {
+            if (isGiveaway) {
                 OfferPrizes(offer, token)
                 Text("Участников: ${offer.participantCount}", fontSize = 12.sp, color = UtpMuted)
             } else {
@@ -200,9 +150,6 @@ private fun CustomerOfferCard(
 
             when {
                 resultsArePublished -> {
-                    if (isQuiz && offer.winners.isEmpty()) {
-                        Text("В этот раз победителей нет.", fontSize = 13.sp, color = UtpMuted)
-                    }
                     PublishedPodium(offer.winners, offer.myParticipation?.place)
                 }
                 offer.drawnAt != null -> Text(
@@ -212,72 +159,24 @@ private fun CustomerOfferCard(
                     color = UtpMuted,
                 )
                 hasJoined -> Text(
-                    if (isQuiz) "Ответ принят. Повторная попытка не предусмотрена."
-                    else if (isActive) "Вы участвуете. Удачи!" else "Вы зарегистрированы для участия.",
+                    if (isActive) "Вы участвуете. Удачи!" else "Вы зарегистрированы для участия.",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = UtpBlue,
                 )
                 isUpcoming -> Text("Участие откроется в указанное время.", fontSize = 12.sp, color = UtpMuted)
                 isActive -> Button(
-                    onClick = { onParticipate(if (isQuiz) answerIndex else null) },
-                    enabled = !busy && (!isQuiz || answerIndex != null),
+                    onClick = onParticipate,
+                    enabled = !busy,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(14.dp),
                 ) {
                     Text(
-                        when {
-                            busy -> "Подождите…"
-                            isQuiz -> "Ответить и участвовать"
-                            else -> "Участвовать"
-                        },
+                        if (busy) "Подождите…" else "Участвовать",
                     )
                 }
                 else -> Text("Приём участников завершён.", fontSize = 12.sp, color = UtpMuted)
             }
-        }
-    }
-}
-
-@Composable
-private fun QuizAnswerOptions(
-    offer: CustomerOffer,
-    selectedIndex: Int?,
-    enabled: Boolean,
-    resultsArePublished: Boolean,
-    onSelect: (Int) -> Unit,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Text(offer.quizQuestion.orEmpty(), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-        offer.quizOptions.forEachIndexed { index, option ->
-            val isCorrect = resultsArePublished && offer.quizCorrectOption == index
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectable(
-                        selected = selectedIndex == index,
-                        enabled = enabled,
-                        role = Role.RadioButton,
-                        onClick = { onSelect(index) },
-                    )
-                    .padding(vertical = 3.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(
-                    selected = selectedIndex == index,
-                    onClick = null,
-                    enabled = enabled,
-                )
-                Text(
-                    text = if (isCorrect) "$option  ✓" else option,
-                    modifier = Modifier.weight(1f),
-                    fontSize = 13.sp,
-                    color = if (isCorrect) UtpBlue else UtpInk,
-                )
-            }
-        }
-        if (resultsArePublished) {
-            Text("Правильный вариант отмечен галочкой.", fontSize = 11.sp, color = UtpMuted)
         }
     }
 }

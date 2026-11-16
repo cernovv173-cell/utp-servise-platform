@@ -15,7 +15,6 @@ import {
 } from "../media/media-storage.js";
 import { registerCustomerOfferAdminRoutes } from "./customer-offer-admin.routes.js";
 import {
-  bodyOf,
   customerOfferResponse,
   offerParams,
   paramsOf,
@@ -48,6 +47,7 @@ export const createCustomerOffersRouter = (
       database.customerOffer.findMany({
         where: {
           isPublished: true,
+          type: { in: ["PROMOTION", "GIVEAWAY"] },
           startsAt: { lte: now },
           endsAt: { gt: now },
         },
@@ -74,6 +74,7 @@ export const createCustomerOffersRouter = (
       database.customerOffer.findMany({
         where: {
           isPublished: true,
+          type: { in: ["GIVEAWAY"] },
           endsAt: { lte: now },
           resultsPublishedAt: { not: null, lte: now },
           entries: { some: { place: { not: null } } },
@@ -148,7 +149,7 @@ export const createCustomerOffersRouter = (
       const offer = await database.customerOffer.findFirst({
         where: {
           id: offerId,
-          type: { in: ["GIVEAWAY", "QUIZ"] },
+          type: { in: ["GIVEAWAY"] },
           isPublished: true,
           OR: [
             { startsAt: { lte: now }, endsAt: { gt: now } },
@@ -191,7 +192,10 @@ export const createCustomerOffersRouter = (
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const offers = await database.customerOffer.findMany({
-        where: { isPublished: true },
+        where: {
+          isPublished: true,
+          type: { in: ["PROMOTION", "GIVEAWAY"] },
+        },
         orderBy: [{ startsAt: "desc" }, { createdAt: "desc" }],
         take: 100,
         include: {
@@ -205,8 +209,6 @@ export const createCustomerOffersRouter = (
               customerId: true,
               joinedAt: true,
               place: true,
-              answerIndex: true,
-              answerCorrect: true,
               customer: { select: { displayName: true } },
             },
           },
@@ -226,7 +228,6 @@ export const createCustomerOffersRouter = (
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const { offerId } = paramsOf(response);
-      const { answerIndex } = bodyOf<{ answerIndex?: number }>(response);
       const offer = await database.customerOffer.findUnique({
         where: { id: offerId },
         select: {
@@ -235,40 +236,19 @@ export const createCustomerOffersRouter = (
           isPublished: true,
           startsAt: true,
           endsAt: true,
-          quizOptions: true,
-          quizCorrectOption: true,
         },
       });
       if (!offer) {
         throw new HttpError(404, "OFFER_NOT_FOUND", "Предложение не найдено.");
       }
-      if (offer.type === "QUIZ") {
-        if (answerIndex === undefined) {
-          throw new HttpError(
-            400,
-            "QUIZ_ANSWER_REQUIRED",
-            "Выберите вариант ответа.",
-          );
-        }
-        if (answerIndex >= offer.quizOptions.length) {
-          throw new HttpError(
-            400,
-            "QUIZ_ANSWER_INVALID",
-            "Выберите один из вариантов ответа.",
-          );
-        }
-      } else if (answerIndex !== undefined) {
-        throw new HttpError(
-          400,
-          "NOT_A_QUIZ",
-          "Ответ можно отправить только в квизе.",
-        );
+      if (offer.type !== "PROMOTION" && offer.type !== "GIVEAWAY") {
+        throw new HttpError(404, "OFFER_NOT_FOUND", "Предложение не найдено.");
       }
 
       const key = { offerId_customerId: { offerId, customerId: user.id } };
       const existing = await database.customerOfferParticipation.findUnique({
         where: key,
-        select: { id: true, joinedAt: true, place: true, answerIndex: true },
+        select: { id: true, joinedAt: true, place: true },
       });
       if (existing) {
         response.json({ participation: existing, alreadyParticipating: true });
@@ -289,13 +269,8 @@ export const createCustomerOffersRouter = (
           data: {
             offerId,
             customerId: user.id,
-            answerIndex: offer.type === "QUIZ" ? answerIndex : null,
-            answerCorrect:
-              offer.type === "QUIZ" && offer.quizCorrectOption !== null
-                ? answerIndex === offer.quizCorrectOption
-                : null,
           },
-          select: { id: true, joinedAt: true, place: true, answerIndex: true },
+          select: { id: true, joinedAt: true, place: true },
         });
         response
           .status(201)
@@ -309,7 +284,6 @@ export const createCustomerOffersRouter = (
               id: true,
               joinedAt: true,
               place: true,
-              answerIndex: true,
             },
           });
         if (!participation) throw error;

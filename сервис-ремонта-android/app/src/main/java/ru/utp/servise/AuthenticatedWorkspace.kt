@@ -333,9 +333,9 @@ internal fun AuthenticatedWorkspace(
                                     token = token,
                                     offers = customerOffers,
                                     busy = busy,
-                                    onParticipate = { offerId, answerIndex ->
+                                    onParticipate = { offerId ->
                                         runAction({
-                                            ApiClient.participateInCustomerOffer(token, offerId, answerIndex)
+                                            ApiClient.participateInCustomerOffer(token, offerId)
                                         }) {
                                             refresh()
                                         }

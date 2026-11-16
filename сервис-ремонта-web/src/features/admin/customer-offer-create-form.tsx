@@ -4,18 +4,6 @@ import { type CreateCustomerOfferInput, type CustomerOfferType } from "@/lib/api
 
 import { CustomerOfferPrizePhotoField } from "./customer-offer-prize-photo-field";
 
-const quizTitle = "Квиз ЕНОТА: не перегревай ноутбук";
-const quizContent =
-  "Ответьте один раз. После завершения срока среди участников с правильным ответом случайно выберем до трёх победителей. Перед публикацией укажите призы или баллы и срок участия.";
-const starterQuestion =
-  "Как лучше поставить ноутбук, чтобы его система охлаждения работала нормально?";
-const starterOptions = [
-  "На мягкую поверхность, например плед",
-  "На ровную твёрдую поверхность, не закрывая вентиляционные отверстия",
-  "Плотно придвинуть вентиляционную решётку к стене",
-  "Накрыть ноутбук тканью во время работы",
-];
-
 const RewardFields = ({
   place,
   prizeName,
@@ -94,24 +82,18 @@ export const CustomerOfferCreateForm = ({
     clear: () => void,
   ) => void;
 }) => {
-  const [type, setType] = useState<CustomerOfferType>("QUIZ");
-  const [title, setTitle] = useState(quizTitle);
-  const [content, setContent] = useState(quizContent);
-  const [question, setQuestion] = useState(starterQuestion);
-  const [options, setOptions] = useState(starterOptions);
-  const [correctOption, setCorrectOption] = useState(1);
+  const [type, setType] = useState<CustomerOfferType>("PROMOTION");
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [validationError, setValidationError] = useState("");
   const [prizeImages, setPrizeImages] = useState<(File | null)[]>([null, null, null]);
   const [photoInputKey, setPhotoInputKey] = useState(0);
-  const hasPrizes = type === "GIVEAWAY" || type === "QUIZ";
+  const hasPrizes = type === "GIVEAWAY";
 
   const clear = () => {
-    setType("QUIZ");
-    setTitle(quizTitle);
-    setContent(quizContent);
-    setQuestion(starterQuestion);
-    setOptions(starterOptions);
-    setCorrectOption(1);
+    setType("PROMOTION");
+    setTitle("");
+    setContent("");
     setPrizeImages([null, null, null]);
     setPhotoInputKey((current) => current + 1);
     setValidationError("");
@@ -154,24 +136,11 @@ export const CustomerOfferCreateForm = ({
       return;
     }
 
-    const selectedOptionValue = form.get("quizCorrectOption");
-    const selectedOption = selectedOptionValue === null ? -1 : Number(selectedOptionValue);
-    if (
-      type === "QUIZ" &&
-      (question.trim().length < 3 || options.length < 2 || !Number.isInteger(selectedOption))
-    ) {
-      setValidationError("Проверьте вопрос и отметьте правильный вариант ответа.");
-      return;
-    }
-
     onCreate(
       {
         type,
         title: title.trim(),
         content: content.trim(),
-        quizQuestion: type === "QUIZ" ? question.trim() : null,
-        quizOptions: type === "QUIZ" ? options.map((option) => option.trim()) : [],
-        quizCorrectOption: type === "QUIZ" ? selectedOption : null,
         firstPlacePrize: hasPrizes ? prizes[0]!.prize : null,
         firstPlacePoints: hasPrizes ? prizes[0]!.points : 0,
         secondPlacePrize: hasPrizes ? prizes[1]!.prize : null,
@@ -194,7 +163,6 @@ export const CustomerOfferCreateForm = ({
         <div className="flex flex-wrap gap-3">
           {(
             [
-              ["QUIZ", "Квиз"],
               ["GIVEAWAY", "Розыгрыш"],
               ["PROMOTION", "Акция"],
             ] as const
@@ -241,69 +209,12 @@ export const CustomerOfferCreateForm = ({
         />
       </label>
 
-      {type === "QUIZ" && (
-        <fieldset className="grid gap-3 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
-          <legend className="px-1 text-sm font-semibold">Вопрос и варианты ответа</legend>
-          <label className="grid gap-1.5 text-sm font-medium">
-            Вопрос
-            <textarea
-              value={question}
-              onChange={(event) => setQuestion(event.target.value.slice(0, 1000))}
-              required
-              minLength={3}
-              rows={2}
-              className="rounded-xl border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-            />
-          </label>
-          <p className="text-xs text-slate-500">
-            Отметьте правильный вариант — клиентам он будет показан только после публикации итогов.
-            На аккаунт разрешён один ответ.
-          </p>
-          {options.map((option, index) => (
-            <div
-              key={index}
-              className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-            >
-              <label className="grid gap-1.5 text-sm font-medium">
-                Вариант {index + 1}
-                <input
-                  value={option}
-                  onChange={(event) =>
-                    setOptions((current) =>
-                      current.map((value, itemIndex) =>
-                        itemIndex === index ? event.target.value.slice(0, 120) : value,
-                      ),
-                    )
-                  }
-                  required
-                  maxLength={120}
-                  className="h-10 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-950"
-                />
-              </label>
-              <label className="inline-flex min-h-10 items-center gap-2 text-sm">
-                <input
-                  type="radio"
-                  name="quizCorrectOption"
-                  value={index}
-                  checked={correctOption === index}
-                  onChange={() => setCorrectOption(index)}
-                  required
-                  className="size-4 accent-blue-600"
-                />
-                Правильный
-              </label>
-            </div>
-          ))}
-        </fieldset>
-      )}
-
       {hasPrizes && (
         <div className="grid gap-3">
           <h3 className="text-sm font-semibold">Награды по местам</h3>
           <p className="text-xs leading-5 text-slate-500">
             Укажите приз и/или баллы для 1-го места. 2-е и 3-е места можно не заполнять; если
-            добавляете 3-е, заполните и 2-е. Фото приза необязательно. Для квиза победителей
-            выбираем случайно среди правильно ответивших.
+            добавляете 3-е, заполните и 2-е. Фото приза необязательно.
           </p>
           {rewardPlaces.map((reward) => (
             <RewardFields

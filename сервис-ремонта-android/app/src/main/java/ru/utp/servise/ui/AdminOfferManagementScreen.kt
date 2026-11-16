@@ -56,29 +56,9 @@ fun AdminOfferManagementScreen(
     val context = LocalContext.current
     var offers by remember { mutableStateOf(emptyList<CustomerOffer>()) }
     var loading by remember { mutableStateOf(true) }
-    var offerType by remember { mutableStateOf("QUIZ") }
-    var title by remember { mutableStateOf("Квиз ЕНОТА: не перегревай ноутбук") }
-    var content by remember {
-        mutableStateOf(
-            "Ответьте один раз. После завершения срока среди участников с правильным ответом " +
-                "случайно выберем до трёх победителей. Перед публикацией укажите призы или баллы " +
-                "и срок участия.",
-        )
-    }
-    var quizQuestion by remember {
-        mutableStateOf("Как лучше поставить ноутбук, чтобы его система охлаждения работала нормально?")
-    }
-    var quizOptions by remember {
-        mutableStateOf(
-            listOf(
-                "На мягкую поверхность, например плед",
-                "На ровную твёрдую поверхность, не закрывая вентиляционные отверстия",
-                "Плотно придвинуть вентиляционную решётку к стене",
-                "Накрыть ноутбук тканью во время работы",
-            ),
-        )
-    }
-    var correctOption by remember { mutableStateOf(1) }
+    var offerType by remember { mutableStateOf("PROMOTION") }
+    var title by remember { mutableStateOf("") }
+    var content by remember { mutableStateOf("") }
     var startsAt by remember { mutableStateOf(Instant.now().toString()) }
     var endsAt by remember { mutableStateOf(Instant.now().plusSeconds(7 * 24 * 60 * 60L).toString()) }
     var prizes by remember { mutableStateOf(listOf("", "", "")) }
@@ -108,47 +88,22 @@ fun AdminOfferManagementScreen(
     val configuredRewardPlaces = (0..2).map { index ->
         prizes[index].isNotBlank() || rewardPoints[index] > 0
     }
-    val validRewards = offerType != "GIVEAWAY" && offerType != "QUIZ" || (
+    val validRewards = offerType != "GIVEAWAY" || (
         rewardPoints.all { it in 0..100_000 } &&
             configuredRewardPlaces[0] &&
             !(configuredRewardPlaces[2] && !configuredRewardPlaces[1])
         )
-    val validQuiz = offerType != "QUIZ" || (
-        quizQuestion.trim().length >= 3 &&
-            quizOptions.size in 2..6 &&
-            quizOptions.all { it.isNotBlank() } &&
-            quizOptions.map { it.trim().lowercase() }.distinct().size == quizOptions.size &&
-            correctOption in quizOptions.indices
-        )
     val canCreate = !busy && title.trim().length >= 2 && content.isNotBlank() &&
-        validDates && validRewards && validQuiz
+        validDates && validRewards
 
     fun chooseOfferType(next: String) {
-        if (offerType == "QUIZ" && next != "QUIZ" && title == "Квиз ЕНОТА: не перегревай ноутбук") {
-            title = ""
-            content = ""
-        }
-        if (next == "QUIZ" && title.isBlank()) {
-            title = "Квиз ЕНОТА: не перегревай ноутбук"
-            content = "Ответьте один раз. После завершения срока среди участников с правильным ответом " +
-                "случайно выберем до трёх победителей. Перед публикацией укажите призы или баллы " +
-                "и срок участия."
-        }
         offerType = next
     }
 
     fun clearDraft() {
-        title = "Квиз ЕНОТА: не перегревай ноутбук"
-        content = "Ответьте один раз. После завершения срока среди участников с правильным ответом случайно выберем до трёх победителей. Перед публикацией укажите призы или баллы и срок участия."
-        offerType = "QUIZ"
-        quizQuestion = "Как лучше поставить ноутбук, чтобы его система охлаждения работала нормально?"
-        quizOptions = listOf(
-            "На мягкую поверхность, например плед",
-            "На ровную твёрдую поверхность, не закрывая вентиляционные отверстия",
-            "Плотно придвинуть вентиляционную решётку к стене",
-            "Накрыть ноутбук тканью во время работы",
-        )
-        correctOption = 1
+        title = ""
+        content = ""
+        offerType = "PROMOTION"
         startsAt = Instant.now().toString()
         endsAt = Instant.now().plusSeconds(7 * 24 * 60 * 60L).toString()
         prizes = listOf("", "", "")
@@ -163,7 +118,7 @@ fun AdminOfferManagementScreen(
     ) {
         item {
             TextButton(onClick = onBack) { Text("←  Управление") }
-            Text("Акции, розыгрыши и квизы", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+            Text("Акции и розыгрыши", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = UtpInk)
             Text(
                 "Черновики; публикация отправляет уведомление клиентам.",
                 fontSize = 12.sp,
@@ -183,7 +138,7 @@ fun AdminOfferManagementScreen(
                 ) {
                     Text("Новое предложение", fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("QUIZ" to "Квиз", "GIVEAWAY" to "Розыгрыш", "PROMOTION" to "Акция")
+                        listOf("GIVEAWAY" to "Розыгрыш", "PROMOTION" to "Акция")
                             .forEach { (value, label) ->
                                 if (offerType == value) {
                                     Button(onClick = {}, modifier = Modifier.weight(1f)) { Text(label) }
@@ -212,42 +167,6 @@ fun AdminOfferManagementScreen(
                         maxLines = 7,
                         shape = RoundedCornerShape(12.dp),
                     )
-                    if (offerType == "QUIZ") {
-                        Text("Первый квиз: пример вопроса и вариантов ответа", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                        OutlinedTextField(
-                            value = quizQuestion,
-                            onValueChange = { quizQuestion = it.take(1000) },
-                            label = { Text("Вопрос") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
-                            maxLines = 4,
-                            shape = RoundedCornerShape(12.dp),
-                        )
-                        quizOptions.forEachIndexed { index, option ->
-                            OutlinedTextField(
-                                value = option,
-                                onValueChange = { value ->
-                                    quizOptions = quizOptions.toMutableList().also { it[index] = value.take(120) }
-                                },
-                                label = { Text("Вариант ${index + 1}") },
-                                singleLine = true,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                            )
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                RadioButton(
-                                    selected = correctOption == index,
-                                    onClick = { correctOption = index },
-                                )
-                                Text("Правильный ответ", fontSize = 12.sp, color = UtpMuted)
-                            }
-                        }
-                        Text(
-                            "Клиенты смогут ответить один раз; правильный вариант откроется после публикации итогов.",
-                            fontSize = 12.sp,
-                            color = UtpMuted,
-                        )
-                    }
                     ScheduleDateTimeField(
                         "Начало",
                         startsAt,
@@ -265,7 +184,7 @@ fun AdminOfferManagementScreen(
                             fontSize = 12.sp,
                         )
                     }
-                    if (offerType == "GIVEAWAY" || offerType == "QUIZ") {
+                    if (offerType == "GIVEAWAY") {
                         Text(
                             "Награды (от 1 до 3 мест)",
                             fontWeight = FontWeight.SemiBold,
@@ -355,16 +274,13 @@ fun AdminOfferManagementScreen(
                                     type = offerType,
                                     title = title,
                                     content = content,
-                                    prizes = if (offerType == "GIVEAWAY" || offerType == "QUIZ") {
+                                    prizes = if (offerType == "GIVEAWAY") {
                                         prizeValues
                                     } else {
                                         List(3) { null to 0 }
                                     },
                                     startsAt = startsAt,
                                     endsAt = endsAt,
-                                    quizQuestion = if (offerType == "QUIZ") quizQuestion else null,
-                                    quizOptions = if (offerType == "QUIZ") quizOptions else emptyList(),
-                                    quizCorrectOption = if (offerType == "QUIZ") correctOption else null,
                                 )
                                 var photoUploadFailed = false
                                 for (index in prizePhotoUris.indices) {
@@ -411,7 +327,7 @@ fun AdminOfferManagementScreen(
                 TextButton(onClick = ::reload, enabled = !loading && !busy) { Text("Обновить") }
             }
             if (loading) Text("Загрузка…", color = UtpMuted)
-            else if (offers.isEmpty()) Text("Пока нет акций, розыгрышей и квизов.", color = UtpMuted)
+            else if (offers.isEmpty()) Text("Пока нет акций и розыгрышей.", color = UtpMuted)
         }
         items(offers, key = { it.id }) { offer ->
             AdminOfferCard(

@@ -546,11 +546,8 @@ object ApiClient {
         "GET", "/public/offers",
     ).getJSONArray("offers").mapObjects { it.toPublicCustomerOffer() }
 
-    fun participateInCustomerOffer(token: String, offerId: String, answerIndex: Int? = null) {
-        val body = JSONObject().apply {
-            answerIndex?.let { put("answerIndex", it) }
-        }
-        request("POST", "/offers/$offerId/participate", token, body)
+    fun participateInCustomerOffer(token: String, offerId: String) {
+        request("POST", "/offers/$offerId/participate", token, JSONObject())
     }
 
     fun banners(token: String): List<SiteBanner> = request("GET", "/banners", token)

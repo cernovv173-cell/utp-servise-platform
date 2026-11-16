@@ -86,7 +86,7 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                 listOf(
                     WorkspaceDestination(
                         "customer/offers",
-                        "Акции, розыгрыши и квизы",
+                        "Акции и розыгрыши",
                         Icons.Filled.Star,
                         "Участие в доступных предложениях сервиса.",
                     ),
@@ -264,7 +264,7 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                     ),
                     WorkspaceDestination(
                         "admin/offers",
-                        "Акции, розыгрыши и квизы",
+                        "Акции и розыгрыши",
                         Icons.Filled.Star,
                         "Управление предложениями для клиентов.",
                     ),

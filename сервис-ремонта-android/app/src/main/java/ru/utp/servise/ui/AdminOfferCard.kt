@@ -50,7 +50,7 @@ internal fun AdminOfferCard(
         dateFormatter.format(Instant.parse(value))
     }.getOrDefault(value.take(16))
 
-    val isPrizeOffer = offer.type == "GIVEAWAY" || offer.type == "QUIZ"
+    val isPrizeOffer = offer.type == "GIVEAWAY"
     val rewardRows = listOf(
         Triple(offer.firstPlacePrize, offer.firstPlacePoints, offer.firstPlacePrizeImageId),
         Triple(offer.secondPlacePrize, offer.secondPlacePoints, offer.secondPlacePrizeImageId),
@@ -76,23 +76,12 @@ internal fun AdminOfferCard(
             Text(offer.title, fontWeight = FontWeight.Bold, color = UtpInk, fontSize = 16.sp)
             val offerLabel = when (offer.type) {
                 "GIVEAWAY" -> "Розыгрыш"
-                "QUIZ" -> "Квиз"
                 else -> "Акция"
             }
             val publicationLabel = if (offer.isPublished) "Опубликовано" else "Черновик"
             Text("$offerLabel · $publicationLabel", color = UtpBlue, fontSize = 12.sp)
             Text(offer.content, color = UtpMuted, fontSize = 13.sp)
             Text("${date(offer.startsAt)} — ${date(offer.endsAt)}", color = UtpMuted, fontSize = 11.sp)
-            if (offer.type == "QUIZ") {
-                Text("Вопрос: ${offer.quizQuestion.orEmpty()}", color = UtpInk, fontSize = 13.sp)
-                offer.quizOptions.forEachIndexed { index, option ->
-                    Text(
-                        "${index + 1}. $option${if (offer.quizCorrectOption == index) " ✓ правильный ответ" else ""}",
-                        color = UtpMuted,
-                        fontSize = 11.sp,
-                    )
-                }
-            }
             if (isPrizeOffer) {
                 Text("Участников: ${offer.participantCount}", color = UtpMuted, fontSize = 12.sp)
                 rewardRows.take(configuredRewardCount).forEachIndexed { index, reward ->
@@ -138,9 +127,6 @@ internal fun AdminOfferCard(
                     }
                     Text(winnerText, color = UtpMuted, fontSize = 11.sp)
                 }
-                if (offer.type == "QUIZ" && offer.resultsPublishedAt != null && offer.winners.isEmpty()) {
-                    Text("Нет правильно ответивших участников.", color = UtpMuted, fontSize = 11.sp)
-                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 OutlinedButton(onClick = onPublish, enabled = !busy) {
@@ -152,10 +138,10 @@ internal fun AdminOfferCard(
                 Button(
                     onClick = onDraw,
                     enabled = !busy && configuredRewardCount > 0 &&
-                        (offer.type == "QUIZ" || offer.participantCount >= configuredRewardCount),
+                        offer.participantCount >= configuredRewardCount,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text(if (offer.type == "QUIZ") "Выбрать победителей по правильным ответам" else "Выбрать победителей")
+                    Text("Выбрать победителей")
                 }
             }
             if (hasUnpublishedResults) {

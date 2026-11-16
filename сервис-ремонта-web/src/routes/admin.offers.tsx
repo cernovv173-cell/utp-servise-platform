@@ -13,7 +13,7 @@ const AdminOffersPage = () => {
       <PageTitle
         eyebrow="УПРАВЛЕНИЕ"
         title="Предложения клиентам"
-        description="Квизы, акции и розыгрыши для клиентов, награды по местам и результаты."
+        description="Акции и розыгрыши для клиентов, призовые места и результаты."
         action={<AdminBackLink />}
       />
       {user?.role !== "ADMIN" ? (

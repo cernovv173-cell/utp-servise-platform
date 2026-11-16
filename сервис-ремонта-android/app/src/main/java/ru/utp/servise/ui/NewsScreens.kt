@@ -125,7 +125,7 @@ fun AdminManagementScreen(
             "Реклама",
             listOf(
                 ManagementAction("Новости", "Создание черновиков и публикаций", Icons.Filled.Info, onNews),
-                ManagementAction("Акции, розыгрыши и квизы", "Публикации, участники и результаты", Icons.Filled.Star, onOffers),
+                ManagementAction("Акции и розыгрыши", "Публикации, участники и результаты", Icons.Filled.Star, onOffers),
                 ManagementAction("Баннеры", "Изображения и размещение кампаний", Icons.Filled.Info, onBanners),
                 ManagementAction("О компании", "Описание, контакты, услуги и медиа", Icons.Filled.Info, onAbout),
             ),

@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/auth-context";
 
 import {
   type AdminCustomerOffer,
+  ApiRequestError,
   type CreateCustomerOfferInput,
   createAdminCustomerOffer,
   deleteAdminCustomerOffer,
@@ -36,7 +37,7 @@ const offerStatus = (offer: AdminCustomerOffer, now: number) => {
   if (!offer.isPublished) return "Черновик · скрыта от клиентов";
   if (new Date(offer.startsAt).getTime() > now) return "Запланирована";
   if (new Date(offer.endsAt).getTime() > now) return "Приём открыт";
-  if (offer.type !== "GIVEAWAY" && offer.type !== "QUIZ") return "Акция завершена";
+  if (offer.type !== "GIVEAWAY") return "Акция завершена";
   if (offer.resultsPublishedAt) return "Победители опубликованы";
   if (offer.drawnAt) return "Результаты готовы к публикации";
   return "Приём завершён · ожидает жеребьёвки";
@@ -125,7 +126,12 @@ export const CustomerOffersManagement = () => {
       );
       await refresh();
     },
-    onError: () => showError("Не удалось сохранить предложение. Проверьте даты и призы."),
+    onError: (error) =>
+      showError(
+        error instanceof ApiRequestError
+          ? error.message
+          : "Не удалось сохранить предложение. Проверьте даты и призы.",
+      ),
   });
 
   const setPublished = useMutation({
@@ -152,14 +158,9 @@ export const CustomerOffersManagement = () => {
 
   const draw = useMutation({
     mutationFn: (offerId: string) => drawAdminCustomerOffer(token!, offerId),
-    onSuccess: async (_result, offerId) => {
+    onSuccess: async () => {
       setConfirmDrawId(null);
-      const offer = query.data?.offers.find((item) => item.id === offerId);
-      showNotice(
-        offer?.type === "QUIZ"
-          ? "Победители среди правильно ответивших выбраны. Проверьте результат и опубликуйте его отдельно."
-          : "Победители выбраны. Проверьте три места и отдельно опубликуйте результаты.",
-      );
+      showNotice("Победители выбраны. Проверьте призовые места и отдельно опубликуйте результаты.");
       await refresh();
     },
     onError: () => showError("Не удалось выбрать победителей. Проверьте срок и число участников."),
@@ -188,10 +189,9 @@ export const CustomerOffersManagement = () => {
   return (
     <div className="grid gap-5">
       <SectionCard>
-        <h2 className="font-semibold">Квиз, акция или розыгрыш для клиентов</h2>
+        <h2 className="font-semibold">Акция или розыгрыш для клиентов</h2>
         <p className="mt-1 text-sm leading-6 text-slate-500">
-          Квиз уже заполнен примером о перегреве ноутбука. Перед публикацией проверьте вопрос,
-          выберите призы или баллы и задайте срок участия.
+          Создайте акцию или розыгрыш, выберите награды при необходимости и задайте срок участия.
         </p>
         <CustomerOfferCreateForm
           saving={create.isPending}
@@ -214,12 +214,7 @@ export const CustomerOffersManagement = () => {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-48 flex-1">
                     <p className="text-xs font-semibold tracking-wide text-blue-600 uppercase dark:text-cyan-300">
-                      {offer.type === "QUIZ"
-                        ? "Квиз"
-                        : offer.type === "GIVEAWAY"
-                          ? "Розыгрыш"
-                          : "Акция"}{" "}
-                      · {offerStatus(offer, now)}
+                      {offer.type === "GIVEAWAY" ? "Розыгрыш" : "Акция"} · {offerStatus(offer, now)}
                     </p>
                     <h3 className="mt-1 font-semibold">{offer.title}</h3>
                     <p className="mt-1 text-sm leading-6 text-slate-500">{offer.content}</p>
@@ -227,14 +222,6 @@ export const CustomerOffersManagement = () => {
                       {formatDate(offer.startsAt)} — {formatDate(offer.endsAt)} · Участников:{" "}
                       {offer.participantCount}
                     </p>
-                    {offer.type === "QUIZ" && (
-                      <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                        Вопрос: {offer.quizQuestion}
-                        {offer.quizOptions[offer.quizCorrectOption ?? -1]
-                          ? ` · правильный ответ: ${offer.quizOptions[offer.quizCorrectOption!]}`
-                          : ""}
-                      </p>
-                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -278,7 +265,7 @@ export const CustomerOffersManagement = () => {
                   </div>
                 </div>
 
-                {(offer.type === "GIVEAWAY" || offer.type === "QUIZ") && (
+                {offer.type === "GIVEAWAY" && (
                   <div className="grid gap-2 rounded-lg bg-slate-50 p-3 text-sm dark:bg-slate-900/70">
                     {[
                       {
@@ -343,19 +330,10 @@ export const CustomerOffersManagement = () => {
                     ))}
                   </div>
                 )}
-                {offer.type === "QUIZ" &&
-                  offer.resultsPublishedAt &&
-                  offer.winners.length === 0 && (
-                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
-                      Правильно никто не ответил — победителей нет.
-                    </p>
-                  )}
-
-                {(offer.type === "GIVEAWAY" || offer.type === "QUIZ") &&
+                {offer.type === "GIVEAWAY" &&
                   ended &&
                   !offer.drawnAt &&
-                  (offer.type === "GIVEAWAY" &&
-                  offer.participantCount < getConfiguredRewardCount(offer) ? (
+                  (offer.participantCount < getConfiguredRewardCount(offer) ? (
                     <p className="text-xs text-amber-700 dark:text-amber-300">
                       Для выбора {getConfiguredRewardCount(offer)} мест нужно не менее{" "}
                       {getConfiguredRewardCount(offer)} участников.
@@ -363,9 +341,7 @@ export const CustomerOffersManagement = () => {
                   ) : confirmDrawId === offer.id ? (
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span>
-                        {offer.type === "QUIZ"
-                          ? `Случайно выбрать до ${getConfiguredRewardCount(offer)} победителей среди правильных ответов?`
-                          : `Случайно выбрать ${getConfiguredRewardCount(offer)} призовых мест?`}
+                        Случайно выбрать до {getConfiguredRewardCount(offer)} призовых мест?
                       </span>
                       <button
                         type="button"
@@ -393,7 +369,7 @@ export const CustomerOffersManagement = () => {
                     </button>
                   ))}
 
-                {(offer.type === "GIVEAWAY" || offer.type === "QUIZ") &&
+                {offer.type === "GIVEAWAY" &&
                   offer.drawnAt &&
                   !offer.resultsPublishedAt &&
                   (confirmPublishId === offer.id ? (

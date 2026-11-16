@@ -759,7 +759,7 @@ export type SiteBanner = {
   placements: ("HOME" | "NEWS" | "SERVICE" | "CRAFTS" | "ABOUT" | "LOYALTY")[];
 };
 
-export type CustomerOfferType = "PROMOTION" | "GIVEAWAY" | "QUIZ";
+export type CustomerOfferType = "PROMOTION" | "GIVEAWAY";
 
 export type CustomerOfferReward = {
   prize: string | null;
@@ -777,9 +777,6 @@ export type CustomerOffer = {
   type: CustomerOfferType;
   title: string;
   content: string;
-  quizQuestion: string | null;
-  quizOptions: string[];
-  quizCorrectOption: number | null;
   firstPlacePrize: string | null;
   firstPlacePrizeImageId: string | null;
   firstPlacePoints: number;
@@ -800,8 +797,6 @@ export type CustomerOffer = {
     id: string;
     joinedAt: string;
     place: number | null;
-    answerIndex: number | null;
-    answerCorrect: boolean | null;
   } | null;
   winners: CustomerOfferWinner[];
 };
@@ -840,9 +835,6 @@ export type CreateCustomerOfferInput = {
   type: CustomerOfferType;
   title: string;
   content: string;
-  quizQuestion: string | null;
-  quizOptions: string[];
-  quizCorrectOption: number | null;
   firstPlacePrize: string | null;
   firstPlacePoints: number;
   secondPlacePrize: string | null;
@@ -1995,18 +1987,17 @@ export const getPublicCustomerOffers = (signal?: AbortSignal) =>
 export const getPublicCustomerOfferPrizeImageUrl = (offerId: string, place: number) =>
   `${apiBase}/public/offers/${encodeURIComponent(offerId)}/prizes/${place}/image`;
 
-export const participateInCustomerOffer = (token: string, offerId: string, answerIndex?: number) =>
+export const participateInCustomerOffer = (token: string, offerId: string) =>
   apiRequest<{
     participation: {
       id: string;
       joinedAt: string;
       place: number | null;
-      answerIndex: number | null;
     };
     alreadyParticipating: boolean;
   }>(`/offers/${offerId}/participate`, token, {
     method: "POST",
-    body: JSON.stringify(answerIndex === undefined ? {} : { answerIndex }),
+    body: JSON.stringify({}),
   });
 
 export const getAdminCustomerOffers = (token: string, signal?: AbortSignal) =>

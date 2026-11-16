@@ -61,6 +61,7 @@ export const registerCustomerOfferAdminRoutes = (
     requireRoles("ADMIN"),
     async (_request, response) => {
       const offers = await database.customerOffer.findMany({
+        where: { type: { in: ["PROMOTION", "GIVEAWAY"] } },
         orderBy: { createdAt: "desc" },
         take: 100,
         include: adminOfferInclude,
@@ -77,18 +78,13 @@ export const registerCustomerOfferAdminRoutes = (
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<ReturnType<typeof createOfferBody.parse>>(response);
-      const isPrizeOffer = input.type === "GIVEAWAY" || input.type === "QUIZ";
+      const isPrizeOffer = input.type === "GIVEAWAY";
       const offer = await database.$transaction(async (transaction) => {
         const created = await transaction.customerOffer.create({
           data: {
             type: input.type,
             title: input.title,
             content: input.content,
-            quizQuestion:
-              input.type === "QUIZ" ? input.quizQuestion?.trim() : null,
-            quizOptions: input.type === "QUIZ" ? input.quizOptions : [],
-            quizCorrectOption:
-              input.type === "QUIZ" ? input.quizCorrectOption : null,
             firstPlacePrize: isPrizeOffer
               ? input.firstPlacePrize?.trim() || null
               : null,
@@ -133,7 +129,7 @@ export const registerCustomerOfferAdminRoutes = (
           throw new HttpError(
             404,
             "OFFER_NOT_FOUND",
-            "Акция, розыгрыш или квиз не найдены.",
+            "Акция или розыгрыш не найдены.",
           );
         }
         const updated = await transaction.customerOffer.update({
@@ -173,7 +169,7 @@ export const registerCustomerOfferAdminRoutes = (
         throw new HttpError(
           404,
           "OFFER_NOT_FOUND",
-          "Акция, розыгрыш или квиз не найдены.",
+          "Акция или розыгрыш не найдены.",
         );
       }
       const deleted = await database.customerOffer.deleteMany({
@@ -183,7 +179,7 @@ export const registerCustomerOfferAdminRoutes = (
         throw new HttpError(
           404,
           "OFFER_NOT_FOUND",
-          "Акция, розыгрыш или квиз не найдены.",
+          "Акция или розыгрыш не найдены.",
         );
       }
       await Promise.all(
@@ -213,11 +209,11 @@ export const registerCustomerOfferAdminRoutes = (
             "Предложение не найдено.",
           );
         }
-        if (offer.type !== "GIVEAWAY" && offer.type !== "QUIZ") {
+        if (offer.type !== "GIVEAWAY") {
           throw new HttpError(
             409,
             "NOT_A_PRIZE_OFFER",
-            "Победителей можно выбрать только в розыгрыше или квизе.",
+            "Победителей можно выбрать только в розыгрыше.",
           );
         }
         if (offer.drawnAt) {
@@ -236,10 +232,7 @@ export const registerCustomerOfferAdminRoutes = (
         }
 
         const entries = await transaction.customerOfferParticipation.findMany({
-          where: {
-            offerId,
-            ...(offer.type === "QUIZ" ? { answerCorrect: true } : {}),
-          },
+          where: { offerId },
           select: { id: true, customerId: true },
         });
         const rewardPlacesCount = getConfiguredCustomerOfferRewardCount(offer);
@@ -250,7 +243,7 @@ export const registerCustomerOfferAdminRoutes = (
             "Укажите награду хотя бы для одного места перед жеребьёвкой.",
           );
         }
-        if (offer.type === "GIVEAWAY" && entries.length < rewardPlacesCount) {
+        if (entries.length < rewardPlacesCount) {
           throw new HttpError(
             409,
             "GIVEAWAY_NEEDS_ENOUGH_ENTRIES",
@@ -308,10 +301,7 @@ export const registerCustomerOfferAdminRoutes = (
             "Предложение не найдено.",
           );
         }
-        if (
-          (offer.type !== "GIVEAWAY" && offer.type !== "QUIZ") ||
-          !offer.drawnAt
-        ) {
+        if (offer.type !== "GIVEAWAY" || !offer.drawnAt) {
           throw new HttpError(
             409,
             "GIVEAWAY_NOT_DRAWN",
@@ -320,10 +310,7 @@ export const registerCustomerOfferAdminRoutes = (
         }
         if (offer.resultsPublishedAt) return adminOfferResponse(offer);
         const rewardPlacesCount = getConfiguredCustomerOfferRewardCount(offer);
-        const hasCompleteResults =
-          offer.type === "QUIZ"
-            ? offer.entries.length <= rewardPlacesCount
-            : offer.entries.length === rewardPlacesCount;
+        const hasCompleteResults = offer.entries.length === rewardPlacesCount;
         if (!hasCompleteResults) {
           throw new HttpError(
             409,

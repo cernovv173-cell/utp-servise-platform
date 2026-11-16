@@ -74,17 +74,13 @@ export const registerCustomerOfferPrizeImageAdminRoutes = (
             },
           });
           if (!offer) {
-            throw new HttpError(
-              404,
-              "OFFER_NOT_FOUND",
-              "Акция, розыгрыш или квиз не найдены.",
-            );
+            throw new HttpError(404, "OFFER_NOT_FOUND", "Розыгрыш не найден.");
           }
-          if (offer.type === "PROMOTION") {
+          if (offer.type !== "GIVEAWAY") {
             throw new HttpError(
               409,
               "OFFER_HAS_NO_PRIZES",
-              "Фотографии можно добавить к призам квиза или розыгрыша.",
+              "Фотографии можно добавить только к призам розыгрыша.",
             );
           }
           oldObjectId =
@@ -139,17 +135,13 @@ export const registerCustomerOfferPrizeImageAdminRoutes = (
           },
         });
         if (!offer) {
-          throw new HttpError(
-            404,
-            "OFFER_NOT_FOUND",
-            "Акция, розыгрыш или квиз не найдены.",
-          );
+          throw new HttpError(404, "OFFER_NOT_FOUND", "Розыгрыш не найден.");
         }
-        if (offer.type === "PROMOTION") {
+        if (offer.type !== "GIVEAWAY") {
           throw new HttpError(
             409,
             "OFFER_HAS_NO_PRIZES",
-            "Фотографии можно добавить к призам квиза или розыгрыша.",
+            "Фотографии можно добавить только к призам розыгрыша.",
           );
         }
         const oldObjectId =

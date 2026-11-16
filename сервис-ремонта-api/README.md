@@ -515,42 +515,31 @@ setting from the dedicated seasonal-appearance tab in Web or Android. The select
 existing `app_settings` row `seasonal_theme`, with no schema migration, and remains active until an
 administrator changes it. Both clients refresh the public state periodically.
 
-## Customer promotions, giveaways and quizzes
+## Customer promotions and giveaways
 
-Administrators create scheduled `PROMOTION`, `GIVEAWAY`, and `QUIZ` offers through the authenticated
-admin endpoints and publish them for customers. A signed-in customer may join each published offer
-once while it is open. Promotions are participation campaigns only; they do not change repair-order
-prices. A quiz stores one question, 2–6 distinct answer choices, and a private correct-choice index.
-The API records one answer per customer and calculates correctness on the server. Neither the correct
-choice nor the customer's correctness is returned to customers until results are published.
-The public home page reads `GET /public/offers`. Its `offers` list contains published offers whose
-start time has arrived and whose end time is still in the future, with offer text, schedule, and
-prize rewards only. It does not expose quiz questions, choices, or answer keys. Its `completedOffers`
-list contains up to five recently finished published
-offers after an administrator publishes the results; each item exposes the final place and display
-name of its winners, without customer identifiers. Participant counts and private participation
-remain available only through the authenticated customer/admin endpoints.
-Giveaways require a prize or bonus-point amount for each of the three places. After a giveaway closes,
-an administrator can draw three distinct participants. A quiz draw happens only after it closes and
-selects up to three distinct participants from the correct-answer entries; it is valid to have fewer
-than three winners, including zero. Selected names remain private until the administrator publishes
-the results. Publishing quiz results also reveals the answer key and each participant's correctness;
-publishing any prize offer credits configured bonus points to the loyalty ledger in the same
-transaction. A unique ledger key prevents duplicate awards if results are published again. The
-additive `20261018200000_customer_offers` migration creates the original offer and participation
-records. `20261115195500_customer_offer_quiz` adds quiz fields and nullable answer data without
-rewriting existing customer or offer records. `20261115203000_customer_offer_prize_images` adds one
-nullable object-storage image ID for each prize place. Administrators can upload, replace, or remove
-JPEG, PNG, and WebP images up to 5 MB through the authenticated prize-image routes. Public home-page
-images are served only for published active offers or after published results. Signed-in customers
-can load images for published offers; administrators can also preview draft images through the
-authenticated media route. The database stores only opaque object IDs, and replacing or deleting a
-photo removes its previous stored object when possible.
+Administrators create scheduled `PROMOTION` and `GIVEAWAY` offers through the authenticated admin
+endpoints and publish them for customers. A signed-in customer may join each published offer once
+while it is open. Promotions are participation campaigns only; they do not change repair-order
+prices. The public `GET /public/offers` endpoint lists published offers during their active period;
+its `completedOffers` list contains recently finished offers after an administrator publishes
+results. Winner names are shown without customer identifiers, while participant counts and personal
+participation remain available only through authenticated customer/admin endpoints.
+
+A giveaway may define one, two, or three sequential prize places. The first place must have a prize
+description and/or bonus points; later places are optional, but configured places cannot have gaps.
+Prize photos are optional and stored separately from the offer. After a giveaway closes, an
+administrator draws the configured number of distinct participants and publishes the results.
+Publishing credits configured bonus points to the loyalty ledger in the same transaction; a unique
+ledger key prevents duplicate awards if results are published again. Promotions do not use prize
+places. Administrators can upload, replace, or remove JPEG, PNG, and WebP prize images up to 5 MB.
+Public images are served only for published active offers or after published results; administrators
+may preview draft images through the authenticated media route. The database stores opaque object
+IDs, and replacing or deleting a photo removes the previous stored object when possible.
 
 The first publication of a `NEWS` article sends a customer push notification; service-authored
-`WORK_STORY` examples do not. Publishing a promotion,
-giveaway, or quiz also creates a durable `customer_offer_push_deliveries` work item in the same database
-transaction; the worker sends it as soon as it is published, skips unpublished or expired offers,
+`WORK_STORY` examples do not. Publishing a promotion or giveaway also creates a durable
+`customer_offer_push_deliveries` work item in the same database transaction; the worker sends it as
+soon as it is published, skips unpublished or expired offers,
 and retries temporary Firebase delivery failures. An offer scheduled to start later can therefore
 be announced at publication; its Android notification expires at the configured end time. Repair-order status changes already notify the order's
 other participants; `READY_FOR_PICKUP` now explicitly says the repair is ready, and successful
@@ -560,11 +549,3 @@ are routed to `repair_updates_soft_spark` by default; `customer_offer_winner` us
 `repair_winner_soft_spark`, which the Android app creates with the separate celebration sound.
 The new additive
 `20261028190000_customer_offer_push_deliveries` migration adds only the delivery queue.
-
-## Customer offers and rewards
-
-Giveaways and quizzes may define one, two, or three sequential prize places. The first place must
-have a prize description and/or bonus points; later places are optional, but a third place requires
-a second. Prize photos are optional and are stored separately from the offer. The draw selects only
-the configured number of giveaway winners (and up to that number of correct quiz respondents); result
-publication validates the actual configured places. Promotions do not use prize-place rewards.

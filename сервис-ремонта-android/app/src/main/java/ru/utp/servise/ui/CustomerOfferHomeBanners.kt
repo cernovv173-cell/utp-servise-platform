@@ -81,7 +81,7 @@ fun CustomerOfferHomeBanners(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Акции, розыгрыши и квизы",
+                    "Акции и розыгрыши",
                     modifier = Modifier.weight(1f),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -99,7 +99,7 @@ fun CustomerOfferHomeBanners(
                         text = when {
                             !hasLoaded -> "Загружаем предложения…"
                             loadFailed -> "Не удалось загрузить предложения. Откройте раздел, чтобы посмотреть их."
-                            else -> "Сейчас нет активных предложений. Новые акции, розыгрыши и квизы появятся здесь."
+                            else -> "Сейчас нет активных предложений. Новые акции и розыгрыши появятся здесь."
                         },
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         fontSize = 13.sp,
@@ -121,7 +121,7 @@ fun CustomerOfferHomeBanners(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "Действующие акции, розыгрыши и квизы",
+                "Действующие акции и розыгрыши",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = UtpInk,
@@ -138,7 +138,6 @@ private fun CompactCustomerOfferCard(
     offer: PublicCustomerOffer,
     onClick: () -> Unit,
 ) {
-    val isQuiz = offer.type == "QUIZ"
     val isGiveaway = offer.type == "GIVEAWAY"
     val backgroundColor = if (isGiveaway) UtpBlue else UtpMint
     val foregroundColor = if (isGiveaway) Color.White else UtpInk
@@ -154,11 +153,7 @@ private fun CompactCustomerOfferCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    when {
-                        isQuiz -> "КВИЗ"
-                        isGiveaway -> "РОЗЫГРЫШ"
-                        else -> "АКЦИЯ"
-                    },
+                    if (isGiveaway) "РОЗЫГРЫШ" else "АКЦИЯ",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     color = foregroundColor,
@@ -189,7 +184,7 @@ private fun CompactCustomerOfferCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            if (isGiveaway || isQuiz) {
+            if (isGiveaway) {
                 offer.rewardSummary()?.let { reward ->
                     Text(
                         reward,
@@ -205,7 +200,6 @@ private fun CompactCustomerOfferCard(
             }
             Text(
                 when {
-                    isQuiz -> "Ответить и участвовать →"
                     isGiveaway -> "Подробнее и участвовать →"
                     else -> "Подробнее об акции →"
                 },
@@ -219,7 +213,6 @@ private fun CompactCustomerOfferCard(
 
 @Composable
 private fun CustomerOfferBanner(offer: PublicCustomerOffer, onOpenOffers: () -> Unit) {
-    val isQuiz = offer.type == "QUIZ"
     val isGiveaway = offer.type == "GIVEAWAY"
     val backgroundColor = if (isGiveaway) UtpBlue else UtpMint
     val foregroundColor = if (isGiveaway) Color.White else UtpInk
@@ -238,8 +231,7 @@ private fun CustomerOfferBanner(offer: PublicCustomerOffer, onOpenOffers: () -> 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     when {
-                        isQuiz -> "КВИЗ"
-                        isGiveaway -> "РОЗЫГРЫШ"
+                    isGiveaway -> "РОЗЫГРЫШ"
                         else -> "АКЦИЯ"
                     },
                     fontSize = 11.sp,
@@ -293,7 +285,6 @@ private fun CustomerOfferBanner(offer: PublicCustomerOffer, onOpenOffers: () -> 
             ) {
                 Text(
                     when {
-                        isQuiz -> "Ответить и участвовать →"
                         isGiveaway -> "Подробнее и участвовать →"
                         else -> "Подробнее об акции →"
                     },
