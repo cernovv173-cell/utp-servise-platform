@@ -170,6 +170,12 @@ returns a different entry from the shared curated list. The feed also refreshes 
 `nextUpdateAt` and when the page regains focus.
 This is a curated fact collection, not a live external-news feed.
 
+During the New Year closure, the public and signed-in customer home pages show a large notice and
+live countdown. The service is closed from 00:00 Moscow time on December 31, 2026 through January 10,
+2027, and the notice disappears when it reopens at 08:30 Moscow time on January 11. The notice's
+urgent-order call button uses the phone number saved in company settings; it is omitted when no
+number is configured. The countdown is calculated locally and updates once per second.
+
 The Web `/login` page offers MAX sign-in and registration for customers. The card asks the API for
 the bot configuration, opens the `https://max.ru/<botName>?start=<payload>` chat link, and polls
 every two seconds (and on window focus) until the bot confirms the phone number. New accounts are

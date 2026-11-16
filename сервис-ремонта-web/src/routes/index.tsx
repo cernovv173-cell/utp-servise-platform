@@ -9,6 +9,7 @@ import { useAuth } from "@/features/auth/auth-context";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
 import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
 import { GuidesSection } from "@/features/guides/guides-section";
+import { HolidayClosureBanner } from "@/features/holiday/holiday-closure-banner";
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
 import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { getNewsWithNextTechnologyFact } from "@/features/news/technology-fact-query";
@@ -70,6 +71,9 @@ const HomePage = () => {
         title={`Здравствуйте, ${user?.displayName ?? ""}!`}
         description="Рады видеть вас в сервисе ремонта техники."
       />
+      {user?.role === "CUSTOMER" && (
+        <HolidayClosureBanner phoneNumber={company.data?.company.phone} />
+      )}
       {activeSeason !== "NONE" && (
         <SeasonalHomeBanner season={activeSeason} className="mb-6 min-h-[220px]" />
       )}

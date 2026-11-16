@@ -18,6 +18,7 @@ import { Reveal } from "@/components/reveal";
 
 import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
 import { GuidesSection } from "@/features/guides/guides-section";
+import { HolidayClosureBanner } from "@/features/holiday/holiday-closure-banner";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { HomeWorkStoriesShowcase } from "@/features/public/home-work-stories-showcase";
 import { PageTurn } from "@/features/public/page-turn";
@@ -68,6 +69,7 @@ export const PublicHome = () => {
 
   return (
     <PublicSiteShell>
+      <HolidayClosureBanner phoneNumber={company?.phone} />
       <PageTurn>
         <section className="relative overflow-hidden border-b border-slate-200/70 dark:border-[#26365f]/70">
           <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 md:px-8 md:py-20 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">

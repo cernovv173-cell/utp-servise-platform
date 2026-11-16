@@ -92,6 +92,8 @@ fun PublicHomeScreen(
             }
         }
 
+        HolidayClosureBanner(phoneNumber = company?.phone)
+
         if (seasonalTheme != "NONE") SeasonalHomeBanner(seasonalTheme)
 
         Card(colors = CardDefaults.cardColors(containerColor = UtpBlue), shape = RoundedCornerShape(24.dp)) {
