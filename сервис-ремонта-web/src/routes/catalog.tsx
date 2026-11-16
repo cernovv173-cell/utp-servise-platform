@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Boxes, Package, Plus, Wrench } from "lucide-react";
+import { Boxes, ChevronDown, Package, Plus, Wrench } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
@@ -373,18 +373,29 @@ const CatalogPage = () => {
             );
             const Icon = type === "SERVICE" ? Wrench : Package;
             return (
-              <SectionCard key={type}>
-                <h2 className="flex items-center gap-2 font-semibold">
-                  <Icon size={18} /> {itemTypeLabels[type]}
-                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-slate-800">
-                    {sectionItems.length}
+              <details
+                key={type}
+                className="group overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/50"
+              >
+                <summary className="flex min-h-16 cursor-pointer items-center justify-between gap-3 px-4 py-3 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Icon size={18} aria-hidden="true" />
+                    <span>{itemTypeLabels[type]}</span>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-500 dark:bg-slate-800">
+                      {sectionItems.length}
+                    </span>
                   </span>
-                </h2>
-                {sectionItems.length === 0 ? (
-                  <p className="mt-4 text-sm text-slate-500">В этом разделе пока нет позиций.</p>
-                ) : (
-                  <div className="mt-4 grid gap-3">
-                    {sectionItems.map((item) => (
+                  <ChevronDown
+                    size={18}
+                    aria-hidden="true"
+                    className="shrink-0 text-slate-500 transition-transform group-open:rotate-180"
+                  />
+                </summary>
+                <div className="grid gap-3 border-t border-slate-100 px-4 py-4 dark:border-slate-800">
+                  {sectionItems.length === 0 ? (
+                    <p className="text-sm text-slate-500">В этом разделе пока нет позиций.</p>
+                  ) : (
+                    sectionItems.map((item) => (
                       <CatalogItemRow
                         key={`${item.id}:${item.type}:${item.deviceTypes.join(",")}`}
                         item={item}
@@ -397,10 +408,10 @@ const CatalogPage = () => {
                         onDelete={() => deleteItem.mutateAsync(item.id)}
                         imageBusy={uploadImage.isPending || deleteImage.isPending}
                       />
-                    ))}
-                  </div>
-                )}
-              </SectionCard>
+                    ))
+                  )}
+                </div>
+              </details>
             );
           })}
           {!items.isLoading && catalogItems.length === 0 && (
