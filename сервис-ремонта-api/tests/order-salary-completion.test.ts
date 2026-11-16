@@ -103,6 +103,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   let recordedEvent: Record<string, unknown> | undefined;
   let recordedWarranty: Record<string, unknown> | undefined;
   let recordedSalary: Record<string, unknown> | undefined;
+  const followUps: Array<Record<string, unknown>> = [];
 
   const transaction = {
     $queryRaw: async () => [],
@@ -120,6 +121,12 @@ test("standard order release verifies payment and issues receipt, warranty, and 
       }),
     },
     repairOrderIntake: { findUnique: async () => intake },
+    repairOrderFollowUp: {
+      create: async ({ data }: { data: Record<string, unknown> }) => {
+        followUps.push(data);
+        return { id: "follow-up-1", ...data };
+      },
+    },
     loyaltyTransaction: {
       aggregate: async () => ({ _sum: { points: customerBalance } }),
       create: async ({ data }: { data: Record<string, unknown> }) => {
@@ -279,6 +286,10 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   assert.equal(recordedSalary?.serviceTotalRub, 1200);
   assert.equal(recordedSalary?.salaryRub, 720);
   assert.equal(recordedSalary?.ratePercent, 60);
+  assert.equal(followUps.length, 1);
+  assert.equal(followUps[0]?.orderId, orderId);
+  assert.ok(followUps[0]?.scheduledAt instanceof Date);
+  assert.equal(followUps[0]?.scheduledAt, followUps[0]?.nextAttemptAt);
   assert.equal(loyaltyEntries.length, 2);
   assert.deepEqual(
     loyaltyEntries.map(({ type, points }) => ({ type, points })),

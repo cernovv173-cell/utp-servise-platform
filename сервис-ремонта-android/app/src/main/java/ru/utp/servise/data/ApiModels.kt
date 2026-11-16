@@ -726,6 +726,17 @@ data class CustomerReview(
     val createdAt: String = "",
 )
 
+data class RepairOrderFollowUp(
+    val id: String,
+    val orderId: String,
+    val status: String,
+    val serviceNumber: String,
+    val deviceType: String,
+    val deviceBrand: String?,
+    val deviceModel: String?,
+    val hasReview: Boolean,
+)
+
 data class TechnicianProfile(
     val userId: String,
     val displayName: String,

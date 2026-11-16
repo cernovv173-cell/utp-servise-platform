@@ -1,6 +1,7 @@
 package ru.utp.servise
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -82,13 +83,32 @@ import ru.utp.servise.data.phoneNumberValidationError
 
 class MainActivity : ComponentActivity() {
     private var updateCheckTrigger by mutableIntStateOf(0)
+    private var pendingRepairFollowUpOrderId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         clearRetiredGameCache(this)
         if (BuildConfig.VK_ID_APP_ID.isNotBlank()) VKID.init(this)
         NotificationChannels.ensureCreated(this)
-        setContent { SeasonalThemeHost(updateCheckTrigger) }
+        captureRepairFollowUpIntent(intent)
+        setContent {
+            SeasonalThemeHost(
+                updateCheckTrigger = updateCheckTrigger,
+                pendingRepairFollowUpOrderId = pendingRepairFollowUpOrderId,
+                onRepairFollowUpNotificationConsumed = { pendingRepairFollowUpOrderId = null },
+            )
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        captureRepairFollowUpIntent(intent)
+    }
+
+    private fun captureRepairFollowUpIntent(intent: Intent?) {
+        if (intent?.getStringExtra("notificationType") != "repair_follow_up") return
+        pendingRepairFollowUpOrderId = intent.getStringExtra("orderId")?.takeIf(String::isNotBlank)
     }
 
     override fun onResume() {
@@ -98,7 +118,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun SeasonalThemeHost(updateCheckTrigger: Int) {
+private fun SeasonalThemeHost(
+    updateCheckTrigger: Int,
+    pendingRepairFollowUpOrderId: String?,
+    onRepairFollowUpNotificationConsumed: () -> Unit,
+) {
     val context = LocalContext.current
     var themeMode by remember(context) { mutableStateOf(readThemeMode(context)) }
     var seasonalTheme by remember { mutableStateOf(SeasonalThemeState()) }
@@ -119,6 +143,8 @@ private fun SeasonalThemeHost(updateCheckTrigger: Int) {
                 themeMode = mode
             },
             updateCheckTrigger = updateCheckTrigger,
+            pendingRepairFollowUpOrderId = pendingRepairFollowUpOrderId,
+            onRepairFollowUpNotificationConsumed = onRepairFollowUpNotificationConsumed,
         )
     }
 }
@@ -130,6 +156,8 @@ private fun UtpServiseApp(
     themeMode: ThemeMode,
     onThemeModeChanged: (ThemeMode) -> Unit,
     updateCheckTrigger: Int,
+    pendingRepairFollowUpOrderId: String?,
+    onRepairFollowUpNotificationConsumed: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -468,6 +496,8 @@ private fun UtpServiseApp(
             runAction = runAction,
             refresh = { revision += 1 },
             onLogout = onLogout,
+            pendingRepairFollowUpOrderId = pendingRepairFollowUpOrderId,
+            onRepairFollowUpNotificationConsumed = onRepairFollowUpNotificationConsumed,
             )
         }
         AndroidAppUpdateGate(updateCheckTrigger)

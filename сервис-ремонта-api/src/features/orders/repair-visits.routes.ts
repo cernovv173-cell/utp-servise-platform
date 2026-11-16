@@ -20,6 +20,7 @@ import {
   calculateEarnedPoints,
   calculateServiceBonusEligibleRub,
 } from "./order-policy.js";
+import { getRepairFollowUpScheduledAt } from "./repair-follow-up-policy.js";
 import {
   REPAIR_DIAGNOSIS_FEE_RUB,
   REPAIR_VISIT_RUB_PER_KM,
@@ -430,6 +431,12 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
               : `Клиент отказался от ремонта после диагностики; мастер принял оплату: ${input.paymentMethod === "CASH" ? "наличные" : "перевод"}; ${totalRub} ₽`,
           },
         });
+        if (input.repairAgreed) {
+          const scheduledAt = getRepairFollowUpScheduledAt(now);
+          await transaction.repairOrderFollowUp.create({
+            data: { orderId, scheduledAt, nextAttemptAt: scheduledAt },
+          });
+        }
         const warranty = input.repairAgreed
           ? (order.warranty ??
             (await transaction.repairWarranty.create({

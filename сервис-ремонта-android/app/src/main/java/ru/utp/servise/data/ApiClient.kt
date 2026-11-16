@@ -1227,6 +1227,22 @@ object ApiClient {
     fun reviews(token: String): List<CustomerReview> = request("GET", "/reviews", token)
         .getJSONArray("reviews").mapObjects { it.toReview() }
 
+    fun repairOrderFollowUp(token: String, orderId: String): RepairOrderFollowUp =
+        request("GET", "/orders/$orderId/repair-follow-up", token)
+            .getJSONObject("followUp")
+            .toRepairOrderFollowUp()
+
+    fun respondToRepairOrderFollowUp(
+        token: String,
+        orderId: String,
+        response: String,
+    ): RepairOrderFollowUp = request(
+        "POST",
+        "/orders/$orderId/repair-follow-up",
+        token,
+        JSONObject().put("response", response),
+    ).getJSONObject("followUp").toRepairOrderFollowUp()
+
     fun createReview(token: String, orderId: String, rating: Int, comment: String, image: ByteArray? = null): CustomerReview {
         val review = request(
         "POST", "/reviews", token,
@@ -1240,6 +1256,20 @@ object ApiClient {
         "PATCH", "/reviews/$reviewId", token,
         JSONObject().put("isPublished", isPublished),
     ).getJSONObject("review").toReview()
+
+    private fun JSONObject.toRepairOrderFollowUp(): RepairOrderFollowUp {
+        val order = getJSONObject("order")
+        return RepairOrderFollowUp(
+            id = getString("id"),
+            orderId = getString("orderId"),
+            status = getString("status"),
+            serviceNumber = order.getString("serviceNumber"),
+            deviceType = order.getString("deviceType"),
+            deviceBrand = if (order.isNull("deviceBrand")) null else order.optString("deviceBrand"),
+            deviceModel = if (order.isNull("deviceModel")) null else order.optString("deviceModel"),
+            hasReview = order.optBoolean("hasReview"),
+        )
+    }
 
     private fun JSONObject.putAddress(address: OrderAddress): JSONObject = put("contactPhone", address.contactPhone)
         .put("city", address.city)

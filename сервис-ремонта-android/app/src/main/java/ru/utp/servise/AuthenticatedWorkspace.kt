@@ -93,6 +93,7 @@ import ru.utp.servise.ui.ProcurementInventoryScreen
 import ru.utp.servise.ui.ServiceDashboardScreen
 import ru.utp.servise.ui.compressSelectedImage
 import ru.utp.servise.ui.ReviewFormScreen
+import ru.utp.servise.ui.CustomerRepairFollowUpScreen
 import ru.utp.servise.ui.ReviewsScreen
 import ru.utp.servise.ui.RunAction
 import ru.utp.servise.ui.StaffManagementScreen
@@ -142,6 +143,8 @@ internal fun AuthenticatedWorkspace(
     runAction: RunAction,
     refresh: () -> Unit,
     onLogout: () -> Unit,
+    pendingRepairFollowUpOrderId: String?,
+    onRepairFollowUpNotificationConsumed: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val appContext = LocalContext.current
@@ -164,6 +167,17 @@ internal fun AuthenticatedWorkspace(
     val workspaceNavigation = remember(user.role) { workspaceNavigationForRole(user.role) }
     val destinations = workspaceNavigation.primaryDestinations
     val navController = rememberNavController()
+    LaunchedEffect(pendingRepairFollowUpOrderId, user.role) {
+        val orderId = pendingRepairFollowUpOrderId
+        if (orderId != null) {
+            if (user.role == "CUSTOMER") {
+                navController.navigate("customer/repair-follow-up/$orderId") {
+                    launchSingleTop = true
+                }
+            }
+            onRepairFollowUpNotificationConsumed()
+        }
+    }
     val onCampaignNavigate: (String) -> Unit = { target ->
         val route = when (target.lowercase()) {
             "home" -> "customer/home"
@@ -429,6 +443,17 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("customer/review/{orderId}") { entry ->
                                 ReviewFormScreen(entry.arguments?.getString("orderId").orEmpty(), token, runAction) { navController.popBackStack() }
+                            }
+                            composable("customer/repair-follow-up/{orderId}") { entry ->
+                                CustomerRepairFollowUpScreen(
+                                    orderId = entry.arguments?.getString("orderId").orEmpty(),
+                                    token = token,
+                                    onBack = { navController.popBackStack() },
+                                    onOpenReview = { id -> navController.navigate("customer/review/$id") },
+                                    onOpenSupport = { navController.navigate("customer/support-chat") },
+                                    onError = onError,
+                                    runAction = runAction,
+                                )
                             }
                         }
                         "TECHNICIAN" -> {

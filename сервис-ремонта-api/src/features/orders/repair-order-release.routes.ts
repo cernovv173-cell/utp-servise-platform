@@ -22,6 +22,7 @@ import {
   calculateServiceBonusEligibleRub,
   canViewRepairOrder,
 } from "./order-policy.js";
+import { getRepairFollowUpScheduledAt } from "./repair-follow-up-policy.js";
 import { assertWorkActApproved } from "./repair-work-act.shared.js";
 import {
   REPAIR_WARRANTY_DAYS,
@@ -358,6 +359,13 @@ export const createRepairOrderReleaseRouter = (
                 : `Заказ выдан клиенту; оплата: ${input.paymentMethod}`,
           },
         });
+
+        if (!diagnosisOnlyReturn) {
+          const scheduledAt = getRepairFollowUpScheduledAt(now);
+          await transaction.repairOrderFollowUp.create({
+            data: { orderId, scheduledAt, nextAttemptAt: scheduledAt },
+          });
+        }
 
         const existingWarranty = await transaction.repairWarranty.findUnique({
           where: { orderId },

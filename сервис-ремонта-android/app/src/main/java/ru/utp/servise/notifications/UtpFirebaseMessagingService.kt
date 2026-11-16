@@ -41,6 +41,7 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
             "shop_order_updated" -> "Заказ в магазине обновлён"
             "shop_delivery_response" -> "Ответ по доставке магазина"
             "maintenance_reminder" -> "Пора обслужить технику"
+            "repair_follow_up" -> "Как прошёл ремонт?"
             "repair_order_completed" -> "Ремонт завершён"
             "repair_order_ready" -> "Ремонт готов к выдаче"
             else -> "Новое сообщение по ремонту"
@@ -49,6 +50,8 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
         val body = message.notification?.body ?: "Откройте приложение, чтобы посмотреть обновление."
         val launchIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            message.data["type"]?.let { putExtra("notificationType", it) }
+            message.data["orderId"]?.let { putExtra("orderId", it) }
         }
         val pendingIntent = PendingIntent.getActivity(
             this,

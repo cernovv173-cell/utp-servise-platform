@@ -46,6 +46,14 @@ enum RepairStatus {
   CANCELLED
 }
 
+enum RepairOrderFollowUpStatus {
+  PENDING
+  SENT
+  WORKING
+  NEEDS_HELP
+  FAILED
+}
+
 enum RepairOrderPriority {
   NORMAL
   URGENT
@@ -425,6 +433,7 @@ model RepairOrder {
   salaryEntry                 TechnicianSalaryEntry?
   telegramNotifications       TelegramNotificationDelivery[]
   maxNotifications            MaxNotificationDelivery[]
+  followUp                    RepairOrderFollowUp?
 
   @@index([customerId, createdAt])
   @@index([assignedTechnicianId, status, updatedAt])
@@ -435,6 +444,24 @@ model RepairOrder {
   @@index([warrantyOriginOrderId])
   @@index([archivedAt, createdAt])
   @@map("repair_orders")
+}
+
+model RepairOrderFollowUp {
+  id            String                    @id @default(uuid()) @db.Uuid
+  orderId       String                    @unique @map("order_id") @db.Uuid
+  status        RepairOrderFollowUpStatus @default(PENDING)
+  scheduledAt   DateTime                  @map("scheduled_at") @db.Timestamptz(3)
+  attemptCount  Int                       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime                  @default(now()) @map("next_attempt_at") @db.Timestamptz(3)
+  lockedUntil   DateTime?                 @map("locked_until") @db.Timestamptz(3)
+  sentAt        DateTime?                 @map("sent_at") @db.Timestamptz(3)
+  answeredAt    DateTime?                 @map("answered_at") @db.Timestamptz(3)
+  lastError     String?                   @map("last_error") @db.VarChar(500)
+  createdAt     DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  order         RepairOrder               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt, lockedUntil])
+  @@map("repair_order_follow_ups")
 }
 
 model CustomerDevice {

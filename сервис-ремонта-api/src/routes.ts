@@ -22,6 +22,7 @@ import { createWorkStoriesRouter } from "./features/news/work-stories.routes.js"
 import { createOperationsRouter } from "./features/operations/operations.routes.js";
 import { createOrdersRouter } from "./features/orders/orders.routes.js";
 import { createRepairEstimatesRouter } from "./features/orders/repair-estimates.routes.js";
+import { createRepairFollowUpRouter } from "./features/orders/repair-follow-up.routes.js";
 import { createRepairWorkActsRouter } from "./features/orders/repair-work-acts.routes.js";
 import { createProcurementRouter } from "./features/procurement/procurement.routes.js";
 import { createReferralRouter } from "./features/referrals/referral.routes.js";
@@ -103,6 +104,7 @@ export const createApiRouter = ({
     router.use(createLoyaltyRouter(database.client));
     router.use(createReferralRouter(database.client));
     router.use(createRepairEstimatesRouter(database.client));
+    router.use(createRepairFollowUpRouter(database.client));
     router.use(createRepairWorkActsRouter(database.client));
     router.use(createOrdersRouter(database.client));
     router.use(createReviewShowcaseRouter(database.client));

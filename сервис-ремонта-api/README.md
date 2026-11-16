@@ -355,6 +355,22 @@ outside the repair percentage. These additive fields are introduced by migration
 The former pickup-QR endpoints are no longer available; legacy code records and columns are retained
 for historical data.
 
+## Post-repair follow-up
+
+When an order reaches `COMPLETED` after an actual service-center handoff or an agreed and paid
+on-site repair, the same transaction queues one customer follow-up for 48 hours later. Diagnosis-only
+returns and historical completed orders do not create follow-ups. A production-only database-backed
+worker sends the Android push, uses a lease to avoid concurrent deliveries, and retries temporary
+delivery failures with bounded backoff. Delivery requires the customer's active account and a
+registered push token.
+
+The customer can answer once: `WORKING` closes the follow-up and offers the existing review form only
+if there is not already a review for that order; `NEEDS_HELP` atomically records the answer and a
+message in the existing support conversation, then notifies active administrators. Repeating the
+same answer is idempotent, while changing an already saved answer is rejected. The additive
+`20261116120000_repair_order_follow_ups` migration creates only the follow-up queue and does not
+backfill or modify existing orders.
+
 ## Repair notifications in Telegram and MAX
 
 Customers can independently opt in to Telegram and MAX from the Web or Android profile. Each

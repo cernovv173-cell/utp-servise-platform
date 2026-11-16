@@ -9,6 +9,7 @@ import { startNewsPushWorker } from "./features/news/news-push-worker.js";
 import { startBirthdayPushWorker } from "./features/notifications/birthday-push-worker.js";
 import { startMaintenanceReminderWorker } from "./features/notifications/maintenance-reminder-worker.js";
 import { startOrderArchiveWorker } from "./features/orders/order-archive-worker.js";
+import { startRepairFollowUpPushWorker } from "./features/orders/repair-follow-up-push-worker.js";
 import { startTelegramNotificationWorker } from "./features/telegram/telegram-notifications.js";
 import { setupTelegramWebhookIfUnclaimed } from "./features/telegram/telegram-webhook-setup.js";
 import { readConfig } from "./lib/config.js";
@@ -62,6 +63,10 @@ const start = async (): Promise<void> => {
     database && config.nodeEnv === "production"
       ? startMaintenanceReminderWorker(database.client)
       : () => undefined;
+  const stopRepairFollowUpPushWorker =
+    database && config.nodeEnv === "production"
+      ? startRepairFollowUpPushWorker(database.client)
+      : () => undefined;
   const stopOrderArchiveWorker = database
     ? startOrderArchiveWorker(database.client)
     : () => undefined;
@@ -93,6 +98,7 @@ const start = async (): Promise<void> => {
     stopCustomerOfferWinnerPushWorker();
     stopBirthdayPushWorker();
     stopMaintenanceReminderWorker();
+    stopRepairFollowUpPushWorker();
     stopOrderArchiveWorker();
     stopTelegramNotificationWorker();
     stopMaxNotificationWorker();
