@@ -32,6 +32,7 @@ import { Route as ScenarioPreviewRouteImport } from './routes/scenario-preview'
 import { Route as ShopRouteImport } from './routes/shop'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as UslugiRouteImport } from './routes/uslugi'
+import { Route as WorkStoriesRouteImport } from './routes/work-stories'
 import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminApkRouteImport } from './routes/admin.apk'
 import { Route as AdminCompanyRouteImport } from './routes/admin.company'
@@ -174,6 +175,11 @@ const SupportRoute = SupportRouteImport.update({
 const UslugiRoute = UslugiRouteImport.update({
   id: '/uslugi',
   path: '/uslugi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkStoriesRoute = WorkStoriesRouteImport.update({
+  id: '/work-stories',
+  path: '/work-stories',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
@@ -343,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/uslugi': typeof UslugiRouteWithChildren
+  '/work-stories': typeof WorkStoriesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
@@ -394,6 +401,7 @@ export interface FileRoutesByTo {
   '/scenario-preview': typeof ScenarioPreviewRoute
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
+  '/work-stories': typeof WorkStoriesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
@@ -448,6 +456,7 @@ export interface FileRoutesById {
   '/shop': typeof ShopRoute
   '/support': typeof SupportRouteWithChildren
   '/uslugi': typeof UslugiRouteWithChildren
+  '/work-stories': typeof WorkStoriesRoute
   '/admin/analytics': typeof AdminAnalyticsRoute
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
@@ -503,6 +512,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/support'
     | '/uslugi'
+    | '/work-stories'
     | '/admin/analytics'
     | '/admin/apk'
     | '/admin/company'
@@ -554,6 +564,7 @@ export interface FileRouteTypes {
     | '/scenario-preview'
     | '/shop'
     | '/support'
+    | '/work-stories'
     | '/admin/analytics'
     | '/admin/apk'
     | '/admin/company'
@@ -607,6 +618,7 @@ export interface FileRouteTypes {
     | '/shop'
     | '/support'
     | '/uslugi'
+    | '/work-stories'
     | '/admin/analytics'
     | '/admin/apk'
     | '/admin/company'
@@ -661,6 +673,7 @@ export interface RootRouteChildren {
   ShopRoute: typeof ShopRoute
   SupportRoute: typeof SupportRouteWithChildren
   UslugiRoute: typeof UslugiRouteWithChildren
+  WorkStoriesRoute: typeof WorkStoriesRoute
   StaffTechnicianIdRoute: typeof StaffTechnicianIdRoute
   ProductKindItemIdRoute: typeof ProductKindItemIdRoute
 }
@@ -826,6 +839,13 @@ declare module '@tanstack/react-router' {
       path: '/uslugi'
       fullPath: '/uslugi'
       preLoaderRoute: typeof UslugiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/work-stories': {
+      id: '/work-stories'
+      path: '/work-stories'
+      fullPath: '/work-stories'
+      preLoaderRoute: typeof WorkStoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/analytics': {
@@ -1148,6 +1168,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShopRoute: ShopRoute,
   SupportRoute: SupportRouteWithChildren,
   UslugiRoute: UslugiRouteWithChildren,
+  WorkStoriesRoute: WorkStoriesRoute,
   StaffTechnicianIdRoute: StaffTechnicianIdRoute,
   ProductKindItemIdRoute: ProductKindItemIdRoute,
 }

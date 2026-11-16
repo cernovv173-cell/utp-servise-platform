@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { ProtectedImage } from "@/components/protected-image";
@@ -27,12 +27,18 @@ const NewsPage = () => {
     refetchOnWindowFocus: true,
   });
   const publishedReviews = (query.data?.reviews ?? []).filter((review) => review.isPublished);
+  const publishedNews = (query.data?.articles ?? []).filter(
+    (item) => item.kind !== "WORK_STORY" && item.isPublished,
+  );
+  const publishedWorkStories = (query.data?.articles ?? []).filter(
+    (item) => item.kind === "WORK_STORY" && item.isPublished,
+  );
   return (
     <AppShell active="/news">
       <PageTitle
         eyebrow="ОБНОВЛЕНИЯ"
         title="Новости сервиса"
-        description="Объявления и актуальные предложения ЕНОТ СЕРВИС."
+        description="Объявления и актуальные предложения ЕНОТ СЕРВИС. Примеры работ размещаются отдельно от отзывов клиентов."
       />
       {user?.role === "ADMIN" && <NewsAdmin />}
       {query.isLoading && <p className="text-sm text-slate-500">Загружаем новости…</p>}
@@ -46,40 +52,52 @@ const NewsPage = () => {
         <BirthdayGreetingCard greeting={query.data.birthdayGreeting} />
       )}
       {query.data?.technologyFact && <TechnologyFactCard fact={query.data.technologyFact} />}
+      {publishedWorkStories.length > 0 && (
+        <SectionCard className="mb-4">
+          <p className="text-sm font-semibold">Примеры работ от сервиса</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Это истории выполненных работ, а не отзывы клиентов.
+          </p>
+          <Link
+            to="/work-stories"
+            className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            Посмотреть примеры
+          </Link>
+        </SectionCard>
+      )}
       <div className="grid gap-4 md:grid-cols-2">
-        {(query.data?.articles ?? [])
-          .filter((item) => item.isPublished)
-          .map((item) => (
-            <SectionCard
-              key={item.id}
-              className={item.isFeatured ? "border-blue-200 dark:border-blue-900" : ""}
-            >
-              {(item.imageObjectId || item.videoObjectId) && (
-                <ProtectedMedia
-                  objectId={item.videoObjectId || item.imageObjectId}
-                  alt={item.title}
-                  className="mb-4 max-h-80 w-full rounded-xl object-contain"
-                />
-              )}
-              {item.isFeatured && (
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                  На главной
-                </span>
-              )}
-              <h2 className="mt-3 text-lg font-semibold">{item.title}</h2>
-              <p className="mt-2 text-sm leading-6 whitespace-pre-line text-slate-600 dark:text-slate-300">
-                {item.content}
-              </p>
-              <p className="mt-4 text-xs text-slate-400">
-                {item.startsAt
-                  ? `С ${new Date(item.startsAt).toLocaleString("ru-RU")}`
-                  : item.publishedAt
-                    ? new Date(item.publishedAt).toLocaleDateString("ru-RU")
-                    : ""}
-                {item.endsAt ? ` · до ${new Date(item.endsAt).toLocaleString("ru-RU")}` : ""}
-              </p>
-            </SectionCard>
-          ))}
+        {publishedNews.map((item) => (
+          <SectionCard
+            key={item.id}
+            className={item.isFeatured ? "border-blue-200 dark:border-blue-900" : ""}
+          >
+            {(item.imageObjectId || item.videoObjectId) && (
+              <ProtectedMedia
+                objectId={item.videoObjectId || item.imageObjectId}
+                alt={item.title}
+                className="mb-4 max-h-80 w-full rounded-xl object-contain"
+              />
+            )}
+            {item.isFeatured && (
+              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
+                На главной
+              </span>
+            )}
+            <h2 className="mt-3 text-lg font-semibold">{item.title}</h2>
+            <p className="mt-2 text-sm leading-6 whitespace-pre-line text-slate-600 dark:text-slate-300">
+              {item.content}
+            </p>
+            <p className="mt-4 text-xs text-slate-400">
+              {item.startsAt
+                ? `С ${new Date(item.startsAt).toLocaleString("ru-RU")}`
+                : item.publishedAt
+                  ? new Date(item.publishedAt).toLocaleDateString("ru-RU")
+                  : ""}
+              {item.endsAt ? ` · до ${new Date(item.endsAt).toLocaleString("ru-RU")}` : ""}
+            </p>
+          </SectionCard>
+        ))}
         {publishedReviews.map((review) => (
           <SectionCard key={`review-${review.id}`}>
             {review.imageObjectId && (
@@ -105,8 +123,9 @@ const NewsPage = () => {
         ))}
         {!query.isLoading &&
           !query.isError &&
-          (query.data?.articles ?? []).filter((item) => item.isPublished).length === 0 &&
+          publishedNews.length === 0 &&
           publishedReviews.length === 0 &&
+          publishedWorkStories.length === 0 &&
           !query.data?.birthdayGreeting && (
             <SectionCard className="md:col-span-2">
               <p className="text-sm text-slate-500">

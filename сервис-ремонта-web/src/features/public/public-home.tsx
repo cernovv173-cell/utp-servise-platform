@@ -19,6 +19,7 @@ import { Reveal } from "@/components/reveal";
 import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
 import { GuidesSection } from "@/features/guides/guides-section";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
+import { HomeWorkStoriesShowcase } from "@/features/public/home-work-stories-showcase";
 import { PageTurn } from "@/features/public/page-turn";
 import { RepairScenes } from "@/features/public/repair-scenes";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
@@ -251,6 +252,12 @@ export const PublicHome = () => {
       <PageTurn>
         <Reveal>
           <HomeReviewShowcase />
+        </Reveal>
+      </PageTurn>
+
+      <PageTurn>
+        <Reveal>
+          <HomeWorkStoriesShowcase />
         </Reveal>
       </PageTurn>
 

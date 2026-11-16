@@ -491,6 +491,7 @@ internal fun JSONObject.toNewsArticle() = NewsArticle(
     id = getString("id"),
     title = getString("title"),
     content = getString("content"),
+    kind = optString("kind", "NEWS"),
     isPublished = optBoolean("isPublished"),
     publishedAt = nullableString("publishedAt"),
     imageObjectId = nullableString("imageObjectId"),

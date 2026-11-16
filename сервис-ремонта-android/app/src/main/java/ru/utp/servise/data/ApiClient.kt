@@ -649,6 +649,7 @@ object ApiClient {
         startsAt: String? = null,
         endsAt: String? = null,
         isFeatured: Boolean = false,
+        kind: String = "NEWS",
     ): NewsArticle = request(
         "POST", "/news", token,
         JSONObject()
@@ -657,7 +658,8 @@ object ApiClient {
             .put("isPublished", isPublished)
             .put("startsAt", startsAt ?: JSONObject.NULL)
             .put("endsAt", endsAt ?: JSONObject.NULL)
-            .put("isFeatured", isFeatured),
+            .put("isFeatured", isFeatured)
+            .put("kind", kind),
     ).getJSONObject("article").toNewsArticle()
 
     fun updateNews(token: String, article: NewsArticle): NewsArticle = request(

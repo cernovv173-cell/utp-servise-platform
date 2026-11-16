@@ -207,6 +207,7 @@ fun NewsManagementScreen(
     val context = LocalContext.current
     var title by remember { mutableStateOf("") }
     var content by remember { mutableStateOf("") }
+    var kind by remember { mutableStateOf("NEWS") }
     var startsAt by remember { mutableStateOf<String?>(null) }
     var endsAt by remember { mutableStateOf<String?>(null) }
     var isFeatured by remember { mutableStateOf(false) }
@@ -217,11 +218,28 @@ fun NewsManagementScreen(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         TextButton(onClick = onBack) { Text("←  Управление") }
-        Text("Новости", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-        Text("Черновики видны только администраторам. Публикации появляются на главной у клиентов.", fontSize = 12.sp, color = UtpMuted)
+        Text("Публикации", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Text("Новости и истории работ видны клиентам только после публикации.", fontSize = 12.sp, color = UtpMuted)
         Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Новая новость", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text("Новая публикация", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = { kind = "NEWS" },
+                        shape = RoundedCornerShape(12.dp),
+                    ) { Text(if (kind == "NEWS") "✓ Новость / акция" else "Новость / акция") }
+                    OutlinedButton(
+                        onClick = { kind = "WORK_STORY" },
+                        shape = RoundedCornerShape(12.dp),
+                    ) { Text(if (kind == "WORK_STORY") "✓ Пример работы" else "Пример работы") }
+                }
+                if (kind == "WORK_STORY") {
+                    Text(
+                        "История от сервиса, не отзыв клиента. Опишите проблему, работу и результат; не указывайте личные данные без согласия.",
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                    )
+                }
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it.take(160) },
@@ -233,7 +251,10 @@ fun NewsManagementScreen(
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it.take(8000) },
-                    label = { Text("Текст новости") },
+                    label = { Text(if (kind == "WORK_STORY") "Описание работы" else "Текст новости") },
+                    placeholder = if (kind == "WORK_STORY") {
+                        { Text("Проблема: …\nЧто сделали: …\nРезультат: …") }
+                    } else null,
                     modifier = Modifier.fillMaxWidth().height(135.dp),
                     shape = RoundedCornerShape(12.dp),
                 )
@@ -249,9 +270,10 @@ fun NewsManagementScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
                         onClick = {
-                            runAction({ ApiClient.createNews(token, title.trim(), content.trim(), false, startsAt, endsAt, isFeatured) }) {
+                            runAction({ ApiClient.createNews(token, title.trim(), content.trim(), false, startsAt, endsAt, isFeatured, kind) }) {
                                 title = ""
                                 content = ""
+                                kind = "NEWS"
                                 startsAt = null
                                 endsAt = null
                                 isFeatured = false
@@ -264,9 +286,10 @@ fun NewsManagementScreen(
                     ) { Text("Черновик") }
                     Button(
                         onClick = {
-                            runAction({ ApiClient.createNews(token, title.trim(), content.trim(), true, startsAt, endsAt, isFeatured) }) {
+                            runAction({ ApiClient.createNews(token, title.trim(), content.trim(), true, startsAt, endsAt, isFeatured, kind) }) {
                                 title = ""
                                 content = ""
+                                kind = "NEWS"
                                 startsAt = null
                                 endsAt = null
                                 isFeatured = false
@@ -281,7 +304,7 @@ fun NewsManagementScreen(
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text("Все новости", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.weight(1f))
+            Text("Новости и примеры работ", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.weight(1f))
             TextButton(onClick = refresh) { Text("Обновить") }
         }
         if (articles.isEmpty()) Text("Новостей пока нет.", color = UtpMuted)
@@ -303,6 +326,11 @@ fun NewsManagementScreen(
                             "Фотография к новости ${article.title}",
                         )
                     }
+                    Text(
+                        if (article.kind == "WORK_STORY") "Пример работы от сервиса · не отзыв клиента" else "Новость или акция",
+                        fontSize = 11.sp,
+                        color = UtpBlue,
+                    )
                     Text(article.title, fontWeight = FontWeight.SemiBold, color = UtpInk)
                     Text(article.content, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
                     Text(if (article.isPublished) "Опубликована" else "Черновик", fontSize = 11.sp, color = UtpBlue, modifier = Modifier.padding(top = 7.dp))
@@ -325,19 +353,26 @@ fun NewsManagementScreen(
                     }
                     MediaPickerButton(
                         label = if (article.imageObjectId == null && article.videoObjectId == null) {
-                            "Добавить фото или видео"
+                            if (article.kind == "WORK_STORY") "Добавить фото" else "Добавить фото или видео"
                         } else {
-                            "Заменить фото или видео"
+                            if (article.kind == "WORK_STORY") "Заменить фото" else "Заменить фото или видео"
                         },
                     ) { uri ->
                         runAction({
                             val media = readSelectedMedia(context, uri)
-                            ApiClient.uploadNewsMedia(
-                                token,
-                                article.id,
-                                media.bytes,
-                                media.contentType,
-                            )
+                            if (article.kind == "WORK_STORY") {
+                                require(media.contentType.startsWith("image/")) {
+                                    "Для примера работы можно загрузить только фотографию."
+                                }
+                                ApiClient.uploadNewsImage(token, article.id, media.bytes)
+                            } else {
+                                ApiClient.uploadNewsMedia(
+                                    token,
+                                    article.id,
+                                    media.bytes,
+                                    media.contentType,
+                                )
+                            }
                         }) { refresh() }
                     }
                 }
@@ -368,11 +403,11 @@ private fun NewsEditDialog(
     var isFeatured by remember(article.id) { mutableStateOf(article.isFeatured) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Изменить новость") },
+        title = { Text(if (article.kind == "WORK_STORY") "Изменить пример работы" else "Изменить новость") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(title, { title = it.take(160) }, label = { Text("Заголовок") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
-                OutlinedTextField(content, { content = it.take(8000) }, label = { Text("Текст") }, modifier = Modifier.fillMaxWidth().height(140.dp), shape = RoundedCornerShape(12.dp))
+                OutlinedTextField(content, { content = it.take(8000) }, label = { Text(if (article.kind == "WORK_STORY") "Описание работы" else "Текст") }, modifier = Modifier.fillMaxWidth().height(140.dp), shape = RoundedCornerShape(12.dp))
                 ScheduleDateTimeField("Начало публикации", startsAt, { startsAt = it })
                 ScheduleDateTimeField("Окончание публикации", endsAt, { endsAt = it })
                 OutlinedButton(onClick = { isFeatured = !isFeatured }) {

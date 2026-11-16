@@ -474,10 +474,13 @@ export type ReceiptDraft = {
   }[];
 };
 
+export type NewsArticleKind = "NEWS" | "WORK_STORY";
+
 export type NewsArticle = {
   id: string;
   title: string;
   content: string;
+  kind: NewsArticleKind;
   isPublished: boolean;
   publishedAt: string | null;
   startsAt: string | null;
@@ -485,6 +488,15 @@ export type NewsArticle = {
   isFeatured: boolean;
   imageObjectId?: string | null;
   videoObjectId?: string | null;
+};
+
+export type PublicWorkStory = {
+  id: string;
+  title: string;
+  content: string;
+  isFeatured: boolean;
+  publishedAt: string | null;
+  hasImage: boolean;
 };
 
 export type PersonalBirthdayGreeting = {
@@ -1535,6 +1547,12 @@ export const getReviews = (token: string, signal?: AbortSignal) =>
 
 export const getPublicReviews = (signal?: AbortSignal) =>
   apiRequest<{ reviews: PublicReview[] }>("/public/reviews", null, { signal });
+
+export const getPublicWorkStories = (signal?: AbortSignal) =>
+  apiRequest<{ stories: PublicWorkStory[] }>("/public/work-stories", null, { signal });
+
+export const getPublicWorkStoryImageUrl = (storyId: string) =>
+  `${apiBase || "/api"}/public/work-stories/${storyId}/image`;
 
 export const getPublicReviewImageUrl = (reviewId: string, kind: ReviewShowcaseImageKind) =>
   `${apiBase || "/api"}/public/reviews/${reviewId}/image/${kind}`;

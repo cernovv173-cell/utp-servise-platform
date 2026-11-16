@@ -9,6 +9,10 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import {
+  type MediaStorage,
+  projectMediaStorage,
+} from "../media/media-storage.js";
 import { formatBirthdayGreeting } from "../notifications/birthday-greeting.js";
 import {
   getMoscowBirthdayDate,
@@ -46,10 +50,12 @@ const scheduleFields = {
   endsAt: z.string().datetime({ offset: true }).nullable().optional(),
   isFeatured: z.boolean().optional(),
 };
+const articleKind = z.enum(["NEWS", "WORK_STORY"]);
 const createArticleBody = z
   .object({
     title: z.string().trim().min(3).max(160),
     content: z.string().trim().min(5).max(8000),
+    kind: articleKind.optional(),
     isPublished: z.boolean().optional(),
     ...scheduleFields,
   })
@@ -83,7 +89,10 @@ const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
 const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
 
-export const createNewsRouter = (database: DatabaseClient): Router => {
+export const createNewsRouter = (
+  database: DatabaseClient,
+  storage: MediaStorage = projectMediaStorage,
+): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
 
@@ -169,12 +178,14 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createArticleBody>>(response);
       const isPublished = input.isPublished ?? false;
+      const kind = input.kind ?? "NEWS";
       const startsAt = input.startsAt ? new Date(input.startsAt) : null;
       const article = await database.$transaction(async (transaction) => {
         const created = await transaction.newsArticle.create({
           data: {
             title: input.title,
             content: input.content,
+            kind,
             isPublished,
             startsAt,
             endsAt: input.endsAt ? new Date(input.endsAt) : null,
@@ -183,7 +194,7 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
             createdById: user.id,
           },
         });
-        if (isPublished) {
+        if (isPublished && kind === "NEWS") {
           await scheduleNewsPush(transaction, created.id, startsAt);
         }
         return created;
@@ -202,7 +213,13 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
       const input = bodyOf<z.infer<typeof updateArticleBody>>(response);
       const current = await database.newsArticle.findUnique({
         where: { id: articleId },
-        select: { id: true, isPublished: true, startsAt: true, endsAt: true },
+        select: {
+          id: true,
+          kind: true,
+          isPublished: true,
+          startsAt: true,
+          endsAt: true,
+        },
       });
       if (!current)
         throw new HttpError(
@@ -253,9 +270,13 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
             publishedAt,
           },
         });
-        if (!current.isPublished && nextPublished) {
+        if (!current.isPublished && nextPublished && current.kind === "NEWS") {
           await scheduleNewsPush(transaction, updated.id, effectiveStartsAt);
-        } else if (current.isPublished && input.startsAt !== undefined) {
+        } else if (
+          current.kind === "NEWS" &&
+          current.isPublished &&
+          input.startsAt !== undefined
+        ) {
           const nextAttemptAt =
             effectiveStartsAt && effectiveStartsAt > new Date()
               ? effectiveStartsAt
@@ -265,7 +286,11 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
             data: { nextAttemptAt, lockedUntil: null },
           });
         }
-        if (current.isPublished && input.isPublished === false) {
+        if (
+          current.kind === "NEWS" &&
+          current.isPublished &&
+          input.isPublished === false
+        ) {
           await transaction.newsPushDelivery.deleteMany({
             where: { articleId, sentAt: null },
           });
@@ -283,16 +308,23 @@ export const createNewsRouter = (database: DatabaseClient): Router => {
     validateRequest({ params: articleIdParams }),
     async (_request, response) => {
       const { articleId } = paramsOf<z.infer<typeof articleIdParams>>(response);
-      const deleted = await database.newsArticle.deleteMany({
+      const article = await database.newsArticle.findUnique({
         where: { id: articleId },
+        select: { id: true, imageObjectId: true, videoObjectId: true },
       });
-      if (deleted.count === 0) {
+      if (!article) {
         throw new HttpError(
           404,
           "NEWS_ARTICLE_NOT_FOUND",
           "Новость не найдена.",
         );
       }
+      await database.newsArticle.delete({ where: { id: articleId } });
+      await Promise.all(
+        [article.imageObjectId, article.videoObjectId]
+          .filter((objectId): objectId is string => Boolean(objectId))
+          .map((objectId) => storage.delete(objectId).catch(() => undefined)),
+      );
       response.status(204).end();
     },
   );

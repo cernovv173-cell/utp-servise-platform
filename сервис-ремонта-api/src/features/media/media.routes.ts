@@ -220,7 +220,12 @@ export const createMediaRouter = (
       const { articleId } = paramsOf<z.infer<typeof newsParams>>(response);
       const article = await database.newsArticle.findUnique({
         where: { id: articleId },
-        select: { id: true, imageObjectId: true, videoObjectId: true },
+        select: {
+          id: true,
+          kind: true,
+          imageObjectId: true,
+          videoObjectId: true,
+        },
       });
       if (!article)
         throw new HttpError(
@@ -229,8 +234,15 @@ export const createMediaRouter = (
           "Новость не найдена.",
         );
       const media = mediaOf(request);
-      const objectId = await storage.upload(media.bytes, media.contentType);
       const video = media.contentType.startsWith("video/");
+      if (article.kind === "WORK_STORY" && video) {
+        throw new HttpError(
+          400,
+          "WORK_STORY_IMAGE_ONLY",
+          "Для примера работы можно загрузить только фотографию.",
+        );
+      }
+      const objectId = await storage.upload(media.bytes, media.contentType);
       try {
         const updated = await database.newsArticle.update({
           where: { id: articleId },

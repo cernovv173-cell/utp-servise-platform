@@ -96,6 +96,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
                 Отзывы
               </a>
               <Link
+                to="/work-stories"
+                className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
+              >
+                Примеры работ
+              </Link>
+              <Link
                 to="/guides"
                 className="rounded-xl px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 dark:text-[#a8b5d4] dark:hover:bg-[#101a34]"
               >
@@ -150,6 +156,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
               Отзывы
             </a>
             <Link
+              to="/work-stories"
+              className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
+            >
+              Примеры работ
+            </Link>
+            <Link
               to="/guides"
               className="shrink-0 rounded-lg px-3 py-2 text-xs font-medium text-slate-600 dark:text-[#a8b5d4]"
             >
@@ -201,6 +213,12 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
                 className="font-medium hover:text-blue-700 dark:hover:text-cyan-300"
               >
                 Отзывы
+              </Link>
+              <Link
+                to="/work-stories"
+                className="font-medium hover:text-blue-700 dark:hover:text-cyan-300"
+              >
+                Примеры работ
               </Link>
               <Link
                 to="/guides"

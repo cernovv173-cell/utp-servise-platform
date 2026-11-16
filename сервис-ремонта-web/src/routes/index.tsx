@@ -13,6 +13,7 @@ import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
 import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { getNewsWithNextTechnologyFact } from "@/features/news/technology-fact-query";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
+import { HomeWorkStoriesShowcase } from "@/features/public/home-work-stories-showcase";
 import { PublicHome } from "@/features/public/public-home";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 import { SeasonalHomeBanner } from "@/features/seasonal/seasonal-home-banner";
@@ -53,7 +54,9 @@ const HomePage = () => {
     enabled: Boolean(token),
     refetchInterval: 10_000,
   });
-  const featured = (news.data?.articles ?? []).filter((article) => article.isFeatured).slice(0, 3);
+  const featured = (news.data?.articles ?? [])
+    .filter((article) => article.kind !== "WORK_STORY" && article.isFeatured)
+    .slice(0, 3);
   const openOrders = (orders.data?.orders ?? []).filter(
     (order) => !["COMPLETED", "CANCELLED"].includes(order.status),
   ).length;
@@ -207,6 +210,7 @@ const HomePage = () => {
         </Link>
       </div>
       <HomeReviewShowcase />
+      <HomeWorkStoriesShowcase />
     </AppShell>
   );
 };

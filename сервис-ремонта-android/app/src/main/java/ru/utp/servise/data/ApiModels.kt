@@ -544,6 +544,7 @@ data class NewsArticle(
     val endsAt: String?,
     val isFeatured: Boolean,
     val videoObjectId: String? = null,
+    val kind: String = "NEWS",
 )
 
 data class TechnologyFact(

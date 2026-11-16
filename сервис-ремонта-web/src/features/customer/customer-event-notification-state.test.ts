@@ -8,6 +8,7 @@ const article = (id: string): NewsArticle => ({
   id,
   title: `Новость ${id}`,
   content: "Содержание новости.",
+  kind: "NEWS",
   isPublished: true,
   publishedAt: "2026-10-28T10:00:00.000Z",
   startsAt: null,

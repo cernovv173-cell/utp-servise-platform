@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Building2,
   ChevronRight,
+  FileText,
   Gift,
   type LucideIcon,
   Smartphone,
@@ -12,7 +13,8 @@ import {
 import { SectionCard } from "@/components/app-shell";
 
 const adminTools: Array<{
-  to: "/admin/apk" | "/admin/offers" | "/admin/staff" | "/admin/loyalty" | "/admin/company";
+  to:
+    "/admin/apk" | "/admin/offers" | "/admin/staff" | "/admin/loyalty" | "/admin/company" | "/news";
   title: string;
   description: string;
   icon: LucideIcon;
@@ -28,6 +30,12 @@ const adminTools: Array<{
     title: "Предложения клиентам",
     description: "Акции, розыгрыши и результаты",
     icon: Tag,
+  },
+  {
+    to: "/news",
+    title: "Новости и примеры работ",
+    description: "Публикации сервиса и истории выполненных работ",
+    icon: FileText,
   },
   {
     to: "/admin/staff",

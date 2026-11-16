@@ -58,6 +58,8 @@ fun NewsFeedScreen(
                 article.endsAt?.let { java.time.Instant.parse(it).toEpochMilli() > currentTimeMillis } == true
             }.getOrDefault(false))
     }
+    val visibleNews = visibleArticles.filter { it.kind != "WORK_STORY" }
+    val visibleWorkStories = visibleArticles.filter { it.kind == "WORK_STORY" }
     val visibleReviews = reviews.filter { it.isPublished }
     LazyColumn(
         modifier = Modifier.fillMaxSize().background(UtpPale),
@@ -66,7 +68,7 @@ fun NewsFeedScreen(
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Новости и отзывы", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+                Text("Новости, отзывы и примеры работ", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 CampaignBannerCarousel(
                     banners = banners,
                     placement = "NEWS",
@@ -76,7 +78,7 @@ fun NewsFeedScreen(
                 technologyFact?.let { TechnologyFactCard(it) }
             }
         }
-        items(visibleArticles, key = { "article-${it.id}" }) { article ->
+        items(visibleNews, key = { "article-${it.id}" }) { article ->
             Card(
                 shape = RoundedCornerShape(17.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -105,6 +107,51 @@ fun NewsFeedScreen(
                         modifier = Modifier.padding(top = 6.dp),
                     )
                     article.publishedAt?.let {
+                        Text(
+                            formatNewsDate(it),
+                            fontSize = 11.sp,
+                            color = UtpMuted,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
+            }
+        }
+        items(visibleWorkStories, key = { "work-story-${it.id}" }) { story ->
+            Card(
+                shape = RoundedCornerShape(17.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(Modifier.fillMaxWidth().padding(14.dp)) {
+                    story.imageObjectId?.let { image ->
+                        RemoteProjectImage(
+                            image,
+                            token,
+                            Modifier.fillMaxWidth().height(170.dp),
+                            "Фото к примеру работы: ${story.title}",
+                        )
+                    }
+                    Text(
+                        "Пример работы от сервиса · не отзыв клиента",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = UtpBlue,
+                    )
+                    Text(
+                        story.title,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = UtpInk,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    Text(
+                        story.content,
+                        fontSize = 13.sp,
+                        color = UtpMuted,
+                        lineHeight = 19.sp,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                    story.publishedAt?.let {
                         Text(
                             formatNewsDate(it),
                             fontSize = 11.sp,
@@ -152,8 +199,8 @@ fun NewsFeedScreen(
                 }
             }
         }
-        if (visibleArticles.isEmpty() && visibleReviews.isEmpty()) {
-            item { Text("Пока нет опубликованных новостей и отзывов.", color = UtpMuted) }
+        if (visibleNews.isEmpty() && visibleWorkStories.isEmpty() && visibleReviews.isEmpty()) {
+            item { Text("Пока нет опубликованных новостей, отзывов и примеров работ.", color = UtpMuted) }
         }
     }
 }

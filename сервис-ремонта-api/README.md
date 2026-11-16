@@ -448,6 +448,12 @@ order-photo storage and access rules. Intake paperwork, customer reviews, receip
 warranties remain on their existing workflows; the intake act now accepts one image or MP4 video.
 News articles and site banners can also store either an image or an MP4 video, using protected media
 access for uploaded files.
+News articles use the `NEWS` kind by default. Administrators can create a `WORK_STORY` publication
+through the same news editor to describe service-authored repair examples separately from customer
+reviews. Public `GET /public/work-stories` returns only currently published, in-range examples; its
+image route serves only an image attached to a currently visible example. Work stories accept images,
+not video, and do not create customer news-push deliveries. The additive
+`20261116100000_work_story_publications` migration assigns the default `NEWS` kind to existing rows.
 
 Customers can keep a private equipment list through `/customer/devices`. Each saved device belongs
 to its customer and can be linked to a repair request; the request stores a snapshot of the device
@@ -520,7 +526,8 @@ can load images for published offers; administrators can also preview draft imag
 authenticated media route. The database stores only opaque object IDs, and replacing or deleting a
 photo removes its previous stored object when possible.
 
-The first publication of a news article sends a customer push notification. Publishing a promotion,
+The first publication of a `NEWS` article sends a customer push notification; service-authored
+`WORK_STORY` examples do not. Publishing a promotion,
 giveaway, or quiz also creates a durable `customer_offer_push_deliveries` work item in the same database
 transaction; the worker sends it as soon as it is published, skips unpublished or expired offers,
 and retries temporary Firebase delivery failures. An offer scheduled to start later can therefore

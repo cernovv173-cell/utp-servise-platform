@@ -69,6 +69,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       id: "11111111-1111-4111-8111-111111111111",
       title: "Работаем в праздники",
       content: "Принимаем заявки в обычном режиме.",
+      kind: "NEWS",
       isPublished: true,
       startsAt: null,
       endsAt: null,
@@ -80,6 +81,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       id: "22222222-2222-4222-8222-222222222222",
       title: "Черновик новости",
       content: "Этот текст пока не опубликован.",
+      kind: "NEWS",
       isPublished: false,
       startsAt: null,
       endsAt: null,
@@ -91,6 +93,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       id: "44444444-4444-4444-8444-444444444444",
       title: "Будущая публикация",
       content: "Пока не должна отображаться.",
+      kind: "NEWS",
       isPublished: true,
       startsAt: new Date(Date.now() + 60_000),
       endsAt: null,
@@ -102,6 +105,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
       id: "55555555-5555-4555-8555-555555555555",
       title: "Срок истёк",
       content: "Не должна отображаться.",
+      kind: "NEWS",
       isPublished: true,
       startsAt: null,
       endsAt: new Date(Date.now() - 60_000),
@@ -151,6 +155,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
         return article
           ? {
               id: article.id,
+              kind: article.kind,
               isPublished: article.isPublished,
               startsAt: article.startsAt,
             }
@@ -341,6 +346,7 @@ test("only administrators write news and customer-facing reads exclude drafts", 
   });
   assert.equal(createScheduled.status, 201);
   const scheduledArticle = (await createScheduled.json()).article;
+  assert.equal(scheduledArticle.kind, "NEWS");
   assert.equal(scheduledArticle.isFeatured, true);
   assert.equal(
     new Date(scheduledArticle.startsAt).toISOString(),
@@ -366,6 +372,25 @@ test("only administrators write news and customer-facing reads exclude drafts", 
   assert.equal(immediatePublication.status, 201);
   assert.equal(pushDeliveries.length, 2);
   assert.equal(requestedNewsRecipientRole, null);
+
+  const workStory = await fetch(baseUrl, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({
+      title: "Профилактика ноутбука",
+      content:
+        "Проблема: перегрев. Что сделали: очистили охлаждение. Результат: штатная работа.",
+      kind: "WORK_STORY",
+      isPublished: true,
+    }),
+  });
+  assert.equal(workStory.status, 201);
+  assert.equal((await workStory.json()).article.kind, "WORK_STORY");
+  assert.equal(
+    pushDeliveries.length,
+    2,
+    "work stories must not schedule news pushes",
+  );
 
   const invalidSchedule = await fetch(baseUrl, {
     method: "POST",

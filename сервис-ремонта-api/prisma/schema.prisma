@@ -32,6 +32,11 @@ enum CustomerGender {
   FEMALE
 }
 
+enum NewsArticleKind {
+  NEWS
+  WORK_STORY
+}
+
 enum RepairStatus {
   REQUESTED
   ASSIGNED
@@ -788,6 +793,7 @@ model NewsArticle {
   id            String            @id @default(uuid()) @db.Uuid
   title         String            @db.VarChar(160)
   content       String            @db.VarChar(8000)
+  kind          NewsArticleKind   @default(NEWS)
   imageObjectId String?           @map("image_object_id") @db.VarChar(255)
   videoObjectId String?           @map("video_object_id") @db.VarChar(255)
   isPublished   Boolean           @default(false) @map("is_published")
@@ -802,6 +808,7 @@ model NewsArticle {
   pushDelivery  NewsPushDelivery?
 
   @@index([isPublished, publishedAt])
+  @@index([kind, isPublished, publishedAt])
   @@map("news_articles")
 }
 
