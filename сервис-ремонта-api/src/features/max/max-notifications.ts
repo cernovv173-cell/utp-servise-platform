@@ -16,7 +16,14 @@ const MIN_MESSAGE_INTERVAL_MILLISECONDS = 500;
 const notificationTitles: Record<MaxNotificationType, string> = {
   DEVICE_ACCEPTED: "Устройство принято",
   DIAGNOSIS_COMPLETED: "Диагностика завершена",
+  TECHNICIAN_REPAIR_COMPLETED: "Работы завершены",
+  REPAIR_COMPLETED: "Ремонт завершён",
   READY_FOR_PICKUP: "Готово к выдаче",
+};
+
+const notificationDetails: Partial<Record<MaxNotificationType, string>> = {
+  TECHNICIAN_REPAIR_COMPLETED:
+    "Администратор проверит результат и сообщит, когда можно забрать устройство.",
 };
 
 const deviceLabels: Record<string, string> = {
@@ -31,7 +38,14 @@ export const formatMaxRepairNotification = (input: {
   readonly serviceNumber: string;
   readonly deviceType: string;
 }): string =>
-  `${notificationTitles[input.type]}\nЗаявка: ${input.serviceNumber}\nУстройство: ${deviceLabels[input.deviceType] ?? "Техника"}`;
+  [
+    notificationTitles[input.type],
+    `Заявка: ${input.serviceNumber}`,
+    `Устройство: ${deviceLabels[input.deviceType] ?? "Техника"}`,
+    notificationDetails[input.type],
+  ]
+    .filter((line): line is string => Boolean(line))
+    .join("\n");
 
 export const maxRetryDelayMilliseconds = (attempt: number): number =>
   Math.min(6 * 60 * 60 * 1_000, 10_000 * 2 ** Math.max(0, attempt - 1));

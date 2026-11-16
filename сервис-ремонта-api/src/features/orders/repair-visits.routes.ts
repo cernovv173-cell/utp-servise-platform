@@ -10,6 +10,7 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { scheduleMaxRepairNotification } from "../max/max-notifications.js";
 import { sendRepairOrderNotification } from "../notifications/push-notifications.js";
 import { awardReferralForFirstPaidRepair } from "../referrals/referral-rewards.js";
 import {
@@ -435,6 +436,11 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
           const scheduledAt = getRepairFollowUpScheduledAt(now);
           await transaction.repairOrderFollowUp.create({
             data: { orderId, scheduledAt, nextAttemptAt: scheduledAt },
+          });
+          await scheduleMaxRepairNotification(transaction, {
+            orderId,
+            userId: order.customerId,
+            type: "REPAIR_COMPLETED",
           });
         }
         const warranty = input.repairAgreed

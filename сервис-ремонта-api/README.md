@@ -378,11 +378,16 @@ channel uses its own short-lived, one-time deep link and unique customer identif
 remain server-side and either channel can be disconnected without affecting the other. The API never
 exposes either bot token or messenger identifier to client applications.
 
-Each configured channel queues three separately deduplicated repair messages: “Устройство принято”
-when a technician is first assigned, “Диагностика завершена” when a technician or administrator
-records that milestone, and “Готово к выдаче” when the order enters `READY_FOR_PICKUP`. Completion of
-diagnosis is an explicit staff action and does not by itself change the repair status. Production
-retries transient delivery failures and skips customers who have not linked that channel.
+Telegram queues three separately deduplicated repair messages: “Устройство принято” when a
+technician is first assigned, “Диагностика завершена” when a technician or administrator records
+that milestone, and “Готово к выдаче” when the order enters `READY_FOR_PICKUP`. Completion of
+diagnosis is an explicit staff action and does not by itself change the repair status. MAX queues
+these milestones plus “Работы завершены” when the technician marks service-center work complete
+(with a note that an administrator still checks readiness) and “Ремонт завершён” after an agreed,
+successful on-site repair. A customer declining an on-site repair after diagnosis does not receive
+the repair-completed MAX message. The existing “Готово к выдаче” message remains a separate event.
+Deliveries are deduplicated per order and milestone. Production retries transient delivery failures
+and skips customers who have not linked the relevant channel.
 
 Production startup checks `getWebhookInfo` before registering the configured `TELEGRAM_WEBHOOK_URL`.
 It registers only when Telegram has no webhook, leaves an existing different webhook untouched, and

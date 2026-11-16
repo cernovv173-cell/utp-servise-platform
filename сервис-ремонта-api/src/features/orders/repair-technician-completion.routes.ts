@@ -9,6 +9,7 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { scheduleMaxRepairNotification } from "../max/max-notifications.js";
 import { sendRepairOrderNotificationForId } from "../notifications/push-notifications.js";
 import { assertWorkActApproved } from "./repair-work-act.shared.js";
 
@@ -104,6 +105,11 @@ export const createRepairTechnicianCompletionRouter = (
             to: current.status,
             note: "Мастер отметил ремонт завершённым; ожидается выдача администратором",
           },
+        });
+        await scheduleMaxRepairNotification(transaction, {
+          orderId,
+          userId: current.customerId,
+          type: "TECHNICIAN_REPAIR_COMPLETED",
         });
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: orderId },
