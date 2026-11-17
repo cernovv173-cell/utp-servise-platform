@@ -94,6 +94,14 @@ with their saved names and prices; their catalog foreign key is cleared. Product
 from project storage on a best-effort basis after the database transaction succeeds; a temporary
 storage failure does not undo the catalog deletion.
 
+## Repair order intake
+
+The public `GET /company/order-intake` endpoint returns whether customers can submit new repair
+requests. Administrators change that setting with `PUT /admin/company/order-intake` and
+`{ "acceptingNewOrders": boolean }`. If no setting has been saved yet, intake remains enabled.
+When paused, the API rejects only customer `POST /orders` requests; existing orders and
+administrator-created orders remain available. Web and Android show the paused state to customers.
+
 ## Public service prices
 
 The guest web landing page reads the active service price list from

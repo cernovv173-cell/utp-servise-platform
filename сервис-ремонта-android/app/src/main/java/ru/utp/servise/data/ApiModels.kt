@@ -17,6 +17,10 @@ data class AppUser(
     val isAdminAssistant: Boolean = false,
 )
 
+data class RepairOrderIntakeSettings(
+    val acceptingNewOrders: Boolean,
+)
+
 data class OrderAddress(
     val contactPhone: String,
     val city: String,

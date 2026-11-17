@@ -4,6 +4,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { AdminBackLink } from "@/features/admin/admin-back-link";
 import { CompanyAdmin } from "@/features/admin/company-admin";
+import { RepairOrderIntakeControl } from "@/features/admin/repair-order-intake-control";
 import { useAuth } from "@/features/auth/auth-context";
 
 const AdminCompanyPage = () => {
@@ -21,7 +22,10 @@ const AdminCompanyPage = () => {
           <p className="text-sm text-slate-500">Эта страница доступна только администратору.</p>
         </SectionCard>
       ) : (
-        <CompanyAdmin />
+        <div className="grid gap-4">
+          <RepairOrderIntakeControl />
+          <CompanyAdmin />
+        </div>
       )}
     </AppShell>
   );

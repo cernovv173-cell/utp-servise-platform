@@ -860,6 +860,10 @@ export type CompanyInfo = {
   mediaUrls: string[];
 };
 
+export type RepairOrderIntakeSettings = {
+  acceptingNewOrders: boolean;
+};
+
 export const apiRequest = <T>(path: string, token?: string | null, init: RequestInit = {}) => {
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -1584,6 +1588,17 @@ export const updateCompany = (token: string, company: CompanyInfo) =>
   apiRequest<{ company: CompanyInfo }>("/about", token, {
     method: "PUT",
     body: JSON.stringify(company),
+  });
+
+export const getRepairOrderIntake = (signal?: AbortSignal) =>
+  apiRequest<RepairOrderIntakeSettings>("/company/order-intake", null, {
+    signal,
+  });
+
+export const updateRepairOrderIntake = (token: string, acceptingNewOrders: boolean) =>
+  apiRequest<RepairOrderIntakeSettings>("/admin/company/order-intake", token, {
+    method: "PUT",
+    body: JSON.stringify({ acceptingNewOrders }),
   });
 
 export const updateProfile = (

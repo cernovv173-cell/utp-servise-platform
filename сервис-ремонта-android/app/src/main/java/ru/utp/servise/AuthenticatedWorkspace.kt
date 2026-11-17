@@ -50,6 +50,7 @@ import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.RepairOrder
+import ru.utp.servise.data.RepairOrderIntakeSettings
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.SalarySummary
 import ru.utp.servise.data.StaffMember
@@ -87,6 +88,7 @@ import ru.utp.servise.ui.ProfileScreen
 import ru.utp.servise.ui.RepairChatScreen
 import ru.utp.servise.ui.RepairOrdersScreen
 import ru.utp.servise.ui.RepairRequestForm
+import ru.utp.servise.ui.RepairOrderIntakeNotice
 import ru.utp.servise.ui.RepairScheduleScreen
 import ru.utp.servise.ui.PartsProcurementScreen
 import ru.utp.servise.ui.ProcurementInventoryScreen
@@ -156,6 +158,17 @@ internal fun AuthenticatedWorkspace(
     }
     var quickActionPosition by remember(quickActionPreferences) {
         mutableStateOf(quickActionPreferences.position())
+    }
+    var acceptingNewOrders by remember(token) { mutableStateOf<Boolean?>(null) }
+    var orderIntakeLoadFailed by remember(token) { mutableStateOf(false) }
+    LaunchedEffect(token, user.role) {
+        if (user.role == "CUSTOMER" || user.role == "ADMIN") {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { ApiClient.repairOrderIntake() }
+            }
+            acceptingNewOrders = result.getOrNull()?.acceptingNewOrders
+            orderIntakeLoadFailed = result.isFailure
+        }
     }
     val onRefreshChat: (String) -> Unit = { orderId ->
         scope.launch {
@@ -267,6 +280,7 @@ internal fun AuthenticatedWorkspace(
                                     onLoyalty = { navController.navigate("customer/loyalty") },
                                     onNews = { navController.navigate("customer/news") },
                                     onOffers = { navController.navigate("customer/offers") },
+                                    acceptingNewOrders = acceptingNewOrders,
                                 )
                             }
                             composable("customer/shop") {
@@ -412,34 +426,46 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("customer/new-order") {
                                 val repeatDeviceId = navController.previousBackStackEntry?.savedStateHandle?.get<String>("repeatDeviceId")
-                                RepairRequestForm(
-                                    initialPhone = user.phoneNumber.orEmpty(),
-                                    onBack = { navController.popBackStack() },
-                                    banners = banners,
-                                    token = token,
-                                    customerDevices = customerDevices,
-                                    servicePrices = customerServicePrices,
-                                    initialDeviceId = repeatDeviceId,
-                                    onCampaignNavigate = onCampaignNavigate,
-                                    onSubmit = { device, problem, address, details, photoUri ->
-                                        runAction({
-                                            val order = ApiClient.createOrder(token, device, problem, address, details)
-                                            photoUri?.let { uri ->
-                                                runCatching {
-                                                    ApiClient.uploadOrderPhoto(
-                                                        token,
-                                                        order.id,
-                                                        compressSelectedImage(appContext, uri),
-                                                    )
-                                                }.onFailure {
-                                                    onError("Заявка создана, но фото не загрузилось. Его можно добавить в карточке заявки.")
+                                if (acceptingNewOrders == false) {
+                                    Column(
+                                        modifier = Modifier.fillMaxSize().padding(20.dp),
+                                        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(
+                                            12.dp,
+                                        ),
+                                    ) {
+                                        TextButton(onClick = { navController.popBackStack() }) { Text("← Назад") }
+                                        RepairOrderIntakeNotice()
+                                    }
+                                } else {
+                                    RepairRequestForm(
+                                        initialPhone = user.phoneNumber.orEmpty(),
+                                        onBack = { navController.popBackStack() },
+                                        banners = banners,
+                                        token = token,
+                                        customerDevices = customerDevices,
+                                        servicePrices = customerServicePrices,
+                                        initialDeviceId = repeatDeviceId,
+                                        onCampaignNavigate = onCampaignNavigate,
+                                        onSubmit = { device, problem, address, details, photoUri ->
+                                            runAction({
+                                                val order = ApiClient.createOrder(token, device, problem, address, details)
+                                                photoUri?.let { uri ->
+                                                    runCatching {
+                                                        ApiClient.uploadOrderPhoto(
+                                                            token,
+                                                            order.id,
+                                                            compressSelectedImage(appContext, uri),
+                                                        )
+                                                    }.onFailure {
+                                                        onError("Заявка создана, но фото не загрузилось. Его можно добавить в карточке заявки.")
+                                                    }
                                                 }
-                                            }
-                                            order
-                                        }) { navController.popBackStack() }
-                                    },
-                                    busy = busy,
-                                )
+                                                order
+                                            }) { navController.popBackStack() }
+                                        },
+                                        busy = busy,
+                                    )
+                                }
                             }
                             composable("customer/review/{orderId}") { entry ->
                                 ReviewFormScreen(entry.arguments?.getString("orderId").orEmpty(), token, runAction) { navController.popBackStack() }
@@ -624,6 +650,30 @@ internal fun AuthenticatedWorkspace(
                                     },
                                     onResetPosition = {
                                         quickActionPosition = quickActionPreferences.resetPosition()
+                                    },
+                                    acceptingNewOrders = acceptingNewOrders,
+                                    orderIntakeLoadFailed = orderIntakeLoadFailed,
+                                    onRetryOrderIntake = {
+                                        scope.launch {
+                                            val result = withContext(Dispatchers.IO) {
+                                                runCatching { ApiClient.repairOrderIntake() }
+                                            }
+                                            acceptingNewOrders = result.getOrNull()?.acceptingNewOrders
+                                            orderIntakeLoadFailed = result.isFailure
+                                            result.exceptionOrNull()?.let {
+                                                onError(
+                                                    it.message ?: "Не удалось загрузить настройку.",
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onAcceptingNewOrdersChanged = { enabled ->
+                                        runAction({ ApiClient.updateRepairOrderIntake(token, enabled) }) { result ->
+                                            (result as? RepairOrderIntakeSettings)?.let { saved ->
+                                                acceptingNewOrders = saved.acceptingNewOrders
+                                                orderIntakeLoadFailed = false
+                                            }
+                                        }
                                     },
                                     onOpenVersion = {
                                         navController.navigate("app/version") { launchSingleTop = true }

@@ -56,14 +56,19 @@ fun PublicHomeScreen(
 ) {
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
     var review by remember { mutableStateOf<PublicReview?>(null) }
+    var acceptingNewOrders by remember { mutableStateOf<Boolean?>(null) }
 
     LaunchedEffect(Unit) {
         val publicContent = withContext(Dispatchers.IO) {
-            runCatching { ApiClient.companyInfo() }.getOrNull() to
-                runCatching { ApiClient.publicReviews().firstOrNull() }.getOrNull()
+            Triple(
+                runCatching { ApiClient.companyInfo() }.getOrNull(),
+                runCatching { ApiClient.publicReviews().firstOrNull() }.getOrNull(),
+                runCatching { ApiClient.repairOrderIntake().acceptingNewOrders }.getOrNull(),
+            )
         }
         company = publicContent.first
         review = publicContent.second
+        acceptingNewOrders = publicContent.third
     }
 
     val services = company?.services?.filter(String::isNotBlank)?.take(4).orEmpty().ifEmpty {
@@ -111,8 +116,16 @@ fun PublicHomeScreen(
                     color = Color.White.copy(alpha = 0.9f),
                     lineHeight = 22.sp,
                 )
-                Button(onClick = onRequest, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp)) {
-                    Text("Оформить заявку")
+                if (acceptingNewOrders == false) {
+                    RepairOrderIntakeNotice(phoneNumber = company?.phone)
+                } else {
+                    Button(
+                        onClick = onRequest,
+                        modifier = Modifier.fillMaxWidth().height(52.dp),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text("Оформить заявку")
+                    }
                 }
                 company?.phone?.takeIf(String::isNotBlank)?.let { phone ->
                     CompanyCallButton(

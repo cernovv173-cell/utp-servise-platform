@@ -40,6 +40,7 @@ test("only admins create repair orders for active customers and creation is audi
     },
   ];
   let activeCustomer = true;
+  let acceptingNewOrders = true;
   let createdData: Record<string, unknown> | undefined;
   let statusEvent: Record<string, unknown> | undefined;
   const databaseClient = {
@@ -52,6 +53,10 @@ test("only admins create repair orders for active customers and creation is audi
         const { token: _token, ...sessionUser } = user;
         return { expiresAt: new Date(Date.now() + 60_000), user: sessionUser };
       },
+    },
+    appSetting: {
+      findUnique: async () =>
+        acceptingNewOrders ? null : { value: { acceptingNewOrders: false } },
     },
     user: {
       findFirst: async () =>
@@ -172,6 +177,33 @@ test("only admins create repair orders for active customers and creation is audi
   assert.equal(createdData?.city, null);
   assert.equal(createdData?.street, null);
   assert.equal(createdData?.house, null);
+
+  acceptingNewOrders = false;
+  const pausedCustomerOrder = await fetch(
+    endpoint.replace("/admin/orders", "/orders"),
+    {
+      method: "POST",
+      headers: headers(customerToken),
+      body: JSON.stringify({
+        deviceType: "COMPUTER",
+        problem: "Заявка во время паузы",
+        contactPhone: users[1]!.phoneNumber,
+      }),
+    },
+  );
+  assert.equal(pausedCustomerOrder.status, 503);
+  assert.equal(
+    (await pausedCustomerOrder.json()).error.code,
+    "NEW_REPAIR_ORDERS_PAUSED",
+  );
+
+  const adminOrderWhilePaused = await fetch(endpoint, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify(body),
+  });
+  assert.equal(adminOrderWhilePaused.status, 201);
+  acceptingNewOrders = true;
 
   const customerOrder = await fetch(
     endpoint.replace("/admin/orders", "/orders"),

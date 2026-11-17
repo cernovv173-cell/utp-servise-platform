@@ -5,6 +5,11 @@ import { Prisma } from "../../generated/prisma/client.js";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  readRepairOrderIntake,
+  repairOrderIntakeSchema,
+  saveRepairOrderIntake,
+} from "./repair-order-intake.js";
 
 const companyInfoSchema = z
   .object({
@@ -58,6 +63,28 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
       company: parsed.success ? parsed.data : defaultCompanyInfo,
     });
   });
+
+  router.get("/company/order-intake", async (_request, response) => {
+    response.set("Cache-Control", "no-store");
+    response.json(await readRepairOrderIntake(database));
+  });
+
+  router.put(
+    "/admin/company/order-intake",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ body: repairOrderIntakeSchema }),
+    async (_request, response) => {
+      const setting = (
+        response.locals.input as {
+          readonly body: z.infer<typeof repairOrderIntakeSchema>;
+        }
+      ).body;
+      await saveRepairOrderIntake(database, setting);
+      response.set("Cache-Control", "no-store");
+      response.json(setting);
+    },
+  );
 
   router.put(
     "/about",

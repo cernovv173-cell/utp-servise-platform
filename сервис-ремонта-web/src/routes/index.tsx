@@ -13,6 +13,7 @@ import { HolidayClosureBanner } from "@/features/holiday/holiday-closure-banner"
 import { FeaturedNewsCarousel } from "@/features/news/featured-news-carousel";
 import { TechnologyFactCard } from "@/features/news/technology-fact-card";
 import { getNewsWithNextTechnologyFact } from "@/features/news/technology-fact-query";
+import { RepairOrderIntakeNotice } from "@/features/orders/repair-order-intake-notice";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { HomeWorkStoriesShowcase } from "@/features/public/home-work-stories-showcase";
 import { PublicHome } from "@/features/public/public-home";
@@ -20,7 +21,7 @@ import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 import { SeasonalHomeBanner } from "@/features/seasonal/seasonal-home-banner";
 import { getDisplayedSeason, useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
-import { getBanners, getCompany, getOrders } from "@/lib/api";
+import { getBanners, getCompany, getOrders, getRepairOrderIntake } from "@/lib/api";
 import { createPageHead } from "@/lib/seo";
 
 const HomePage = () => {
@@ -36,6 +37,12 @@ const HomePage = () => {
     queryKey: ["company-info", token],
     queryFn: ({ signal }) => getCompany(signal),
     enabled: Boolean(token && user),
+  });
+  const orderIntake = useQuery({
+    queryKey: ["repair-order-intake"],
+    queryFn: ({ signal }) => getRepairOrderIntake(signal),
+    enabled: Boolean(token && user?.role === "CUSTOMER"),
+    staleTime: 0,
   });
   const news = useQuery({
     queryKey: ["news", token],
@@ -89,12 +96,16 @@ const HomePage = () => {
               Оставьте заявку, следите за статусом ремонта и получайте новости сервиса.
             </p>
           </div>
-          <Link
-            to="/orders"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-blue-700 hover:bg-blue-50"
-          >
-            Создать заявку <ArrowRight size={17} />
-          </Link>
+          {orderIntake.data?.acceptingNewOrders === false ? (
+            <RepairOrderIntakeNotice phone={company.data?.company.phone} className="w-full" />
+          ) : (
+            <Link
+              to="/orders"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-blue-700 hover:bg-blue-50"
+            >
+              Создать заявку <ArrowRight size={17} />
+            </Link>
+          )}
           {company.data?.company.phone && (
             <a
               href={`tel:${company.data.company.phone.replace(/[^\d+]/gu, "")}`}

@@ -634,6 +634,19 @@ object ApiClient {
         .getJSONObject("company")
         .toCompanyInfo()
 
+    fun repairOrderIntake(): RepairOrderIntakeSettings =
+        request("GET", "/company/order-intake").toRepairOrderIntakeSettings()
+
+    fun updateRepairOrderIntake(
+        token: String,
+        acceptingNewOrders: Boolean,
+    ): RepairOrderIntakeSettings = request(
+        "PUT",
+        "/admin/company/order-intake",
+        token,
+        JSONObject().put("acceptingNewOrders", acceptingNewOrders),
+    ).toRepairOrderIntakeSettings()
+
     fun updateCompanyInfo(token: String, company: CompanyInfo): CompanyInfo = request(
         "PUT", "/about", token, company.toRequestJson(),
     ).getJSONObject("company").toCompanyInfo()
@@ -1286,6 +1299,9 @@ object ApiClient {
         activatedAt = nullableString("activatedAt"),
         loaded = true,
     )
+
+    private fun JSONObject.toRepairOrderIntakeSettings() =
+        RepairOrderIntakeSettings(acceptingNewOrders = getBoolean("acceptingNewOrders"))
 
     internal fun request(method: String, path: String, token: String? = null, body: JSONObject? = null): JSONObject {
         if (baseUrl.isBlank()) throw ApiException("API_NOT_CONFIGURED", "Адрес сервера ещё не настроен для этой сборки.")

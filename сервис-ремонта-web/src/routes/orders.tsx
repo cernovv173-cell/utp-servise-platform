@@ -23,6 +23,7 @@ import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderDisclosureSummary } from "@/features/orders/repair-order-disclosure-summary";
 import { RepairOrderInformation } from "@/features/orders/repair-order-information";
+import { RepairOrderIntakeNotice } from "@/features/orders/repair-order-intake-notice";
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
 import { RepairRequestForm } from "@/features/orders/repair-request-form";
@@ -37,6 +38,7 @@ import {
   getLoyalty,
   getOrders,
   getRepairCatalog,
+  getRepairOrderIntake,
   searchOrders,
   updateOrderStatus,
   uploadRepairOrderPhoto,
@@ -59,6 +61,13 @@ const OrdersPage = () => {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const archiveView = archiveForOrderListView(listView);
+  const orderIntake = useQuery({
+    queryKey: ["repair-order-intake"],
+    queryFn: ({ signal }) => getRepairOrderIntake(signal),
+    enabled: user?.role === "CUSTOMER",
+    staleTime: 0,
+  });
+  const acceptingNewOrders = orderIntake.data?.acceptingNewOrders !== false;
   const query = useQuery({
     queryKey: ["orders", token, archiveView],
     queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
@@ -117,6 +126,10 @@ const OrdersPage = () => {
         toast.success("Заявка отправлена");
       }
     },
+    onError: (error) =>
+      toast.error(
+        error instanceof Error ? error.message : "Не удалось создать заявку. Попробуйте позже.",
+      ),
   });
   const statusMutation = useMutation({
     mutationFn: ({ orderId, status }: { orderId: string; status: string }) =>
@@ -143,17 +156,22 @@ const OrdersPage = () => {
         }
         action={
           user?.role === "CUSTOMER" ? (
-            <button
-              onClick={() => setFormOpen((value) => !value)}
-              className="min-h-11 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
-            >
-              {formOpen ? "Закрыть" : "+ Создать заявку"}
-            </button>
+            acceptingNewOrders ? (
+              <button
+                onClick={() => setFormOpen((value) => !value)}
+                className="min-h-11 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
+              >
+                {formOpen ? "Закрыть" : "+ Создать заявку"}
+              </button>
+            ) : undefined
           ) : undefined
         }
       />
       <CampaignPlacement placement="SERVICE" className="mb-5" />
-      {formOpen && (
+      {user?.role === "CUSTOMER" && !acceptingNewOrders && (
+        <RepairOrderIntakeNotice className="mb-5" />
+      )}
+      {formOpen && acceptingNewOrders && (
         <SectionCard className="mb-5">
           <h2 className="mb-2 font-semibold">Новая заявка</h2>
           <p className="mb-4 text-sm text-slate-500">

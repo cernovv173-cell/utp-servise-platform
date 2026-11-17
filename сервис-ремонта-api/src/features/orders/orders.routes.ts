@@ -16,6 +16,7 @@ import {
   storedRepairDeviceTypes,
   supportedRepairDeviceTypes,
 } from "../catalog/repair-device-types.js";
+import { assertRepairOrderIntakeOpen } from "../company/repair-order-intake.js";
 import { addTemporaryLoginToCustomer } from "../customers/customer-login-credentials.js";
 import { deliverPendingCustomerCredentials } from "../max/max-credential-delivery.js";
 import { scheduleMaxRepairNotification } from "../max/max-notifications.js";
@@ -480,6 +481,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         await transaction.$queryRaw`
           SELECT "id" FROM "users" WHERE "id" = ${user.id}::uuid FOR UPDATE
         `;
+        await assertRepairOrderIntakeOpen(transaction);
         const savedDevice = input.customerDeviceId
           ? await transaction.customerDevice.findFirst({
               where: { id: input.customerDeviceId, customerId: user.id },

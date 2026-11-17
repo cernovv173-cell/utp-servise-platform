@@ -19,6 +19,7 @@ import { Reveal } from "@/components/reveal";
 import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
 import { GuidesSection } from "@/features/guides/guides-section";
 import { HolidayClosureBanner } from "@/features/holiday/holiday-closure-banner";
+import { RepairOrderIntakeNotice } from "@/features/orders/repair-order-intake-notice";
 import { HomeReviewShowcase } from "@/features/public/home-review-showcase";
 import { HomeWorkStoriesShowcase } from "@/features/public/home-work-stories-showcase";
 import { PageTurn } from "@/features/public/page-turn";
@@ -28,7 +29,7 @@ import { TypewriterText } from "@/features/public/typewriter-text";
 import { SeasonalHomeBanner } from "@/features/seasonal/seasonal-home-banner";
 import { getDisplayedSeason, useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
-import { getCompany } from "@/lib/api";
+import { getCompany, getRepairOrderIntake } from "@/lib/api";
 
 const defaultServices = [
   "Диагностика компьютеров и ноутбуков",
@@ -62,6 +63,11 @@ export const PublicHome = () => {
     queryKey: ["public-company"],
     queryFn: ({ signal }) => getCompany(signal),
   });
+  const orderIntakeQuery = useQuery({
+    queryKey: ["repair-order-intake"],
+    queryFn: ({ signal }) => getRepairOrderIntake(signal),
+    staleTime: 0,
+  });
   const company = companyQuery.data?.company;
   const services = (company?.services.length ? company.services : defaultServices).slice(0, 3);
   const serviceName = company?.name ?? "ЕНОТ СЕРВИС";
@@ -87,13 +93,17 @@ export const PublicHome = () => {
                     "Помогаем вернуть технику к работе, объясняем этапы ремонта и остаёмся на связи."}
                 </p>
                 <div className="mt-7 flex flex-wrap gap-3">
-                  <PublicAuthTrigger
-                    intent="register"
-                    nextPath="/orders"
-                    className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white shadow-sm hover:bg-blue-700"
-                  >
-                    Оформить заявку <ArrowRight size={18} aria-hidden="true" />
-                  </PublicAuthTrigger>
+                  {orderIntakeQuery.data?.acceptingNewOrders === false ? (
+                    <RepairOrderIntakeNotice phone={company?.phone} className="w-full" />
+                  ) : (
+                    <PublicAuthTrigger
+                      intent="register"
+                      nextPath="/orders"
+                      className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white shadow-sm hover:bg-blue-700"
+                    >
+                      Оформить заявку <ArrowRight size={18} aria-hidden="true" />
+                    </PublicAuthTrigger>
+                  )}
                   <a
                     href="#services"
                     className="inline-flex min-h-12 items-center rounded-xl border border-slate-200 bg-white/80 px-5 font-semibold text-slate-700 hover:bg-slate-100 dark:border-[#304373] dark:bg-[#0c142b]/70 dark:text-slate-200 dark:hover:bg-[#152449]"
@@ -299,13 +309,19 @@ export const PublicHome = () => {
                   )}
                 </div>
               </div>
-              <PublicAuthTrigger
-                intent="register"
-                nextPath="/orders"
-                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
-              >
-                Оформить заявку <ArrowRight size={18} aria-hidden="true" />
-              </PublicAuthTrigger>
+              {orderIntakeQuery.data?.acceptingNewOrders === false ? (
+                <p className="rounded-xl border border-amber-300/80 bg-amber-50 p-4 text-sm text-amber-950 dark:border-amber-700/60 dark:bg-amber-950/30 dark:text-amber-100">
+                  Приём новых заявок временно приостановлен. Уже созданные заявки остаются доступны.
+                </p>
+              ) : (
+                <PublicAuthTrigger
+                  intent="register"
+                  nextPath="/orders"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
+                >
+                  Оформить заявку <ArrowRight size={18} aria-hidden="true" />
+                </PublicAuthTrigger>
+              )}
             </div>
           </Reveal>
         </section>

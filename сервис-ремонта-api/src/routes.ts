@@ -73,6 +73,15 @@ export const createApiRouter = ({
     next();
   });
 
+  router.get("/company/order-intake", async (_request, response, next) => {
+    if (!database) {
+      response.set("Cache-Control", "no-store");
+      response.json({ acceptingNewOrders: true });
+      return;
+    }
+    next();
+  });
+
   if (database) {
     router.use(createCompanyRouter(database.client));
     router.use(
@@ -119,6 +128,8 @@ export const createApiRouter = ({
         request.path.startsWith("/telegram") ||
         request.path.startsWith("/max") ||
         request.path.startsWith("/orders") ||
+        request.path.startsWith("/admin/company/order-intake") ||
+        request.path.startsWith("/company/order-intake") ||
         request.path.startsWith("/salary") ||
         request.path.startsWith("/catalog") ||
         request.path.startsWith("/customer/service-prices") ||

@@ -53,6 +53,7 @@ fun CustomerHomeScreen(
     onLoyalty: () -> Unit,
     onNews: () -> Unit,
     onOffers: () -> Unit,
+    acceptingNewOrders: Boolean?,
 ) {
     val activeOrders = remember(orders) { customerHomeActiveOrders(orders) }
     var companyPhone by remember { mutableStateOf("") }
@@ -105,12 +106,16 @@ fun CustomerHomeScreen(
                     lineHeight = 19.sp,
                     color = UtpMuted,
                 )
-                Button(
-                    onClick = onCreateRequest,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    shape = RoundedCornerShape(14.dp),
-                ) {
-                    Text("Оставить заявку")
+                if (acceptingNewOrders == false) {
+                    RepairOrderIntakeNotice(phoneNumber = companyPhone)
+                } else {
+                    Button(
+                        onClick = onCreateRequest,
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text("Оставить заявку")
+                    }
                 }
             }
         }
