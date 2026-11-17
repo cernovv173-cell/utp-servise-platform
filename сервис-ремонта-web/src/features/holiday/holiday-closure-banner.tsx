@@ -1,8 +1,13 @@
+import { useQuery } from "@tanstack/react-query";
 import { Clock3, Phone, Snowflake } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { getClosureAnnouncement } from "@/lib/api";
+
 import {
-  HOLIDAY_CLOSURE_START,
+  CLOSURE_ANNOUNCEMENT_QUERY_KEY,
+  getClosureScheduleText,
+  getClosureStart,
   getHolidayClosurePhase,
   getHolidayCountdown,
 } from "./holiday-closure";
@@ -18,27 +23,39 @@ const countdownItems = [
   ["seconds", "СЕКУНД"],
 ] as const;
 
+const maxAnnouncementCheckDelayMs = 24 * 60 * 60 * 1_000;
+
 export const HolidayClosureBanner = ({ phoneNumber }: HolidayClosureBannerProps) => {
   const [now, setNow] = useState(() => Date.now());
-  const phase = getHolidayClosurePhase(now);
+  const query = useQuery({
+    queryKey: CLOSURE_ANNOUNCEMENT_QUERY_KEY,
+    queryFn: ({ signal }) => getClosureAnnouncement(signal),
+    staleTime: 0,
+  });
+  const settings = query.data;
+  const phase = settings ? getHolidayClosurePhase(now, settings) : "upcoming";
   useEffect(() => {
-    if (phase === "upcoming") {
-      const timeout = window.setTimeout(
-        () => setNow(Date.now()),
-        Math.max(0, HOLIDAY_CLOSURE_START - Date.now()),
-      );
-      return () => window.clearTimeout(timeout);
-    }
+    if (phase !== "upcoming" || !settings) return;
+    const remaining = Math.max(0, getClosureStart(settings) - Date.now());
+    const timeout = window.setTimeout(
+      () => setNow(Date.now()),
+      Math.min(remaining, maxAnnouncementCheckDelayMs),
+    );
+    return () => window.clearTimeout(timeout);
+  }, [now, phase, settings]);
+
+  useEffect(() => {
     if (phase === "closed") {
       const interval = window.setInterval(() => setNow(Date.now()), 1_000);
       return () => window.clearInterval(interval);
     }
   }, [phase]);
 
-  const countdown = getHolidayCountdown(now);
-  if (!countdown) return null;
+  const countdown = settings ? getHolidayCountdown(now, settings) : null;
+  if (!settings?.enabled || !countdown) return null;
 
-  const dialNumber = phoneNumber?.replace(/[^\d+]/gu, "");
+  const emergencyPhone = settings.phoneNumber.trim() || phoneNumber?.trim();
+  const dialNumber = emergencyPhone?.replace(/[^\d+]/gu, "");
 
   return (
     <section
@@ -51,23 +68,22 @@ export const HolidayClosureBanner = ({ phoneNumber }: HolidayClosureBannerProps)
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold tracking-[0.14em] uppercase">
               <Snowflake size={15} aria-hidden="true" />
-              Новогодний перерыв
+              {settings.title}
             </p>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
-              Сервис временно не работает
+              {settings.message}
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-              Перерыв — с 31 декабря 2026 по 10 января 2027 включительно. Откроемся 11 января 2027
-              года в 08:30 по московскому времени.
+              {getClosureScheduleText(settings)}
             </p>
             {dialNumber && (
               <a
                 href={`tel:${dialNumber}`}
                 className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/35 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20"
-                aria-label={`Если заказ срочный, позвоните по номеру ${phoneNumber}`}
+                aria-label={`Если заказ срочный, позвоните по номеру ${emergencyPhone}`}
               >
                 <Phone size={17} aria-hidden="true" />
-                Если заказ срочный — звоните: {phoneNumber}
+                Если заказ срочный — звоните: {emergencyPhone}
               </a>
             )}
           </div>

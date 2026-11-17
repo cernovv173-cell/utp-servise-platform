@@ -31,23 +31,37 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.ClosureAnnouncementSettings
 import java.time.Duration
 import java.time.Instant
 
 @Composable
 fun HolidayClosureBanner(phoneNumber: String?) {
     var now by remember { mutableStateOf(Instant.now()) }
-    val phase = holidayClosurePhase(now)
-    LaunchedEffect(phase) {
+    var settings by remember { mutableStateOf<ClosureAnnouncementSettings?>(null) }
+    LaunchedEffect(Unit) {
+        settings = withContext(Dispatchers.IO) {
+            runCatching { ApiClient.closureAnnouncement() }.getOrNull()
+        }
+    }
+    val currentSettings = settings ?: return
+    val phase = holidayClosurePhase(now, currentSettings)
+    LaunchedEffect(phase, currentSettings) {
         when (phase) {
             HolidayClosurePhase.UPCOMING -> {
-                val waitMillis = Duration.between(now, holidayClosureStartsAt).toMillis().coerceAtLeast(0)
+                val waitMillis = Duration.between(
+                    now,
+                    holidayClosureStartsAt(currentSettings),
+                ).toMillis().coerceAtLeast(0)
                 delay(waitMillis)
                 now = Instant.now()
             }
             HolidayClosurePhase.CLOSED -> {
-                while (holidayClosurePhase(now) == HolidayClosurePhase.CLOSED) {
+                while (holidayClosurePhase(now, currentSettings) == HolidayClosurePhase.CLOSED) {
                     delay(1_000)
                     now = Instant.now()
                 }
@@ -55,9 +69,10 @@ fun HolidayClosureBanner(phoneNumber: String?) {
             HolidayClosurePhase.REOPENED -> Unit
         }
     }
-    val countdown = holidayClosureCountdown(now) ?: return
+    val countdown = holidayClosureCountdown(now, currentSettings) ?: return
     val context = LocalContext.current
-    val dialNumber = phoneNumber.orEmpty().filter { it.isDigit() || it == '+' }
+    val displayPhone = currentSettings.phoneNumber.ifBlank { phoneNumber.orEmpty() }
+    val dialNumber = displayPhone.filter { it.isDigit() || it == '+' }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -72,21 +87,21 @@ fun HolidayClosureBanner(phoneNumber: String?) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "🎄  НОВОГОДНИЙ ПЕРЕРЫВ",
+                text = "🎄  ${currentSettings.title}",
                 color = Color(0xFFDBEAFE),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
             )
             Text(
-                text = "Сервис временно не работает",
+                text = currentSettings.message,
                 color = Color.White,
                 fontSize = 21.sp,
                 lineHeight = 26.sp,
                 fontWeight = FontWeight.Bold,
             )
             Text(
-                text = "Перерыв — с 31 декабря 2026 по 10 января 2027 включительно. Откроемся 11 января 2027 года в 08:30 по московскому времени.",
+                text = holidayClosureScheduleText(currentSettings),
                 color = Color(0xFFE0E7FF),
                 fontSize = 13.sp,
                 lineHeight = 19.sp,
@@ -121,7 +136,7 @@ fun HolidayClosureBanner(phoneNumber: String?) {
                 ) {
                     Icon(Icons.Filled.Call, contentDescription = null)
                     Text(
-                        text = "Если заказ срочный — звоните: $phoneNumber",
+                        text = "Если заказ срочный — звоните: $displayPhone",
                         modifier = Modifier.padding(start = 7.dp),
                         fontWeight = FontWeight.SemiBold,
                     )

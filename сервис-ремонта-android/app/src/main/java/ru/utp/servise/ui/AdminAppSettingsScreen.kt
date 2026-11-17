@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import ru.utp.servise.data.ClosureAnnouncementSettings
 
 @Composable
 internal fun AdminAppSettingsScreen(
@@ -36,6 +37,12 @@ internal fun AdminAppSettingsScreen(
     orderIntakeLoadFailed: Boolean,
     onRetryOrderIntake: () -> Unit,
     onAcceptingNewOrdersChanged: (Boolean) -> Unit,
+    closureAnnouncement: ClosureAnnouncementSettings?,
+    closureAnnouncementLoadFailed: Boolean,
+    closureAnnouncementSaving: Boolean,
+    onRetryClosureAnnouncement: () -> Unit,
+    onClosureAnnouncementChanged: (ClosureAnnouncementSettings) -> Unit,
+    onSaveClosureAnnouncement: () -> Unit,
     onOpenVersion: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -142,6 +149,14 @@ internal fun AdminAppSettingsScreen(
                 }
             }
         }
+        ClosureAnnouncementSettingsCard(
+            settings = closureAnnouncement,
+            loadFailed = closureAnnouncementLoadFailed,
+            saving = closureAnnouncementSaving,
+            onSettingsChanged = onClosureAnnouncementChanged,
+            onRetry = onRetryClosureAnnouncement,
+            onSave = onSaveClosureAnnouncement,
+        )
         OutlinedButton(
             onClick = onOpenVersion,
             modifier = Modifier.fillMaxWidth(),

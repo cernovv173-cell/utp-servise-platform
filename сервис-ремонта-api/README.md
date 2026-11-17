@@ -102,6 +102,17 @@ requests. Administrators change that setting with `PUT /admin/company/order-inta
 When paused, the API rejects only customer `POST /orders` requests; existing orders and
 administrator-created orders remain available. Web and Android show the paused state to customers.
 
+## Closure announcement
+
+The public `GET /company/closure-announcement` endpoint returns the administrator-managed notice
+configuration. Administrators can update it with `PUT /admin/company/closure-announcement`.
+The setting controls only the notice shown on web and Android; it does not pause customer requests.
+When no value has been saved, the existing holiday notice remains enabled for December 31, 2026
+through January 10, 2027, with reopening at 08:30 Moscow time on January 11. The last closed day
+is inclusive, the countdown uses `Europe/Moscow`, and a blank emergency phone falls back to the
+company phone. Configuration is stored in the existing `AppSetting` table, so no database
+migration is needed.
+
 ## Public service prices
 
 The guest web landing page reads the active service price list from

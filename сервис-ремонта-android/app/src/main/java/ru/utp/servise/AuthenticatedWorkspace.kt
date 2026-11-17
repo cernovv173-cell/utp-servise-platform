@@ -34,6 +34,7 @@ import kotlinx.coroutines.withContext
 import ru.utp.servise.data.AdminChatInboxItem
 import ru.utp.servise.data.AdminQuickActionPreferences
 import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.ClosureAnnouncementSettings
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.CatalogItem
@@ -161,6 +162,10 @@ internal fun AuthenticatedWorkspace(
     }
     var acceptingNewOrders by remember(token) { mutableStateOf<Boolean?>(null) }
     var orderIntakeLoadFailed by remember(token) { mutableStateOf(false) }
+    var closureAnnouncement by remember(token) {
+        mutableStateOf<ClosureAnnouncementSettings?>(null)
+    }
+    var closureAnnouncementLoadFailed by remember(token) { mutableStateOf(false) }
     LaunchedEffect(token, user.role) {
         if (user.role == "CUSTOMER" || user.role == "ADMIN") {
             val result = withContext(Dispatchers.IO) {
@@ -168,6 +173,13 @@ internal fun AuthenticatedWorkspace(
             }
             acceptingNewOrders = result.getOrNull()?.acceptingNewOrders
             orderIntakeLoadFailed = result.isFailure
+        }
+        if (user.role == "ADMIN") {
+            val announcementResult = withContext(Dispatchers.IO) {
+                runCatching { ApiClient.closureAnnouncement() }
+            }
+            closureAnnouncement = announcementResult.getOrNull()
+            closureAnnouncementLoadFailed = announcementResult.isFailure
         }
     }
     val onRefreshChat: (String) -> Unit = { orderId ->
@@ -672,6 +684,38 @@ internal fun AuthenticatedWorkspace(
                                             (result as? RepairOrderIntakeSettings)?.let { saved ->
                                                 acceptingNewOrders = saved.acceptingNewOrders
                                                 orderIntakeLoadFailed = false
+                                            }
+                                        }
+                                    },
+                                    closureAnnouncement = closureAnnouncement,
+                                    closureAnnouncementLoadFailed = closureAnnouncementLoadFailed,
+                                    closureAnnouncementSaving = busy,
+                                    onRetryClosureAnnouncement = {
+                                        scope.launch {
+                                            val result = withContext(Dispatchers.IO) {
+                                                runCatching { ApiClient.closureAnnouncement() }
+                                            }
+                                            closureAnnouncement = result.getOrNull()
+                                            closureAnnouncementLoadFailed = result.isFailure
+                                            result.exceptionOrNull()?.let {
+                                                onError(
+                                                    it.message ?: "Не удалось загрузить объявление.",
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onClosureAnnouncementChanged = { settings ->
+                                        closureAnnouncement = settings
+                                    },
+                                    onSaveClosureAnnouncement = {
+                                        closureAnnouncement?.let { settings ->
+                                            runAction({
+                                                ApiClient.updateClosureAnnouncement(token, settings)
+                                            }) { result ->
+                                                (result as? ClosureAnnouncementSettings)?.let { saved ->
+                                                    closureAnnouncement = saved
+                                                    closureAnnouncementLoadFailed = false
+                                                }
                                             }
                                         }
                                     },

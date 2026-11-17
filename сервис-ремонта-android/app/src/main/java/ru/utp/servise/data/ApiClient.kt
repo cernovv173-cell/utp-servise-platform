@@ -647,6 +647,26 @@ object ApiClient {
         JSONObject().put("acceptingNewOrders", acceptingNewOrders),
     ).toRepairOrderIntakeSettings()
 
+    fun closureAnnouncement(): ClosureAnnouncementSettings =
+        request("GET", "/company/closure-announcement").toClosureAnnouncementSettings()
+
+    fun updateClosureAnnouncement(
+        token: String,
+        settings: ClosureAnnouncementSettings,
+    ): ClosureAnnouncementSettings = request(
+        "PUT",
+        "/admin/company/closure-announcement",
+        token,
+        JSONObject()
+            .put("enabled", settings.enabled)
+            .put("title", settings.title)
+            .put("message", settings.message)
+            .put("startDate", settings.startDate)
+            .put("endDate", settings.endDate)
+            .put("reopenTime", settings.reopenTime)
+            .put("phoneNumber", settings.phoneNumber),
+    ).toClosureAnnouncementSettings()
+
     fun updateCompanyInfo(token: String, company: CompanyInfo): CompanyInfo = request(
         "PUT", "/about", token, company.toRequestJson(),
     ).getJSONObject("company").toCompanyInfo()
@@ -1302,6 +1322,16 @@ object ApiClient {
 
     private fun JSONObject.toRepairOrderIntakeSettings() =
         RepairOrderIntakeSettings(acceptingNewOrders = getBoolean("acceptingNewOrders"))
+
+    private fun JSONObject.toClosureAnnouncementSettings() = ClosureAnnouncementSettings(
+        enabled = getBoolean("enabled"),
+        title = getString("title"),
+        message = getString("message"),
+        startDate = getString("startDate"),
+        endDate = getString("endDate"),
+        reopenTime = getString("reopenTime"),
+        phoneNumber = optString("phoneNumber"),
+    )
 
     internal fun request(method: String, path: String, token: String? = null, body: JSONObject? = null): JSONObject {
         if (baseUrl.isBlank()) throw ApiException("API_NOT_CONFIGURED", "Адрес сервера ещё не настроен для этой сборки.")

@@ -21,6 +21,16 @@ data class RepairOrderIntakeSettings(
     val acceptingNewOrders: Boolean,
 )
 
+data class ClosureAnnouncementSettings(
+    val enabled: Boolean,
+    val title: String,
+    val message: String,
+    val startDate: String,
+    val endDate: String,
+    val reopenTime: String,
+    val phoneNumber: String,
+)
+
 data class OrderAddress(
     val contactPhone: String,
     val city: String,

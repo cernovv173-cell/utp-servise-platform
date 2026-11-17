@@ -6,6 +6,11 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
 import {
+  closureAnnouncementSchema,
+  readClosureAnnouncement,
+  saveClosureAnnouncement,
+} from "./closure-announcement-settings.js";
+import {
   readRepairOrderIntake,
   repairOrderIntakeSchema,
   saveRepairOrderIntake,
@@ -68,6 +73,28 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
     response.set("Cache-Control", "no-store");
     response.json(await readRepairOrderIntake(database));
   });
+
+  router.get("/company/closure-announcement", async (_request, response) => {
+    response.set("Cache-Control", "no-store");
+    response.json(await readClosureAnnouncement(database));
+  });
+
+  router.put(
+    "/admin/company/closure-announcement",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ body: closureAnnouncementSchema }),
+    async (_request, response) => {
+      const settings = (
+        response.locals.input as {
+          readonly body: z.infer<typeof closureAnnouncementSchema>;
+        }
+      ).body;
+      await saveClosureAnnouncement(database, settings);
+      response.set("Cache-Control", "no-store");
+      response.json(settings);
+    },
+  );
 
   router.put(
     "/admin/company/order-intake",

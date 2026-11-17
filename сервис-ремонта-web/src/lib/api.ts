@@ -864,6 +864,16 @@ export type RepairOrderIntakeSettings = {
   acceptingNewOrders: boolean;
 };
 
+export type ClosureAnnouncementSettings = {
+  enabled: boolean;
+  title: string;
+  message: string;
+  startDate: string;
+  endDate: string;
+  reopenTime: string;
+  phoneNumber: string;
+};
+
 export const apiRequest = <T>(path: string, token?: string | null, init: RequestInit = {}) => {
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -1599,6 +1609,17 @@ export const updateRepairOrderIntake = (token: string, acceptingNewOrders: boole
   apiRequest<RepairOrderIntakeSettings>("/admin/company/order-intake", token, {
     method: "PUT",
     body: JSON.stringify({ acceptingNewOrders }),
+  });
+
+export const getClosureAnnouncement = (signal?: AbortSignal) =>
+  apiRequest<ClosureAnnouncementSettings>("/company/closure-announcement", null, {
+    signal,
+  });
+
+export const updateClosureAnnouncement = (token: string, settings: ClosureAnnouncementSettings) =>
+  apiRequest<ClosureAnnouncementSettings>("/admin/company/closure-announcement", token, {
+    method: "PUT",
+    body: JSON.stringify(settings),
   });
 
 export const updateProfile = (

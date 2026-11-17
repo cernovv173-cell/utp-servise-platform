@@ -82,6 +82,26 @@ export const createApiRouter = ({
     next();
   });
 
+  router.get(
+    "/company/closure-announcement",
+    async (_request, response, next) => {
+      if (!database) {
+        response.set("Cache-Control", "no-store");
+        response.json({
+          enabled: true,
+          title: "НОВОГОДНИЙ ПЕРЕРЫВ",
+          message: "Сервис временно не работает",
+          startDate: "2026-12-31",
+          endDate: "2027-01-10",
+          reopenTime: "08:30",
+          phoneNumber: "",
+        });
+        return;
+      }
+      next();
+    },
+  );
+
   if (database) {
     router.use(createCompanyRouter(database.client));
     router.use(
@@ -129,6 +149,7 @@ export const createApiRouter = ({
         request.path.startsWith("/max") ||
         request.path.startsWith("/orders") ||
         request.path.startsWith("/admin/company/order-intake") ||
+        request.path.startsWith("/admin/company/closure-announcement") ||
         request.path.startsWith("/company/order-intake") ||
         request.path.startsWith("/salary") ||
         request.path.startsWith("/catalog") ||
