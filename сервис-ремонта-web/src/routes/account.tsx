@@ -34,6 +34,8 @@ import {
 } from "@/lib/api";
 import { getPhoneNumberError, phoneNumberPlaceholder } from "@/lib/phone";
 
+const VK_COMMUNITY_URL = "https://vk.ru/remont_pk_puhkino";
+
 const AccountPage = () => {
   const { token, user, logout, setSession } = useAuth();
   const queryClient = useQueryClient();
@@ -317,32 +319,32 @@ const AccountPage = () => {
               Привяжите МАКС к своему аккаунту, чтобы входить через кнопку на экране входа и
               получать сообщения по заявкам. Привязка не меняет роль аккаунта.
             </p>
-            {maxStatus.isLoading ? (
-              <p className="mt-3 text-sm text-slate-500">Проверяем подключение MAX…</p>
-            ) : maxStatus.isError ? (
-              <p role="alert" className="mt-3 text-sm text-rose-600">
-                Не удалось проверить подключение MAX.
-              </p>
-            ) : !maxStatus.data?.available ? (
-              <p className="mt-3 text-sm text-slate-500">
-                Подключение МАКС временно недоступно. Попробуйте позже.
-              </p>
-            ) : (maxStatus.data.connected ?? user?.maxLinked) ? (
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
-                  MAX подключён
-                </span>
-                <button
-                  type="button"
-                  disabled={maxDisconnectMutation.isPending}
-                  onClick={() => maxDisconnectMutation.mutate()}
-                  className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
-                >
-                  Отключить
-                </button>
-              </div>
-            ) : maxLink ? (
-              <div className="mt-4 grid justify-items-start gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              {maxStatus.isLoading ? (
+                <p className="text-sm text-slate-500">Проверяем подключение MAX…</p>
+              ) : maxStatus.isError ? (
+                <p role="alert" className="text-sm text-rose-600">
+                  Не удалось проверить подключение MAX.
+                </p>
+              ) : !maxStatus.data?.available ? (
+                <p className="text-sm text-slate-500">
+                  Подключение МАКС временно недоступно. Попробуйте позже.
+                </p>
+              ) : (maxStatus.data.connected ?? user?.maxLinked) ? (
+                <>
+                  <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                    MAX подключён
+                  </span>
+                  <button
+                    type="button"
+                    disabled={maxDisconnectMutation.isPending}
+                    onClick={() => maxDisconnectMutation.mutate()}
+                    className="min-h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:hover:bg-slate-800"
+                  >
+                    Отключить
+                  </button>
+                </>
+              ) : maxLink ? (
                 <a
                   href={maxLink.url}
                   target="_blank"
@@ -351,21 +353,31 @@ const AccountPage = () => {
                 >
                   Открыть MAX и подтвердить
                 </a>
-                <p className="text-xs text-slate-500">
+              ) : (
+                <button
+                  type="button"
+                  disabled={maxLinkMutation.isPending}
+                  onClick={() => maxLinkMutation.mutate()}
+                  className="min-h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {maxLinkMutation.isPending ? "Создаём ссылку…" : "Подключить MAX"}
+                </button>
+              )}
+              <a
+                href={VK_COMMUNITY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-10 items-center justify-center rounded-xl border border-blue-200 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:border-blue-400/30 dark:text-cyan-200 dark:hover:bg-blue-950/40"
+              >
+                Группа ВК
+              </a>
+              {maxLink && !maxStatus.data?.connected && (
+                <p className="basis-full text-xs text-slate-500">
                   Ссылка действует до {new Date(maxLink.expiresAt).toLocaleTimeString("ru-RU")}.
                   Статус обновится автоматически после подтверждения.
                 </p>
-              </div>
-            ) : (
-              <button
-                type="button"
-                disabled={maxLinkMutation.isPending}
-                onClick={() => maxLinkMutation.mutate()}
-                className="mt-4 min-h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
-              >
-                {maxLinkMutation.isPending ? "Создаём ссылку…" : "Подключить MAX"}
-              </button>
-            )}
+              )}
+            </div>
             {maxLinkMutation.isError && (
               <p role="alert" className="mt-3 text-sm text-rose-600">
                 Не удалось создать ссылку для MAX. Попробуйте ещё раз позже.

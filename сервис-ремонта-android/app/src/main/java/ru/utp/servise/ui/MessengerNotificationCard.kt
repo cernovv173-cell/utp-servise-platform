@@ -2,7 +2,9 @@ package ru.utp.servise.ui
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+private const val VK_COMMUNITY_URL = "https://vk.ru/remont_pk_puhkino"
+
 @Composable
 fun MessengerNotificationCard(
     serviceName: String,
@@ -27,6 +31,7 @@ fun MessengerNotificationCard(
     onConnect: () -> Unit,
     onCheckConnection: () -> Unit,
     onDisconnect: () -> Unit,
+    showVkCommunityAction: Boolean = false,
 ) {
     val context = LocalContext.current
     Card(
@@ -50,6 +55,9 @@ fun MessengerNotificationCard(
                     color = UtpMuted,
                     modifier = Modifier.padding(top = 10.dp),
                 )
+                if (showVkCommunityAction) {
+                    VkCommunityButton(Modifier.fillMaxWidth().padding(top = 8.dp))
+                }
             } else if (connected) {
                 Text(
                     "$serviceName подключён",
@@ -57,33 +65,76 @@ fun MessengerNotificationCard(
                     color = UtpBlue,
                     modifier = Modifier.padding(top = 10.dp),
                 )
-                OutlinedButton(
-                    onClick = onDisconnect,
+                Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                ) { Text("Отключить $serviceName") }
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = onDisconnect,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) { Text("Отключить") }
+                    if (showVkCommunityAction) {
+                        VkCommunityButton(Modifier.weight(1f))
+                    }
+                }
             } else if (linkUrl != null) {
-                OutlinedButton(
-                    onClick = {
-                        runCatching {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(linkUrl)))
-                        }
-                    },
+                Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                ) { Text("Открыть $serviceName и подтвердить") }
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    OutlinedButton(
+                        onClick = {
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(linkUrl)))
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(
+                            if (showVkCommunityAction) "Открыть MAX"
+                            else "Открыть $serviceName и подтвердить",
+                        )
+                    }
+                    if (showVkCommunityAction) {
+                        VkCommunityButton(Modifier.weight(1f))
+                    }
+                }
                 OutlinedButton(
                     onClick = onCheckConnection,
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     shape = RoundedCornerShape(16.dp),
                 ) { Text("Проверить подключение") }
             } else {
-                Button(
-                    onClick = onConnect,
+                Row(
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    shape = RoundedCornerShape(16.dp),
-                ) { Text("Подключить $serviceName") }
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(
+                        onClick = onConnect,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(16.dp),
+                    ) { Text("Подключить $serviceName") }
+                    if (showVkCommunityAction) {
+                        VkCommunityButton(Modifier.weight(1f))
+                    }
+                }
             }
         }
     }
+}
+
+@Composable
+private fun VkCommunityButton(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    OutlinedButton(
+        onClick = {
+            runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(VK_COMMUNITY_URL)))
+            }
+        },
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+    ) { Text("Группа ВК") }
 }

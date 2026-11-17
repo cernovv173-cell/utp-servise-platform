@@ -25,7 +25,6 @@ import { PageTurn } from "@/features/public/page-turn";
 import { RepairScenes } from "@/features/public/repair-scenes";
 import { ServicePriceTicker } from "@/features/public/service-price-ticker";
 import { TypewriterText } from "@/features/public/typewriter-text";
-import { VkCommunityCard } from "@/features/public/vk-community-card";
 import { SeasonalHomeBanner } from "@/features/seasonal/seasonal-home-banner";
 import { getDisplayedSeason, useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
@@ -262,10 +261,6 @@ export const PublicHome = () => {
         <Reveal>
           <HomeWorkStoriesShowcase />
         </Reveal>
-      </PageTurn>
-
-      <PageTurn>
-        <VkCommunityCard />
       </PageTurn>
 
       <PageTurn>

@@ -293,6 +293,7 @@ fun ProfileScreen(
         Spacer(Modifier.height(10.dp))
         MessengerNotificationCard(
             serviceName = "MAX",
+            showVkCommunityAction = true,
             available = user.maxAvailable,
             connected = maxLinked,
             linkUrl = maxLinkUrl,
