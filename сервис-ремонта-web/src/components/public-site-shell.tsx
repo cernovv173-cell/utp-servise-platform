@@ -233,6 +233,14 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
                 О компании
               </Link>
               <a
+                href="https://vk.ru/remont_pk_puhkino"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium hover:text-blue-700 dark:hover:text-cyan-300"
+              >
+                Группа ВКонтакте
+              </a>
+              <a
                 href="/privacy-policy.html"
                 className="font-medium hover:text-blue-700 dark:hover:text-cyan-300"
               >
