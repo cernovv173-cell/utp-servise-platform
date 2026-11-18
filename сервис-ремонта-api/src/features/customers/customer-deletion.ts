@@ -241,6 +241,7 @@ const deleteCustomerRecords = async (
   }
 
   await transaction.review.deleteMany({ where: { customerId } });
+  await transaction.customerFeedback.deleteMany({ where: { customerId } });
   await transaction.supportConversation.deleteMany({ where: { customerId } });
   await transaction.loyaltyTransaction.deleteMany({ where: { customerId } });
   await transaction.customerReferral.deleteMany({

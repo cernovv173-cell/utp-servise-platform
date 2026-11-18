@@ -30,7 +30,7 @@ export type NavigationRoute =
   | "/admin/orders"
   | "/admin/procurement";
 
-export type HelpRoute = "/chats" | "/support" | "/guides";
+export type HelpRoute = "/chats" | "/support" | "/guides" | "/feedback";
 
 export type NavigationLink = {
   to: NavigationRoute;
@@ -101,6 +101,12 @@ const helpLinksByRole: Record<Role, HelpNavigationLink[]> = {
     },
     { to: "/guides", label: "Полезные памятки", compactLabel: "Памятки", icon: BookOpen },
     { to: "/support", label: "Поддержка клиентов", compactLabel: "Поддержка", icon: LifeBuoy },
+    {
+      to: "/feedback",
+      label: "Жалобы и предложения",
+      compactLabel: "Обратная связь",
+      icon: MessageSquareText,
+    },
   ],
   TECHNICIAN: [
     {

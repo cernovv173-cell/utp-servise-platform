@@ -14,6 +14,17 @@ enum UserRole {
   PROCUREMENT
 }
 
+enum CustomerFeedbackType {
+  COMPLAINT
+  SUGGESTION
+}
+
+enum CustomerFeedbackStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+}
+
 enum ProductAnalyticsMetric {
   LOGIN
   REGISTRATION
@@ -265,6 +276,7 @@ model User {
   issuedCraftReceipts               CraftOrderReceipt[]               @relation("CraftReceiptIssuer")
   technicianSalaryEntries           TechnicianSalaryEntry[]           @relation("TechnicianSalaryEntries")
   supportConversations              SupportConversation[]             @relation("SupportConversationCustomer")
+  feedbackSubmissions               CustomerFeedback[]                @relation("CustomerFeedbackCustomer")
   supportMessages                   SupportChatMessage[]              @relation("SupportChatMessageSender")
   birthdayPushDeliveries            BirthdayPushDelivery[]
   birthdayBonusAwards               BirthdayBonusAward[]
@@ -923,6 +935,21 @@ model SupportChatMessage {
 
   @@index([chatId, createdAt])
   @@map("support_chat_messages")
+}
+
+model CustomerFeedback {
+  id         String                 @id @default(uuid()) @db.Uuid
+  customerId String                 @map("customer_id") @db.Uuid
+  type       CustomerFeedbackType
+  content    String                 @db.VarChar(2000)
+  status     CustomerFeedbackStatus @default(NEW)
+  createdAt  DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  customer   User                   @relation("CustomerFeedbackCustomer", fields: [customerId], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
+  @@map("customer_feedback")
 }
 
 model RepairStatusEvent {

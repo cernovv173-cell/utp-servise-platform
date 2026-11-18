@@ -10,6 +10,7 @@ import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
 import { createChatRouter } from "./features/chat/chat.routes.js";
 import { createCompanyRouter } from "./features/company/company.routes.js";
 import { createCraftsRouter } from "./features/crafts/crafts.routes.js";
+import { createCustomerFeedbackRouter } from "./features/customer-feedback/customer-feedback.routes.js";
 import { createCustomerOffersRouter } from "./features/customer-offers/customer-offers.routes.js";
 import { createCustomerAdminRouter } from "./features/customers/customer.routes.js";
 import { createCustomerDevicesRouter } from "./features/customers/devices.routes.js";
@@ -132,6 +133,7 @@ export const createApiRouter = ({
     router.use(createStaffRouter(database.client));
     router.use(createCustomerAdminRouter(database.client));
     router.use(createCustomerDevicesRouter(database.client));
+    router.use(createCustomerFeedbackRouter(database.client));
     router.use(createSupportChatRouter(database.client));
     router.use(createCatalogRouter(database.client));
     router.use(createOperationsRouter(database.client));
@@ -178,6 +180,8 @@ export const createApiRouter = ({
         request.path.startsWith("/support") ||
         request.path.startsWith("/admin/support") ||
         request.path.startsWith("/admin/customers") ||
+        request.path.startsWith("/admin/feedback") ||
+        request.path.startsWith("/customer/feedback") ||
         request.path.startsWith("/customer/devices") ||
         request.path.startsWith("/media") ||
         request.path.startsWith("/craft-items") ||

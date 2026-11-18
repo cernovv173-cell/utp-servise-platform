@@ -402,6 +402,15 @@ same answer is idempotent, while changing an already saved answer is rejected. T
 `20261116120000_repair_order_follow_ups` migration creates only the follow-up queue and does not
 backfill or modify existing orders.
 
+## Customer complaints and suggestions
+
+Authenticated customers can submit a private complaint or suggestion with a message of up to 2,000
+characters. Submissions are separate from the customer's general support chat so each item can be
+triaged independently. Only administrators can view the inbox or change status (`NEW`,
+`IN_PROGRESS`, `RESOLVED`); submissions are not public and do not create a public feed. The additive
+`20261118090000_customer_feedback` migration creates an empty table. Customer account deletion also
+removes that customer's feedback records.
+
 ## Repair notifications in Telegram and MAX
 
 Customers can independently opt in to Telegram and MAX from the Web or Android profile. Each

@@ -54,7 +54,7 @@ describe("role-aware primary navigation", () => {
 });
 
 describe("help navigation", () => {
-  it("collects messages and customer support in one help section", () => {
+  it("collects messages, support, and customer feedback in the help section", () => {
     expect(getHelpNavigationLinksForRole("ADMIN").map((link) => link.to)).toEqual([
       "/chats",
       "/support",
@@ -67,6 +67,7 @@ describe("help navigation", () => {
       "/chats",
       "/guides",
       "/support",
+      "/feedback",
     ]);
   });
 

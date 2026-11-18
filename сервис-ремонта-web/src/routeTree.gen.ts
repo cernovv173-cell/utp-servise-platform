@@ -19,6 +19,7 @@ import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as ChecksRouteImport } from './routes/checks'
 import { Route as CraftsRouteImport } from './routes/crafts'
 import { Route as DevicesRouteImport } from './routes/devices'
+import { Route as FeedbackRouteImport } from './routes/feedback'
 import { Route as GuidesRouteImport } from './routes/guides'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LoyaltyRouteImport } from './routes/loyalty'
@@ -37,6 +38,7 @@ import { Route as AdminAnalyticsRouteImport } from './routes/admin.analytics'
 import { Route as AdminApkRouteImport } from './routes/admin.apk'
 import { Route as AdminCompanyRouteImport } from './routes/admin.company'
 import { Route as AdminCustomersRouteImport } from './routes/admin.customers'
+import { Route as AdminFeedbackRouteImport } from './routes/admin.feedback'
 import { Route as AdminLoyaltyRouteImport } from './routes/admin.loyalty'
 import { Route as AdminOffersRouteImport } from './routes/admin.offers'
 import { Route as AdminOrderEditingRouteImport } from './routes/admin.order-editing'
@@ -110,6 +112,11 @@ const CraftsRoute = CraftsRouteImport.update({
 const DevicesRoute = DevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedbackRoute = FeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GuidesRoute = GuidesRouteImport.update({
@@ -200,6 +207,11 @@ const AdminCompanyRoute = AdminCompanyRouteImport.update({
 const AdminCustomersRoute = AdminCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminFeedbackRoute = AdminFeedbackRouteImport.update({
+  id: '/feedback',
+  path: '/feedback',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminLoyaltyRoute = AdminLoyaltyRouteImport.update({
@@ -336,6 +348,7 @@ export interface FileRoutesByFullPath {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
+  '/feedback': typeof FeedbackRoute
   '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
@@ -354,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/loyalty': typeof AdminLoyaltyRoute
   '/admin/offers': typeof AdminOffersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
@@ -390,6 +404,7 @@ export interface FileRoutesByTo {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
+  '/feedback': typeof FeedbackRoute
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
   '/news': typeof NewsRoute
@@ -406,6 +421,7 @@ export interface FileRoutesByTo {
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/loyalty': typeof AdminLoyaltyRoute
   '/admin/offers': typeof AdminOffersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
@@ -443,6 +459,7 @@ export interface FileRoutesById {
   '/checks': typeof ChecksRoute
   '/crafts': typeof CraftsRoute
   '/devices': typeof DevicesRoute
+  '/feedback': typeof FeedbackRoute
   '/guides': typeof GuidesRouteWithChildren
   '/login': typeof LoginRoute
   '/loyalty': typeof LoyaltyRoute
@@ -461,6 +478,7 @@ export interface FileRoutesById {
   '/admin/apk': typeof AdminApkRoute
   '/admin/company': typeof AdminCompanyRoute
   '/admin/customers': typeof AdminCustomersRoute
+  '/admin/feedback': typeof AdminFeedbackRoute
   '/admin/loyalty': typeof AdminLoyaltyRoute
   '/admin/offers': typeof AdminOffersRoute
   '/admin/order-editing': typeof AdminOrderEditingRoute
@@ -499,6 +517,7 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
+    | '/feedback'
     | '/guides'
     | '/login'
     | '/loyalty'
@@ -517,6 +536,7 @@ export interface FileRouteTypes {
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
+    | '/admin/feedback'
     | '/admin/loyalty'
     | '/admin/offers'
     | '/admin/order-editing'
@@ -553,6 +573,7 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
+    | '/feedback'
     | '/login'
     | '/loyalty'
     | '/news'
@@ -569,6 +590,7 @@ export interface FileRouteTypes {
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
+    | '/admin/feedback'
     | '/admin/loyalty'
     | '/admin/offers'
     | '/admin/order-editing'
@@ -605,6 +627,7 @@ export interface FileRouteTypes {
     | '/checks'
     | '/crafts'
     | '/devices'
+    | '/feedback'
     | '/guides'
     | '/login'
     | '/loyalty'
@@ -623,6 +646,7 @@ export interface FileRouteTypes {
     | '/admin/apk'
     | '/admin/company'
     | '/admin/customers'
+    | '/admin/feedback'
     | '/admin/loyalty'
     | '/admin/offers'
     | '/admin/order-editing'
@@ -660,6 +684,7 @@ export interface RootRouteChildren {
   ChecksRoute: typeof ChecksRoute
   CraftsRoute: typeof CraftsRoute
   DevicesRoute: typeof DevicesRoute
+  FeedbackRoute: typeof FeedbackRoute
   GuidesRoute: typeof GuidesRouteWithChildren
   LoginRoute: typeof LoginRoute
   LoyaltyRoute: typeof LoyaltyRoute
@@ -748,6 +773,13 @@ declare module '@tanstack/react-router' {
       path: '/devices'
       fullPath: '/devices'
       preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feedback': {
+      id: '/feedback'
+      path: '/feedback'
+      fullPath: '/feedback'
+      preLoaderRoute: typeof FeedbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/guides': {
@@ -874,6 +906,13 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/admin/customers'
       preLoaderRoute: typeof AdminCustomersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/feedback': {
+      id: '/admin/feedback'
+      path: '/feedback'
+      fullPath: '/admin/feedback'
+      preLoaderRoute: typeof AdminFeedbackRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/loyalty': {
@@ -1064,6 +1103,7 @@ interface AdminRouteChildren {
   AdminApkRoute: typeof AdminApkRoute
   AdminCompanyRoute: typeof AdminCompanyRoute
   AdminCustomersRoute: typeof AdminCustomersRoute
+  AdminFeedbackRoute: typeof AdminFeedbackRoute
   AdminLoyaltyRoute: typeof AdminLoyaltyRoute
   AdminOffersRoute: typeof AdminOffersRoute
   AdminOrderEditingRoute: typeof AdminOrderEditingRoute
@@ -1081,6 +1121,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminApkRoute: AdminApkRoute,
   AdminCompanyRoute: AdminCompanyRoute,
   AdminCustomersRoute: AdminCustomersRoute,
+  AdminFeedbackRoute: AdminFeedbackRoute,
   AdminLoyaltyRoute: AdminLoyaltyRoute,
   AdminOffersRoute: AdminOffersRoute,
   AdminOrderEditingRoute: AdminOrderEditingRoute,
@@ -1155,6 +1196,7 @@ const rootRouteChildren: RootRouteChildren = {
   ChecksRoute: ChecksRoute,
   CraftsRoute: CraftsRoute,
   DevicesRoute: DevicesRoute,
+  FeedbackRoute: FeedbackRoute,
   GuidesRoute: GuidesRouteWithChildren,
   LoginRoute: LoginRoute,
   LoyaltyRoute: LoyaltyRoute,

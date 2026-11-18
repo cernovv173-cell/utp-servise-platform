@@ -5,6 +5,7 @@ import {
   FileText,
   Gift,
   type LucideIcon,
+  MessageSquareText,
   Smartphone,
   Tag,
   UserCog,
@@ -14,7 +15,13 @@ import { SectionCard } from "@/components/app-shell";
 
 const adminTools: Array<{
   to:
-    "/admin/apk" | "/admin/offers" | "/admin/staff" | "/admin/loyalty" | "/admin/company" | "/news";
+    | "/admin/apk"
+    | "/admin/offers"
+    | "/admin/staff"
+    | "/admin/loyalty"
+    | "/admin/company"
+    | "/admin/feedback"
+    | "/news";
   title: string;
   description: string;
   icon: LucideIcon;
@@ -54,6 +61,12 @@ const adminTools: Array<{
     title: "О компании",
     description: "Раздел «О компании» на сайте",
     icon: Building2,
+  },
+  {
+    to: "/admin/feedback",
+    title: "Жалобы и предложения",
+    description: "Входящие сообщения клиентов и их статусы",
+    icon: MessageSquareText,
   },
 ];
 

@@ -756,6 +756,15 @@ object ApiClient {
         JSONObject().put("content", content),
     ).getJSONObject("chat").toSupportChat()
 
+    fun submitCustomerFeedback(token: String, type: String, content: String) {
+        request(
+            "POST",
+            "/customer/feedback",
+            token,
+            JSONObject().put("type", type).put("content", content),
+        )
+    }
+
     fun administratorSupportChats(token: String): List<SupportChatInboxItem> = request(
         "GET", "/admin/support/chats", token,
     ).getJSONArray("chats").mapObjects { it.toSupportChatInboxItem() }

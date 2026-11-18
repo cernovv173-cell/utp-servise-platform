@@ -883,6 +883,13 @@ internal fun AuthenticatedWorkspace(
                         onOpenAdminChat = { customerId -> navController.navigate("admin/support-chat/$customerId") },
                         onBack = { navController.popBackStack() },
                     )
+                    addCustomerFeedbackRoute(
+                        role = user.role,
+                        token = token,
+                        busy = busy,
+                        runAction = runAction,
+                        onBack = { navController.popBackStack() },
+                    )
                     composable("chat/{orderId}") { entry ->
                         val orderId = entry.arguments?.getString("orderId").orEmpty()
                         LaunchedEffect(orderId, token) { onRefreshChat(orderId) }

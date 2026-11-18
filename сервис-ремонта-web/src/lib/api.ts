@@ -378,6 +378,27 @@ export type SupportChatInboxItem = {
   }>;
 };
 
+export type CustomerFeedbackType = "COMPLAINT" | "SUGGESTION";
+export type CustomerFeedbackStatus = "NEW" | "IN_PROGRESS" | "RESOLVED";
+
+export type CustomerFeedbackSubmission = {
+  id: string;
+  type: CustomerFeedbackType;
+  content: string;
+  status: CustomerFeedbackStatus;
+  createdAt: string;
+};
+
+export type CustomerFeedback = CustomerFeedbackSubmission & {
+  updatedAt: string;
+  customer: {
+    id: string;
+    displayName: string;
+    email: string | null;
+    phoneNumber: string | null;
+  };
+};
+
 export type RepairOrderIntake = {
   id: string;
   orderId: string;
@@ -1951,6 +1972,29 @@ export const sendAdminSupportMessage = (token: string, customerId: string, conte
   apiRequest<{ chat: SupportChat }>(`/admin/support/chats/${customerId}/messages`, token, {
     method: "POST",
     body: JSON.stringify({ content }),
+  });
+
+export const submitCustomerFeedback = (
+  token: string,
+  type: CustomerFeedbackType,
+  content: string,
+) =>
+  apiRequest<{ feedback: CustomerFeedbackSubmission }>("/customer/feedback", token, {
+    method: "POST",
+    body: JSON.stringify({ type, content }),
+  });
+
+export const getAdminCustomerFeedback = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ feedback: CustomerFeedback[] }>("/admin/feedback", token, { signal });
+
+export const updateAdminCustomerFeedbackStatus = (
+  token: string,
+  feedbackId: string,
+  status: CustomerFeedbackStatus,
+) =>
+  apiRequest<{ feedback: CustomerFeedback }>(`/admin/feedback/${feedbackId}/status`, token, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   });
 
 export const uploadCraftOrderChatImage = async (token: string, id: string, file: File) => {

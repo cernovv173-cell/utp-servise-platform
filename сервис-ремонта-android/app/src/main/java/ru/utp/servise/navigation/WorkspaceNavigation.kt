@@ -131,6 +131,12 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                         Icons.Filled.Info,
                         "Написать администратору сервиса.",
                     ),
+                    WorkspaceDestination(
+                        "customer/feedback",
+                        "Жалобы и предложения",
+                        Icons.Filled.Info,
+                        "Сообщить о проблеме или поделиться идеей.",
+                    ),
                 ),
             ),
         ),
