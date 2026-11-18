@@ -47,6 +47,7 @@ private val catalogModes = listOf(
 private val catalogTypes = listOf(
     "ALL" to "Все",
     "SERVICE" to "Работы",
+    "SOFTWARE" to "ПО",
     "SPARE_PART" to "Запчасти",
     "PRODUCT" to "Товары",
 )
@@ -176,7 +177,7 @@ private fun RepairWorkActCatalogRow(
             Text(item.name, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
             Text(
                 buildString {
-                    append(catalogItemTypeLabel(item.type))
+                    append(if (item.serviceCategory == "SOFTWARE") "ПО" else catalogItemTypeLabel(item.type))
                     append(" · ${item.unitPriceRub} ₽")
                     item.stockQuantity?.let { append(if (it > 0) " · остаток $it" else " · нет в наличии") }
                 },

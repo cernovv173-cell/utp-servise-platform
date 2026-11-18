@@ -19,6 +19,7 @@ import { ProcurementInventoryEditor } from "@/features/procurement/procurement-i
 
 import {
   type RepairCatalogItem,
+  type RepairCatalogServiceCategory,
   type RepairDeviceType,
   createRepairCatalogItem,
   deleteCatalogProductImage,
@@ -43,6 +44,7 @@ const CatalogPage = () => {
     mutationFn: (
       input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
         deviceTypes?: RepairDeviceType[];
+        serviceCategory?: RepairCatalogServiceCategory | null;
         description?: string | null;
         stockQuantity?: number;
         minimumStockQuantity?: number;
@@ -65,6 +67,7 @@ const CatalogPage = () => {
           RepairCatalogItem,
           | "type"
           | "deviceTypes"
+          | "serviceCategory"
           | "name"
           | "description"
           | "unitPriceRub"
@@ -110,6 +113,9 @@ const CatalogPage = () => {
   });
   const [newType, setNewType] = useState<RepairCatalogItem["type"]>("SERVICE");
   const [newDeviceTypes, setNewDeviceTypes] = useState<RepairDeviceType[]>(repairDeviceTypes);
+  const [newServiceCategory, setNewServiceCategory] = useState<RepairCatalogServiceCategory | null>(
+    null,
+  );
   const [deviceFilter, setDeviceFilter] = useState<"ALL" | RepairDeviceType>("ALL");
 
   const submitNewItem = (event: FormEvent<HTMLFormElement>) => {
@@ -120,6 +126,7 @@ const CatalogPage = () => {
       {
         type: newType,
         ...(newType !== "PRODUCT" ? { deviceTypes: newDeviceTypes } : {}),
+        ...(newType === "SERVICE" ? { serviceCategory: newServiceCategory } : {}),
         name: String(data.get("name")).trim(),
         ...(newType === "PRODUCT"
           ? { description: String(data.get("description")).trim() || null }
@@ -132,7 +139,12 @@ const CatalogPage = () => {
             }
           : {}),
       },
-      { onSuccess: () => form.reset() },
+      {
+        onSuccess: () => {
+          form.reset();
+          setNewServiceCategory(null);
+        },
+      },
     );
   };
 
@@ -256,6 +268,23 @@ const CatalogPage = () => {
                     )}
                   </fieldset>
                 )}
+                {newType === "SERVICE" && (
+                  <fieldset className="grid gap-2 md:col-span-2">
+                    <legend className="text-sm font-medium">Группа услуги</legend>
+                    <button
+                      type="button"
+                      aria-pressed={newServiceCategory === "SOFTWARE"}
+                      onClick={() =>
+                        setNewServiceCategory((current) =>
+                          current === "SOFTWARE" ? null : "SOFTWARE",
+                        )
+                      }
+                      className={`min-h-9 justify-self-start rounded-lg border px-3 text-xs font-medium ${newServiceCategory === "SOFTWARE" ? "border-violet-600 bg-violet-50 text-violet-800 dark:bg-violet-950 dark:text-violet-200" : "border-slate-200 dark:border-slate-700"}`}
+                    >
+                      ПО · программное обеспечение
+                    </button>
+                  </fieldset>
+                )}
                 <label className="grid gap-1 text-sm font-medium">
                   Название{"\u00a0"}
                   <span aria-hidden="true">*</span>
@@ -363,24 +392,36 @@ const CatalogPage = () => {
               ))}
             </div>
           </SectionCard>
-          {(["SERVICE", "SPARE_PART", "PRODUCT"] as const).map((type) => {
-            const sectionItems = catalogItems.filter(
-              (item) =>
-                item.type === type &&
-                (type === "PRODUCT" ||
-                  deviceFilter === "ALL" ||
-                  item.deviceTypes.includes(deviceFilter)),
-            );
-            const Icon = type === "SERVICE" ? Wrench : Package;
+          {[
+            { key: "SERVICE", type: "SERVICE", label: "Услуги", software: false },
+            { key: "SOFTWARE", type: "SERVICE", label: "ПО", software: true },
+            { key: "SPARE_PART", type: "SPARE_PART", label: "Запчасти", software: false },
+            { key: "PRODUCT", type: "PRODUCT", label: "Товары", software: false },
+          ].map((section) => {
+            const sectionItems = catalogItems.filter((item) => {
+              if (item.type !== section.type) return false;
+              if (
+                section.type === "SERVICE" &&
+                (item.serviceCategory === "SOFTWARE") !== section.software
+              ) {
+                return false;
+              }
+              return (
+                section.type === "PRODUCT" ||
+                deviceFilter === "ALL" ||
+                item.deviceTypes.includes(deviceFilter)
+              );
+            });
+            const Icon = section.type === "SERVICE" ? Wrench : Package;
             return (
               <details
-                key={type}
+                key={section.key}
                 className="group overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900/50"
               >
                 <summary className="flex min-h-16 cursor-pointer items-center justify-between gap-3 px-4 py-3 font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
                   <span className="flex min-w-0 items-center gap-2">
                     <Icon size={18} aria-hidden="true" />
-                    <span>{itemTypeLabels[type]}</span>
+                    <span>{section.label}</span>
                     <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-500 dark:bg-slate-800">
                       {sectionItems.length}
                     </span>
@@ -397,7 +438,7 @@ const CatalogPage = () => {
                   ) : (
                     sectionItems.map((item) => (
                       <CatalogItemRow
-                        key={`${item.id}:${item.type}:${item.deviceTypes.join(",")}`}
+                        key={`${item.id}:${item.type}:${item.serviceCategory ?? "general"}:${item.deviceTypes.join(",")}`}
                         item={item}
                         editable={user?.role === "ADMIN"}
                         saving={update.isPending}

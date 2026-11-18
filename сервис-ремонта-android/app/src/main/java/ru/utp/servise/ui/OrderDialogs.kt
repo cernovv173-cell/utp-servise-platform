@@ -36,7 +36,7 @@ import ru.utp.servise.data.OrderAddress
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.deviceLabel
 
-private val deviceTypes = listOf("COMPUTER", "LAPTOP")
+private val deviceTypes = listOf("COMPUTER", "LAPTOP", "MONOBLOCK")
 
 @Composable
 internal fun AssignmentDialog(

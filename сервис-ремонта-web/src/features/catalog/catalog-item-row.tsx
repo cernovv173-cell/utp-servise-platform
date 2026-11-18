@@ -18,6 +18,7 @@ import {
   itemTypeLabels,
   repairDeviceTypeLabels,
   repairDeviceTypes,
+  repairServiceCategoryLabels,
   tracksStock,
 } from "./catalog-model";
 
@@ -26,6 +27,7 @@ type CatalogItemUpdate = Partial<
     RepairCatalogItem,
     | "type"
     | "deviceTypes"
+    | "serviceCategory"
     | "name"
     | "description"
     | "unitPriceRub"
@@ -57,6 +59,7 @@ export const CatalogItemRow = ({
   onSave: (input: CatalogItemUpdate) => void;
 }) => {
   const [type, setType] = useState(item.type);
+  const [serviceCategory, setServiceCategory] = useState(item.serviceCategory);
   const [deviceTypes, setDeviceTypes] = useState<RepairDeviceType[]>(() => {
     const supported = item.deviceTypes.filter((deviceType) =>
       repairDeviceTypes.includes(deviceType),
@@ -72,6 +75,7 @@ export const CatalogItemRow = ({
     onSave({
       type,
       ...(type !== "PRODUCT" ? { deviceTypes } : {}),
+      ...(type === "SERVICE" ? { serviceCategory } : {}),
       name: String(data.get("name")).trim(),
       ...(type === "PRODUCT"
         ? { description: String(data.get("description")).trim() || null }
@@ -111,6 +115,7 @@ export const CatalogItemRow = ({
                 ? ` · Порог: ${item.minimumStockQuantity ?? defaultMinimumStockQuantity} шт.`
                 : ""}
               {` · ${item.active ? "Активна" : "Скрыта"}`}
+              {item.serviceCategory === "SOFTWARE" ? " · ПО" : ""}
             </p>
             {item.type !== "PRODUCT" && (
               <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Подходит для устройств">
@@ -273,6 +278,23 @@ export const CatalogItemRow = ({
                 {deviceTypes.length === 0 && (
                   <p className="text-xs text-rose-600">Выберите хотя бы один тип устройства.</p>
                 )}
+              </fieldset>
+            )}
+            {type === "SERVICE" && (
+              <fieldset className="grid gap-2 md:col-span-2">
+                <legend className="text-sm font-medium">Группа услуги</legend>
+                <button
+                  type="button"
+                  aria-pressed={serviceCategory === "SOFTWARE"}
+                  onClick={() =>
+                    setServiceCategory((current) => (current === "SOFTWARE" ? null : "SOFTWARE"))
+                  }
+                  className={`min-h-9 justify-self-start rounded-lg border px-3 text-xs font-medium ${serviceCategory === "SOFTWARE" ? "border-violet-600 bg-violet-50 text-violet-800 dark:bg-violet-950 dark:text-violet-200" : "border-slate-200 dark:border-slate-700"}`}
+                >
+                  {serviceCategory === "SOFTWARE"
+                    ? repairServiceCategoryLabels.SOFTWARE
+                    : "Обычная услуга"}
+                </button>
               </fieldset>
             )}
             <label className="grid gap-1 text-sm font-medium">

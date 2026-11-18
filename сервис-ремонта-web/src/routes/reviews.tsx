@@ -7,6 +7,7 @@ import { PublicSiteShell } from "@/components/public-site-shell";
 
 import { ReviewManagement } from "@/features/admin/review-management";
 import { useAuth } from "@/features/auth/auth-context";
+import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
 import { BenefitsNavigation } from "@/features/navigation/benefits-navigation";
 
 import { getPublicReviewImageUrl, getPublicReviews } from "@/lib/api";
@@ -48,7 +49,7 @@ const ReviewsPage = () => {
             </div>
             <p className="mt-3 text-sm leading-6 whitespace-pre-line">{review.comment}</p>
             <p className="mt-4 text-xs text-slate-400">
-              {review.customer.displayName} · {review.order.deviceType} ·{" "}
+              {review.customer.displayName} · {repairDeviceTypeLabel(review.order.deviceType)} ·{" "}
               {new Date(review.createdAt).toLocaleDateString("ru-RU")}
             </p>
           </SectionCard>

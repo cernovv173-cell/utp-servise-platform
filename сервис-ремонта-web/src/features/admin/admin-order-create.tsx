@@ -302,6 +302,7 @@ export const AdminOrderCreate = ({
             <select name="deviceType" required className={fieldClassName}>
               <option value="COMPUTER">ПК</option>
               <option value="LAPTOP">Ноутбук</option>
+              <option value="MONOBLOCK">Моноблок</option>
             </select>
           </label>
           <label className="grid gap-1 text-sm font-medium">

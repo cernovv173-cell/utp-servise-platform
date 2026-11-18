@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Star } from "lucide-react";
 
+import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
+
 import { getPublicReviewImageUrl, getPublicReviews } from "@/lib/api";
 
 export const HomeReviewShowcase = () => {
@@ -57,7 +59,7 @@ export const HomeReviewShowcase = () => {
                   ))}
                 </div>
                 <span className="text-xs text-slate-400">
-                  {review.order.deviceType} ·{" "}
+                  {repairDeviceTypeLabel(review.order.deviceType)} ·{" "}
                   {new Date(review.createdAt).toLocaleDateString("ru-RU")}
                 </span>
               </div>

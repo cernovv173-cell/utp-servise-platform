@@ -7,6 +7,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { RepairOrderPriority } from "@/features/admin/repair-order-priority";
 import { useAuth } from "@/features/auth/auth-context";
+import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
 
 import { getRepairSchedule } from "@/lib/api";
 
@@ -158,7 +159,11 @@ const SchedulePage = () => {
                             {order.serviceNumber}
                           </p>
                           <h3 className="mt-1 font-semibold">
-                            {[order.deviceBrand, order.deviceModel, order.deviceType]
+                            {[
+                              order.deviceBrand,
+                              order.deviceModel,
+                              repairDeviceTypeLabel(order.deviceType),
+                            ]
                               .filter(Boolean)
                               .join(" · ")}
                           </h3>

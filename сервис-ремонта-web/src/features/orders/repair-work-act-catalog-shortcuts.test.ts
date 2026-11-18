@@ -16,6 +16,7 @@ const catalogItems: RepairCatalogItem[] = [
     type: "SERVICE",
     name: "Чистка ноутбука",
     description: "Чистка системы охлаждения",
+    serviceCategory: null,
     deviceTypes: ["LAPTOP"],
     imageObjectIds: [],
     unitPriceRub: 1200,
@@ -28,6 +29,7 @@ const catalogItems: RepairCatalogItem[] = [
     type: "SPARE_PART",
     name: "Вентилятор",
     description: null,
+    serviceCategory: null,
     deviceTypes: ["LAPTOP"],
     imageObjectIds: [],
     unitPriceRub: 1800,
@@ -40,6 +42,7 @@ const catalogItems: RepairCatalogItem[] = [
     type: "PRODUCT",
     name: "Сумка",
     description: null,
+    serviceCategory: null,
     deviceTypes: [],
     imageObjectIds: [],
     unitPriceRub: 900,
@@ -48,6 +51,20 @@ const catalogItems: RepairCatalogItem[] = [
     active: true,
   },
 ];
+
+const softwareService: RepairCatalogItem = {
+  id: "service-windows",
+  type: "SERVICE",
+  name: "Установка Windows 11",
+  description: null,
+  serviceCategory: "SOFTWARE",
+  deviceTypes: ["MONOBLOCK"],
+  imageObjectIds: [],
+  unitPriceRub: 2700,
+  stockQuantity: null,
+  minimumStockQuantity: null,
+  active: true,
+};
 
 const createMemoryStorage = () => {
   const values = new Map<string, string>();
@@ -88,6 +105,28 @@ describe("repair work-act catalog shortcuts", () => {
         recentIds: ["product-bag", "part-fan"],
       }).map((item) => item.id),
     ).toEqual(["product-bag", "part-fan"]);
+  });
+
+  it("keeps software services in their own catalog group", () => {
+    expect(
+      filterRepairWorkActCatalogItems([softwareService, ...catalogItems], {
+        mode: "ALL",
+        typeFilter: "SOFTWARE",
+        query: "",
+        favoriteIds: [],
+        recentIds: [],
+      }).map((item) => item.id),
+    ).toEqual(["service-windows"]);
+
+    expect(
+      filterRepairWorkActCatalogItems([softwareService, ...catalogItems], {
+        mode: "ALL",
+        typeFilter: "SERVICE",
+        query: "",
+        favoriteIds: [],
+        recentIds: [],
+      }).map((item) => item.id),
+    ).toEqual(["service-clean"]);
   });
 
   it("keeps favorites and recent items independent for each signed-in user", () => {

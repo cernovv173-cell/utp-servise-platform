@@ -30,7 +30,8 @@ export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
 export type StaffRole = Exclude<Role, "CUSTOMER"> | "ADMIN_ASSISTANT";
 export type OrderArchiveView = "active" | "archived";
 export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
-export type RepairDeviceType = "COMPUTER" | "LAPTOP";
+export type RepairCatalogServiceCategory = "SOFTWARE";
+export type RepairDeviceType = "COMPUTER" | "LAPTOP" | "MONOBLOCK";
 export type RepairEstimate = {
   id: string;
   orderId: string;
@@ -542,6 +543,7 @@ export type RepairCatalogItem = {
   type: RepairCatalogType;
   name: string;
   description: string | null;
+  serviceCategory: RepairCatalogServiceCategory | null;
   deviceTypes: RepairDeviceType[];
   imageObjectIds: string[];
   unitPriceRub: number;
@@ -1501,6 +1503,7 @@ export const createRepairCatalogItem = (
   token: string,
   input: Pick<RepairCatalogItem, "type" | "name" | "unitPriceRub"> & {
     deviceTypes?: RepairDeviceType[];
+    serviceCategory?: RepairCatalogServiceCategory | null;
     description?: string | null;
     stockQuantity?: number;
     minimumStockQuantity?: number;
@@ -1519,6 +1522,7 @@ export const updateRepairCatalogItem = (
       RepairCatalogItem,
       | "type"
       | "deviceTypes"
+      | "serviceCategory"
       | "name"
       | "description"
       | "unitPriceRub"

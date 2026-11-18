@@ -45,7 +45,10 @@ export const RepairRequestForm = ({
   const [repairLocation, setRepairLocation] = useState<RepairLocation>("SERVICE_CENTER");
   const [isWithinCity, setIsWithinCity] = useState(true);
   const supportedDevices = devices.filter(
-    (device) => device.deviceType === "COMPUTER" || device.deviceType === "LAPTOP",
+    (device) =>
+      device.deviceType === "COMPUTER" ||
+      device.deviceType === "LAPTOP" ||
+      device.deviceType === "MONOBLOCK",
   );
   const selectedDevice = supportedDevices.find((device) => device.id === selectedDeviceId);
 
@@ -100,6 +103,7 @@ export const RepairRequestForm = ({
         >
           <option value="COMPUTER">ПК</option>
           <option value="LAPTOP">Ноутбук</option>
+          <option value="MONOBLOCK">Моноблок</option>
         </select>
       </label>
       {selectedDevice && (

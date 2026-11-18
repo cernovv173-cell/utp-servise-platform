@@ -342,7 +342,7 @@ repair-redemption cap.
 
 ## Device-specific repair catalog
 
-New repair requests and newly managed catalog entries support only `COMPUTER` and `LAPTOP`.
+New repair requests, saved customer devices, and newly managed catalog entries support `COMPUTER`, `LAPTOP`, and `MONOBLOCK`; legacy `PHONE` and `TABLET` records remain readable. Repair services can be assigned to the `SOFTWARE` catalog group without changing their names or prices.
 The API rejects new requests for other device types. Existing `PHONE` and `TABLET` orders and their
 catalog compatibility remain readable for historical records and previously issued warranties;
 they cannot be selected for a new repair. Products for the separate customer shop keep their

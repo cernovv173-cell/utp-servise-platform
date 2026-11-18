@@ -12,6 +12,7 @@ test("customer devices are private, editable, and deletable by their owner", asy
   const customerId = "11111111-1111-4111-8111-111111111111";
   const otherCustomerId = "22222222-2222-4222-8222-222222222222";
   const deviceId = "33333333-3333-4333-8333-333333333333";
+  const monoblockId = "44444444-4444-4444-8444-444444444444";
   const customerToken = "C".repeat(48);
   const otherToken = "O".repeat(48);
   const users = [
@@ -74,7 +75,8 @@ test("customer devices are private, editable, and deletable by their owner", asy
       findMany: async ({ where }: { where: { customerId: string } }) =>
         devices.filter((device) => device.customerId === where.customerId),
       create: async ({ data }: { data: Record<string, unknown> }) => {
-        const device = { id: deviceId, ...data, repairOrders: [] };
+        const id = data.deviceType === "MONOBLOCK" ? monoblockId : deviceId;
+        const device = { id, ...data, repairOrders: [] };
         devices.push(device);
         return device;
       },
@@ -156,9 +158,20 @@ test("customer devices are private, editable, and deletable by their owner", asy
     });
     assert.equal(rejectedDevice.status, 400);
   }
+
+  const createdMonoblock = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      ...headers(customerToken),
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ deviceType: "MONOBLOCK", brand: "Lenovo" }),
+  });
+  assert.equal(createdMonoblock.status, 201);
+  assert.equal((await createdMonoblock.json()).device.deviceType, "MONOBLOCK");
   assert.deepEqual(
     devices.map(({ id }) => id),
-    [deviceId],
+    [deviceId, monoblockId],
   );
 
   const forbiddenEdit = await fetch(`${baseUrl}/${deviceId}`, {
@@ -193,4 +206,11 @@ test("customer devices are private, editable, and deletable by their owner", asy
   });
   assert.equal(deleted.status, 204);
   assert.equal(deleteCount, 1);
+
+  const deletedMonoblock = await fetch(`${baseUrl}/${monoblockId}`, {
+    method: "DELETE",
+    headers: headers(customerToken),
+  });
+  assert.equal(deletedMonoblock.status, 204);
+  assert.equal(deleteCount, 2);
 });

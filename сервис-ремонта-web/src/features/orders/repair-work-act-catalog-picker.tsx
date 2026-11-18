@@ -26,6 +26,7 @@ const modeOptions: { value: RepairWorkActCatalogMode; label: string }[] = [
 const typeOptions: { value: RepairWorkActCatalogTypeFilter; label: string }[] = [
   { value: "ALL", label: "Все" },
   { value: "SERVICE", label: "Работы" },
+  { value: "SOFTWARE", label: "ПО" },
   { value: "SPARE_PART", label: "Запчасти" },
   { value: "PRODUCT", label: "Товары" },
 ];
@@ -146,7 +147,8 @@ export const RepairWorkActCatalogPicker = ({
                         {item.name}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {typeLabels[item.type]} · {item.unitPriceRub.toLocaleString("ru-RU")} ₽
+                        {item.serviceCategory === "SOFTWARE" ? "ПО" : typeLabels[item.type]} ·{" "}
+                        {item.unitPriceRub.toLocaleString("ru-RU")} ₽
                         {item.stockQuantity === null
                           ? ""
                           : item.stockQuantity > 0

@@ -15,6 +15,15 @@ class RepairWorkActCatalogShortcutsTest {
             deviceTypes = listOf("LAPTOP"),
         ),
         CatalogItem(
+            id = "software-windows",
+            type = "SERVICE",
+            name = "Установка Windows 11",
+            unitPriceRub = 2500,
+            active = true,
+            deviceTypes = listOf("COMPUTER", "LAPTOP", "MONOBLOCK"),
+            serviceCategory = "SOFTWARE",
+        ),
+        CatalogItem(
             id = "part-fan",
             type = "SPARE_PART",
             name = "Вентилятор",
@@ -69,6 +78,10 @@ class RepairWorkActCatalogShortcutsTest {
         assertEquals(
             listOf("part-fan", "service-clean"),
             filterRepairWorkActCatalogItems(items, "RECENT", "ALL", "", shortcuts).map { it.id },
+        )
+        assertEquals(
+            listOf("software-windows"),
+            filterRepairWorkActCatalogItems(items, "ALL", "SOFTWARE", "", shortcuts).map { it.id },
         )
     }
 }

@@ -19,6 +19,7 @@ import {
 const deviceLabels: Record<string, string> = {
   COMPUTER: "ПК",
   LAPTOP: "Ноутбук",
+  MONOBLOCK: "Моноблок",
   PHONE: "Телефон",
   TABLET: "Планшет",
 };
@@ -319,7 +320,7 @@ const DevicePage = () => {
                       </button>
                     </form>
                   </div>
-                  {(device.deviceType === "COMPUTER" || device.deviceType === "LAPTOP") && (
+                  {["COMPUTER", "LAPTOP", "MONOBLOCK"].includes(device.deviceType) && (
                     <Link
                       to="/orders"
                       search={{ device: device.id }}

@@ -21,6 +21,7 @@ const notificationTitles: Record<TelegramNotificationType, string> = {
 const deviceLabels: Record<string, string> = {
   COMPUTER: "Компьютер",
   LAPTOP: "Ноутбук",
+  MONOBLOCK: "Моноблок",
   PHONE: "Телефон",
   TABLET: "Планшет",
 };

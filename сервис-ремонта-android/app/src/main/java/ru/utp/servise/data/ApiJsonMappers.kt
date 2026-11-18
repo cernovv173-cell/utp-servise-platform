@@ -347,7 +347,8 @@ internal fun JSONObject.toCatalogItem() = CatalogItem(
     }.orEmpty(),
     deviceTypes = optJSONArray("deviceTypes")?.let { values ->
         List(values.length()) { index -> values.getString(index) }
-    } ?: listOf("COMPUTER", "LAPTOP"),
+    } ?: listOf("COMPUTER", "LAPTOP", "MONOBLOCK"),
+    serviceCategory = nullableString("serviceCategory"),
 )
 
 internal fun JSONObject.toShopProduct() = ShopProduct(
@@ -728,6 +729,7 @@ internal fun JSONObject.nullableString(key: String): String? =
 fun String.deviceLabel(): String = when (this) {
     "COMPUTER" -> "ПК"
     "LAPTOP" -> "Ноутбук"
+    "MONOBLOCK" -> "Моноблок"
     "PHONE" -> "Телефон"
     "TABLET" -> "Планшет"
     else -> this

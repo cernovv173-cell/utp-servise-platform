@@ -81,11 +81,16 @@ enum RepairOrderItemType {
   PRODUCT
 }
 
+enum RepairCatalogServiceCategory {
+  SOFTWARE
+}
+
 enum RepairDeviceType {
   COMPUTER
   LAPTOP
   PHONE
   TABLET
+  MONOBLOCK
 }
 
 enum RepairIntakeMediaType {
@@ -725,20 +730,21 @@ model RepairReceipt {
 }
 
 model RepairCatalogItem {
-  id                   String                  @id @default(uuid()) @db.Uuid
+  id                   String                        @id @default(uuid()) @db.Uuid
   type                 RepairOrderItemType
-  name                 String                  @db.VarChar(160)
-  description          String?                 @db.VarChar(2000)
-  deviceTypes          RepairDeviceType[]      @default([COMPUTER, LAPTOP]) @map("device_types")
-  imageObjectIds       String[]                @default([]) @map("image_object_ids")
-  unitPriceRub         Int                     @map("unit_price_rub")
-  stockQuantity        Int?                    @map("stock_quantity")
-  minimumStockQuantity Int?                    @map("minimum_stock_quantity")
-  active               Boolean                 @default(true)
-  createdById          String?                 @map("created_by_id") @db.Uuid
-  createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy            User?                   @relation("CatalogItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  name                 String                        @db.VarChar(160)
+  description          String?                       @db.VarChar(2000)
+  serviceCategory      RepairCatalogServiceCategory? @map("service_category")
+  deviceTypes          RepairDeviceType[]            @default([COMPUTER, LAPTOP]) @map("device_types")
+  imageObjectIds       String[]                      @default([]) @map("image_object_ids")
+  unitPriceRub         Int                           @map("unit_price_rub")
+  stockQuantity        Int?                          @map("stock_quantity")
+  minimumStockQuantity Int?                          @map("minimum_stock_quantity")
+  active               Boolean                       @default(true)
+  createdById          String?                       @map("created_by_id") @db.Uuid
+  createdAt            DateTime                      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy            User?                         @relation("CatalogItemCreator", fields: [createdById], references: [id], onDelete: SetNull)
   orderItems           RepairOrderItem[]
   shopOrderItems       ShopOrderItem[]
   inventoryReceipts    InventoryStockReceipt[]

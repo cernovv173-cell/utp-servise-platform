@@ -307,7 +307,53 @@ test("only administrators manage the shared catalog and technicians see active p
   assert.equal(createdSparePart.createdById, "admin-1");
   assert.equal(createdSparePart.stockQuantity, 0);
   assert.equal(createdSparePart.minimumStockQuantity, 3);
-  assert.deepEqual(createdSparePart.deviceTypes, ["COMPUTER", "LAPTOP"]);
+  assert.deepEqual(createdSparePart.deviceTypes, [
+    "COMPUTER",
+    "LAPTOP",
+    "MONOBLOCK",
+  ]);
+
+  const createSoftwareService = await fetch(baseUrl, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({
+      type: "SERVICE",
+      serviceCategory: "SOFTWARE",
+      name: "Установка Windows 11",
+      unitPriceRub: 2500,
+      deviceTypes: ["MONOBLOCK"],
+    }),
+  });
+  assert.equal(createSoftwareService.status, 201);
+  const createdSoftwareService = (await createSoftwareService.json())
+    .catalogItem;
+  assert.equal(createdSoftwareService.serviceCategory, "SOFTWARE");
+  assert.deepEqual(createdSoftwareService.deviceTypes, ["MONOBLOCK"]);
+  const clearedSoftwareCategory = await fetch(
+    `${baseUrl}/${createdSoftwareService.id}`,
+    {
+      method: "PATCH",
+      headers: headers(adminToken),
+      body: JSON.stringify({ serviceCategory: null }),
+    },
+  );
+  assert.equal(clearedSoftwareCategory.status, 200);
+  assert.equal(
+    (await clearedSoftwareCategory.json()).catalogItem.serviceCategory,
+    null,
+  );
+
+  const productWithSoftwareCategory = await fetch(baseUrl, {
+    method: "POST",
+    headers: headers(adminToken),
+    body: JSON.stringify({
+      type: "PRODUCT",
+      name: "Не услуга ПО",
+      unitPriceRub: 1,
+      serviceCategory: "SOFTWARE",
+    }),
+  });
+  assert.equal(productWithSoftwareCategory.status, 400);
 
   for (const deviceType of ["PHONE", "TABLET"]) {
     const unsupportedCatalogItem = await fetch(baseUrl, {

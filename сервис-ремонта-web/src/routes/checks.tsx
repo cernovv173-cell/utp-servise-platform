@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
 import { ReceiptDraftEditor } from "@/features/checks/receipt-draft-editor";
 
 import {
@@ -99,7 +100,8 @@ const ChecksPage = () => {
                   <p className="text-xs text-slate-400">Сервисный номер</p>
                   <h2 className="mt-1 font-semibold">{order.serviceNumber}</h2>
                   <p className="mt-1 text-sm text-slate-500">
-                    {order.deviceType} · {new Date(order.createdAt).toLocaleDateString("ru-RU")}
+                    {repairDeviceTypeLabel(order.deviceType)} ·{" "}
+                    {new Date(order.createdAt).toLocaleDateString("ru-RU")}
                   </p>
                 </div>
                 {order.receipt && (

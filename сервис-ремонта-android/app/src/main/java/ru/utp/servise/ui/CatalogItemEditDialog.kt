@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -31,6 +32,7 @@ internal fun CatalogItemEditDialog(
     onSave: (CatalogItem) -> Unit,
 ) {
     var type by remember(item.id) { mutableStateOf(item.type) }
+    var serviceCategory by remember(item.id) { mutableStateOf(item.serviceCategory) }
     var name by remember(item.id) { mutableStateOf(item.name) }
     var description by remember(item.id) { mutableStateOf(item.description.orEmpty()) }
     var priceText by remember(item.id) { mutableStateOf(item.unitPriceRub.toString()) }
@@ -56,6 +58,13 @@ internal fun CatalogItemEditDialog(
                     else OutlinedButton(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
                     if (type == "PRODUCT") Button(onClick = { type = "PRODUCT" }) { Text("Товар") }
                     else OutlinedButton(onClick = { type = "PRODUCT" }) { Text("Товар") }
+                }
+                if (type == "SERVICE") {
+                    FilterChip(
+                        selected = serviceCategory == "SOFTWARE",
+                        onClick = { serviceCategory = if (serviceCategory == "SOFTWARE") null else "SOFTWARE" },
+                        label = { Text("ПО · программное обеспечение") },
+                    )
                 }
                 if (type != "PRODUCT") {
                     Text("Подходит для устройств", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = UtpInk)
@@ -134,6 +143,7 @@ internal fun CatalogItemEditDialog(
                     onSave(
                         item.copy(
                             type = type,
+                            serviceCategory = if (type == "SERVICE") serviceCategory else null,
                             name = name.trim(),
                             description = if (type == "PRODUCT") description.trim().takeIf { it.isNotEmpty() } else null,
                             unitPriceRub = price!!,

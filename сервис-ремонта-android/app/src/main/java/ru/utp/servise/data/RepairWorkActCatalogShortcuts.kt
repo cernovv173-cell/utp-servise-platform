@@ -33,7 +33,10 @@ fun filterRepairWorkActCatalogItems(
     }
     val normalizedQuery = query.trim().lowercase()
     return source.filter { item ->
-        (typeFilter == "ALL" || item.type == typeFilter) &&
+        (typeFilter == "ALL" ||
+            (typeFilter == "SOFTWARE" && item.type == "SERVICE" && item.serviceCategory == "SOFTWARE") ||
+            (typeFilter == "SERVICE" && item.type == "SERVICE" && item.serviceCategory != "SOFTWARE") ||
+            (typeFilter != "SOFTWARE" && typeFilter != "SERVICE" && item.type == typeFilter)) &&
             (normalizedQuery.isEmpty() ||
                 "${item.name} ${item.description.orEmpty()}".lowercase().contains(normalizedQuery))
     }

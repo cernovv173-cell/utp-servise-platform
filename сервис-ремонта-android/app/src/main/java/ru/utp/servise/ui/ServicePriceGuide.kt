@@ -31,7 +31,7 @@ internal fun ServicePriceGuide(
     var search by remember { mutableStateOf("") }
     val applicablePrices = prices.filter { deviceType in it.deviceTypes }
     val diagnosticTerms = when (deviceType) {
-        "COMPUTER" -> listOf("диагностика пк", "диагностика комплектующих")
+        "COMPUTER", "MONOBLOCK" -> listOf("диагностика пк", "диагностика комплектующих")
         "LAPTOP" -> listOf("диагностика ноутбука")
         else -> emptyList()
     }

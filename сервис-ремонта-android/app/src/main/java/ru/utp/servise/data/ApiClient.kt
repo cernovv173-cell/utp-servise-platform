@@ -296,7 +296,7 @@ object ApiClient {
             unitPriceRub = price.getInt("unitPriceRub"),
             deviceTypes = price.optJSONArray("deviceTypes")?.let { values ->
                 List(values.length()) { index -> values.getString(index) }
-            } ?: listOf("COMPUTER", "LAPTOP"),
+            } ?: listOf("COMPUTER", "LAPTOP", "MONOBLOCK"),
         )
     }
 
@@ -329,7 +329,8 @@ object ApiClient {
         stockQuantity: Int? = null,
         minimumStockQuantity: Int? = null,
         description: String? = null,
-        deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP"),
+        deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP", "MONOBLOCK"),
+        serviceCategory: String? = null,
     ): CatalogItem {
         val body = JSONObject()
             .put("type", type)
@@ -337,6 +338,7 @@ object ApiClient {
             .put("unitPriceRub", unitPriceRub)
             .put("deviceTypes", JSONArray().apply { deviceTypes.forEach(::put) })
         if (type == "PRODUCT") body.put("description", description ?: JSONObject.NULL)
+        if (type == "SERVICE") body.put("serviceCategory", serviceCategory ?: JSONObject.NULL)
         if (type != "SERVICE") {
             body.put("stockQuantity", stockQuantity ?: 0)
             body.put("minimumStockQuantity", minimumStockQuantity ?: 3)
@@ -352,6 +354,7 @@ object ApiClient {
             .put("unitPriceRub", item.unitPriceRub)
             .put("active", item.active)
             .put("deviceTypes", JSONArray().apply { item.deviceTypes.forEach(::put) })
+            .put("serviceCategory", if (item.type == "SERVICE") item.serviceCategory ?: JSONObject.NULL else JSONObject.NULL)
             .apply {
                 if (item.type == "PRODUCT") {
                     put("description", item.description ?: JSONObject.NULL)

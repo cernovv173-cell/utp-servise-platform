@@ -429,7 +429,8 @@ data class CatalogItem(
     val minimumStockQuantity: Int? = null,
     val description: String? = null,
     val imageObjectIds: List<String> = emptyList(),
-    val deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP"),
+    val deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP", "MONOBLOCK"),
+    val serviceCategory: String? = null,
 )
 
 data class ShopProduct(
@@ -483,7 +484,7 @@ data class CustomerServicePrice(
     val id: String,
     val name: String,
     val unitPriceRub: Int,
-    val deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP"),
+    val deviceTypes: List<String> = listOf("COMPUTER", "LAPTOP", "MONOBLOCK"),
 )
 
 data class CraftItem(

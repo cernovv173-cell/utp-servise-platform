@@ -6,7 +6,7 @@ export type RepairWorkActCatalogShortcuts = {
 };
 
 export type RepairWorkActCatalogMode = "ALL" | "FAVORITES" | "RECENT";
-export type RepairWorkActCatalogTypeFilter = "ALL" | RepairCatalogItem["type"];
+export type RepairWorkActCatalogTypeFilter = "ALL" | "SOFTWARE" | RepairCatalogItem["type"];
 
 type StorageLike = Pick<Storage, "getItem" | "setItem">;
 
@@ -42,7 +42,13 @@ export const filterRepairWorkActCatalogItems = (
 
   const matchingItems = items.filter((item) => {
     const matchesMode = options.mode === "ALL" || shortcutOrder.has(item.id);
-    const matchesType = options.typeFilter === "ALL" || item.type === options.typeFilter;
+    const matchesType =
+      options.typeFilter === "ALL" ||
+      (options.typeFilter === "SOFTWARE"
+        ? item.type === "SERVICE" && item.serviceCategory === "SOFTWARE"
+        : options.typeFilter === "SERVICE"
+          ? item.type === "SERVICE" && item.serviceCategory !== "SOFTWARE"
+          : item.type === options.typeFilter);
     const matchesQuery =
       query.length === 0 ||
       `${item.name} ${item.description ?? ""}`.toLocaleLowerCase("ru-RU").includes(query);

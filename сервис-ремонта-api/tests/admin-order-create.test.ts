@@ -159,6 +159,22 @@ test("only admins create repair orders for active customers and creation is audi
     assert.equal(rejectedCustomerOrder.status, 400);
   }
 
+  const monoblockOrder = await fetch(
+    endpoint.replace("/admin/orders", "/orders"),
+    {
+      method: "POST",
+      headers: headers(customerToken),
+      body: JSON.stringify({
+        deviceType: "MONOBLOCK",
+        problem: "Моноблок не включается",
+        contactPhone: users[1]!.phoneNumber,
+      }),
+    },
+  );
+  assert.equal(monoblockOrder.status, 201);
+  assert.equal((await monoblockOrder.json()).order.id, orderId);
+  assert.equal(createdData?.deviceType, "MONOBLOCK");
+
   const withoutAddress = await fetch(endpoint, {
     method: "POST",
     headers: headers(adminToken),

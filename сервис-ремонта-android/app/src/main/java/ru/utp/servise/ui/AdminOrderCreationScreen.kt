@@ -47,6 +47,7 @@ import ru.utp.servise.data.RepairOrder
 private val orderDevices = listOf(
     "COMPUTER" to "Компьютер",
     "LAPTOP" to "Ноутбук",
+    "MONOBLOCK" to "Моноблок",
 )
 
 private data class AdminOrderSubmission(

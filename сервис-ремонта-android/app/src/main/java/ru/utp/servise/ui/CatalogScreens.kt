@@ -18,6 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -38,6 +39,11 @@ import ru.utp.servise.data.CatalogItem
 import ru.utp.servise.data.orderItemTypeLabel
 
 internal const val DEFAULT_MINIMUM_STOCK_QUANTITY = 3
+
+private fun catalogItemPickerLabel(item: CatalogItem): String {
+    val category = if (item.serviceCategory == "SOFTWARE") "ПО" else item.type.orderItemTypeLabel()
+    return "$category · ${item.name}"
+}
 
 internal fun isRestockNeeded(stockQuantity: Int?, minimumStockQuantity: Int?): Boolean =
     stockQuantity != null &&
@@ -82,14 +88,14 @@ fun OrderItemPickerDialog(
                             if (onSelected) {
                                 Button(onClick = { selectedId = item.id }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                                        Text("${item.type.orderItemTypeLabel()} · ${item.name}")
+                                        Text(catalogItemPickerLabel(item))
                                         Text(itemStockLabel(item), fontSize = 11.sp)
                                     }
                                 }
                             } else {
                                 OutlinedButton(onClick = { selectedId = item.id }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp)) {
                                     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
-                                        Text("${item.type.orderItemTypeLabel()} · ${item.name}", color = UtpInk)
+                                        Text(catalogItemPickerLabel(item), color = UtpInk)
                                         Text(itemStockLabel(item), fontSize = 11.sp, color = UtpMuted)
                                     }
                                 }
@@ -131,9 +137,11 @@ fun CatalogManagementScreen(
 ) {
     var showRestockOnly by remember { mutableStateOf(false) }
     var servicesExpanded by remember { mutableStateOf(false) }
+    var softwareExpanded by remember { mutableStateOf(false) }
     var sparePartsExpanded by remember { mutableStateOf(false) }
     var productsExpanded by remember { mutableStateOf(false) }
     var type by remember { mutableStateOf("SERVICE") }
+    var serviceCategory by remember { mutableStateOf<String?>(null) }
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var priceText by remember { mutableStateOf("") }
@@ -164,7 +172,8 @@ fun CatalogManagementScreen(
     }).filter { item ->
         item.type == "PRODUCT" || deviceTypeFilter == ALL_REPAIR_DEVICE_TYPES || deviceTypeFilter in item.deviceTypes
     }
-    val serviceItems = visibleCatalogItems.filter { it.type == "SERVICE" }
+    val serviceItems = visibleCatalogItems.filter { it.type == "SERVICE" && it.serviceCategory != "SOFTWARE" }
+    val softwareItems = visibleCatalogItems.filter { it.type == "SERVICE" && it.serviceCategory == "SOFTWARE" }
     val sparePartItems = visibleCatalogItems.filter { it.type == "SPARE_PART" }
     val productItems = visibleCatalogItems.filter { it.type == "PRODUCT" }
 
@@ -222,6 +231,13 @@ fun CatalogManagementScreen(
                     else OutlinedButton(onClick = { type = "SPARE_PART" }) { Text("Запчасть") }
                     if (type == "PRODUCT") Button(onClick = { type = "PRODUCT" }) { Text("Товар") }
                     else OutlinedButton(onClick = { type = "PRODUCT" }) { Text("Товар") }
+                }
+                if (type == "SERVICE") {
+                    FilterChip(
+                        selected = serviceCategory == "SOFTWARE",
+                        onClick = { serviceCategory = if (serviceCategory == "SOFTWARE") null else "SOFTWARE" },
+                        label = { Text("ПО · программное обеспечение") },
+                    )
                 }
                 if (type != "PRODUCT") {
                     Text("Подходит для устройств", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = UtpInk)
@@ -295,6 +311,7 @@ fun CatalogManagementScreen(
                                 if (type != "SERVICE") minimumStock else null,
                                 if (type == "PRODUCT") description.trim().takeIf { it.isNotEmpty() } else null,
                                 if (type == "PRODUCT") repairDeviceTypes else selectedDeviceTypes.toList(),
+                                if (type == "SERVICE") serviceCategory else null,
                             )
                         }) {
                             name = ""
@@ -303,6 +320,7 @@ fun CatalogManagementScreen(
                             stockText = "0"
                             minimumStockText = DEFAULT_MINIMUM_STOCK_QUANTITY.toString()
                             selectedDeviceTypes = repairDeviceTypes.toSet()
+                            serviceCategory = null
                         }
                     },
                     enabled = name.trim().length >= 2 && price != null && price in 0..10_000_000 &&
@@ -338,6 +356,24 @@ fun CatalogManagementScreen(
             items = serviceItems,
             expanded = servicesExpanded,
             onToggle = { servicesExpanded = !servicesExpanded },
+        ) { item ->
+            CatalogManagementItemCard(
+                item = item,
+                token = token,
+                runAction = runAction,
+                refresh = refresh,
+                onEdit = { editedItem = it },
+                onToggleActive = { current ->
+                    runAction({ ApiClient.updateCatalogItem(token, current.copy(active = !current.active)) }) {}
+                },
+                onDelete = { pendingDeleteItem = it },
+            )
+        }
+        CatalogManagementSection(
+            title = "ПО",
+            items = softwareItems,
+            expanded = softwareExpanded,
+            onToggle = { softwareExpanded = !softwareExpanded },
         ) { item ->
             CatalogManagementItemCard(
                 item = item,

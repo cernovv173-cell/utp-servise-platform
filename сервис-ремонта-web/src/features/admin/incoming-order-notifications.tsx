@@ -116,6 +116,7 @@ export const IncomingOrderNotifications = () => {
       const deviceLabels: Record<string, string> = {
         COMPUTER: "ПК",
         LAPTOP: "ноутбук",
+        MONOBLOCK: "моноблок",
         PHONE: "телефон",
         TABLET: "планшет",
       };

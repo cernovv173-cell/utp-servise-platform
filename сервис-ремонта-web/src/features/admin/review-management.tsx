@@ -6,6 +6,7 @@ import { ProtectedImage } from "@/components/protected-image";
 
 import { ReviewShowcaseImages } from "@/features/admin/review-showcase-images";
 import { useAuth } from "@/features/auth/auth-context";
+import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
 
 import { getReviews, moderateReview } from "@/lib/api";
 
@@ -43,7 +44,8 @@ export const ReviewManagement = () => {
                 {review.comment}
               </p>
               <p className="mt-2 text-xs text-slate-400">
-                {review.order.deviceType} · {new Date(review.createdAt).toLocaleDateString("ru-RU")}
+                {repairDeviceTypeLabel(review.order.deviceType)} ·{" "}
+                {new Date(review.createdAt).toLocaleDateString("ru-RU")}
               </p>
               {review.imageObjectId && (
                 <ProtectedImage

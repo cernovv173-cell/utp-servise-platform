@@ -16,6 +16,7 @@ import type { OrderArchiveView } from "@/lib/api";
 const deviceLabels: Record<string, string> = {
   COMPUTER: "ПК",
   LAPTOP: "Ноутбук",
+  MONOBLOCK: "Моноблок",
   PHONE: "Телефон",
   TABLET: "Планшет",
 };

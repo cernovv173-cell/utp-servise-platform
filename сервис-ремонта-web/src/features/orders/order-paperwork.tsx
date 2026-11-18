@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/modal";
 
+import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
 import { type OrderDocumentKind, printOrderDocument } from "@/features/orders/order-document-print";
 
 import {
@@ -306,7 +307,7 @@ export const OrderPaperwork = ({
               {order.contactPhone ?? "телефон не указан"}
             </p>
             <p className="text-sm">
-              Устройство: {order.deviceType} · серийный номер:{" "}
+              Устройство: {repairDeviceTypeLabel(order.deviceType)} · серийный номер:{" "}
               {order.intake?.serialNumber ?? "не указан"}
             </p>
             <p className="text-sm">Заявленная неисправность: {order.problem}</p>
@@ -352,7 +353,8 @@ export const OrderPaperwork = ({
                 </h2>
                 <p className="text-sm">Клиент: {order.warranty.customerName}</p>
                 <p className="text-sm">
-                  Устройство: {order.warranty.deviceType} · работы: {order.warranty.repairSummary}
+                  Устройство: {repairDeviceTypeLabel(order.warranty.deviceType)} · работы:{" "}
+                  {order.warranty.repairSummary}
                 </p>
                 <p className="text-sm">
                   Срок:{" "}

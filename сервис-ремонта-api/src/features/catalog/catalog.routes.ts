@@ -22,6 +22,7 @@ const catalogItemIdParams = z.object({
 });
 const itemType = z.enum(["SERVICE", "SPARE_PART", "PRODUCT"]);
 const deviceType = z.enum(supportedRepairDeviceTypes);
+const serviceCategory = z.enum(["SOFTWARE"]);
 const servicePriceQuery = z
   .object({ deviceType: deviceType.optional() })
   .strict();
@@ -29,6 +30,7 @@ const catalogCreateBody = z
   .object({
     type: itemType,
     deviceTypes: z.array(deviceType).min(1).optional(),
+    serviceCategory: serviceCategory.nullable().optional(),
     name: z.string().trim().min(2).max(160),
     description: z.string().trim().max(2000).nullable().optional(),
     unitPriceRub: z.number().int().min(0).max(10_000_000),
@@ -39,6 +41,10 @@ const catalogCreateBody = z
   .refine((body) => body.type === "PRODUCT" || body.description == null, {
     message: "Описание доступно только для товаров.",
     path: ["description"],
+  })
+  .refine((body) => body.type === "SERVICE" || body.serviceCategory == null, {
+    message: "Группу ПО можно указать только для услуги.",
+    path: ["serviceCategory"],
   })
   .refine(
     (body) =>
@@ -61,6 +67,7 @@ const catalogUpdateBody = z
   .object({
     type: itemType.optional(),
     deviceTypes: z.array(deviceType).min(1).optional(),
+    serviceCategory: serviceCategory.nullable().optional(),
     name: z.string().trim().min(2).max(160).optional(),
     description: z.string().trim().max(2000).nullable().optional(),
     unitPriceRub: z.number().int().min(0).max(10_000_000).optional(),
@@ -240,7 +247,9 @@ export const createCatalogRouter = (
       const catalogItem = await database.repairCatalogItem.create({
         data: {
           ...input,
-          deviceTypes: input.deviceTypes ?? ["COMPUTER", "LAPTOP"],
+          deviceTypes: input.deviceTypes ?? [...supportedRepairDeviceTypes],
+          serviceCategory:
+            input.type === "SERVICE" ? (input.serviceCategory ?? null) : null,
           stockQuantity: isInventoryCatalogItem(input.type)
             ? (input.stockQuantity ?? 0)
             : null,
@@ -286,6 +295,13 @@ export const createCatalogRouter = (
             "Позиция каталога не найдена.",
           );
         const nextType = input.type ?? existing.type;
+        if (input.serviceCategory != null && nextType !== "SERVICE") {
+          throw new HttpError(
+            400,
+            "SERVICE_CATEGORY_NOT_SUPPORTED",
+            "Группу ПО можно указать только для услуги.",
+          );
+        }
         if (input.description !== undefined && nextType !== "PRODUCT") {
           throw new HttpError(
             400,
@@ -347,6 +363,7 @@ export const createCatalogRouter = (
           where: { id: catalogItemId },
           data: {
             ...input,
+            ...(nextType !== "SERVICE" ? { serviceCategory: null } : {}),
             ...(input.deviceTypes === undefined
               ? {}
               : {

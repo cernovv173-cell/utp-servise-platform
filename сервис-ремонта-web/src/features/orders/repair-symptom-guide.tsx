@@ -7,6 +7,12 @@ const symptomOptions: Record<string, { id: string; label: string; summary: strin
     { id: "screen", label: "Нет изображения", summary: "Нет изображения на экране." },
     { id: "slow", label: "Медленно работает", summary: "Работает медленно или зависает." },
   ],
+  MONOBLOCK: [
+    { id: "power", label: "Не включается", summary: "Не включается." },
+    { id: "heat", label: "Сильно шумит или греется", summary: "Сильно шумит или перегревается." },
+    { id: "screen", label: "Нет изображения", summary: "Нет изображения на экране." },
+    { id: "slow", label: "Медленно работает", summary: "Работает медленно или зависает." },
+  ],
   LAPTOP: [
     { id: "power", label: "Не включается", summary: "Не включается." },
     { id: "charge", label: "Не заряжается", summary: "Не заряжается или быстро разряжается." },

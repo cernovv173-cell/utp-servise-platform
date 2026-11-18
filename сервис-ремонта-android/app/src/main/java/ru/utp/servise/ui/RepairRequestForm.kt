@@ -56,10 +56,11 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val deviceTypes = listOf("COMPUTER", "LAPTOP")
+private val deviceTypes = listOf("COMPUTER", "LAPTOP", "MONOBLOCK")
 private val symptomOptions = mapOf(
     "COMPUTER" to listOf("Не включается" to "Не включается.", "Перегревается" to "Сильно шумит или перегревается.", "Нет изображения" to "Нет изображения на экране.", "Медленно работает" to "Работает медленно или зависает."),
     "LAPTOP" to listOf("Не включается" to "Не включается.", "Не заряжается" to "Не заряжается или быстро разряжается.", "Проблема с экраном" to "Есть проблема с изображением на экране.", "Греется" to "Сильно греется или шумит."),
+    "MONOBLOCK" to listOf("Не включается" to "Не включается.", "Нет изображения" to "Нет изображения на экране.", "Перегревается" to "Сильно шумит или перегревается.", "Медленно работает" to "Работает медленно или зависает."),
 )
 
 @Composable

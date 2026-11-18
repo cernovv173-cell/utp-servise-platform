@@ -29,6 +29,7 @@ const notificationDetails: Partial<Record<MaxNotificationType, string>> = {
 const deviceLabels: Record<string, string> = {
   COMPUTER: "Компьютер",
   LAPTOP: "Ноутбук",
+  MONOBLOCK: "Моноблок",
   PHONE: "Телефон",
   TABLET: "Планшет",
 };

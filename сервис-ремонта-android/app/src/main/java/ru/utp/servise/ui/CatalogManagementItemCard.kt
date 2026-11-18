@@ -46,7 +46,7 @@ internal fun CatalogManagementItemCard(
     ) {
         Column(Modifier.fillMaxWidth().padding(14.dp)) {
             Text(
-                "${item.type.orderItemTypeLabel()} · ${item.name}",
+                "${item.type.orderItemTypeLabel()}${if (item.serviceCategory == "SOFTWARE") " · ПО" else ""} · ${item.name}",
                 fontWeight = FontWeight.SemiBold,
                 color = UtpInk,
             )

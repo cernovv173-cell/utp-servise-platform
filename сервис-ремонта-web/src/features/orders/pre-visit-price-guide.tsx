@@ -19,7 +19,7 @@ const isMatchingDiagnostic = (price: CustomerServicePrice, deviceType: string) =
   const name = price.name.toLocaleLowerCase("ru-RU");
   return (
     name.startsWith("диагностика") &&
-    (deviceType === "COMPUTER"
+    (deviceType === "COMPUTER" || deviceType === "MONOBLOCK"
       ? name.includes("пк") || name.includes("комплектующ")
       : deviceType === "LAPTOP"
         ? name.includes("ноутбук")
