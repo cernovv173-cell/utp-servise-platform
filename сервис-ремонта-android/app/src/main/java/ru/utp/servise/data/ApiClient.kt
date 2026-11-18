@@ -647,6 +647,21 @@ object ApiClient {
         JSONObject().put("acceptingNewOrders", acceptingNewOrders),
     ).toRepairOrderIntakeSettings()
 
+    fun catalogVisibility(): CatalogVisibilitySettings =
+        request("GET", "/company/catalog-visibility").toCatalogVisibilitySettings()
+
+    fun updateCatalogVisibility(
+        token: String,
+        settings: CatalogVisibilitySettings,
+    ): CatalogVisibilitySettings = request(
+        "PUT",
+        "/admin/company/catalog-visibility",
+        token,
+        JSONObject()
+            .put("servicesVisible", settings.servicesVisible)
+            .put("productsVisible", settings.productsVisible),
+    ).toCatalogVisibilitySettings()
+
     fun closureAnnouncement(): ClosureAnnouncementSettings =
         request("GET", "/company/closure-announcement").toClosureAnnouncementSettings()
 
@@ -1322,6 +1337,11 @@ object ApiClient {
 
     private fun JSONObject.toRepairOrderIntakeSettings() =
         RepairOrderIntakeSettings(acceptingNewOrders = getBoolean("acceptingNewOrders"))
+
+    private fun JSONObject.toCatalogVisibilitySettings() = CatalogVisibilitySettings(
+        servicesVisible = getBoolean("servicesVisible"),
+        productsVisible = getBoolean("productsVisible"),
+    )
 
     private fun JSONObject.toClosureAnnouncementSettings() = ClosureAnnouncementSettings(
         enabled = getBoolean("enabled"),

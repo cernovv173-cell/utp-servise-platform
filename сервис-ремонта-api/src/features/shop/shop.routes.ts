@@ -9,6 +9,7 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { readCatalogVisibility } from "../company/catalog-visibility-settings.js";
 import {
   type MediaStorage,
   projectMediaStorage,
@@ -139,6 +140,11 @@ export const createShopRouter = (
   router.use(createShopDeliveryRouter(database, sendNotification));
 
   router.get("/shop/products", async (_request, response) => {
+    response.set("Cache-Control", "no-store");
+    if (!(await readCatalogVisibility(database)).productsVisible) {
+      response.json({ products: [] });
+      return;
+    }
     const products = await database.repairCatalogItem.findMany({
       where: { type: "PRODUCT", active: true },
       select: {
@@ -226,6 +232,9 @@ export const createShopRouter = (
         catalogItemId: string;
         objectId: string;
       }>(response);
+      if (!(await readCatalogVisibility(database)).productsVisible) {
+        throw new HttpError(404, "IMAGE_NOT_FOUND", "Фотография не найдена.");
+      }
       const product = await database.repairCatalogItem.findFirst({
         where: {
           id: catalogItemId,
@@ -271,6 +280,16 @@ export const createShopRouter = (
         const requestedCraftIds = items.flatMap((item) =>
           item.craftItemId ? [item.craftItemId] : [],
         );
+        if (
+          requestedCatalogIds.length > 0 &&
+          !(await readCatalogVisibility(transaction)).productsVisible
+        ) {
+          throw new HttpError(
+            409,
+            "SHOP_PRODUCTS_HIDDEN",
+            "Обычные товары временно скрыты из магазина. Изделия ручной работы остаются доступны.",
+          );
+        }
         const [products, crafts] = await Promise.all([
           transaction.repairCatalogItem.findMany({
             where: {

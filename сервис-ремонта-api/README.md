@@ -113,6 +113,18 @@ is inclusive, the countdown uses `Europe/Moscow`, and a blank emergency phone fa
 company phone. Configuration is stored in the existing `AppSetting` table, so no database
 migration is needed.
 
+## Customer catalog visibility
+
+Administrators can read `GET /company/catalog-visibility` and update the settings with
+`PUT /admin/company/catalog-visibility`, using `{ "servicesVisible": boolean, "productsVisible": boolean }`.
+Both categories are visible until an administrator changes the settings. Disabling services removes
+their prices from the public and signed-in customer price-list endpoints; disabling ordinary products
+removes them from the web and Android shop and prevents customers from placing new orders for those
+products. Handmade craft items remain available. Catalog records, stock, existing shop orders, repair
+estimates, and work acts are not changed. Spare-part visibility is not controlled by this setting;
+parts remain listed in repair estimates and acts for customer transparency. Settings use the existing
+`AppSetting` table and do not require a database migration.
+
 ## Public service prices
 
 The guest web landing page reads the active service price list from

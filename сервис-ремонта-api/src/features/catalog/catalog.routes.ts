@@ -9,6 +9,7 @@ import {
   getAuthenticatedUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { readCatalogVisibility } from "../company/catalog-visibility-settings.js";
 import {
   type MediaStorage,
   projectMediaStorage,
@@ -110,11 +111,16 @@ export const createCatalogRouter = (
     requireRoles("CUSTOMER"),
     validateRequest({ query: servicePriceQuery }),
     async (_request, response) => {
+      response.set("Cache-Control", "no-store");
       const { deviceType: requestedDeviceType } = (
         response.locals.input as {
           readonly query: z.infer<typeof servicePriceQuery>;
         }
       ).query;
+      if (!(await readCatalogVisibility(database)).servicesVisible) {
+        response.json({ prices: [] });
+        return;
+      }
       const prices = await database.repairCatalogItem.findMany({
         where: {
           type: "SERVICE",
@@ -135,11 +141,16 @@ export const createCatalogRouter = (
     "/public/service-prices",
     validateRequest({ query: servicePriceQuery }),
     async (_request, response) => {
+      response.set("Cache-Control", "no-store");
       const { deviceType: requestedDeviceType } = (
         response.locals.input as {
           readonly query: z.infer<typeof servicePriceQuery>;
         }
       ).query;
+      if (!(await readCatalogVisibility(database)).servicesVisible) {
+        response.json({ prices: [] });
+        return;
+      }
       const prices = await database.repairCatalogItem.findMany({
         where: {
           type: "SERVICE",

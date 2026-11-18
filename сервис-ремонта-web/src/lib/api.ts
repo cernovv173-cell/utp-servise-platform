@@ -874,6 +874,11 @@ export type ClosureAnnouncementSettings = {
   phoneNumber: string;
 };
 
+export type CatalogVisibilitySettings = {
+  servicesVisible: boolean;
+  productsVisible: boolean;
+};
+
 export const apiRequest = <T>(path: string, token?: string | null, init: RequestInit = {}) => {
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -1618,6 +1623,17 @@ export const getClosureAnnouncement = (signal?: AbortSignal) =>
 
 export const updateClosureAnnouncement = (token: string, settings: ClosureAnnouncementSettings) =>
   apiRequest<ClosureAnnouncementSettings>("/admin/company/closure-announcement", token, {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
+
+export const getCatalogVisibility = (signal?: AbortSignal) =>
+  apiRequest<CatalogVisibilitySettings>("/company/catalog-visibility", null, {
+    signal,
+  });
+
+export const updateCatalogVisibility = (token: string, settings: CatalogVisibilitySettings) =>
+  apiRequest<CatalogVisibilitySettings>("/admin/company/catalog-visibility", token, {
     method: "PUT",
     body: JSON.stringify(settings),
   });

@@ -35,6 +35,7 @@ import ru.utp.servise.data.AdminChatInboxItem
 import ru.utp.servise.data.AdminQuickActionPreferences
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.ClosureAnnouncementSettings
+import ru.utp.servise.data.CatalogVisibilitySettings
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.CatalogItem
@@ -166,6 +167,10 @@ internal fun AuthenticatedWorkspace(
         mutableStateOf<ClosureAnnouncementSettings?>(null)
     }
     var closureAnnouncementLoadFailed by remember(token) { mutableStateOf(false) }
+    var catalogVisibility by remember(token) {
+        mutableStateOf<CatalogVisibilitySettings?>(null)
+    }
+    var catalogVisibilityLoadFailed by remember(token) { mutableStateOf(false) }
     LaunchedEffect(token, user.role) {
         if (user.role == "CUSTOMER" || user.role == "ADMIN") {
             val result = withContext(Dispatchers.IO) {
@@ -173,6 +178,12 @@ internal fun AuthenticatedWorkspace(
             }
             acceptingNewOrders = result.getOrNull()?.acceptingNewOrders
             orderIntakeLoadFailed = result.isFailure
+
+            val visibilityResult = withContext(Dispatchers.IO) {
+                runCatching { ApiClient.catalogVisibility() }
+            }
+            catalogVisibility = visibilityResult.getOrNull()
+            catalogVisibilityLoadFailed = visibilityResult.isFailure
         }
         if (user.role == "ADMIN") {
             val announcementResult = withContext(Dispatchers.IO) {
@@ -372,7 +383,16 @@ internal fun AuthenticatedWorkspace(
                                 LoyaltyScreen(loyalty, referralProgram, token, banners, onCampaignNavigate)
                             }
                             composable("customer/about") {
-                                CompanyScreen(token, false, busy, runAction, onBack = { navController.popBackStack() }, banners = banners, onCampaignNavigate = onCampaignNavigate)
+                                CompanyScreen(
+                                    token,
+                                    false,
+                                    busy,
+                                    runAction,
+                                    onBack = { navController.popBackStack() },
+                                    banners = banners,
+                                    onCampaignNavigate = onCampaignNavigate,
+                                    servicesVisible = catalogVisibility?.servicesVisible != false,
+                                )
                             }
                             composable("customer/crafts") {
                                 CustomerShopScreen(
@@ -687,6 +707,31 @@ internal fun AuthenticatedWorkspace(
                                             }
                                         }
                                     },
+                                    catalogVisibility = catalogVisibility,
+                                    catalogVisibilityLoadFailed = catalogVisibilityLoadFailed,
+                                    catalogVisibilitySaving = busy,
+                                    onRetryCatalogVisibility = {
+                                        scope.launch {
+                                            val result = withContext(Dispatchers.IO) {
+                                                runCatching { ApiClient.catalogVisibility() }
+                                            }
+                                            catalogVisibility = result.getOrNull()
+                                            catalogVisibilityLoadFailed = result.isFailure
+                                            result.exceptionOrNull()?.let {
+                                                onError(
+                                                    it.message ?: "Не удалось загрузить настройки каталога.",
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onCatalogVisibilityChanged = { settings ->
+                                        runAction({ ApiClient.updateCatalogVisibility(token, settings) }) { result ->
+                                            (result as? CatalogVisibilitySettings)?.let { saved ->
+                                                catalogVisibility = saved
+                                                catalogVisibilityLoadFailed = false
+                                            }
+                                        }
+                                    },
                                     closureAnnouncement = closureAnnouncement,
                                     closureAnnouncementLoadFailed = closureAnnouncementLoadFailed,
                                     closureAnnouncementSaving = busy,
@@ -737,7 +782,15 @@ internal fun AuthenticatedWorkspace(
                             }
                             composable("admin/procurement") { PartsProcurementScreen(token, onError) }
                             composable("admin/about") {
-                                CompanyScreen(token, true, busy, runAction, onBack = { navController.popBackStack() }, banners = banners, onCampaignNavigate = onCampaignNavigate)
+                                CompanyScreen(
+                                    token,
+                                    true,
+                                    busy,
+                                    runAction,
+                                    onBack = { navController.popBackStack() },
+                                    banners = banners,
+                                    onCampaignNavigate = onCampaignNavigate,
+                                )
                             }
                             composable("admin/crafts") {
                                 AdminShopOrdersScreen(

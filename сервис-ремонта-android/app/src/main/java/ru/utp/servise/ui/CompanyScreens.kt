@@ -49,6 +49,7 @@ fun CompanyScreen(
     onBack: (() -> Unit)?,
     banners: List<SiteBanner> = emptyList(),
     onCampaignNavigate: (String) -> Unit = {},
+    servicesVisible: Boolean = true,
 ) {
     val scope = rememberCoroutineScope()
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
@@ -113,7 +114,7 @@ fun CompanyScreen(
                 Text(info.name, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = UtpInk)
                 CompanyInfoCard("О нас", info.description)
                 CompanyInfoCard("Наша история", info.history)
-                if (info.services.isNotEmpty()) {
+                if (servicesVisible && info.services.isNotEmpty()) {
                     Card(
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
                         colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),

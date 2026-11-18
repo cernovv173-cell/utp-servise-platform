@@ -7,13 +7,19 @@ import { PublicSiteShell } from "@/components/public-site-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
+import { CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY } from "@/features/catalog/catalog-visibility";
 
-import { getCompany } from "@/lib/api";
+import { getCatalogVisibility, getCompany } from "@/lib/api";
 import { createPageHead } from "@/lib/seo";
 
 const AboutPage = () => {
   const { ready, user } = useAuth();
   const query = useQuery({ queryKey: ["company"], queryFn: ({ signal }) => getCompany(signal) });
+  const catalogVisibilityQuery = useQuery({
+    queryKey: CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY,
+    queryFn: ({ signal }) => getCatalogVisibility(signal),
+  });
+  const servicesVisible = catalogVisibilityQuery.data?.servicesVisible !== false;
   const company = query.data?.company;
   const content = (
     <>
@@ -33,16 +39,21 @@ const AboutPage = () => {
                   "Мы помогаем возвращать технику к работе и заботимся о каждом обращении."}
               </p>
             </SectionCard>
-            <SectionCard>
-              <h2 className="font-semibold">Услуги</h2>
-              <ul className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
-                {company.services.map((service) => (
-                  <li key={service} className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
-                    {service}
-                  </li>
-                ))}
-              </ul>
-            </SectionCard>
+            {servicesVisible && (
+              <SectionCard>
+                <h2 className="font-semibold">Услуги</h2>
+                <ul className="mt-3 grid gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  {company.services.map((service) => (
+                    <li
+                      key={service}
+                      className="rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800"
+                    >
+                      {service}
+                    </li>
+                  ))}
+                </ul>
+              </SectionCard>
+            )}
             {company.mediaUrls.length > 0 && (
               <SectionCard>
                 <h2 className="mb-3 font-semibold">Фото и видео</h2>

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { AdminBackLink } from "@/features/admin/admin-back-link";
+import { CatalogVisibilityControl } from "@/features/admin/catalog-visibility-control";
 import { ClosureAnnouncementControl } from "@/features/admin/closure-announcement-control";
 import { CompanyAdmin } from "@/features/admin/company-admin";
 import { RepairOrderIntakeControl } from "@/features/admin/repair-order-intake-control";
@@ -25,6 +26,7 @@ const AdminCompanyPage = () => {
       ) : (
         <div className="grid gap-4">
           <RepairOrderIntakeControl />
+          <CatalogVisibilityControl />
           <ClosureAnnouncementControl />
           <CompanyAdmin />
         </div>

@@ -25,6 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ClosureAnnouncementSettings
+import ru.utp.servise.data.CatalogVisibilitySettings
 
 @Composable
 internal fun AdminAppSettingsScreen(
@@ -37,6 +38,11 @@ internal fun AdminAppSettingsScreen(
     orderIntakeLoadFailed: Boolean,
     onRetryOrderIntake: () -> Unit,
     onAcceptingNewOrdersChanged: (Boolean) -> Unit,
+    catalogVisibility: CatalogVisibilitySettings?,
+    catalogVisibilityLoadFailed: Boolean,
+    catalogVisibilitySaving: Boolean,
+    onRetryCatalogVisibility: () -> Unit,
+    onCatalogVisibilityChanged: (CatalogVisibilitySettings) -> Unit,
     closureAnnouncement: ClosureAnnouncementSettings?,
     closureAnnouncementLoadFailed: Boolean,
     closureAnnouncementSaving: Boolean,
@@ -149,6 +155,13 @@ internal fun AdminAppSettingsScreen(
                 }
             }
         }
+        CatalogVisibilitySettingsCard(
+            settings = catalogVisibility,
+            loadFailed = catalogVisibilityLoadFailed,
+            saving = catalogVisibilitySaving,
+            onRetry = onRetryCatalogVisibility,
+            onSettingsChanged = onCatalogVisibilityChanged,
+        )
         ClosureAnnouncementSettingsCard(
             settings = closureAnnouncement,
             loadFailed = closureAnnouncementLoadFailed,

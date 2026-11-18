@@ -6,6 +6,11 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
 import {
+  catalogVisibilitySchema,
+  readCatalogVisibility,
+  saveCatalogVisibility,
+} from "./catalog-visibility-settings.js";
+import {
   closureAnnouncementSchema,
   readClosureAnnouncement,
   saveClosureAnnouncement,
@@ -73,6 +78,28 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
     response.set("Cache-Control", "no-store");
     response.json(await readRepairOrderIntake(database));
   });
+
+  router.get("/company/catalog-visibility", async (_request, response) => {
+    response.set("Cache-Control", "no-store");
+    response.json(await readCatalogVisibility(database));
+  });
+
+  router.put(
+    "/admin/company/catalog-visibility",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ body: catalogVisibilitySchema }),
+    async (_request, response) => {
+      const settings = (
+        response.locals.input as {
+          readonly body: z.infer<typeof catalogVisibilitySchema>;
+        }
+      ).body;
+      await saveCatalogVisibility(database, settings);
+      response.set("Cache-Control", "no-store");
+      response.json(settings);
+    },
+  );
 
   router.get("/company/closure-announcement", async (_request, response) => {
     response.set("Cache-Control", "no-store");

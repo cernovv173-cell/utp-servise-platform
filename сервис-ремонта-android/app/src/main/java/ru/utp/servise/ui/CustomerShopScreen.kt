@@ -70,6 +70,7 @@ private data class CustomerShopSnapshot(
     val orders: List<ShopOrder>,
     val crafts: List<CraftItem>,
     val craftOrders: List<CraftOrder>,
+    val productsVisible: Boolean,
 )
 
 private data class ShopCartLine(
@@ -97,6 +98,7 @@ fun CustomerShopScreen(
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
     var products by remember { mutableStateOf<List<ShopProduct>>(emptyList()) }
+    var productsVisible by remember { mutableStateOf(true) }
     var orders by remember { mutableStateOf<List<ShopOrder>>(emptyList()) }
     var crafts by remember { mutableStateOf<List<CraftItem>>(emptyList()) }
     var craftOrders by remember { mutableStateOf<List<CraftOrder>>(emptyList()) }
@@ -135,9 +137,13 @@ fun CustomerShopScreen(
                     orders = ApiClient.customerShopOrders(token),
                     crafts = ApiClient.craftItems(token),
                     craftOrders = ApiClient.craftOrders(token),
+                    productsVisible = runCatching {
+                        ApiClient.catalogVisibility().productsVisible
+                    }.getOrDefault(true),
                 )
             }
             products = loaded.products
+            productsVisible = loaded.productsVisible
             orders = loaded.orders
             crafts = loaded.crafts
             craftOrders = loaded.craftOrders
@@ -215,6 +221,19 @@ fun CustomerShopScreen(
         }
 
         if (selectedTab == CustomerShopTab.CATALOG) {
+            if (!productsVisible && catalogItems.isNotEmpty()) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+                ) {
+                    Text(
+                        "Обычные товары временно скрыты. Изделия ручной работы остаются доступны.",
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        color = UtpMuted,
+                        fontSize = 12.sp,
+                    )
+                }
+            }
             when {
                 isLoading && catalogItems.isEmpty() -> Text("Загружаем каталог…", color = UtpMuted)
                 loadError != null && catalogItems.isEmpty() -> {
@@ -225,8 +244,21 @@ fun CustomerShopScreen(
                 catalogItems.isEmpty() -> {
                     Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                         Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("В магазине пока нет товаров", fontWeight = FontWeight.SemiBold, color = UtpInk)
-                            Text("Товары и готовые изделия ручной работы появятся здесь, как только их опубликуют.", Modifier.padding(top = 5.dp), color = UtpMuted, fontSize = 12.sp)
+                            Text(
+                                if (productsVisible) "В магазине пока нет товаров" else "Каталог товаров временно скрыт",
+                                fontWeight = FontWeight.SemiBold,
+                                color = UtpInk,
+                            )
+                            Text(
+                                if (productsVisible) {
+                                    "Товары и готовые изделия ручной работы появятся здесь, как только их опубликуют."
+                                } else {
+                                    "Изделия ручной работы появятся здесь, когда их опубликуют."
+                                },
+                                Modifier.padding(top = 5.dp),
+                                color = UtpMuted,
+                                fontSize = 12.sp,
+                            )
                         }
                     }
                 }

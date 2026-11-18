@@ -17,6 +17,7 @@ import { RaccoonIcon } from "@/components/raccoon-icon";
 import { Reveal } from "@/components/reveal";
 
 import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
+import { CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY } from "@/features/catalog/catalog-visibility";
 import { GuidesSection } from "@/features/guides/guides-section";
 import { HolidayClosureBanner } from "@/features/holiday/holiday-closure-banner";
 import { RepairOrderIntakeNotice } from "@/features/orders/repair-order-intake-notice";
@@ -29,7 +30,7 @@ import { TypewriterText } from "@/features/public/typewriter-text";
 import { SeasonalHomeBanner } from "@/features/seasonal/seasonal-home-banner";
 import { getDisplayedSeason, useSeasonalTheme } from "@/features/seasonal/use-seasonal-theme";
 
-import { getCompany, getRepairOrderIntake } from "@/lib/api";
+import { getCatalogVisibility, getCompany, getRepairOrderIntake } from "@/lib/api";
 
 const defaultServices = [
   "Диагностика компьютеров и ноутбуков",
@@ -68,8 +69,13 @@ export const PublicHome = () => {
     queryFn: ({ signal }) => getRepairOrderIntake(signal),
     staleTime: 0,
   });
+  const catalogVisibilityQuery = useQuery({
+    queryKey: CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY,
+    queryFn: ({ signal }) => getCatalogVisibility(signal),
+  });
   const company = companyQuery.data?.company;
   const services = (company?.services.length ? company.services : defaultServices).slice(0, 3);
+  const servicesVisible = catalogVisibilityQuery.data?.servicesVisible !== false;
   const serviceName = company?.name ?? "ЕНОТ СЕРВИС";
   const activeSeason = getDisplayedSeason(seasonalTheme.data?.activeSeason);
 
@@ -104,12 +110,14 @@ export const PublicHome = () => {
                       Оформить заявку <ArrowRight size={18} aria-hidden="true" />
                     </PublicAuthTrigger>
                   )}
-                  <a
-                    href="#services"
-                    className="inline-flex min-h-12 items-center rounded-xl border border-slate-200 bg-white/80 px-5 font-semibold text-slate-700 hover:bg-slate-100 dark:border-[#304373] dark:bg-[#0c142b]/70 dark:text-slate-200 dark:hover:bg-[#152449]"
-                  >
-                    Услуги сервиса
-                  </a>
+                  {servicesVisible && (
+                    <a
+                      href="#services"
+                      className="inline-flex min-h-12 items-center rounded-xl border border-slate-200 bg-white/80 px-5 font-semibold text-slate-700 hover:bg-slate-100 dark:border-[#304373] dark:bg-[#0c142b]/70 dark:text-slate-200 dark:hover:bg-[#152449]"
+                    >
+                      Услуги сервиса
+                    </a>
+                  )}
                   {company?.phone && (
                     <a
                       href={`tel:${company.phone.replace(/[^\d+]/gu, "")}`}
@@ -174,48 +182,50 @@ export const PublicHome = () => {
         <ServicePriceTicker />
       </PageTurn>
 
-      <PageTurn>
-        <section id="services" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-12 md:px-8">
-          <div className="max-w-2xl">
-            <p className="text-xs font-bold tracking-[0.18em] text-blue-600 uppercase dark:text-cyan-300">
-              Услуги сервиса
-            </p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-              <TypewriterText text="Чем можем помочь" />
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-              Точный состав и стоимость работ согласуем после диагностики.
-            </p>
-          </div>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {services.map((service, index) => {
-              const Icon = index === 0 ? ShieldCheck : Wrench;
-              return (
-                <Reveal key={service} delay={index * 0.08} className="h-full">
-                  <article className="h-full rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
-                    <div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-cyan-200">
-                      <Icon size={20} aria-hidden="true" />
-                    </div>
-                    <h3 className="mt-3 font-semibold">{service}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                      Стоимость сообщим до начала ремонта.
-                    </p>
-                  </article>
-                </Reveal>
-              );
-            })}
-          </div>
-          <div className="mt-5">
-            <Link
-              to="/uslugi"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-200"
-            >
-              Все услуги и цены
-              <ArrowRight size={16} aria-hidden="true" />
-            </Link>
-          </div>
-        </section>
-      </PageTurn>
+      {servicesVisible && (
+        <PageTurn>
+          <section id="services" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-12 md:px-8">
+            <div className="max-w-2xl">
+              <p className="text-xs font-bold tracking-[0.18em] text-blue-600 uppercase dark:text-cyan-300">
+                Услуги сервиса
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+                <TypewriterText text="Чем можем помочь" />
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                Точный состав и стоимость работ согласуем после диагностики.
+              </p>
+            </div>
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
+              {services.map((service, index) => {
+                const Icon = index === 0 ? ShieldCheck : Wrench;
+                return (
+                  <Reveal key={service} delay={index * 0.08} className="h-full">
+                    <article className="h-full rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm dark:border-[#405b9c]/40 dark:bg-[#0c142b]/90">
+                      <div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-cyan-200">
+                        <Icon size={20} aria-hidden="true" />
+                      </div>
+                      <h3 className="mt-3 font-semibold">{service}</h3>
+                      <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+                        Стоимость сообщим до начала ремонта.
+                      </p>
+                    </article>
+                  </Reveal>
+                );
+              })}
+            </div>
+            <div className="mt-5">
+              <Link
+                to="/uslugi"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:underline dark:text-cyan-200"
+              >
+                Все услуги и цены
+                <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </div>
+          </section>
+        </PageTurn>
+      )}
 
       <PageTurn>
         <section

@@ -57,18 +57,24 @@ fun PublicHomeScreen(
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
     var review by remember { mutableStateOf<PublicReview?>(null) }
     var acceptingNewOrders by remember { mutableStateOf<Boolean?>(null) }
+    var servicesVisible by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
         val publicContent = withContext(Dispatchers.IO) {
-            Triple(
+            val content = Triple(
                 runCatching { ApiClient.companyInfo() }.getOrNull(),
                 runCatching { ApiClient.publicReviews().firstOrNull() }.getOrNull(),
                 runCatching { ApiClient.repairOrderIntake().acceptingNewOrders }.getOrNull(),
             )
+            val serviceVisibility = runCatching {
+                ApiClient.catalogVisibility().servicesVisible
+            }.getOrDefault(true)
+            content to serviceVisibility
         }
-        company = publicContent.first
-        review = publicContent.second
-        acceptingNewOrders = publicContent.third
+        company = publicContent.first.first
+        review = publicContent.first.second
+        acceptingNewOrders = publicContent.first.third
+        servicesVisible = publicContent.second
     }
 
     val services = company?.services?.filter(String::isNotBlank)?.take(4).orEmpty().ifEmpty {
@@ -140,14 +146,16 @@ fun PublicHomeScreen(
 
         CustomerOfferHomeBanners(onOpenOffers = onCustomerLogin)
 
-        Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-            PublicSectionTitle("Услуги сервиса")
-            services.forEach { service ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
-                    shape = RoundedCornerShape(16.dp),
-                ) {
-                    Text(service, modifier = Modifier.fillMaxWidth().padding(16.dp), fontWeight = FontWeight.Medium, color = UtpInk)
+        if (servicesVisible) {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                PublicSectionTitle("Услуги сервиса")
+                services.forEach { service ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
+                        shape = RoundedCornerShape(16.dp),
+                    ) {
+                        Text(service, modifier = Modifier.fillMaxWidth().padding(16.dp), fontWeight = FontWeight.Medium, color = UtpInk)
+                    }
                 }
             }
         }

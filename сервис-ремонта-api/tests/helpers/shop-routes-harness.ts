@@ -148,7 +148,24 @@ export const createShopRoutesHarness = async (
   };
   let itemSequence = 0;
   let orderSequence = 0;
+  let catalogVisibilityValue: unknown = null;
   const client: Record<string, any> = {
+    appSetting: {
+      findUnique: async ({ where }: { where: { key: string } }) =>
+        where.key === "catalog_visibility" && catalogVisibilityValue !== null
+          ? { value: catalogVisibilityValue }
+          : null,
+      upsert: async ({
+        create,
+        update,
+      }: {
+        create: { value: unknown };
+        update: { value: unknown };
+      }) => {
+        catalogVisibilityValue = update.value ?? create.value;
+        return { value: catalogVisibilityValue };
+      },
+    },
     user: {
       findMany: async ({ where }: { where: Record<string, unknown> }) =>
         users
@@ -359,5 +376,14 @@ export const createShopRoutesHarness = async (
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
-  return { products, craftItems, orders, sentNotifications, request };
+  return {
+    products,
+    craftItems,
+    orders,
+    sentNotifications,
+    request,
+    setCatalogVisibility: (value: unknown) => {
+      catalogVisibilityValue = value;
+    },
+  };
 };

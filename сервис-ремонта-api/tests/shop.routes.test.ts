@@ -53,6 +53,38 @@ test("public shop lists only active products without exposing exact stock", asyn
   assert.equal("stockQuantity" in body.products[0]!, false);
 });
 
+test("hidden ordinary products disappear from the public shop and cannot be ordered", async (t) => {
+  const { request, orders, setCatalogVisibility } =
+    await createShopRoutesHarness((callback) => t.after(callback));
+  setCatalogVisibility({ servicesVisible: true, productsVisible: false });
+
+  const products = await request("/shop/products");
+  assert.equal(products.status, 200);
+  assert.equal(products.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await products.json(), { products: [] });
+
+  const productImage = await request(
+    `/shop/products/${productId}/images/catalog-photo`,
+  );
+  assert.equal(productImage.status, 404);
+
+  const productOrder = await request(
+    "/shop/orders",
+    customerToken,
+    { items: [{ catalogItemId: productId, quantity: 1 }] },
+    "POST",
+  );
+  assert.equal(productOrder.status, 409);
+  assert.equal(orders.length, 0);
+
+  const handmadeItems = await request("/shop/craft-items");
+  assert.equal(handmadeItems.status, 200);
+  assert.equal(
+    ((await handmadeItems.json()) as { items: unknown[] }).items.length,
+    2,
+  );
+});
+
 test("public shop handmade catalog exposes only published craft items", async (t) => {
   const { request } = await createShopRoutesHarness((callback) =>
     t.after(callback),

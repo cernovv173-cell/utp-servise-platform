@@ -2,9 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { BadgeRussianRuble, Pause, Play } from "lucide-react";
 import { useState } from "react";
 
+import { CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY } from "@/features/catalog/catalog-visibility";
 import { pickHomeServicePrices } from "@/features/public/service-price-selection";
 
-import { getCustomerServicePrices, getPublicServicePrices } from "@/lib/api";
+import { getCatalogVisibility, getCustomerServicePrices, getPublicServicePrices } from "@/lib/api";
 
 const formatRub = (value: number) => `${value.toLocaleString("ru-RU")} ₽`;
 
@@ -14,10 +15,14 @@ export const ServicePriceTicker = ({ token }: { token?: string | null }) => {
     queryFn: ({ signal }) =>
       token ? getCustomerServicePrices(token, signal) : getPublicServicePrices(signal),
   });
+  const visibilityQuery = useQuery({
+    queryKey: CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY,
+    queryFn: ({ signal }) => getCatalogVisibility(signal),
+  });
   const [paused, setPaused] = useState<boolean | null>(null);
   const prices = pickHomeServicePrices(pricesQuery.data?.prices ?? []);
 
-  if (prices.length === 0) return null;
+  if (visibilityQuery.data?.servicesVisible === false || prices.length === 0) return null;
 
   const copies = prices.length < 6 ? 4 : 2;
   const loopedPrices = Array.from({ length: copies }, () => prices).flat();

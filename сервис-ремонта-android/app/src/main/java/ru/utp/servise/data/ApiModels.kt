@@ -21,6 +21,11 @@ data class RepairOrderIntakeSettings(
     val acceptingNewOrders: Boolean,
 )
 
+data class CatalogVisibilitySettings(
+    val servicesVisible: Boolean,
+    val productsVisible: Boolean,
+)
+
 data class ClosureAnnouncementSettings(
     val enabled: Boolean,
     val title: String,

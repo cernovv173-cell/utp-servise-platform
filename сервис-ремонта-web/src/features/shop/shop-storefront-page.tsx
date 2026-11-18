@@ -8,6 +8,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { PublicAuthTrigger, PublicSiteShell } from "@/components/public-site-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY } from "@/features/catalog/catalog-visibility";
 
 import {
   type ShopCraftItem,
@@ -15,6 +16,7 @@ import {
   type ShopProduct,
   cancelPickupShopOrder,
   createShopOrder,
+  getCatalogVisibility,
   getMyShopOrders,
   getShopCraftItems,
   getShopProducts,
@@ -56,6 +58,10 @@ const ShopStorefrontPage = () => {
   const productsQuery = useQuery({
     queryKey: ["shop-products"],
     queryFn: ({ signal }) => getShopProducts(signal),
+  });
+  const visibilityQuery = useQuery({
+    queryKey: CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY,
+    queryFn: ({ signal }) => getCatalogVisibility(signal),
   });
   const craftsQuery = useQuery({
     queryKey: ["shop-craft-items"],
@@ -269,6 +275,13 @@ const ShopStorefrontPage = () => {
               Обновить каталог
             </button>
           </div>
+          {visibilityQuery.data?.productsVisible === false && catalogItems.length > 0 && (
+            <SectionCard className="mb-3">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
+                Обычные товары временно скрыты. Изделия ручной работы остаются доступны.
+              </p>
+            </SectionCard>
+          )}
           {catalogItems.length === 0 && isCatalogLoading && (
             <SectionCard>
               <p className="text-sm text-slate-500">Загружаем каталог…</p>
@@ -288,10 +301,15 @@ const ShopStorefrontPage = () => {
           {catalogItems.length === 0 && !isCatalogLoading && !hasCatalogError && (
             <SectionCard className="py-10 text-center">
               <ShoppingBag size={30} className="mx-auto text-blue-500" aria-hidden="true" />
-              <h3 className="mt-3 font-semibold">Пока нет опубликованных товаров</h3>
+              <h3 className="mt-3 font-semibold">
+                {visibilityQuery.data?.productsVisible === false
+                  ? "Каталог товаров временно скрыт"
+                  : "Пока нет опубликованных товаров"}
+              </h3>
               <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
-                Когда в магазин добавят товары или готовые изделия ручной работы, они появятся
-                здесь.
+                {visibilityQuery.data?.productsVisible === false
+                  ? "Изделия ручной работы по-прежнему доступны."
+                  : "Когда в магазин добавят товары или готовые изделия ручной работы, они появятся здесь."}
               </p>
               {user?.role === "ADMIN" && (
                 <div className="mt-4 flex flex-wrap justify-center gap-4">

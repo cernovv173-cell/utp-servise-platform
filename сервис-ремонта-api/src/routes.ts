@@ -83,6 +83,18 @@ export const createApiRouter = ({
   });
 
   router.get(
+    "/company/catalog-visibility",
+    async (_request, response, next) => {
+      if (!database) {
+        response.set("Cache-Control", "no-store");
+        response.json({ servicesVisible: true, productsVisible: true });
+        return;
+      }
+      next();
+    },
+  );
+
+  router.get(
     "/company/closure-announcement",
     async (_request, response, next) => {
       if (!database) {
@@ -149,6 +161,7 @@ export const createApiRouter = ({
         request.path.startsWith("/max") ||
         request.path.startsWith("/orders") ||
         request.path.startsWith("/admin/company/order-intake") ||
+        request.path.startsWith("/admin/company/catalog-visibility") ||
         request.path.startsWith("/admin/company/closure-announcement") ||
         request.path.startsWith("/company/order-intake") ||
         request.path.startsWith("/salary") ||

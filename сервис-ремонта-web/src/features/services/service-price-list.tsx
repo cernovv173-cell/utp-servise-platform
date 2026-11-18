@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY } from "@/features/catalog/catalog-visibility";
 import type { ServicePage } from "@/features/services/service-pages-content";
 
-import { getPublicServicePrices } from "@/lib/api";
+import { getCatalogVisibility, getPublicServicePrices } from "@/lib/api";
 
 const formatRub = (value: number) => `${value.toLocaleString("ru-RU")} ₽`;
 
@@ -12,6 +13,10 @@ export const ServicePriceList = ({ page }: { page: ServicePage }) => {
     queryFn: ({ signal }) => getPublicServicePrices(signal),
     staleTime: 60_000,
   });
+  const visibilityQuery = useQuery({
+    queryKey: CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY,
+    queryFn: ({ signal }) => getCatalogVisibility(signal),
+  });
 
   const prices = query.data?.prices ?? [];
   const rows = page.priceItems.flatMap((item) => {
@@ -20,7 +25,9 @@ export const ServicePriceList = ({ page }: { page: ServicePage }) => {
     return [{ ...item, priceRub: catalogItem.unitPriceRub }];
   });
 
-  if (query.isLoading) {
+  if (visibilityQuery.data?.servicesVisible === false) return null;
+
+  if (query.isLoading || visibilityQuery.isLoading) {
     return (
       <div
         role="status"
