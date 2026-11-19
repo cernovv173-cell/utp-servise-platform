@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.AdminCustomer
 import ru.utp.servise.data.AdminCustomerPage
 import ru.utp.servise.data.ApiClient
-import ru.utp.servise.data.MaxActivationLink
 import ru.utp.servise.data.NewAdminCustomerResult
 import ru.utp.servise.data.OrderAddress
 import ru.utp.servise.data.RepairOrder
@@ -53,7 +52,6 @@ private val orderDevices = listOf(
 private data class AdminOrderSubmission(
     val orderCreated: Boolean,
     val newCustomer: NewAdminCustomerResult? = null,
-    val maxActivation: MaxActivationLink? = null,
     val failureMessage: String? = null,
 )
 
@@ -74,7 +72,6 @@ fun AdminOrderCreationScreen(
     var newCustomerName by remember { mutableStateOf("") }
     var newCustomerEmail by remember { mutableStateOf("") }
     var oneTimeCredentials by remember { mutableStateOf<NewAdminCustomerResult?>(null) }
-    var credentialMaxActivation by remember { mutableStateOf<MaxActivationLink?>(null) }
     var credentialsForCompletedOrder by remember { mutableStateOf(false) }
     var credentialOrderError by remember { mutableStateOf<String?>(null) }
     var deviceType by remember { mutableStateOf(orderDevices.first().first) }
@@ -121,7 +118,7 @@ fun AdminOrderCreationScreen(
                 }
                 if (createNewCustomer) {
                     Text(
-                        "Почту можно не указывать. Без неё создадим логин, а бот MAX отправит временный пароль после подтверждения номера клиента.",
+                        "Создадим логин и временный пароль. Передайте их клиенту; при первом входе он сменит пароль и при желании сам подключит MAX в профиле.",
                         fontSize = 12.sp,
                         color = UtpMuted,
                     )
@@ -235,7 +232,6 @@ fun AdminOrderCreationScreen(
             onClick = {
                 runAction({
                     var newCustomer: NewAdminCustomerResult? = null
-                    var maxActivation: MaxActivationLink? = null
                     val customer = if (createNewCustomer) {
                         ApiClient.createAdministratorCustomer(
                             token,
@@ -244,12 +240,6 @@ fun AdminOrderCreationScreen(
                             phone.trim(),
                         ).also { created ->
                             newCustomer = created
-                            if (created.customer.email == null) {
-                                maxActivation = ApiClient.startAdministratorCustomerMaxActivation(
-                                    token,
-                                    created.customer.id,
-                                )
-                            }
                         }.customer
                     } else {
                         selectedCustomer ?: error("Выберите клиента из базы.")
@@ -275,14 +265,12 @@ fun AdminOrderCreationScreen(
                         AdminOrderSubmission(
                             orderCreated = true,
                             newCustomer = newCustomer,
-                            maxActivation = maxActivation,
                         )
                     } catch (failure: Exception) {
                         if (newCustomer == null) throw failure
                         AdminOrderSubmission(
                             orderCreated = false,
                             newCustomer = newCustomer,
-                            maxActivation = maxActivation,
                             failureMessage = failure.message ?: "Не удалось создать заявку.",
                         )
                     }
@@ -290,7 +278,6 @@ fun AdminOrderCreationScreen(
                     val submission = result as? AdminOrderSubmission ?: return@runAction
                     if (submission.newCustomer != null) {
                         oneTimeCredentials = submission.newCustomer
-                        credentialMaxActivation = submission.maxActivation
                         credentialsForCompletedOrder = submission.orderCreated
                         credentialOrderError = submission.failureMessage
                         selectedCustomer = submission.newCustomer.customer
@@ -320,12 +307,9 @@ fun AdminOrderCreationScreen(
         AlertDialog(
             onDismissRequest = {
                 oneTimeCredentials = null
-                credentialMaxActivation = null
                 if (credentialsForCompletedOrder) onCreated()
             },
-            title = {
-                Text(if (credentialMaxActivation != null) "Подключение клиента через МАКС" else "Данные для первого входа")
-            },
+            title = { Text("Данные для первого входа") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     SelectionContainer {
@@ -334,40 +318,13 @@ fun AdminOrderCreationScreen(
                                 "Логин: ${credentials.customer.login ?: credentials.customer.email ?: "—"}",
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            if (credentials.customer.email == null) {
-                                credentialMaxActivation?.let { activation ->
-                                    Text("Передайте клиенту эту ссылку и попросите открыть её в МАКС:")
-                                    Text(activation.url, fontWeight = FontWeight.SemiBold)
-                                    Text("Ссылка закреплена за этим клиентом и действует 10 минут. Бот отправит временный пароль после подтверждения его номера.")
-                                } ?: run {
-                                    Text("Ссылку не удалось создать. Пароль здесь не показывается; создайте новую ссылку для этого клиента.")
-                                    TextButton(
-                                        onClick = {
-                                            runAction({
-                                                ApiClient.startAdministratorCustomerMaxActivation(
-                                                    token,
-                                                    credentials.customer.id,
-                                                )
-                                            }) { result ->
-                                                (result as? MaxActivationLink)?.let {
-                                                    credentialMaxActivation = it
-                                                }
-                                            }
-                                        },
-                                        enabled = !busy,
-                                    ) { Text(if (busy) "Создаём ссылку…" else "Создать ссылку MAX") }
-                                }
-                            } else {
-                                Text(
-                                    "Временный пароль: ${credentials.temporaryPassword.orEmpty()}",
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                            }
+                            Text(
+                                "Временный пароль: ${credentials.temporaryPassword.orEmpty()}",
+                                fontWeight = FontWeight.SemiBold,
+                            )
                         }
                     }
-                    if (credentials.customer.email != null) {
-                        Text("Передайте данные клиенту безопасно. При первом входе пароль нужно сменить.")
-                    }
+                    Text("Передайте данные клиенту безопасно. При первом входе он сменит пароль; MAX можно подключить самостоятельно в профиле.")
                     credentialOrderError?.let {
                         Text("Аккаунт создан, но заявка не создана. Клиент сохранён в базе; можно повторить заявку, выбрав его.", color = androidx.compose.material3.MaterialTheme.colorScheme.error)
                     }
@@ -376,7 +333,6 @@ fun AdminOrderCreationScreen(
             confirmButton = {
                 TextButton(onClick = {
                     oneTimeCredentials = null
-                    credentialMaxActivation = null
                     if (credentialsForCompletedOrder) onCreated()
                 }) { Text("Я сохранил данные") }
             },

@@ -625,7 +625,6 @@ export type AdminCustomerPage = {
 export type NewAdminCustomer = {
   customer: AdminCustomer;
   temporaryPassword?: string | null;
-  credentialDelivery?: { channel: "MAX"; status: "PENDING" };
 };
 
 export type Review = {
@@ -1476,13 +1475,6 @@ export const createAdminCustomer = (
     method: "POST",
     body: JSON.stringify(input),
   });
-
-export const startAdminCustomerMaxActivation = (token: string, customerId: string) =>
-  apiRequest<{ url: string; expiresAt: string }>(
-    `/admin/customers/${customerId}/max-activation`,
-    token,
-    { method: "POST" },
-  );
 
 export const updateAdminCustomer = (
   token: string,

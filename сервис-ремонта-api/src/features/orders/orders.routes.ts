@@ -17,8 +17,6 @@ import {
   supportedRepairDeviceTypes,
 } from "../catalog/repair-device-types.js";
 import { assertRepairOrderIntakeOpen } from "../company/repair-order-intake.js";
-import { addTemporaryLoginToCustomer } from "../customers/customer-login-credentials.js";
-import { deliverPendingCustomerCredentials } from "../max/max-credential-delivery.js";
 import { scheduleMaxRepairNotification } from "../max/max-notifications.js";
 import {
   sendRepairOrderNotification,
@@ -476,7 +474,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           "Для нового сценария выберите место ремонта; для выезда укажите полный адрес и отметьте, находится ли он в Пушкино. За городом добавьте примерное расстояние от границы.",
         );
       }
-      let credentialMaxUserId = user.maxUserId ?? null;
       const order = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
           SELECT "id" FROM "users" WHERE "id" = ${user.id}::uuid FOR UPDATE
@@ -551,13 +548,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             note: "Заявка создана",
           },
         });
-        if (!user.email) {
-          const credentials = await addTemporaryLoginToCustomer(
-            transaction,
-            user.id,
-          );
-          credentialMaxUserId = credentials?.maxUserId ?? credentialMaxUserId;
-        }
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: created.id },
           include: orderDetails(user.role),
@@ -569,13 +559,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         user.id,
         "Создана новая заявка на ремонт.",
       );
-      if (!user.email) {
-        await deliverPendingCustomerCredentials(
-          database,
-          user.id,
-          credentialMaxUserId,
-        ).catch(() => "pending");
-      }
       response.status(201).json({ order });
     },
   );
@@ -744,7 +727,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         );
       }
 
-      let credentialMaxUserId = customer.maxUserId;
       const order = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
           SELECT "id" FROM "users" WHERE "id" = ${customer.id}::uuid FOR UPDATE
@@ -797,13 +779,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             note: "Заявка создана администратором",
           },
         });
-        if (customer.email === null) {
-          const credentials = await addTemporaryLoginToCustomer(
-            transaction,
-            customer.id,
-          );
-          credentialMaxUserId = credentials?.maxUserId ?? credentialMaxUserId;
-        }
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: created.id },
           include: orderDetails("ADMIN"),
@@ -815,13 +790,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         administrator.id,
         "Создана новая заявка на ремонт.",
       );
-      if (customer.email === null) {
-        await deliverPendingCustomerCredentials(
-          database,
-          customer.id,
-          credentialMaxUserId,
-        ).catch(() => "pending");
-      }
       response.status(201).json({ order });
     },
   );

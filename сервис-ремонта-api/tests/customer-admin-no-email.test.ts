@@ -10,7 +10,7 @@ import type { Prisma } from "../src/generated/prisma/client.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("admin can create an email-less customer without exposing the temporary password", async (t) => {
+test("admin receives one-time login credentials for an email-less customer", async (t) => {
   const token = "A".repeat(48);
   const previousSecret = process.env.PASSWORD_RESET_CODE_SECRET;
   process.env.PASSWORD_RESET_CODE_SECRET =
@@ -101,22 +101,16 @@ test("admin can create an email-less customer without exposing the temporary pas
   const body = await response.json();
   assert.equal(body.customer.email, null);
   assert.match(body.customer.login, /^[a-hjkmnp-z2-9]{8}$/u);
-  assert.equal(body.credentialDelivery.channel, "MAX");
-  assert.equal(body.credentialDelivery.status, "PENDING");
-  assert.equal("temporaryPassword" in body, false);
+  assert.equal(typeof body.temporaryPassword, "string");
+  assert.match(body.temporaryPassword, /^[A-Za-z0-9]{6}$/u);
   assert.equal("passwordHash" in body.customer, false);
   assert.equal(createdUser?.email, null);
   assert.equal(createdUser?.mustChangePassword, true);
   assert.match(String(createdUser?.passwordHash), /^scrypt\$/u);
-  assert.equal(storedDelivery?.login, body.customer.login);
-  assert.equal(typeof storedDelivery?.encryptedPassword, "string");
-  assert.match(
-    String(storedDelivery?.encryptedPassword),
-    /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\./u,
-  );
+  assert.equal(storedDelivery, undefined);
 });
 
-test("an existing MAX customer receives login credentials on their first order", async () => {
+test("temporary customer credentials are not stored for delivery through MAX", async () => {
   const previousSecret = process.env.PASSWORD_RESET_CODE_SECRET;
   process.env.PASSWORD_RESET_CODE_SECRET =
     "test-only-credential-encryption-secret";
@@ -156,8 +150,7 @@ test("an existing MAX customer receives login credentials on their first order",
     assert.equal(update?.login, credentials.login);
     assert.equal(update?.mustChangePassword, true);
     assert.match(String(update?.passwordHash), /^scrypt\$/u);
-    assert.equal(delivery?.login, credentials.login);
-    assert.notEqual(delivery?.encryptedPassword, credentials.temporaryPassword);
+    assert.equal(delivery, undefined);
   } finally {
     if (previousSecret === undefined)
       delete process.env.PASSWORD_RESET_CODE_SECRET;

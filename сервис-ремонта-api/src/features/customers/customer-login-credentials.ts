@@ -4,7 +4,6 @@ import {
   generateTemporaryPassword,
   hashPassword,
 } from "../auth/passwords.js";
-import { storePendingMaxCredential } from "../max/max-credential-delivery.js";
 
 export type TemporaryCustomerCredentials = {
   readonly login: string;
@@ -55,11 +54,6 @@ export const createCustomerWithTemporaryLogin = async (
       maxUserId: true,
     },
   });
-  await storePendingMaxCredential(transaction, {
-    userId: customer.id,
-    login,
-    password: temporaryPassword,
-  });
   return {
     customer: { ...customer, login: customer.login ?? login },
     credentials: { login, temporaryPassword, maxUserId: customer.maxUserId },
@@ -85,11 +79,6 @@ export const addTemporaryLoginToCustomer = async (
       passwordHash: await hashPassword(temporaryPassword),
       mustChangePassword: true,
     },
-  });
-  await storePendingMaxCredential(transaction, {
-    userId: customer.id,
-    login,
-    password: temporaryPassword,
   });
   return { login, temporaryPassword, maxUserId: customer.maxUserId };
 };

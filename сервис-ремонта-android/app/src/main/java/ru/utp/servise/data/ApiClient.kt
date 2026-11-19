@@ -829,26 +829,9 @@ object ApiClient {
                 if (phoneNumber.isNotBlank()) put("phoneNumber", phoneNumber)
             },
         )
-        val credentialDelivery = response.optJSONObject("credentialDelivery")
         return NewAdminCustomerResult(
             customer = response.getJSONObject("customer").toAdminCustomer(),
             temporaryPassword = response.nullableString("temporaryPassword"),
-            credentialDeliveryPending = credentialDelivery?.optString("status") == "PENDING",
-        )
-    }
-
-    fun startAdministratorCustomerMaxActivation(
-        token: String,
-        customerId: String,
-    ): MaxActivationLink {
-        val response = request(
-            "POST",
-            "/admin/customers/$customerId/max-activation",
-            token,
-        )
-        return MaxActivationLink(
-            url = response.getString("url"),
-            expiresAt = response.getString("expiresAt"),
         )
     }
 

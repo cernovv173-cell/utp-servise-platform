@@ -1,6 +1,5 @@
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { sendMaxMessage } from "./max-bot.js";
-import { deliverPendingCustomerCredentials } from "./max-credential-delivery.js";
 import { failMaxLogin } from "./max-login.service.js";
 
 export const sendQuietly = async (
@@ -8,16 +7,6 @@ export const sendQuietly = async (
   text: string,
 ): Promise<void> => {
   await sendMaxMessage(maxUserId, text).catch(() => undefined);
-};
-
-export const deliverCredentialsQuietly = async (
-  database: DatabaseClient,
-  userId: string,
-  maxUserId: string,
-): Promise<void> => {
-  await deliverPendingCustomerCredentials(database, userId, maxUserId).catch(
-    () => undefined,
-  );
 };
 
 export const failAndNotify = async (

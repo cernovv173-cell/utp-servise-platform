@@ -7,7 +7,6 @@ import { hashPassword } from "../auth/passwords.js";
 import { isUniqueViolation } from "../auth/session.js";
 import { createCustomerWithReferral } from "../referrals/customer-registration.js";
 import { isMaxContactHashValid } from "./max-bot.js";
-import { deliverPendingCustomerCredentials } from "./max-credential-delivery.js";
 import {
   claimMaxLoginRequest,
   findCustomersByNationalPhone,
@@ -17,11 +16,7 @@ import {
   extractMaxContactPhone,
   normalizeMaxPhone,
 } from "./max-phone.js";
-import {
-  deliverCredentialsQuietly,
-  failAndNotify,
-  sendQuietly,
-} from "./max-webhook-helpers.js";
+import { failAndNotify, sendQuietly } from "./max-webhook-helpers.js";
 import type { MaxWebhookUser } from "./max-webhook.service.js";
 
 const isReferralCodeInvalid = (error: unknown): boolean =>
@@ -62,9 +57,6 @@ export const handleMaxContact = async (
         ? "МАКС уже подключён к аккаунту ЕНОТ СЕРВИС."
         : "Чтобы войти, откройте сайт или приложение и нажмите «Войти через МАКС».",
     );
-    if (linked) {
-      await deliverCredentialsQuietly(database, linked.id, maxUserId);
-    }
     return;
   }
 
@@ -170,12 +162,9 @@ export const handleMaxContact = async (
     await sendQuietly(
       maxUserId,
       confirmed
-        ? "Готово! Номер подтверждён. Данные для входа отправлены в этот чат."
+        ? "Готово! МАКС подключён к аккаунту. Логин и временный пароль для первого входа передаст администратор."
         : "Подтверждение уже обработано. Проверьте сообщения бота.",
     );
-    if (confirmed) {
-      await deliverPendingCustomerCredentials(database, target.id, maxUserId);
-    }
     return;
   }
 
@@ -217,9 +206,6 @@ export const handleMaxContact = async (
         ? "Готово! Вход подтверждён. Вернитесь на сайт или в приложение."
         : "Вход уже подтверждён. Вернитесь на сайт или в приложение.",
     );
-    if (confirmed) {
-      await deliverCredentialsQuietly(database, linkedUser.id, maxUserId);
-    }
     return;
   }
 
@@ -283,12 +269,8 @@ export const handleMaxContact = async (
         ? "Готово! Аккаунт ЕНОТ СЕРВИС найден, номер подтверждён. Вернитесь на сайт или в приложение — вход уже выполнен."
         : "Вход уже подтверждён. Вернитесь на сайт или в приложение.",
     );
-    if (confirmed) {
-      await deliverCredentialsQuietly(database, match.id, maxUserId);
-    }
     return;
   }
-
   const passwordHash = await hashPassword(
     randomBytes(32).toString("base64url"),
   );

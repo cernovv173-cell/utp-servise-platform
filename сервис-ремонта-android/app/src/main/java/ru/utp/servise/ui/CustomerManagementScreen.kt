@@ -299,8 +299,6 @@ private fun NewCustomerCredentialsDialog(
                 Text("Почта: ${result.customer.email ?: "не указана"}")
                 if (result.temporaryPassword != null) {
                     Text("Временный пароль: ${result.temporaryPassword}", fontWeight = FontWeight.Bold)
-                } else if (result.credentialDeliveryPending) {
-                    Text("Временный пароль будет передан клиенту через МАКС после подключения аккаунта.", fontSize = 12.sp, color = UtpMuted)
                 }
             }
         },

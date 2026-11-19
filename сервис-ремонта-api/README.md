@@ -49,13 +49,14 @@ Mail.ru application credentials (`MAIL_RU_EMAIL` and `MAIL_RU_APP_PASSWORD`) ove
 SMTP port 465. These credentials are assigned only to the API. Reset links are restricted to origins
 in `WEB_APP_ORIGIN`.
 
-Customers created through MAX can add a backup email from their signed-in profile with
+Customers with a linked MAX account can add a backup email from their signed-in profile with
 `POST /auth/profile/email-login/request` and `POST /auth/profile/email-login/confirm`. The API emails a
 six-digit code, stores only its HMAC-SHA-256 digest using `PASSWORD_RESET_CODE_SECRET`, limits codes to
 five attempts, applies a 60-second resend delay and five requests per 15 minutes, and expires each code
 after 10 minutes. Only a successfully verified, currently unused email is attached; confirmation also
-sets the customer's email-login password. The existing MAX identity and sign-in remain available. A
-new account created by MAX receives the welcome message “Спасибо что выбрали нас!” from the bot.
+sets the customer's email-login password. Existing MAX sign-in remains available. A customer may
+also create an account through the self-service MAX sign-in flow; an account provisioned by an
+administrator can connect MAX later from the signed-in profile.
 
 ## Product analytics
 
@@ -199,23 +200,15 @@ and technician service calculation in the same database transaction. Only admini
 catalog balances; technicians can read active item balances. A tracked zero balance blocks use of that
 spare part or product. Administrators can create a repair order for an
 active customer through `POST /admin/orders`; its creation is recorded in order history. The
-administrator can create a customer record through `POST /admin/customers`. When an administrator
-creates a customer without an email, the API generates a unique, easy-to-read 8-character login and
-temporary password, but never returns that password to the admin client. The API stores the pending password
-only as AES-256-GCM ciphertext keyed from the server-only `PASSWORD_RESET_CODE_SECRET`; a successful
-MAX delivery clears the ciphertext. A customer without an email also receives these credentials
-after their first repair order if their MAX account is already linked.
+administrator creates a customer through `POST /admin/customers`, including while starting a first
+repair order. The API generates a unique 8-character login and temporary password, returning the
+password once in the administrator-only response for secure handoff. The password is hashed for
+storage and is never queued or sent through MAX. The first password login requires the customer to
+choose a new password. `/auth/login` accepts either email or the generated login in its existing
+`email` request field. After signing in, the customer can connect MAX themselves from their profile;
+the API validates MAX's signed contact payload and confirms the phone matches the account. The
+onboarding flow does not create an administrator MAX activation link.
 
-For an admin-created customer without an email, `POST /admin/customers/:customerId/max-activation`
-returns a 10-minute MAX activation link bound to that exact customer account. The bot requests a
-contact; the API validates MAX's signed contact payload,
-checks that the verified phone matches the selected customer's phone, and rejects an already-linked
-different MAX profile. Only after this check does it link MAX and send the login and temporary
-password to that chat. Customers must start the bot themselves before it can message them. The
-temporary password is required to be changed on first sign-in; `/auth/login` accepts either email or
-the generated login in its existing `email` request field. Administrators creating an email-backed
-customer retain the existing one-time password response. If an activation link cannot be generated,
-the admin UI can request another for the same customer.
 Customers can permanently delete their own account from the signed-in app through
 `DELETE /customer/account`; the endpoint uses the authenticated customer's ID and accepts no target
 account ID. Only administrators can delete another customer through
@@ -454,18 +447,17 @@ and takes precedence over the optional integration-provided `MAX_WEBHOOK_SECRET`
 registered the webhook and each customer links MAX in their profile, MAX notifications are not delivered;
 Telegram remains operational independently.
 
-MAX login and registration replace the former Yandex ID sign-in. `GET /auth/max/config` reports
+MAX login and self-registration replace the former Yandex ID sign-in. `GET /auth/max/config` reports
 whether the bot is configured. `POST /auth/max/login` creates a single-use request (10-minute TTL)
 and returns the `https://max.ru/<botName>?start=<payload>` deep link plus a poll token;
 `POST /auth/max/login/poll` returns `pending`, `awaiting_contact`, `failed`, `expired`, or
 `completed` with a session. The webhook handles `bot_started` and the `request_contact` reply:
 the contact signature (`vcf_info` HMAC-SHA256 with the bot token) is verified server-side, the
-customer is matched by the last ten phone digits, and a missing customer is created in the
-`CUSTOMER` role with no email. Referral codes from the web login screen are applied on creation.
-Poll tokens are stored only as SHA-256 hashes, a request can be consumed once, and MAX contact
-data is used only for sign-in and order communication. Staff accounts still sign in with
-email and password. The bot sends new customers the message “Спасибо что выбрали нас!” after
-registration.
+customer is matched by the last ten phone digits; when no account exists, the verified MAX contact
+can create a customer account. Referral codes from the web login screen are applied on creation.
+Poll tokens are stored only as SHA-256 hashes, a request can be consumed once,
+and MAX contact data is used only for sign-in and order communication. Staff accounts still sign in
+with email and password.
 
 VK ID login accepts a VK ID access token at `POST /auth/vk` and verifies the profile server-side
 using the public `VK_ID_APP_ID`. The Web widget uses `VITE_VK_ID_APP_ID`, asks for email access, and

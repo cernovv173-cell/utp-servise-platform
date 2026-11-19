@@ -711,7 +711,6 @@ data class AdminCustomerPage(
 data class NewAdminCustomerResult(
     val customer: AdminCustomer,
     val temporaryPassword: String?,
-    val credentialDeliveryPending: Boolean = false,
 )
 
 data class StaffMember(
@@ -795,10 +794,6 @@ data class MaxLoginStart(
     val expiresAt: String,
 )
 
-data class MaxActivationLink(
-    val url: String,
-    val expiresAt: String,
-)
 
 sealed interface MaxLoginPoll {
     data class Pending(val awaitingContact: Boolean) : MaxLoginPoll

@@ -476,6 +476,7 @@ test("a newly registered MAX customer receives the welcome message", async () =>
       hash,
     });
 
+    assert.equal(request.status, "CONFIRMED");
     assert.equal(request.accountCreated, true);
     assert.equal(request.userId, createdUser.id);
     assert.equal(maxApiMock.requests.length, 1);

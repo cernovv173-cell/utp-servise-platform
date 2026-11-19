@@ -6,11 +6,7 @@ import {
   hashMaxLoginToken,
 } from "./max-login.service.js";
 import { maxDisplayName as buildMaxDisplayName } from "./max-phone.js";
-import {
-  deliverCredentialsQuietly,
-  failAndNotify,
-  sendQuietly,
-} from "./max-webhook-helpers.js";
+import { failAndNotify, sendQuietly } from "./max-webhook-helpers.js";
 
 export { handleMaxContact } from "./max-contact-handler.js";
 
@@ -45,9 +41,6 @@ export const handleMaxBotStarted = async (
         ? "МАКС уже подключён к аккаунту ЕНОТ СЕРВИС. Чтобы войти на сайт, нажмите «Войти через МАКС» на странице входа."
         : "Это бот сервиса ЕНОТ СЕРВИС. Чтобы войти или зарегистрироваться, откройте сайт и нажмите «Войти через МАКС».",
     );
-    if (linked) {
-      await deliverCredentialsQuietly(database, linked.id, maxUserId);
-    }
     return;
   }
 
@@ -149,12 +142,9 @@ export const handleMaxBotStarted = async (
       await sendQuietly(
         maxUserId,
         confirmed
-          ? "Готово! Номер подтверждён. Данные для входа отправлены в этот чат."
+          ? "Готово! МАКС подключён к аккаунту. Логин и временный пароль для первого входа передаст администратор."
           : "Подтверждение уже обработано. Проверьте сообщения бота.",
       );
-      if (confirmed) {
-        await deliverCredentialsQuietly(database, target.id, maxUserId);
-      }
       return;
     }
 
@@ -227,9 +217,6 @@ export const handleMaxBotStarted = async (
         ? "Готово! Вход подтверждён. Вернитесь на сайт или в приложение."
         : "Вход уже подтверждён. Вернитесь на сайт или в приложение.",
     );
-    if (confirmed) {
-      await deliverCredentialsQuietly(database, linkedUser.id, maxUserId);
-    }
     return;
   }
 

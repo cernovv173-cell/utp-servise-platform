@@ -19,10 +19,7 @@ import {
   generateTemporaryPassword,
   hashPassword,
 } from "../auth/passwords.js";
-import {
-  findCustomersByNationalPhone,
-  startMaxLogin,
-} from "../max/max-login.service.js";
+import { findCustomersByNationalPhone } from "../max/max-login.service.js";
 import { normalizeMaxPhone } from "../max/max-phone.js";
 import {
   type MediaStorage,
@@ -123,38 +120,6 @@ export const createCustomerAdminRouter = (
   );
 
   router.post(
-    "/admin/customers/:customerId/max-activation",
-    requireAuth,
-    requireRoles("ADMIN"),
-    validateRequest({ params: customerIdParams }),
-    async (_request, response) => {
-      const { customerId } =
-        paramsOf<z.infer<typeof customerIdParams>>(response);
-      const customer = await database.user.findFirst({
-        where: {
-          id: customerId,
-          role: "CUSTOMER",
-          active: true,
-          email: null,
-        },
-        select: { id: true },
-      });
-      if (!customer) {
-        throw new HttpError(
-          404,
-          "CUSTOMER_NOT_FOUND",
-          "Клиент без электронной почты не найден.",
-        );
-      }
-      const activation = await startMaxLogin(database, undefined, customer.id);
-      response.status(201).json({
-        url: activation.url,
-        expiresAt: activation.expiresAt,
-      });
-    },
-  );
-
-  router.post(
     "/admin/customers",
     requireAuth,
     requireRoles("ADMIN"),
@@ -172,14 +137,14 @@ export const createCustomerAdminRouter = (
             new HttpError(
               400,
               "CUSTOMER_PHONE_REQUIRED",
-              "Без электронной почты укажите полный номер телефона, привязанный к МАКС.",
+              "Без электронной почты укажите полный номер телефона клиента.",
             ),
           );
           return;
         }
 
         try {
-          const customer = await database.$transaction(async (transaction) => {
+          const created = await database.$transaction(async (transaction) => {
             const matches = await findCustomersByNationalPhone(
               transaction,
               normalizedPhone.nationalDigits,
@@ -198,12 +163,12 @@ export const createCustomerAdminRouter = (
                 phoneNumber: normalizedPhone.phone,
               },
             );
-            return created.customer;
+            return created;
           });
-          const { maxUserId, ...publicCustomer } = customer;
+          const { maxUserId, ...publicCustomer } = created.customer;
           response.status(201).json({
             customer: { ...publicCustomer, maxLinked: Boolean(maxUserId) },
-            credentialDelivery: { channel: "MAX", status: "PENDING" },
+            temporaryPassword: created.credentials.temporaryPassword,
           });
         } catch (error) {
           if (isUniqueViolation(error)) {

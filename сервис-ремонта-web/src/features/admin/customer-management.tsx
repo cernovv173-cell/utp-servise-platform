@@ -266,10 +266,6 @@ export const CustomerManagement = () => {
                   {createdCustomer.temporaryPassword}
                 </dd>
               </div>
-            ) : createdCustomer.credentialDelivery ? (
-              <p className="text-sm text-slate-600 dark:text-slate-300">
-                Временный пароль будет передан клиенту через МАКС после подключения аккаунта.
-              </p>
             ) : null}
           </dl>
         </SectionCard>
