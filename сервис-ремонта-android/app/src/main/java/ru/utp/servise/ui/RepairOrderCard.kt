@@ -1,5 +1,6 @@
 package ru.utp.servise.ui
 
+import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,10 +10,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -216,8 +221,38 @@ internal fun RepairOrderCard(
                             modifier = Modifier.padding(start = 8.dp),
                         )
                     }
-                    order.customerPhoneNumber?.takeIf { it.isNotBlank() }?.let {
-                        Text("Телефон клиента: $it", fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 3.dp))
+                    order.customerPhoneNumber?.takeIf { it.isNotBlank() }?.let { phone ->
+                        Row(
+                            modifier = Modifier.padding(top = 3.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "Телефон клиента: $phone",
+                                fontSize = 12.sp,
+                                color = UtpBlue,
+                                modifier = Modifier.weight(1f),
+                            )
+                            val dialablePhone = phone.filter { it.isDigit() || it == '+' }
+                            if (role == "TECHNICIAN" && dialablePhone.count(Char::isDigit) >= 7) {
+                                IconButton(
+                                    onClick = {
+                                        context.startActivity(
+                                            Intent(
+                                                Intent.ACTION_DIAL,
+                                                Uri.fromParts("tel", dialablePhone, null),
+                                            ),
+                                        )
+                                    },
+                                    modifier = Modifier.size(40.dp),
+                                ) {
+                                    Icon(
+                                        Icons.Filled.Call,
+                                        contentDescription = "Позвонить клиенту по номеру $phone",
+                                        tint = UtpBlue,
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 if (order.technicianName.isNotBlank()) {
