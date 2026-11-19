@@ -1,6 +1,15 @@
 [advanced]
 
 [[advanced.headers]]
+source = "**"
+[advanced.headers.headers]
+Strict-Transport-Security = "max-age=31536000"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+Permissions-Policy = "camera=(self), geolocation=(self)"
+Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self' https://amazi.pro https://*.amazi.pro; form-action 'self'; script-src 'self' https://ad.mail.ru https://cdn.ampproject.org; style-src 'self' 'unsafe-inline' https://cdn.ampproject.org; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https://merge.app.amazi.pro https://*.mail.ru https://*.mytarget.ru https://*.my.com https://*.ampproject.org; frame-src 'self' https://*.mail.ru https://*.mytarget.ru https://*.my.com https://*.ampproject.org; worker-src 'self' blob:; media-src 'self' blob: https:; upgrade-insecure-requests"
+
+[[advanced.headers]]
 source = "/retired-game-cache.json"
 headers = { "Clear-Site-Data" = '"cache"', "Cache-Control" = "no-store" }
 

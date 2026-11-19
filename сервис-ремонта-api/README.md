@@ -26,6 +26,12 @@ characters. Passwords are stored as scrypt hashes. A successful change revokes t
 sessions and returns a fresh session to the current client; client forms ask the user to confirm the
 new password before submitting.
 
+Password login uses the same progressive delay for every portal (customer, technician, administrator,
+and procurement): after four consecutive failures for a normalized identifier, later attempts wait
+250 ms, then double up to 5 seconds. There is no hard account lockout. The bounded, in-memory tracker
+stores only a hash of the identifier, resets after 15 minutes without a failure, and is local to one
+API process; it resets on restart and does not replace a shared gateway limit or MFA.
+
 Password recovery is available through `POST /auth/password-reset/request` and
 `POST /auth/password-reset/confirm`. Requests always return the same response to avoid revealing
 whether an account exists. The account identifier can be an email address or generated login; the

@@ -5,3 +5,8 @@ allowBuilds:
   esbuild: true
   prisma: true
   protobufjs: false
+overrides:
+  "body-parser@^2": 2.4.0
+  fast-xml-parser: 5.12.1
+  node-forge: 1.4.3
+  proxy-addr: 2.0.8

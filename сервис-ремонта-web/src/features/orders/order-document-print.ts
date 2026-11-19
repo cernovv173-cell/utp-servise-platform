@@ -87,9 +87,19 @@ export const printOrderDocument = async (
     throw error;
   }
 
+  let printScheduled = false;
+  const schedulePrint = () => {
+    if (printScheduled || printWindow.closed) return;
+    printScheduled = true;
+    window.setTimeout(() => {
+      if (!printWindow.closed) printWindow.print();
+    }, 200);
+  };
+  printWindow.addEventListener("load", schedulePrint, { once: true });
   printWindow.document.open();
   printWindow.document.write(
-    `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${heading} · ${escapeHtml(order.serviceNumber)}</title><style>@page{size:A4;margin:16mm}body{font:14px Arial,sans-serif;color:#162033;line-height:1.5}h1{font-size:24px}h2{font-size:17px;margin-top:24px}.meta{color:#526078;font-size:12px}.attachment{break-inside:avoid;border:1px solid #ccd3df;padding:10px;margin-top:12px}.attachment img{display:block;max-width:100%;max-height:420px;object-fit:contain}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #ccd3df;padding:7px;text-align:left}.signatures{display:flex;justify-content:space-between;margin-top:48px}.signatures span{width:42%;border-top:1px solid #333;padding-top:6px}</style></head><body><h1>${heading}</h1><p class="meta">Сервисный номер ${escapeHtml(order.serviceNumber)} · дата ${escapeHtml(date(new Date().toISOString()))}</p>${body}<div class="signatures"><span>Клиент · подпись</span><span>Представитель сервиса · подпись</span></div><script>window.addEventListener('load',()=>setTimeout(()=>window.print(),200));</script></body></html>`,
+    `<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${heading} · ${escapeHtml(order.serviceNumber)}</title><style>@page{size:A4;margin:16mm}body{font:14px Arial,sans-serif;color:#162033;line-height:1.5}h1{font-size:24px}h2{font-size:17px;margin-top:24px}.meta{color:#526078;font-size:12px}.attachment{break-inside:avoid;border:1px solid #ccd3df;padding:10px;margin-top:12px}.attachment img{display:block;max-width:100%;max-height:420px;object-fit:contain}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #ccd3df;padding:7px;text-align:left}.signatures{display:flex;justify-content:space-between;margin-top:48px}.signatures span{width:42%;border-top:1px solid #333;padding-top:6px}</style></head><body><h1>${heading}</h1><p class="meta">Сервисный номер ${escapeHtml(order.serviceNumber)} · дата ${escapeHtml(date(new Date().toISOString()))}</p>${body}<div class="signatures"><span>Клиент · подпись</span><span>Представитель сервиса · подпись</span></div></body></html>`,
   );
   printWindow.document.close();
+  if (printWindow.document.readyState === "complete") schedulePrint();
 };

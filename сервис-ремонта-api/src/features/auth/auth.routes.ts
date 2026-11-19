@@ -16,6 +16,7 @@ import {
   hashSessionToken,
   publicUser,
 } from "./auth.middleware.js";
+import { LoginAttemptThrottle } from "./login-attempt-throttle.js";
 import {
   hashPassword,
   performDummyPasswordCheck,
@@ -101,12 +102,16 @@ const bodyOf = <T>(response: { locals: { input?: unknown } }): T =>
 
 type AuthRouterOptions = VkAuthRouterOptions;
 
+const wait = (milliseconds: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, milliseconds));
+
 export const createAuthRouter = (
   database: DatabaseClient,
   options: AuthRouterOptions = {},
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
+  const loginThrottle = new LoginAttemptThrottle();
   router.use(createVkAuthRouter(database, options));
 
   router.post(
@@ -153,6 +158,8 @@ export const createAuthRouter = (
     validateRequest({ body: loginSchema }),
     async (request, response, next) => {
       const input = bodyOf<z.infer<typeof loginSchema>>(response);
+      const delay = loginThrottle.delayBeforeAttempt(input.email);
+      if (delay > 0) await wait(delay);
       const user = await database.user.findUnique({
         where: input.email.includes("@")
           ? { email: input.email }
@@ -162,6 +169,7 @@ export const createAuthRouter = (
         ? await verifyPassword(input.password, user.passwordHash)
         : (await performDummyPasswordCheck(input.password), false);
       if (!user || !valid || !user.active || user.role !== input.portal) {
+        loginThrottle.recordFailure(input.email);
         next(
           new HttpError(
             401,
@@ -171,6 +179,7 @@ export const createAuthRouter = (
         );
         return;
       }
+      loginThrottle.clear(input.email);
       const session = await createSession(database, user.id);
       await recordProductAnalytics(
         database,
