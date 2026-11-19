@@ -8,6 +8,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { RepairOrderPriority } from "@/features/admin/repair-order-priority";
 import { useAuth } from "@/features/auth/auth-context";
 import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
+import { shortTechnicianName } from "@/features/orders/technician-name";
 
 import { getRepairSchedule } from "@/lib/api";
 
@@ -176,7 +177,9 @@ const SchedulePage = () => {
                       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-800">
                         <span>
                           {order.customer.displayName} ·{" "}
-                          {order.assignedTechnician?.displayName ?? "Мастер не назначен"}
+                          {order.assignedTechnician
+                            ? shortTechnicianName(order.assignedTechnician.displayName)
+                            : "Мастер не назначен"}
                         </span>
                         <span>
                           {[order.city, order.street, order.house].filter(Boolean).join(", ")}

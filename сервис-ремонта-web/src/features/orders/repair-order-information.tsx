@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { shortTechnicianName } from "@/features/orders/technician-name";
 
 import { type RepairOrder, uploadRepairOrderPhoto } from "@/lib/api";
 
@@ -154,7 +155,7 @@ export const RepairOrderInformation = ({ order, token }: { order: RepairOrder; t
             )}
             {order.assignedTechnician && (
               <p className="flex flex-wrap items-center gap-1">
-                Мастер: <strong>{order.assignedTechnician.displayName}</strong>
+                Мастер: <strong>{shortTechnicianName(order.assignedTechnician.displayName)}</strong>
                 {user?.role === "CUSTOMER" && (
                   <Link
                     to="/staff/$technicianId"

@@ -80,7 +80,7 @@ const navigationByRole: Record<Role, NavigationGroup> = {
     ],
   },
   ADMIN: {
-    label: "Администратор",
+    label: "Администратор Енот-сервис.рф",
     links: [
       { to: "/admin/orders", label: "Заявки", compactLabel: "Заявки", icon: ClipboardList },
       { to: "/admin", label: "Управление", compactLabel: "Управление", icon: Settings },

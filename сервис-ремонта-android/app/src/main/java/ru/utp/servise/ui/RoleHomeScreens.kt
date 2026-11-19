@@ -108,7 +108,6 @@ fun TechnicianHomeScreen(
 
 @Composable
 fun AdministratorHomeScreen(
-    user: AppUser,
     orders: List<RepairOrder>,
     onOrders: () -> Unit,
     onSchedule: () -> Unit,
@@ -124,7 +123,7 @@ fun AdministratorHomeScreen(
     ) {
         item {
             DashboardGreeting(
-                name = user.displayName.substringBefore(' ').ifBlank { "Администратор" },
+                name = "Администратор Енот-сервис.рф",
                 subtitle = "Обзор сервиса",
             )
         }

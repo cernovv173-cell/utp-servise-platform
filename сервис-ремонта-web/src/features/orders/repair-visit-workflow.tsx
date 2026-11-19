@@ -41,9 +41,6 @@ export const RepairVisitWorkflow = ({
   const canUseAssignedActions = role === "ADMIN" || isAssignedTechnician;
   const diagnosisComplete = Boolean(order.diagnosisCompletedAt);
   const verifiedDistance = order.visitDistanceVerifiedAt != null;
-  const hasIntake = Boolean(
-    order.intake?.conditionSummary?.trim() && order.intake.intakeMediaObjectId,
-  );
   const latestEstimate = order.estimates?.at(-1);
 
   const refresh = async (message: string) => {
@@ -243,35 +240,25 @@ export const RepairVisitWorkflow = ({
       {isHomeVisit &&
         role === "TECHNICIAN" &&
         isAssignedTechnician &&
+        ["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
         !order.visitPickupAgreedAt && (
           <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950">
             <p className="text-sm font-semibold">Если ремонт на месте невозможен</p>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              Сначала внесите состояние и комплектность в акт и добавьте фото или видео. Затем
-              подтвердите согласие клиента на перевозку в сервис.
+              Если ремонт на месте невозможен, подтвердите согласие клиента забрать технику в
+              сервис. Акт приёма-передачи на выезде не оформляется.
             </p>
             <button
               type="button"
               className={buttonClass}
-              disabled={!hasIntake || pickupMutation.isPending}
+              disabled={pickupMutation.isPending}
               onClick={() => {
-                if (
-                  window.confirm(
-                    "Клиент согласен передать технику в сервис, а состояние и комплектность зафиксированы?",
-                  )
-                )
+                if (window.confirm("Клиент согласен, чтобы мастер забрал технику в сервис?"))
                   pickupMutation.mutate();
               }}
             >
-              {pickupMutation.isPending
-                ? "Сохраняем…"
-                : "Клиент согласен — передать технику в сервис"}
+              {pickupMutation.isPending ? "Сохраняем…" : "Забрать в сервис"}
             </button>
-            {!hasIntake && (
-              <p className="text-xs text-amber-700 dark:text-amber-300">
-                Сначала заполните акт приёма и добавьте одно фото или видео.
-              </p>
-            )}
           </div>
         )}
 

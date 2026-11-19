@@ -396,7 +396,7 @@ const AccountPage = () => {
           <p className="mt-2 text-sm text-slate-500">
             Роль:{" "}
             {user?.role === "ADMIN"
-              ? "Администратор"
+              ? "Администратор Енот-сервис.рф"
               : user?.role === "TECHNICIAN"
                 ? "Мастер"
                 : "Клиент"}

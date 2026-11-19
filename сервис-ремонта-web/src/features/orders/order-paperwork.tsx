@@ -29,6 +29,12 @@ const defaults = (intake: RepairOrderIntake | null | undefined) => ({
   intakeNotes: intake?.intakeNotes ?? "",
 });
 
+const documentTabs = [
+  ["intake", "Акт приёма"],
+  ["work-order", "Заказ-наряд"],
+  ["warranty", "Гарантийный талон"],
+] as const;
+
 const ProtectedOrderMedia = ({
   token,
   objectId,
@@ -98,8 +104,11 @@ export const OrderPaperwork = ({
   canEditIntake: boolean;
 }) => {
   const queryClient = useQueryClient();
+  const isVisitOrder = (order.visitScenarioVersion ?? 0) > 0;
   const [open, setOpen] = useState(false);
-  const [document, setDocument] = useState<OrderDocumentKind>("intake");
+  const [document, setDocument] = useState<OrderDocumentKind>(
+    isVisitOrder ? "work-order" : "intake",
+  );
   const [previousIntake, setPreviousIntake] = useState(order.intake);
   const [draft, setDraft] = useState(() => defaults(order.intake));
   if (previousIntake !== order.intake) {
@@ -166,32 +175,29 @@ export const OrderPaperwork = ({
         <ModalHeader>
           <ModalTitle>Документы · {order.serviceNumber}</ModalTitle>
           <ModalDescription className="dark:text-slate-400">
-            Акт приёма фиксирует комплектность и внешнее состояние устройства; заказ-наряд
-            использует данные ремонта, гарантийный талон формируется при выдаче заказа.
+            {isVisitOrder
+              ? "Для выездной заявки акт приёма-передачи не оформляется. Здесь доступны заказ-наряд и гарантийный талон."
+              : "Акт приёма фиксирует комплектность и внешнее состояние устройства; заказ-наряд использует данные ремонта, гарантийный талон формируется при выдаче заказа."}
           </ModalDescription>
         </ModalHeader>
         <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Документы заявки">
-          {(
-            [
-              ["intake", "Акт приёма"],
-              ["work-order", "Заказ-наряд"],
-              ["warranty", "Гарантийный талон"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={document === value}
-              onClick={() => setDocument(value)}
-              className={`min-h-10 rounded-lg border px-3 text-sm font-medium ${document === value ? "border-cyan-400 bg-cyan-50 text-cyan-900 dark:bg-cyan-950/50 dark:text-cyan-100" : "border-slate-200 dark:border-slate-700"}`}
-            >
-              {label}
-            </button>
-          ))}
+          {documentTabs
+            .filter(([value]) => !isVisitOrder || value !== "intake")
+            .map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                role="tab"
+                aria-selected={document === value}
+                onClick={() => setDocument(value)}
+                className={`min-h-10 rounded-lg border px-3 text-sm font-medium ${document === value ? "border-cyan-400 bg-cyan-50 text-cyan-900 dark:bg-cyan-950/50 dark:text-cyan-100" : "border-slate-200 dark:border-slate-700"}`}
+              >
+                {label}
+              </button>
+            ))}
         </div>
 
-        {document === "intake" && (
+        {!isVisitOrder && document === "intake" && (
           <section className="mt-4 grid gap-4">
             <label className="grid gap-1 text-sm font-semibold">
               Внешнее состояние и видимые повреждения
@@ -307,8 +313,8 @@ export const OrderPaperwork = ({
               {order.contactPhone ?? "телефон не указан"}
             </p>
             <p className="text-sm">
-              Устройство: {repairDeviceTypeLabel(order.deviceType)} · серийный номер:{" "}
-              {order.intake?.serialNumber ?? "не указан"}
+              Устройство: {repairDeviceTypeLabel(order.deviceType)}
+              {!isVisitOrder && ` · серийный номер: ${order.intake?.serialNumber ?? "не указан"}`}
             </p>
             <p className="text-sm">Заявленная неисправность: {order.problem}</p>
             <h3 className="font-semibold">Работы и материалы</h3>
@@ -329,9 +335,16 @@ export const OrderPaperwork = ({
             ) : (
               <p className="text-sm text-slate-500">Состав работ пока не указан.</p>
             )}
-            <p className="text-sm">
-              Состояние при приёме: {order.intake?.conditionSummary || "акт приёма не заполнен"}
-            </p>
+            {isVisitOrder ? (
+              <p className="text-sm">
+                Согласие клиента на перевозку:{" "}
+                {order.visitPickupAgreedAt ? "подтверждено" : "не зафиксировано"}
+              </p>
+            ) : (
+              <p className="text-sm">
+                Состояние при приёме: {order.intake?.conditionSummary || "акт приёма не заполнен"}
+              </p>
+            )}
             <button
               type="button"
               onClick={() => print("work-order")}

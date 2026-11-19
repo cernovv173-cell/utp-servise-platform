@@ -109,6 +109,15 @@ requests. Administrators change that setting with `PUT /admin/company/order-inta
 When paused, the API rejects only customer `POST /orders` requests; existing orders and
 administrator-created orders remain available. Web and Android show the paused state to customers.
 
+## Repair visit pickup
+
+For an assigned technician, an active home-visit order can be transferred to the service center
+after the technician confirms the customer's consent. The pickup endpoint still verifies the
+assigned technician, visit scenario, location, status, and that consent has not already been
+recorded. A home-visit intake act, condition summary, or photo/video is not required; the event
+history records only that the technician confirmed the customer's consent. The intake act remains
+available for orders created directly for the service center.
+
 ## Closure announcement
 
 The public `GET /company/closure-announcement` endpoint returns the administrator-managed notice

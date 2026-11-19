@@ -410,7 +410,7 @@ private fun String.roleLabel(): String = when (this) {
     "CUSTOMER" -> "клиента"
     "TECHNICIAN" -> "мастера"
     "PROCUREMENT" -> "мастера закупки"
-    "ADMIN" -> "администратора"
+    "ADMIN" -> "администратора Енот-сервис.рф"
     else -> "пользователя"
 }
 

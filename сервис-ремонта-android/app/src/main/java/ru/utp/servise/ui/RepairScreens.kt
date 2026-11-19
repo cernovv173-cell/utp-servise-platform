@@ -272,7 +272,7 @@ fun ReviewsScreen(
                     }
                     Text(if (review.isPublished) "Опубликован" else "Ожидает модерации", fontSize = 11.sp, color = if (review.isPublished) UtpBlue else UtpMuted, modifier = Modifier.padding(top = 6.dp))
                     Text(
-                        "${review.customerName}${review.technicianName.takeIf { it.isNotBlank() }?.let { " · Мастер: $it" }.orEmpty()}",
+                        "${review.customerName}${review.technicianName.takeIf { it.isNotBlank() }?.let { " · Мастер: ${it.shortTechnicianName()}" }.orEmpty()}",
                         fontSize = 11.sp,
                         color = UtpMuted,
                         modifier = Modifier.padding(top = 9.dp),

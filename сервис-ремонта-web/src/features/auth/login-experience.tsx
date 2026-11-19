@@ -341,7 +341,7 @@ export const LoginExperience = ({
                       ["CUSTOMER", "Клиент"],
                       ["TECHNICIAN", "Мастер"],
                       ["PROCUREMENT", "Мастер закупки"],
-                      ["ADMIN", "Администратор"],
+                      ["ADMIN", "Администратор Енот-сервис.рф"],
                     ] as const
                   ).map(([value, label]) => (
                     <button

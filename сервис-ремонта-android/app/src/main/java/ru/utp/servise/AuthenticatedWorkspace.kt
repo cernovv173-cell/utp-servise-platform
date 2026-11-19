@@ -607,7 +607,6 @@ internal fun AuthenticatedWorkspace(
                             )
                             composable("admin/home") {
                                 AdministratorHomeScreen(
-                                    user = user,
                                     orders = orders,
                                     onOrders = { navController.navigate("admin/orders") },
                                     onSchedule = { navController.navigate("admin/schedule") },

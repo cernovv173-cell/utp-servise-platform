@@ -166,7 +166,11 @@ private fun ScheduleOrderCard(
                 color = UtpInk,
             )
             Text(order.problem, fontSize = 12.sp, color = UtpMuted)
-            Text("${order.customerName} · ${order.technicianName ?: "Мастер не назначен"}", fontSize = 11.sp, color = UtpMuted)
+            Text(
+                "${order.customerName} · ${order.technicianName?.shortTechnicianName() ?: "Мастер не назначен"}",
+                fontSize = 11.sp,
+                color = UtpMuted,
+            )
             Text(listOfNotNull(order.city, order.street, order.house).joinToString(", "), fontSize = 11.sp, color = UtpMuted)
             if (order.priority == "URGENT") Text("Срочный приоритет", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = androidx.compose.material3.MaterialTheme.colorScheme.error)
             ScheduleDateTimeField(

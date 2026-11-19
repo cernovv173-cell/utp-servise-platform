@@ -267,7 +267,7 @@ internal fun RepairOrderCard(
                             "Аватар мастера",
                         )
                         Text(
-                            "Мастер: ${order.technicianName}",
+                            "Мастер: ${order.technicianName.shortTechnicianName()}",
                             fontSize = 12.sp,
                             color = UtpMuted,
                             modifier = Modifier.padding(start = 8.dp),
@@ -368,7 +368,12 @@ internal fun RepairOrderCard(
                     onClick = { showPaperwork = true },
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     shape = RoundedCornerShape(12.dp),
-                ) { Text("Акт приёма · заказ-наряд · гарантия") }
+                ) {
+                    Text(
+                        if (order.visitScenarioVersion > 0) "Документы · заказ-наряд · гарантия"
+                        else "Акт приёма · заказ-наряд · гарантия",
+                    )
+                }
                 if (role == "ADMIN" && order.status == "READY_FOR_PICKUP") {
                     Button(
                         onClick = { showReleaseDialog = true },

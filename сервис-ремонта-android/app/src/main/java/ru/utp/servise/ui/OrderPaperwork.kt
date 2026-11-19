@@ -46,6 +46,7 @@ internal fun OrderPaperworkDialog(
 ) {
     val context = LocalContext.current
     val intake = order.intake
+    val includeIntakeAct = order.visitScenarioVersion == 0
     val canEdit = role in listOf("ADMIN", "TECHNICIAN") &&
         order.status !in listOf("READY_FOR_PICKUP", "COMPLETED", "CANCELLED")
     val legacyMediaObjectId = listOfNotNull(
@@ -80,23 +81,25 @@ internal fun OrderPaperworkDialog(
         if (uri != null) {
             runAction({
                 val pdfSections = buildList {
-                    add(
-                        OrderPaperworkPdfSection(
-                            "Акт приёма устройства",
-                            listOf(
-                                "Клиент: ${order.customerName}",
-                                "Устройство: ${order.deviceType}",
-                                "Дата приёма: ${order.createdAt.take(10)}",
-                                "Серийный номер: ${serial.ifBlank { "—" }}",
-                                "Заявленная неисправность: ${order.problem}",
-                                "Состояние устройства: ${conditionSummary.ifBlank { "Не указано" }}",
-                                "Фото/видео осмотра: ${if (intakeMediaType == "VIDEO") "видео сохранено в электронном акте" else if (intakeMediaObjectId != null) "фото приложено" else "не приложено"}",
-                                "Комплектность: ${accessories.ifBlank { "—" }}",
-                                "Примечания: ${notes.ifBlank { "—" }}",
-                                "Подпись клиента: ____________________    Представитель сервиса: ____________________",
+                    if (includeIntakeAct) {
+                        add(
+                            OrderPaperworkPdfSection(
+                                "Акт приёма устройства",
+                                listOf(
+                                    "Клиент: ${order.customerName}",
+                                    "Устройство: ${order.deviceType}",
+                                    "Дата приёма: ${order.createdAt.take(10)}",
+                                    "Серийный номер: ${serial.ifBlank { "—" }}",
+                                    "Заявленная неисправность: ${order.problem}",
+                                    "Состояние устройства: ${conditionSummary.ifBlank { "Не указано" }}",
+                                    "Фото/видео осмотра: ${if (intakeMediaType == "VIDEO") "видео сохранено в электронном акте" else if (intakeMediaObjectId != null) "фото приложено" else "не приложено"}",
+                                    "Комплектность: ${accessories.ifBlank { "—" }}",
+                                    "Примечания: ${notes.ifBlank { "—" }}",
+                                    "Подпись клиента: ____________________    Представитель сервиса: ____________________",
+                                ),
                             ),
-                        ),
-                    )
+                        )
+                    }
                     add(
                         OrderPaperworkPdfSection(
                             "Заказ-наряд",
@@ -138,7 +141,7 @@ internal fun OrderPaperworkDialog(
                         )
                     }
                 }
-                val photos = if (intakeMediaType != "VIDEO") {
+                val photos = if (includeIntakeAct && intakeMediaType != "VIDEO") {
                     intakeMediaObjectId?.let { objectId ->
                         listOf(OrderPaperworkPdfPhoto("Фото приёма", ApiClient.downloadMedia(token, objectId)))
                     }.orEmpty()
@@ -161,7 +164,12 @@ internal fun OrderPaperworkDialog(
                 OutlinedButton(
                     onClick = { pdfLauncher.launch("Документы_${order.serviceNumber}.pdf") },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Сохранить акт приёма, заказ-наряд и гарантийный талон в PDF") }
+                ) {
+                    Text(
+                        if (includeIntakeAct) "Сохранить акт приёма, заказ-наряд и гарантийный талон в PDF"
+                        else "Сохранить заказ-наряд и гарантийный талон в PDF",
+                    )
+                }
                 if (order.warranty == null) {
                     Text(
                         "Гарантийный талон будет включён после закрытия заказа.",
@@ -169,133 +177,135 @@ internal fun OrderPaperworkDialog(
                         color = UtpMuted,
                     )
                 }
-                Text("Акт приёма-передачи", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = UtpBlue)
-                if (canEdit) {
-                    OutlinedTextField(
-                        value = conditionSummary,
-                        onValueChange = { conditionSummary = it.take(2000) },
-                        label = { Text("Состояние и видимые повреждения") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        maxLines = 6,
-                        shape = RoundedCornerShape(12.dp),
-                    )
-                    if (intakeMediaObjectId != null) {
-                        if (intakeMediaType == "VIDEO") {
-                            RemoteProjectVideo(
-                                intakeMediaObjectId,
-                                token,
-                                Modifier.fillMaxWidth().height(170.dp),
-                                "Видео осмотра",
-                            )
-                        } else {
-                            RemoteProjectImage(
-                                intakeMediaObjectId,
-                                token,
-                                Modifier.fillMaxWidth().height(170.dp),
-                                "Фото осмотра устройства",
-                            )
-                        }
-                    }
-                    MediaPickerButton(
-                        label = when {
-                            selectedMedia != null -> "Фото или видео выбрано · заменить"
-                            intakeMediaObjectId != null -> "Заменить фото или видео"
-                            else -> "Добавить одно фото или видео"
-                        },
-                    ) { uri -> selectedMedia = uri }
-                    selectedMedia?.let { uri ->
-                        Text(
-                            if (context.contentResolver.getType(uri)?.startsWith("video/") == true)
-                                "Выбрано видео MP4. Оно загрузится при сохранении акта."
-                            else "Выбрано фото. Оно загрузится при сохранении акта.",
-                            color = UtpMuted,
-                            fontSize = 12.sp,
+                if (includeIntakeAct) {
+                    Text("Акт приёма-передачи", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = UtpBlue)
+                    if (canEdit) {
+                        OutlinedTextField(
+                            value = conditionSummary,
+                            onValueChange = { conditionSummary = it.take(2000) },
+                            label = { Text("Состояние и видимые повреждения") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 3,
+                            maxLines = 6,
+                            shape = RoundedCornerShape(12.dp),
                         )
-                    }
-                } else {
-                    Text(conditionSummary.ifBlank { "Состояние не указано" }, fontSize = 13.sp, color = UtpMuted)
-                    if (intakeMediaObjectId != null) {
-                        if (intakeMediaType == "VIDEO") {
-                            RemoteProjectVideo(
-                                intakeMediaObjectId,
-                                token,
-                                Modifier.fillMaxWidth().height(170.dp),
-                                "Видео осмотра",
-                            )
-                        } else {
-                            RemoteProjectImage(
-                                intakeMediaObjectId,
-                                token,
-                                Modifier.fillMaxWidth().height(170.dp),
-                                "Фото осмотра устройства",
+                        if (intakeMediaObjectId != null) {
+                            if (intakeMediaType == "VIDEO") {
+                                RemoteProjectVideo(
+                                    intakeMediaObjectId,
+                                    token,
+                                    Modifier.fillMaxWidth().height(170.dp),
+                                    "Видео осмотра",
+                                )
+                            } else {
+                                RemoteProjectImage(
+                                    intakeMediaObjectId,
+                                    token,
+                                    Modifier.fillMaxWidth().height(170.dp),
+                                    "Фото осмотра устройства",
+                                )
+                            }
+                        }
+                        MediaPickerButton(
+                            label = when {
+                                selectedMedia != null -> "Фото или видео выбрано · заменить"
+                                intakeMediaObjectId != null -> "Заменить фото или видео"
+                                else -> "Добавить одно фото или видео"
+                            },
+                        ) { uri -> selectedMedia = uri }
+                        selectedMedia?.let { uri ->
+                            Text(
+                                if (context.contentResolver.getType(uri)?.startsWith("video/") == true)
+                                    "Выбрано видео MP4. Оно загрузится при сохранении акта."
+                                else "Выбрано фото. Оно загрузится при сохранении акта.",
+                                color = UtpMuted,
+                                fontSize = 12.sp,
                             )
                         }
+                    } else {
+                        Text(conditionSummary.ifBlank { "Состояние не указано" }, fontSize = 13.sp, color = UtpMuted)
+                        if (intakeMediaObjectId != null) {
+                            if (intakeMediaType == "VIDEO") {
+                                RemoteProjectVideo(
+                                    intakeMediaObjectId,
+                                    token,
+                                    Modifier.fillMaxWidth().height(170.dp),
+                                    "Видео осмотра",
+                                )
+                            } else {
+                                RemoteProjectImage(
+                                    intakeMediaObjectId,
+                                    token,
+                                    Modifier.fillMaxWidth().height(170.dp),
+                                    "Фото осмотра устройства",
+                                )
+                            }
+                        }
                     }
-                }
-                if (canEdit) {
-                    OutlinedTextField(
-                        serial,
-                        { serial = it },
-                        label = { Text("Серийный номер") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                    )
-                    OutlinedTextField(
-                        accessories,
-                        { accessories = it },
-                        label = { Text("Комплектность / аксессуары") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        shape = RoundedCornerShape(12.dp),
-                    )
-                    OutlinedTextField(
-                        notes,
-                        { notes = it },
-                        label = { Text("Примечания") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        shape = RoundedCornerShape(12.dp),
-                    )
-                    Button(
-                        onClick = {
-                            runAction({
-                                selectedMedia?.let { uri ->
-                                    val media = readSelectedMedia(context, uri)
-                                    ApiClient.uploadIntakeMedia(
+                    if (canEdit) {
+                        OutlinedTextField(
+                            serial,
+                            { serial = it },
+                            label = { Text("Серийный номер") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        OutlinedTextField(
+                            accessories,
+                            { accessories = it },
+                            label = { Text("Комплектность / аксессуары") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        OutlinedTextField(
+                            notes,
+                            { notes = it },
+                            label = { Text("Примечания") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2,
+                            shape = RoundedCornerShape(12.dp),
+                        )
+                        Button(
+                            onClick = {
+                                runAction({
+                                    selectedMedia?.let { uri ->
+                                        val media = readSelectedMedia(context, uri)
+                                        ApiClient.uploadIntakeMedia(
+                                            token,
+                                            order.id,
+                                            media.bytes,
+                                            media.contentType,
+                                        )
+                                    }
+                                    ApiClient.saveOrderIntake(
                                         token,
                                         order.id,
-                                        media.bytes,
-                                        media.contentType,
+                                        conditionSummary,
+                                        serial,
+                                        accessories,
+                                        notes,
                                     )
-                                }
-                                ApiClient.saveOrderIntake(
-                                    token,
-                                    order.id,
-                                    conditionSummary,
-                                    serial,
-                                    accessories,
-                                    notes,
-                                )
-                            }) { onDismiss() }
-                        },
-                        enabled = hasIntakeMedia && conditionSummary.trim().length >= 2,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Сохранить акт") }
-                    if (!hasIntakeMedia) {
+                                }) { onDismiss() }
+                            },
+                            enabled = hasIntakeMedia && conditionSummary.trim().length >= 2,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) { Text("Сохранить акт") }
+                        if (!hasIntakeMedia) {
+                            Text(
+                                "Добавьте одно фото или видео осмотра.",
+                                color = UtpMuted,
+                                fontSize = 12.sp,
+                            )
+                        }
+                    } else {
+                        Text("Серийный номер: ${intake?.serialNumber ?: "—"}", color = UtpMuted)
                         Text(
-                            "Добавьте одно фото или видео осмотра.",
+                            "Комплектность: ${intake?.includedAccessories?.ifBlank { "—" } ?: "—"}",
                             color = UtpMuted,
-                            fontSize = 12.sp,
                         )
+                        Text("Примечания: ${intake?.intakeNotes?.ifBlank { "—" } ?: "—"}", color = UtpMuted)
                     }
-                } else {
-                    Text("Серийный номер: ${intake?.serialNumber ?: "—"}", color = UtpMuted)
-                    Text(
-                        "Комплектность: ${intake?.includedAccessories?.ifBlank { "—" } ?: "—"}",
-                        color = UtpMuted,
-                    )
-                    Text("Примечания: ${intake?.intakeNotes?.ifBlank { "—" } ?: "—"}", color = UtpMuted)
                 }
 
                 Spacer(Modifier.height(4.dp))

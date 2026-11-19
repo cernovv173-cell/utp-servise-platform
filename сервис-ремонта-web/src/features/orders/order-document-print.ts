@@ -39,6 +39,9 @@ export const printOrderDocument = async (
   warranty: RepairWarranty | null,
   token: string,
 ) => {
+  if (kind === "intake" && (order.visitScenarioVersion ?? 0) > 0) {
+    throw new Error("Акт приёма-передачи для выездной заявки не оформляется.");
+  }
   const printWindow = window.open("", "_blank");
   if (!printWindow) throw new Error("Разрешите открытие окна печати в браузере.");
   printWindow.opener = null;
@@ -72,7 +75,11 @@ export const printOrderDocument = async (
             `<tr><td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.quantity)}</td><td>${escapeHtml(item.unitPriceRub)} ₽</td><td>${escapeHtml(item.quantity * item.unitPriceRub)} ₽</td></tr>`,
         )
         .join("");
-      body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p><p>Устройство: ${escapeHtml(repairDeviceTypeLabel(order.deviceType))} · серийный номер: ${escapeHtml(intake?.serialNumber)}</p><p>Адрес: ${escapeHtml(order.address)}</p><p>Неисправность со слов клиента: ${escapeHtml(order.problem)}</p><p>Диагностика / выполненные работы: ${escapeHtml(order.items.map((item) => item.name).join(", ") || "Заполните состав работ в карточке заявки")}</p><table><thead><tr><th>Работа / материал</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table><p>Состояние при приёме: ${escapeHtml(intake?.conditionSummary ?? "Акт приёма ещё не заполнен")}</p>`;
+      const isVisitOrder = (order.visitScenarioVersion ?? 0) > 0;
+      const deviceDetails = isVisitOrder
+        ? `<p>Устройство: ${escapeHtml(repairDeviceTypeLabel(order.deviceType))}</p><p>Согласие клиента на перевозку в сервис: ${order.visitPickupAgreedAt ? "подтверждено" : "не зафиксировано"}.</p>`
+        : `<p>Устройство: ${escapeHtml(repairDeviceTypeLabel(order.deviceType))} · серийный номер: ${escapeHtml(intake?.serialNumber)}</p><p>Состояние при приёме: ${escapeHtml(intake?.conditionSummary ?? "Акт приёма ещё не заполнен")}</p>`;
+      body = `<p>Клиент: ${escapeHtml(order.customer?.displayName)} · ${escapeHtml(order.contactPhone)}</p>${deviceDetails}<p>Адрес: ${escapeHtml(order.address)}</p><p>Неисправность со слов клиента: ${escapeHtml(order.problem)}</p><p>Диагностика / выполненные работы: ${escapeHtml(order.items.map((item) => item.name).join(", ") || "Заполните состав работ в карточке заявки")}</p><table><thead><tr><th>Работа / материал</th><th>Кол-во</th><th>Цена</th><th>Сумма</th></tr></thead><tbody>${rows}</tbody></table>`;
     } else if (kind === "warranty" && warranty) {
       const warrantyPeriod =
         warranty.warrantyDays === 365 || warranty.warrantyDays === 366

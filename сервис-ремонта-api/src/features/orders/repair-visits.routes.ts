@@ -201,17 +201,6 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
             "Заявка уже не находится на этапе выезда.",
           );
         }
-        const intake = await transaction.repairOrderIntake.findUnique({
-          where: { orderId },
-          select: { conditionSummary: true, intakeMediaObjectId: true },
-        });
-        if (!intake?.conditionSummary.trim() || !intake.intakeMediaObjectId) {
-          throw new HttpError(
-            409,
-            "VISIT_INTAKE_REQUIRED",
-            "Перед перевозкой зафиксируйте состояние и комплектность техники и добавьте одно фото или видео.",
-          );
-        }
         const updated = await transaction.repairOrder.update({
           where: { id: orderId },
           data: {
@@ -225,7 +214,7 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
             actorId: user.id,
             from: current.status,
             to: current.status,
-            note: "Клиент согласился на перевозку техники в сервис; состояние и комплектность зафиксированы",
+            note: "Мастер подтвердил согласие клиента на перевозку техники в сервис",
           },
         });
         return updated;

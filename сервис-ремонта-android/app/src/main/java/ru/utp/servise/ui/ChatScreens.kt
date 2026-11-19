@@ -76,7 +76,12 @@ fun AdminChatInboxScreen(
                         Text(if (chat.adminJoinedAt == null) "Ожидает" else "Вы подключены", fontSize = 11.sp, color = UtpBlue)
                     }
                     Text(chat.problem, fontSize = 12.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
-                    Text("Клиент: ${chat.customerName.ifBlank { "—" }} · Мастер: ${chat.technicianName.ifBlank { "—" }}", fontSize = 11.sp, color = UtpMuted, modifier = Modifier.padding(top = 5.dp))
+                    Text(
+                        "Клиент: ${chat.customerName.ifBlank { "—" }} · Мастер: ${chat.technicianName.shortTechnicianName().ifBlank { "—" }}",
+                        fontSize = 11.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 5.dp),
+                    )
                     if (chat.lastMessage.isNotBlank()) {
                         Text("Последнее сообщение: ${chat.lastMessage}", fontSize = 12.sp, color = UtpInk, modifier = Modifier.padding(top = 8.dp))
                     }

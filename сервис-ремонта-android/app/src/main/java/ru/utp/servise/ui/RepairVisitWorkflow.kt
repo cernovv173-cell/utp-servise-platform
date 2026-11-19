@@ -148,18 +148,15 @@ internal fun RepairVisitWorkflow(
 
             if (isHomeVisit && isAssignedTechnician && order.visitPickupAgreedAt == null &&
                 order.status in listOf("ASSIGNED", "IN_PROGRESS")) {
-                val intakeReady = !order.intake?.conditionSummary.isNullOrBlank() &&
-                    !order.intake?.intakeMediaObjectId.isNullOrBlank()
                 Text(
-                    "Если ремонт на месте невозможен, заполните акт состояния и комплектности, добавьте одно фото или видео и оформите согласие клиента на перевозку в сервис.",
+                    "Если ремонт на месте невозможен, подтвердите согласие клиента забрать технику в сервис. Акт приёма-передачи на выезде не оформляется.",
                     fontSize = 11.sp,
                     color = UtpMuted,
                 )
                 OutlinedButton(
                     onClick = { showPickupConfirmation = true },
-                    enabled = intakeReady,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (intakeReady) "Клиент согласен — передать в сервис" else "Сначала заполните акт и добавьте фото/видео") }
+                ) { Text("Забрать в сервис") }
             }
 
             if (isHomeVisit && isAssignedTechnician && order.visitPickupAgreedAt == null &&
@@ -233,7 +230,7 @@ internal fun RepairVisitWorkflow(
         AlertDialog(
             onDismissRequest = { showPickupConfirmation = false },
             title = { Text("Перевозка в сервис") },
-            text = { Text("Подтвердите, что клиент согласен на перевозку, а состояние и комплектность зафиксированы в акте и на фото/видео.") },
+            text = { Text("Подтвердите, что клиент согласен, чтобы мастер забрал технику в сервис.") },
             confirmButton = {
                 TextButton(onClick = {
                     showPickupConfirmation = false
