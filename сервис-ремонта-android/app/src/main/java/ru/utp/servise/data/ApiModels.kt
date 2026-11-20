@@ -61,6 +61,13 @@ data class RepairRequestDetails(
     val visitCustomerDistanceKm: Int? = null,
 )
 
+data class RepairOrderIntakeInput(
+    val deviceType: String,
+    val problem: String,
+    val address: OrderAddress,
+    val details: RepairRequestDetails = RepairRequestDetails(),
+)
+
 data class CustomerDeviceRepair(
     val id: String,
     val serviceNumber: String,

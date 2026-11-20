@@ -13,23 +13,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,10 +29,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.OrderAddress
@@ -49,14 +38,7 @@ import ru.utp.servise.data.CustomerDevice
 import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.RepairRequestDetails
 import ru.utp.servise.data.deviceLabel
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
-private val deviceTypes = listOf("COMPUTER", "LAPTOP", "MONOBLOCK")
 private val symptomOptions = mapOf(
     "COMPUTER" to listOf("Не включается" to "Не включается.", "Перегревается" to "Сильно шумит или перегревается.", "Нет изображения" to "Нет изображения на экране.", "Медленно работает" to "Работает медленно или зависает."),
     "LAPTOP" to listOf("Не включается" to "Не включается.", "Не заряжается" to "Не заряжается или быстро разряжается.", "Проблема с экраном" to "Есть проблема с изображением на экране.", "Греется" to "Сильно греется или шумит."),
@@ -64,7 +46,6 @@ private val symptomOptions = mapOf(
 )
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 fun RepairRequestForm(
     initialPhone: String,
     onBack: () -> Unit,
@@ -77,8 +58,7 @@ fun RepairRequestForm(
     initialDeviceId: String? = null,
     servicePrices: List<CustomerServicePrice> = emptyList(),
 ) {
-    var device by remember { mutableStateOf(deviceTypes.first()) }
-    var deviceMenu by remember { mutableStateOf(false) }
+    var device by remember { mutableStateOf(repairOrderDeviceTypes.first()) }
     var selectedCustomerDeviceId by remember { mutableStateOf(initialDeviceId) }
     var problem by remember { mutableStateOf("") }
     var repairLocation by remember { mutableStateOf("SERVICE_CENTER") }
@@ -100,13 +80,8 @@ fun RepairRequestForm(
     var selectedPhoto by remember { mutableStateOf<Uri?>(null) }
     var showSymptomGuide by remember { mutableStateOf(false) }
     var showValidation by remember { mutableStateOf(false) }
-    var preferredDateMillis by remember { mutableStateOf<Long?>(null) }
-    var preferredTime by remember { mutableStateOf<Pair<Int, Int>?>(null) }
-    var showDatePicker by remember { mutableStateOf(false) }
-    var showTimePicker by remember { mutableStateOf(false) }
-    val datePickerState = rememberDatePickerState()
-    val timePickerState = rememberTimePickerState(initialHour = 10, initialMinute = 0, is24Hour = true)
-    val supportedCustomerDevices = customerDevices.filter { it.deviceType in deviceTypes }
+    var preferredAt by remember { mutableStateOf<String?>(null) }
+    val supportedCustomerDevices = customerDevices.filter { it.deviceType in repairOrderDeviceTypes }
     val selectedCustomerDevice = supportedCustomerDevices.firstOrNull { it.id == selectedCustomerDeviceId }
     LaunchedEffect(initialDeviceId, supportedCustomerDevices) {
         val saved = supportedCustomerDevices.firstOrNull { it.id == initialDeviceId }
@@ -119,47 +94,6 @@ fun RepairRequestForm(
         } else if (initialDeviceId != null) {
             selectedCustomerDeviceId = null
         }
-    }
-    val preferredAt = preferredDateMillis?.let { millis ->
-        val date = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-        val time = preferredTime ?: (10 to 0)
-        LocalDateTime.of(date, java.time.LocalTime.of(time.first, time.second))
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toString()
-    }
-    if (showDatePicker) {
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    preferredDateMillis = datePickerState.selectedDateMillis
-                    showDatePicker = false
-                    showTimePicker = true
-                }) { Text("Далее") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Отмена") }
-            },
-        ) {
-            DatePicker(state = datePickerState, showModeToggle = false)
-        }
-    }
-    if (showTimePicker) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = { showTimePicker = false },
-            title = { Text("Выберите время") },
-            text = { TimePicker(state = timePickerState) },
-            confirmButton = {
-                TextButton(onClick = {
-                    preferredTime = timePickerState.hour to timePickerState.minute
-                    showTimePicker = false
-                }) { Text("Готово") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Отмена") }
-            },
-        )
     }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp)) {
         TextButton(onClick = onBack) { Text("←  Назад") }
@@ -223,21 +157,19 @@ fun RepairRequestForm(
                 )
             }
         }
-        Box {
-            OutlinedButton(onClick = { deviceMenu = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
-                Text("Устройство: ${device.deviceLabel()}", modifier = Modifier.weight(1f))
-                Text("⌄")
-            }
-            DropdownMenu(expanded = deviceMenu, onDismissRequest = { deviceMenu = false }) {
-                deviceTypes.forEach { item -> DropdownMenuItem(text = { Text(item.deviceLabel()) }, onClick = { device = item; deviceMenu = false }) }
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        AddressField(deviceBrand, { deviceBrand = it.take(120) }, "Марка техники")
-        AddressField(deviceModel, { deviceModel = it.take(160) }, "Модель")
-        AddressField(deviceSerialNumber, { deviceSerialNumber = it.take(160) }, "Серийный номер (если известен)")
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(problem, { problem = it.take(2000) }, label = { Text("Опишите неисправность") }, placeholder = { Text("Например: ноутбук не включается") }, modifier = Modifier.fillMaxWidth().height(128.dp), shape = RoundedCornerShape(14.dp))
+        RepairOrderDeviceFields(
+            deviceType = device,
+            onDeviceTypeChange = { device = it },
+            deviceBrand = deviceBrand,
+            onDeviceBrandChange = { deviceBrand = it },
+            deviceModel = deviceModel,
+            onDeviceModelChange = { deviceModel = it },
+            deviceSerialNumber = deviceSerialNumber,
+            onDeviceSerialNumberChange = { deviceSerialNumber = it },
+            problem = problem,
+            onProblemChange = { problem = it },
+            showDeviceDetails = selectedCustomerDevice == null,
+        )
         TextButton(onClick = { showSymptomGuide = !showSymptomGuide }) {
             Text(if (showSymptomGuide) "Скрыть подсказки" else "Подсказать, как описать неисправность")
         }
@@ -257,8 +189,6 @@ fun RepairRequestForm(
                 }
             }
         }
-        Spacer(Modifier.height(10.dp))
-        AddressField(phone, { phone = it.take(32) }, "Телефон для связи *", KeyboardType.Phone)
         RepairRequestVisitFields(
             repairLocation = repairLocation,
             onRepairLocationChange = { repairLocation = it },
@@ -267,59 +197,34 @@ fun RepairRequestForm(
             distanceKm = visitDistanceKm,
             onDistanceKmChange = { visitDistanceKm = it },
         )
-        Text(
-            if (repairLocation == "CUSTOMER_ADDRESS") "Адрес для выезда мастера *" else "Адрес клиента (необязательно)",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = UtpInk,
-        )
-        AddressField(city, { city = it.take(120) }, if (repairLocation == "CUSTOMER_ADDRESS") "Город *" else "Город")
-        AddressField(street, { street = it.take(180) }, if (repairLocation == "CUSTOMER_ADDRESS") "Улица *" else "Улица")
-        AddressField(house, { house = it.take(30) }, if (repairLocation == "CUSTOMER_ADDRESS") "Дом *" else "Дом")
-        AddressField(apartment, { apartment = it.take(30) }, "Квартира")
-        AddressField(entrance, { entrance = it.take(30) }, "Подъезд")
-        AddressField(floor, { floor = it.take(20) }, "Этаж")
-        AddressField(additionalPhone, { additionalPhone = it.take(32) }, "Дополнительный телефон", KeyboardType.Phone)
-        OutlinedButton(
-            onClick = { showDatePicker = true },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-        ) {
-            val chosenDate = preferredDateMillis?.let {
-                Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
-                    .format(DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.forLanguageTag("ru-RU")))
-            }
-            val chosenTime = preferredTime?.let { (hour, minute) -> "%02d:%02d".format(hour, minute) }
-            Text(
-                if (chosenDate != null && chosenTime != null) "Удобное время: $chosenDate, $chosenTime"
-                else "Выбрать удобное время для выезда",
-                modifier = Modifier.weight(1f),
-            )
-        }
-        if (preferredDateMillis != null) {
-            TextButton(
-                onClick = {
-                    preferredDateMillis = null
-                    preferredTime = null
-                },
-                modifier = Modifier.align(Alignment.End),
-            ) { Text("Сбросить время") }
-        }
-        Text(
-            "Время предварительное — сервис подтвердит его после проверки расписания.",
-            fontSize = 12.sp,
-            color = UtpMuted,
-            modifier = Modifier.padding(bottom = 8.dp),
+        RepairOrderContactFields(
+            phone = phone,
+            onPhoneChange = { phone = it },
+            city = city,
+            onCityChange = { city = it },
+            street = street,
+            onStreetChange = { street = it },
+            house = house,
+            onHouseChange = { house = it },
+            apartment = apartment,
+            onApartmentChange = { apartment = it },
+            entrance = entrance,
+            onEntranceChange = { entrance = it },
+            hasBarrier = hasBarrier,
+            onHasBarrierChange = { hasBarrier = it },
+            floor = floor,
+            onFloorChange = { floor = it },
+            additionalPhone = additionalPhone,
+            onAdditionalPhoneChange = { additionalPhone = it },
+            additionalInfo = additionalInfo,
+            onAdditionalInfoChange = { additionalInfo = it },
+            preferredAt = preferredAt,
+            onPreferredAtChange = { preferredAt = it },
+            repairLocation = repairLocation,
         )
         PhotoPickerButton(
             label = if (selectedPhoto == null) "Добавить фото техники" else "Фото выбрано · изменить",
         ) { selectedPhoto = it }
-        Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Есть шлагбаум", Modifier.weight(1f), color = UtpInk)
-            Switch(checked = hasBarrier, onCheckedChange = { hasBarrier = it })
-            Text(if (hasBarrier) "Да" else "Нет", modifier = Modifier.padding(start = 8.dp), color = UtpMuted)
-        }
-        AddressField(additionalInfo, { additionalInfo = it.take(500) }, "Дополнительная информация")
         ServicePriceGuide(prices = servicePrices, deviceType = selectedCustomerDevice?.deviceType ?: device)
         Spacer(Modifier.height(18.dp))
         val missingFields = buildList {
@@ -372,22 +277,4 @@ fun RepairRequestForm(
             shape = RoundedCornerShape(15.dp),
         ) { Text(if (busy) "Отправка…" else "Отправить заявку") }
     }
-}
-
-@Composable
-private fun AddressField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    keyboardType: KeyboardType = KeyboardType.Text,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = Modifier.fillMaxWidth().padding(bottom = 9.dp),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        shape = RoundedCornerShape(14.dp),
-    )
 }

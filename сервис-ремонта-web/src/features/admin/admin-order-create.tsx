@@ -13,6 +13,10 @@ import {
 } from "@/components/modal";
 
 import { useAuth } from "@/features/auth/auth-context";
+import {
+  RepairOrderContactFields,
+  RepairOrderDeviceFields,
+} from "@/features/orders/repair-order-intake-fields";
 import { RepairRequestVisitFields } from "@/features/orders/repair-request-visit-fields";
 
 import {
@@ -48,6 +52,9 @@ export const AdminOrderCreate = ({
     orderCreated: boolean;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deviceType, setDeviceType] = useState("COMPUTER");
+  const [problem, setProblem] = useState("");
+  const [phone, setPhone] = useState("");
   const [repairLocation, setRepairLocation] = useState<RepairLocation>("CUSTOMER_ADDRESS");
   const [isWithinCity, setIsWithinCity] = useState(true);
   const [visitFieldsKey, setVisitFieldsKey] = useState(0);
@@ -62,7 +69,7 @@ export const AdminOrderCreate = ({
     if ((!customer && customerMode === "existing") || !token) return;
     const form = event.currentTarget;
     const data = new FormData(form);
-    const phone = String(data.get("contactPhone")).trim();
+    const contactPhone = String(data.get("contactPhone") ?? "").trim();
     let newCustomer: NewAdminCustomer | null = null;
     setSaving(true);
     try {
@@ -71,12 +78,16 @@ export const AdminOrderCreate = ({
         newCustomer = await createAdminCustomer(token, {
           displayName: String(data.get("customerName")).trim(),
           email: email || null,
-          ...(phone ? { phoneNumber: phone } : {}),
+          ...(contactPhone ? { phoneNumber: contactPhone } : {}),
         });
       }
+      const requestedAt = String(data.get("preferredAt") || "");
       await createAdminOrder(token, {
         customerId: newCustomer?.customer.id ?? customer!.id,
         deviceType: String(data.get("deviceType")),
+        deviceBrand: String(data.get("deviceBrand") || "").trim(),
+        deviceModel: String(data.get("deviceModel") || "").trim(),
+        deviceSerialNumber: String(data.get("deviceSerialNumber") || "").trim(),
         repairLocation,
         useNewRepairScenario: true,
         ...(repairLocation === "CUSTOMER_ADDRESS"
@@ -88,12 +99,17 @@ export const AdminOrderCreate = ({
             }
           : {}),
         problem: String(data.get("problem")).trim(),
-        ...(phone ? { contactPhone: phone } : {}),
+        ...(contactPhone ? { contactPhone } : {}),
         city: String(data.get("city")).trim(),
         street: String(data.get("street")).trim(),
         house: String(data.get("house")).trim(),
         apartment: String(data.get("apartment")).trim(),
+        entrance: String(data.get("entrance")).trim(),
+        floor: String(data.get("floor")).trim(),
+        hasBarrier: data.get("hasBarrier") === "on",
+        additionalPhone: String(data.get("additionalPhone")).trim(),
         additionalInfo: String(data.get("additionalInfo")).trim(),
+        preferredAt: requestedAt ? new Date(requestedAt).toISOString() : null,
       });
       toast.success("Заявка создана и добавлена в общий список.");
       if (newCustomer) {
@@ -111,6 +127,9 @@ export const AdminOrderCreate = ({
       setRepairLocation("CUSTOMER_ADDRESS");
       setIsWithinCity(true);
       setVisitFieldsKey((current) => current + 1);
+      setDeviceType("COMPUTER");
+      setProblem("");
+      setPhone("");
       form.reset();
       onCreated();
     } catch {
@@ -158,6 +177,7 @@ export const AdminOrderCreate = ({
               onClick={() => {
                 setCustomerMode("existing");
                 setCustomer(null);
+                setPhone("");
               }}
               className={`min-h-10 rounded-lg border px-3 text-sm font-medium ${customerMode === "existing" ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200" : "border-slate-200 dark:border-slate-700"}`}
             >
@@ -168,6 +188,7 @@ export const AdminOrderCreate = ({
               onClick={() => {
                 setCustomerMode("new");
                 setCustomer(null);
+                setPhone("");
               }}
               className={`min-h-10 rounded-lg border px-3 text-sm font-medium ${customerMode === "new" ? "border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-200" : "border-slate-200 dark:border-slate-700"}`}
             >
@@ -230,7 +251,10 @@ export const AdminOrderCreate = ({
                       <button
                         type="button"
                         key={entry.id}
-                        onClick={() => setCustomer(entry)}
+                        onClick={() => {
+                          setCustomer(entry);
+                          setPhone(entry.phoneNumber ?? "");
+                        }}
                         className="rounded-lg border border-slate-200 p-3 text-left text-sm hover:border-blue-500 dark:border-slate-700"
                       >
                         <span className="block font-semibold">{entry.displayName}</span>
@@ -254,53 +278,23 @@ export const AdminOrderCreate = ({
               </div>
               <button
                 type="button"
-                onClick={() => setCustomer(null)}
+                onClick={() => {
+                  setCustomer(null);
+                  setPhone("");
+                }}
                 className="shrink-0 rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium dark:border-slate-700"
               >
                 Выбрать другого
               </button>
             </div>
           )}
-          <label className="grid gap-1 text-sm font-medium">
-            Тип устройства{"\u00a0"}
-            <span aria-hidden="true">*</span>
-            <select name="deviceType" required className={fieldClassName}>
-              <option value="COMPUTER">ПК</option>
-              <option value="LAPTOP">Ноутбук</option>
-              <option value="MONOBLOCK">Моноблок</option>
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm font-medium">
-            <span>
-              Телефон для связи
-              {customerMode === "new" && (
-                <>
-                  &nbsp;<span aria-hidden="true">*</span>
-                </>
-              )}
-            </span>
-            <input
-              name="contactPhone"
-              defaultValue={customer?.phoneNumber ?? ""}
-              type="tel"
-              required={customerMode === "new"}
-              minLength={7}
-              maxLength={32}
-              className={fieldClassName}
-            />
-          </label>
-          <label className="grid gap-1 text-sm font-medium sm:col-span-2">
-            Неисправность{"\u00a0"}
-            <span aria-hidden="true">*</span>
-            <textarea
-              name="problem"
-              required
-              minLength={5}
-              maxLength={2000}
-              rows={3}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-normal dark:border-slate-700 dark:bg-slate-950"
-            />
-          </label>
+          <RepairOrderDeviceFields
+            deviceType={deviceType}
+            onDeviceTypeChange={setDeviceType}
+            problem={problem}
+            onProblemChange={setProblem}
+            wideClassName="sm:col-span-2"
+          />
           <RepairRequestVisitFields
             key={visitFieldsKey}
             repairLocation={repairLocation}
@@ -308,49 +302,14 @@ export const AdminOrderCreate = ({
             isWithinCity={isWithinCity}
             onWithinCityChange={setIsWithinCity}
           />
-          <div className="sm:col-span-2">
-            <p className="text-sm font-semibold">Контактный адрес клиента (необязательно)</p>
-          </div>
-          <label className="grid gap-1 text-sm font-medium">
-            Город
-            <input
-              name="city"
-              maxLength={120}
-              required={repairLocation === "CUSTOMER_ADDRESS"}
-              className={fieldClassName}
-            />
-          </label>
-          <label className="grid gap-1 text-sm font-medium">
-            Улица
-            <input
-              name="street"
-              maxLength={180}
-              required={repairLocation === "CUSTOMER_ADDRESS"}
-              className={fieldClassName}
-            />
-          </label>
-          <label className="grid gap-1 text-sm font-medium">
-            Дом
-            <input
-              name="house"
-              maxLength={30}
-              required={repairLocation === "CUSTOMER_ADDRESS"}
-              className={fieldClassName}
-            />
-          </label>
-          <label className="grid gap-1 text-sm font-medium">
-            Квартира
-            <input name="apartment" maxLength={30} className={fieldClassName} />
-          </label>
-          <label className="grid gap-1 text-sm font-medium sm:col-span-2">
-            Дополнительная информация
-            <textarea
-              name="additionalInfo"
-              maxLength={500}
-              rows={2}
-              className="rounded-lg border border-slate-200 bg-white p-3 text-sm font-normal dark:border-slate-700 dark:bg-slate-950"
-            />
-          </label>
+          <RepairOrderContactFields
+            phone={phone}
+            onPhoneChange={setPhone}
+            phoneRequired={customerMode === "new" || !customer?.phoneNumber}
+            phoneLabel={`Телефон для связи${customerMode === "new" || !customer?.phoneNumber ? " клиента *" : ""}`}
+            repairLocation={repairLocation}
+            wideClassName="sm:col-span-2"
+          />
           <ModalFooter className="sm:col-span-2">
             <ModalClose asChild>
               <button

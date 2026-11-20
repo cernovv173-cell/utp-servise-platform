@@ -1051,63 +1051,43 @@ export const updateRepairPriority = (
     { method: "PATCH", body: JSON.stringify({ priority }) },
   );
 
-export const createOrder = (
-  token: string,
-  input: {
-    deviceType: string;
-    customerDeviceId?: string;
-    deviceBrand?: string;
-    deviceModel?: string;
-    deviceSerialNumber?: string;
-    problem: string;
-    contactPhone: string;
-    repairLocation: RepairLocation;
-    useNewRepairScenario?: true;
-    visitIsWithinCity?: boolean;
-    visitCustomerDistanceKm?: number;
-    city?: string;
-    street?: string;
-    house?: string;
-    apartment?: string;
-    entrance?: string;
-    hasBarrier?: boolean;
-    floor?: string;
-    additionalPhone?: string;
-    additionalInfo?: string;
-    preferredAt?: string | null;
-  },
-) =>
+export type RepairOrderIntakeFields = {
+  deviceType: string;
+  deviceBrand?: string;
+  deviceModel?: string;
+  deviceSerialNumber?: string;
+  problem: string;
+  contactPhone?: string;
+  repairLocation: RepairLocation;
+  useNewRepairScenario?: true;
+  visitIsWithinCity?: boolean;
+  visitCustomerDistanceKm?: number;
+  city?: string;
+  street?: string;
+  house?: string;
+  apartment?: string;
+  entrance?: string;
+  hasBarrier?: boolean;
+  floor?: string;
+  additionalPhone?: string;
+  additionalInfo?: string;
+  preferredAt?: string | null;
+};
+
+export type CreateCustomerRepairOrderInput = Omit<RepairOrderIntakeFields, "contactPhone"> & {
+  contactPhone: string;
+  customerDeviceId?: string;
+};
+
+export type CreateAdminRepairOrderInput = RepairOrderIntakeFields & { customerId: string };
+
+export const createOrder = (token: string, input: CreateCustomerRepairOrderInput) =>
   apiRequest<{ order: RepairOrder }>("/orders", token, {
     method: "POST",
     body: JSON.stringify(input),
   });
 
-export const createAdminOrder = (
-  token: string,
-  input: {
-    customerId: string;
-    deviceType: string;
-    repairLocation: RepairLocation;
-    useNewRepairScenario?: true;
-    visitIsWithinCity?: boolean;
-    visitCustomerDistanceKm?: number;
-    deviceBrand?: string;
-    deviceModel?: string;
-    deviceSerialNumber?: string;
-    problem: string;
-    contactPhone?: string;
-    city?: string;
-    street?: string;
-    house?: string;
-    apartment?: string;
-    entrance?: string;
-    hasBarrier?: boolean;
-    floor?: string;
-    additionalPhone?: string;
-    additionalInfo?: string;
-    preferredAt?: string | null;
-  },
-) =>
+export const createAdminOrder = (token: string, input: CreateAdminRepairOrderInput) =>
   apiRequest<{ order: RepairOrder }>("/admin/orders", token, {
     method: "POST",
     body: JSON.stringify(input),

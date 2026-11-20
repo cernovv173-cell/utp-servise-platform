@@ -377,6 +377,16 @@ credited in full to the technician. The new flow is opted into with `useNewRepai
 legacy orders and older clients that omit that flag keep scenario version 0 and receive none of the
 new fees or status gates.
 
+Customer and administrator order-creation endpoints share the same intake field schema and the
+transactional record-creation helper in `src/features/orders/repair-order-intake.ts`. Keep
+role-specific work at the endpoint boundary: customer intake checks whether intake is open and
+validates ownership of a saved device; administrator intake validates an active customer and may
+fall back to that customer's saved phone number. Both paths keep the same address, visit, and
+legacy-version rules. When extending intake, update this shared contract and both client forms
+rather than adding a parallel creation path. Web forms share `RepairOrderIntakeFields`; Android uses
+`RepairOrderIntakeInput` and one serializer while retaining the customer and administrator endpoints
+for their separate authorization rules.
+
 For an on-site repair, the assigned technician agrees the repair price directly with the customer,
 records cash or bank-transfer payment, and closes the order without administrator approval. When an
 on-site repair is declined after diagnosis, the receipt contains the diagnostic and applicable travel

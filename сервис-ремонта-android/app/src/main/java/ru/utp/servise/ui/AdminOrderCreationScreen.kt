@@ -19,8 +19,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -41,13 +39,9 @@ import ru.utp.servise.data.AdminCustomerPage
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.NewAdminCustomerResult
 import ru.utp.servise.data.OrderAddress
+import ru.utp.servise.data.RepairOrderIntakeInput
+import ru.utp.servise.data.RepairRequestDetails
 import ru.utp.servise.data.RepairOrder
-
-private val orderDevices = listOf(
-    "COMPUTER" to "Компьютер",
-    "LAPTOP" to "Ноутбук",
-    "MONOBLOCK" to "Моноблок",
-)
 
 private data class AdminOrderSubmission(
     val orderCreated: Boolean,
@@ -74,8 +68,10 @@ fun AdminOrderCreationScreen(
     var oneTimeCredentials by remember { mutableStateOf<NewAdminCustomerResult?>(null) }
     var credentialsForCompletedOrder by remember { mutableStateOf(false) }
     var credentialOrderError by remember { mutableStateOf<String?>(null) }
-    var deviceType by remember { mutableStateOf(orderDevices.first().first) }
-    var deviceMenu by remember { mutableStateOf(false) }
+    var deviceType by remember { mutableStateOf(repairOrderDeviceTypes.first()) }
+    var deviceBrand by remember { mutableStateOf("") }
+    var deviceModel by remember { mutableStateOf("") }
+    var deviceSerialNumber by remember { mutableStateOf("") }
     var repairLocation by remember { mutableStateOf("CUSTOMER_ADDRESS") }
     var visitIsWithinCity by remember { mutableStateOf(true) }
     var visitDistanceKm by remember { mutableStateOf("") }
@@ -85,6 +81,11 @@ fun AdminOrderCreationScreen(
     var street by remember { mutableStateOf("") }
     var house by remember { mutableStateOf("") }
     var apartment by remember { mutableStateOf("") }
+    var entrance by remember { mutableStateOf("") }
+    var floor by remember { mutableStateOf("") }
+    var additionalPhone by remember { mutableStateOf("") }
+    var hasBarrier by remember { mutableStateOf(false) }
+    var preferredAt by remember { mutableStateOf<String?>(null) }
     var additionalInfo by remember { mutableStateOf("") }
 
     LaunchedEffect(appliedSearch, loadRevision) {
@@ -107,12 +108,20 @@ fun AdminOrderCreationScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         selected = !createNewCustomer,
-                        onClick = { createNewCustomer = false; selectedCustomer = null },
+                        onClick = {
+                            createNewCustomer = false
+                            selectedCustomer = null
+                            phone = ""
+                        },
                         label = { Text("Из базы") },
                     )
                     FilterChip(
                         selected = createNewCustomer,
-                        onClick = { createNewCustomer = true; selectedCustomer = null },
+                        onClick = {
+                            createNewCustomer = true
+                            selectedCustomer = null
+                            phone = ""
+                        },
                         label = { Text("Новый клиент") },
                     )
                 }
@@ -146,7 +155,10 @@ fun AdminOrderCreationScreen(
                         fontSize = 12.sp,
                         color = UtpMuted,
                     )
-                    TextButton(onClick = { selectedCustomer = null }) { Text("Выбрать другого") }
+                    TextButton(onClick = {
+                        selectedCustomer = null
+                        phone = ""
+                    }) { Text("Выбрать другого") }
                 } ?: run {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         OutlinedTextField(
@@ -184,6 +196,18 @@ fun AdminOrderCreationScreen(
             }
         }
 
+        RepairOrderDeviceFields(
+            deviceType = deviceType,
+            onDeviceTypeChange = { deviceType = it },
+            deviceBrand = deviceBrand,
+            onDeviceBrandChange = { deviceBrand = it },
+            deviceModel = deviceModel,
+            onDeviceModelChange = { deviceModel = it },
+            deviceSerialNumber = deviceSerialNumber,
+            onDeviceSerialNumberChange = { deviceSerialNumber = it },
+            problem = problem,
+            onProblemChange = { problem = it },
+        )
         RepairRequestVisitFields(
             repairLocation = repairLocation,
             onRepairLocationChange = { repairLocation = it },
@@ -192,41 +216,31 @@ fun AdminOrderCreationScreen(
             distanceKm = visitDistanceKm,
             onDistanceKmChange = { visitDistanceKm = it },
         )
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(onClick = { deviceMenu = true }, modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp)) {
-                Text(orderDevices.first { it.first == deviceType }.second)
-            }
-            DropdownMenu(expanded = deviceMenu, onDismissRequest = { deviceMenu = false }) {
-                orderDevices.forEach { (value, label) ->
-                    DropdownMenuItem(text = { Text(label) }, onClick = { deviceType = value; deviceMenu = false })
-                }
-            }
-        }
-        OutlinedTextField(
-            value = problem,
-            onValueChange = { problem = it.take(2000) },
-            label = { Text("Опишите неисправность") },
-            modifier = Modifier.fillMaxWidth().height(130.dp),
-            shape = RoundedCornerShape(14.dp),
-        )
-        AdminOrderField(phone, { phone = it.take(32) }, "Телефон для связи${if (createNewCustomer) " клиента" else ""}", KeyboardType.Phone)
-        Text(
-            if (repairLocation == "CUSTOMER_ADDRESS") "Адрес для выезда" else "Контактный адрес клиента (необязательно)",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = UtpInk,
-        )
-        AdminOrderField(city, { city = it.take(120) }, if (repairLocation == "CUSTOMER_ADDRESS") "Город для выезда" else "Город")
-        AdminOrderField(street, { street = it.take(180) }, if (repairLocation == "CUSTOMER_ADDRESS") "Улица для выезда" else "Улица")
-        AdminOrderField(house, { house = it.take(30) }, if (repairLocation == "CUSTOMER_ADDRESS") "Дом для выезда" else "Дом")
-        AdminOrderField(apartment, { apartment = it.take(30) }, "Квартира")
-        OutlinedTextField(
-            value = additionalInfo,
-            onValueChange = { additionalInfo = it.take(500) },
-            label = { Text("Дополнительная информация") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
+        RepairOrderContactFields(
+            phone = phone,
+            onPhoneChange = { phone = it },
+            city = city,
+            onCityChange = { city = it },
+            street = street,
+            onStreetChange = { street = it },
+            house = house,
+            onHouseChange = { house = it },
+            apartment = apartment,
+            onApartmentChange = { apartment = it },
+            entrance = entrance,
+            onEntranceChange = { entrance = it },
+            hasBarrier = hasBarrier,
+            onHasBarrierChange = { hasBarrier = it },
+            floor = floor,
+            onFloorChange = { floor = it },
+            additionalPhone = additionalPhone,
+            onAdditionalPhoneChange = { additionalPhone = it },
+            additionalInfo = additionalInfo,
+            onAdditionalInfoChange = { additionalInfo = it },
+            preferredAt = preferredAt,
+            onPreferredAtChange = { preferredAt = it },
+            repairLocation = repairLocation,
+            phoneRequired = createNewCustomer || selectedCustomer?.phoneNumber.isNullOrBlank(),
         )
         Button(
             onClick = {
@@ -248,19 +262,36 @@ fun AdminOrderCreationScreen(
                         ApiClient.createAdministratorOrder(
                             token,
                             customer.id,
-                            deviceType,
-                            problem.trim(),
-                            repairLocation,
-                            OrderAddress(
-                                contactPhone = phone.trim(),
-                                city = city.trim(),
-                                street = street.trim(),
-                                house = house.trim(),
-                                apartment = apartment.trim(),
-                                additionalInfo = additionalInfo.trim(),
+                            RepairOrderIntakeInput(
+                                deviceType = deviceType,
+                                problem = problem.trim(),
+                                address = OrderAddress(
+                                    contactPhone = phone.trim(),
+                                    city = city.trim(),
+                                    street = street.trim(),
+                                    house = house.trim(),
+                                    apartment = apartment.trim(),
+                                    entrance = entrance.trim(),
+                                    hasBarrier = hasBarrier,
+                                    floor = floor.trim(),
+                                    additionalPhone = additionalPhone.trim(),
+                                    additionalInfo = additionalInfo.trim(),
+                                ),
+                                details = RepairRequestDetails(
+                                    deviceBrand = deviceBrand.trim(),
+                                    deviceModel = deviceModel.trim(),
+                                    deviceSerialNumber = deviceSerialNumber.trim(),
+                                    preferredAt = preferredAt,
+                                    repairLocation = repairLocation,
+                                    useNewRepairScenario = true,
+                                    visitIsWithinCity = visitIsWithinCity.takeIf {
+                                        repairLocation == "CUSTOMER_ADDRESS"
+                                    },
+                                    visitCustomerDistanceKm = if (
+                                        repairLocation == "CUSTOMER_ADDRESS" && !visitIsWithinCity
+                                    ) visitDistanceKm.toIntOrNull() else null,
+                                ),
                             ),
-                            visitIsWithinCity = visitIsWithinCity,
-                            visitCustomerDistanceKm = visitDistanceKm.toIntOrNull(),
                         )
                         AdminOrderSubmission(
                             orderCreated = true,
@@ -291,7 +322,9 @@ fun AdminOrderCreationScreen(
                 newCustomerName.trim().length >= 2 &&
                     (newCustomerEmail.isBlank() || newCustomerEmail.contains('@'))
             } else selectedCustomer != null) && problem.trim().length >= 5 &&
-                phone.count(Char::isDigit) >= 7 &&
+                (phone.count(Char::isDigit) >= 7 ||
+                    (!createNewCustomer &&
+                        phone.isBlank() && !selectedCustomer?.phoneNumber.isNullOrBlank())) &&
                 (repairLocation != "CUSTOMER_ADDRESS" ||
                     (city.trim().length >= 2 &&
                         street.trim().length >= 2 &&
@@ -338,22 +371,4 @@ fun AdminOrderCreationScreen(
             },
         )
     }
-}
-
-@Composable
-private fun AdminOrderField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    keyboardType: KeyboardType = KeyboardType.Text,
-) {
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        label = { Text(label) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-        shape = RoundedCornerShape(14.dp),
-    )
 }

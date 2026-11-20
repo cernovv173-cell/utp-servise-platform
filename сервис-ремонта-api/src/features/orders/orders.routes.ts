@@ -36,6 +36,14 @@ import {
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "./order-policy.js";
+import {
+  addressFromFields,
+  assertRepairOrderScenarioIsComplete,
+  repairOrderContactPhone as contactPhone,
+  createAdminOrderBody,
+  createOrderBody,
+  createRepairOrderWithinTransaction,
+} from "./repair-order-intake.js";
 import { createRepairOrderReleaseRouter } from "./repair-order-release.routes.js";
 import { createRepairReviewRequestRouter } from "./repair-review-request.routes.js";
 import { createRepairTechnicianCompletionRouter } from "./repair-technician-completion.routes.js";
@@ -62,55 +70,10 @@ const orderItemParams = z.object({
 });
 const reviewIdParams = z.object({ reviewId: z.string().uuid() });
 const moderateReviewBody = z.object({ isPublished: z.boolean() }).strict();
-const contactPhone = z
-  .string()
-  .trim()
-  .min(7)
-  .max(32)
-  .refine((value) => (value.match(/\d/g)?.length ?? 0) >= 7);
-const optionalAddressField = (minimumLength: number, maximumLength: number) =>
-  z.preprocess(
-    (value) =>
-      typeof value === "string" && value.trim() === "" ? undefined : value,
-    z.string().trim().min(minimumLength).max(maximumLength).optional(),
-  );
-const createOrderBody = z
-  .object({
-    deviceType: z.enum(supportedRepairDeviceTypes),
-    customerDeviceId: z.string().uuid().optional(),
-    deviceBrand: z.string().trim().max(120).optional(),
-    deviceModel: z.string().trim().max(160).optional(),
-    deviceSerialNumber: z.string().trim().max(160).optional(),
-    problem: z.string().trim().min(5).max(2000),
-    contactPhone,
-    repairLocation: z.enum(["CUSTOMER_ADDRESS", "SERVICE_CENTER"]).optional(),
-    useNewRepairScenario: z.literal(true).optional(),
-    visitIsWithinCity: z.boolean().optional(),
-    visitCustomerDistanceKm: z.number().int().min(1).max(10000).optional(),
-    city: optionalAddressField(2, 120),
-    street: optionalAddressField(2, 180),
-    house: optionalAddressField(1, 30),
-    apartment: z.string().trim().max(30).optional(),
-    entrance: z.string().trim().max(30).optional(),
-    hasBarrier: z.boolean().optional(),
-    floor: z.string().trim().max(20).optional(),
-    additionalPhone: z.string().trim().max(32).optional(),
-    additionalInfo: z.string().trim().max(500).optional(),
-    preferredAt: z.string().datetime().nullable().optional(),
-  })
-  .strict();
 const warrantyClaimBody = z
   .object({
     problem: z.string().trim().min(5).max(1800),
     preferredAt: z.string().datetime({ offset: true }).nullable().optional(),
-  })
-  .strict();
-const createAdminOrderBody = createOrderBody
-  .omit({ contactPhone: true, customerDeviceId: true })
-  .extend({
-    customerId: z.string().uuid(),
-    contactPhone: contactPhone.optional(),
-    repairLocation: z.enum(["CUSTOMER_ADDRESS", "SERVICE_CENTER"]).optional(),
   })
   .strict();
 const editOrderBody = z
@@ -333,30 +296,6 @@ const orderDetails = (role: UserRole) => ({
   receipt: true,
 });
 
-const addressFromFields = (input: {
-  city?: string | null;
-  street?: string | null;
-  house?: string | null;
-  apartment?: string | null;
-  entrance?: string | null;
-  hasBarrier?: boolean | null;
-  floor?: string | null;
-  additionalInfo?: string | null;
-}): string =>
-  [
-    [input.city, input.street, input.house ? `д. ${input.house}` : null]
-      .filter(Boolean)
-      .join(", "),
-    input.apartment ? `кв. ${input.apartment}` : null,
-    input.entrance ? `подъезд ${input.entrance}` : null,
-    input.hasBarrier ? "шлагбаум: да" : null,
-    input.floor ? `этаж ${input.floor}` : null,
-    input.additionalInfo,
-  ]
-    .filter(Boolean)
-    .join(", ")
-    .slice(0, 500);
-
 const isUniqueViolation = (error: unknown): boolean =>
   typeof error === "object" &&
   error !== null &&
@@ -459,23 +398,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createOrderBody>>(response);
-      if (
-        input.useNewRepairScenario &&
-        (!input.repairLocation ||
-          (input.repairLocation === "CUSTOMER_ADDRESS" &&
-            (input.visitIsWithinCity === undefined ||
-              (!input.visitIsWithinCity &&
-                input.visitCustomerDistanceKm === undefined) ||
-              !input.city ||
-              !input.street ||
-              !input.house)))
-      ) {
-        throw new HttpError(
-          400,
-          "VISIT_DISTANCE_REQUIRED",
-          "Для нового сценария выберите место ремонта; для выезда укажите полный адрес и отметьте, находится ли он в Пушкино. За городом добавьте примерное расстояние от границы.",
-        );
-      }
+      assertRepairOrderScenarioIsComplete(input);
       const order = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
           SELECT "id" FROM "users" WHERE "id" = ${user.id}::uuid FOR UPDATE
@@ -499,56 +422,22 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "Новые заявки принимаются только на компьютеры и ноутбуки.",
           );
         }
-        const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
-          SELECT nextval('repair_service_number_seq') AS value
-        `;
-        const number = String(sequence[0]?.value ?? "1").padStart(6, "0");
-        const address = addressFromFields(input);
-        const created = await transaction.repairOrder.create({
-          data: {
-            serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
-            customerId: user.id,
-            workActRequired: true,
-            customerDeviceId: savedDevice?.id ?? null,
-            deviceType: savedDevice?.deviceType ?? input.deviceType,
-            deviceBrand: savedDevice?.brand ?? (input.deviceBrand || null),
-            deviceModel: savedDevice?.model ?? (input.deviceModel || null),
-            deviceSerialNumber:
-              savedDevice?.serialNumber ?? (input.deviceSerialNumber || null),
-            problem: input.problem,
-            address,
-            repairLocation: input.repairLocation ?? null,
-            visitScenarioVersion: input.useNewRepairScenario ? 1 : 0,
-            visitIsWithinCity:
-              input.repairLocation === "CUSTOMER_ADDRESS"
-                ? (input.visitIsWithinCity ?? null)
-                : null,
-            visitCustomerDistanceKm:
-              input.repairLocation === "CUSTOMER_ADDRESS" &&
-              input.visitIsWithinCity === false
-                ? (input.visitCustomerDistanceKm ?? null)
-                : null,
-            contactPhone: input.contactPhone,
-            city: input.city ?? null,
-            street: input.street ?? null,
-            house: input.house ?? null,
-            apartment: input.apartment || null,
-            entrance: input.entrance || null,
-            hasBarrier: input.hasBarrier ?? false,
-            floor: input.floor || null,
-            additionalPhone: input.additionalPhone || null,
-            additionalInfo: input.additionalInfo || null,
-            preferredAt: input.preferredAt ? new Date(input.preferredAt) : null,
-          },
-        });
-        await transaction.repairStatusEvent.create({
-          data: {
-            orderId: created.id,
-            actorId: user.id,
-            from: null,
-            to: "REQUESTED",
-            note: "Заявка создана",
-          },
+        const created = await createRepairOrderWithinTransaction(transaction, {
+          actorId: user.id,
+          customerId: user.id,
+          contactPhone: input.contactPhone,
+          input,
+          statusNote: "Заявка создана",
+          savedDevice: savedDevice
+            ? {
+                id: savedDevice.id,
+                deviceType:
+                  savedDevice.deviceType as (typeof supportedRepairDeviceTypes)[number],
+                brand: savedDevice.brand,
+                model: savedDevice.model,
+                serialNumber: savedDevice.serialNumber,
+              }
+            : null,
         });
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: created.id },
@@ -686,23 +575,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const administrator = getAuthenticatedUser(response);
       const input = bodyOf<z.infer<typeof createAdminOrderBody>>(response);
-      if (
-        input.useNewRepairScenario &&
-        (!input.repairLocation ||
-          (input.repairLocation === "CUSTOMER_ADDRESS" &&
-            (input.visitIsWithinCity === undefined ||
-              (!input.visitIsWithinCity &&
-                input.visitCustomerDistanceKm === undefined) ||
-              !input.city ||
-              !input.street ||
-              !input.house)))
-      ) {
-        throw new HttpError(
-          400,
-          "VISIT_DISTANCE_REQUIRED",
-          "Для нового сценария выберите место ремонта; для выезда укажите полный адрес и отметьте, находится ли он в Пушкино. За городом добавьте примерное расстояние от границы.",
-        );
-      }
+      assertRepairOrderScenarioIsComplete(input);
       const customer = await database.user.findFirst({
         where: { id: input.customerId, role: "CUSTOMER", active: true },
         select: {
@@ -733,53 +606,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         await transaction.$queryRaw`
           SELECT "id" FROM "users" WHERE "id" = ${customer.id}::uuid FOR UPDATE
         `;
-        const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
-          SELECT nextval('repair_service_number_seq') AS value
-        `;
-        const number = String(sequence[0]?.value ?? "1").padStart(6, "0");
-        const created = await transaction.repairOrder.create({
-          data: {
-            serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
-            customerId: customer.id,
-            workActRequired: true,
-            deviceType: input.deviceType,
-            deviceBrand: input.deviceBrand || null,
-            deviceModel: input.deviceModel || null,
-            deviceSerialNumber: input.deviceSerialNumber || null,
-            problem: input.problem,
-            address: addressFromFields(input),
-            repairLocation: input.repairLocation ?? null,
-            visitScenarioVersion: input.useNewRepairScenario ? 1 : 0,
-            visitIsWithinCity:
-              input.repairLocation === "CUSTOMER_ADDRESS"
-                ? (input.visitIsWithinCity ?? null)
-                : null,
-            visitCustomerDistanceKm:
-              input.repairLocation === "CUSTOMER_ADDRESS" &&
-              input.visitIsWithinCity === false
-                ? (input.visitCustomerDistanceKm ?? null)
-                : null,
-            contactPhone,
-            city: input.city ?? null,
-            street: input.street ?? null,
-            house: input.house ?? null,
-            apartment: input.apartment || null,
-            entrance: input.entrance || null,
-            hasBarrier: input.hasBarrier ?? false,
-            floor: input.floor || null,
-            additionalPhone: input.additionalPhone || null,
-            additionalInfo: input.additionalInfo || null,
-            preferredAt: input.preferredAt ? new Date(input.preferredAt) : null,
-          },
-        });
-        await transaction.repairStatusEvent.create({
-          data: {
-            orderId: created.id,
-            actorId: administrator.id,
-            from: null,
-            to: "REQUESTED",
-            note: "Заявка создана администратором",
-          },
+        const created = await createRepairOrderWithinTransaction(transaction, {
+          actorId: administrator.id,
+          customerId: customer.id,
+          contactPhone,
+          input,
+          statusNote: "Заявка создана администратором",
         });
         return transaction.repairOrder.findUniqueOrThrow({
           where: { id: created.id },

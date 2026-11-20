@@ -837,24 +837,9 @@ object ApiClient {
 
     fun createOrder(
         token: String,
-        deviceType: String,
-        problem: String,
-        address: OrderAddress,
-        details: RepairRequestDetails = RepairRequestDetails(),
+        input: RepairOrderIntakeInput,
     ): RepairOrder {
-        val body = JSONObject()
-            .put("deviceType", deviceType)
-            .put("problem", problem)
-            .put("useNewRepairScenario", details.useNewRepairScenario)
-            .putAddress(address)
-        details.deviceBrand.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceBrand", it) }
-        details.deviceModel.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceModel", it) }
-        details.deviceSerialNumber.trim().takeIf { it.isNotEmpty() }?.let { body.put("deviceSerialNumber", it) }
-        details.preferredAt?.let { body.put("preferredAt", it) }
-        details.customerDeviceId?.let { body.put("customerDeviceId", it) }
-        body.put("repairLocation", details.repairLocation)
-        details.visitIsWithinCity?.let { body.put("visitIsWithinCity", it) }
-        details.visitCustomerDistanceKm?.let { body.put("visitCustomerDistanceKm", it) }
+        val body = repairOrderIntakeBody(input, customerRequest = true)
         return request("POST", "/orders", token, body).getJSONObject("order").toOrder()
     }
 
@@ -915,24 +900,13 @@ object ApiClient {
     fun createAdministratorOrder(
         token: String,
         customerId: String,
-        deviceType: String,
-        problem: String,
-        repairLocation: String,
-        address: OrderAddress,
-        useNewRepairScenario: Boolean = true,
-        visitIsWithinCity: Boolean = true,
-    visitCustomerDistanceKm: Int? = null,
-): RepairOrder = request(
-        "POST", "/admin/orders", token,
-        JSONObject().put("customerId", customerId).put("deviceType", deviceType)
-            .put("problem", problem).put("repairLocation", repairLocation).putAddress(address)
-            .apply {
-                put("useNewRepairScenario", useNewRepairScenario)
-                if (repairLocation == "CUSTOMER_ADDRESS") {
-                    put("visitIsWithinCity", visitIsWithinCity)
-                    visitCustomerDistanceKm?.let { put("visitCustomerDistanceKm", it) }
-                }
-            },
+        input: RepairOrderIntakeInput,
+    ): RepairOrder = request(
+        "POST",
+        "/admin/orders",
+        token,
+        repairOrderIntakeBody(input, customerRequest = false)
+            .put("customerId", customerId),
     ).getJSONObject("order").toOrder()
 
     fun updateOrder(token: String, orderId: String, deviceType: String, problem: String, address: OrderAddress): RepairOrder = request(
@@ -1329,16 +1303,49 @@ object ApiClient {
         )
     }
 
-    private fun JSONObject.putAddress(address: OrderAddress): JSONObject = put("contactPhone", address.contactPhone)
-        .put("city", address.city)
-        .put("street", address.street)
-        .put("house", address.house)
-        .put("apartment", address.apartment)
-        .put("entrance", address.entrance)
-        .put("hasBarrier", address.hasBarrier)
-        .put("floor", address.floor)
-        .put("additionalPhone", address.additionalPhone)
-        .put("additionalInfo", address.additionalInfo)
+    private fun repairOrderIntakeBody(
+        input: RepairOrderIntakeInput,
+        customerRequest: Boolean,
+    ): JSONObject {
+        val details = input.details
+        return JSONObject()
+            .put("deviceType", input.deviceType)
+            .put("problem", input.problem)
+            .put("useNewRepairScenario", details.useNewRepairScenario)
+            .put("repairLocation", details.repairLocation)
+            .putAddress(input.address, includeContactPhoneWhenEmpty = customerRequest)
+            .apply {
+                details.deviceBrand.trim().takeIf(String::isNotEmpty)?.let { put("deviceBrand", it) }
+                details.deviceModel.trim().takeIf(String::isNotEmpty)?.let { put("deviceModel", it) }
+                details.deviceSerialNumber.trim().takeIf(String::isNotEmpty)?.let { put("deviceSerialNumber", it) }
+                details.preferredAt?.let { put("preferredAt", it) }
+                if (customerRequest) {
+                    details.customerDeviceId?.let { put("customerDeviceId", it) }
+                }
+                if (details.repairLocation == "CUSTOMER_ADDRESS") {
+                    details.visitIsWithinCity?.let { put("visitIsWithinCity", it) }
+                    details.visitCustomerDistanceKm?.let { put("visitCustomerDistanceKm", it) }
+                }
+            }
+    }
+
+    private fun JSONObject.putAddress(
+        address: OrderAddress,
+        includeContactPhoneWhenEmpty: Boolean = true,
+    ): JSONObject = apply {
+        if (address.contactPhone.isNotBlank() || includeContactPhoneWhenEmpty) {
+            put("contactPhone", address.contactPhone)
+        }
+        put("city", address.city)
+            .put("street", address.street)
+            .put("house", address.house)
+            .put("apartment", address.apartment)
+            .put("entrance", address.entrance)
+            .put("hasBarrier", address.hasBarrier)
+            .put("floor", address.floor)
+            .put("additionalPhone", address.additionalPhone)
+            .put("additionalInfo", address.additionalInfo)
+    }
 
     private fun authResult(json: JSONObject) = AuthResult(json.getString("accessToken"), json.getJSONObject("user").toUser())
 

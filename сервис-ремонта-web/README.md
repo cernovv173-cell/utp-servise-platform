@@ -50,6 +50,13 @@ their files:
 This application does not define a theme. Style product surfaces with inline Tailwind utilities and
 adapt the neutral primitive classes when the requested design requires it.
 
+Customer and administrator repair-order forms reuse `src/features/orders/repair-order-intake-fields.tsx`
+for device, problem, contact, address, and appointment fields. The customer form owns saved-device
+selection, symptom hints, optional request photos, and price guidance; the administrator form owns
+customer lookup and account creation. Their API inputs are based on the shared
+`RepairOrderIntakeFields` type in `src/lib/api.ts`; keep role-specific permissions and customer
+selection outside the shared fields component.
+
 ## Home page examples
 
 The home route renders `src/examples/component-examples.tsx`. Follow its direct imports

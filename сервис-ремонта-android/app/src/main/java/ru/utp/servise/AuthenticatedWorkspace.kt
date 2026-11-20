@@ -52,6 +52,7 @@ import ru.utp.servise.data.NewsArticle
 import ru.utp.servise.data.TechnologyFact
 import ru.utp.servise.data.OrderChat
 import ru.utp.servise.data.RepairOrder
+import ru.utp.servise.data.RepairOrderIntakeInput
 import ru.utp.servise.data.RepairOrderIntakeSettings
 import ru.utp.servise.data.SiteBanner
 import ru.utp.servise.data.SalarySummary
@@ -493,7 +494,10 @@ internal fun AuthenticatedWorkspace(
                                         onCampaignNavigate = onCampaignNavigate,
                                         onSubmit = { device, problem, address, details, photoUri ->
                                             runAction({
-                                                val order = ApiClient.createOrder(token, device, problem, address, details)
+                                                val order = ApiClient.createOrder(
+                                                    token,
+                                                    RepairOrderIntakeInput(device, problem, address, details),
+                                                )
                                                 photoUri?.let { uri ->
                                                     runCatching {
                                                         ApiClient.uploadOrderPhoto(

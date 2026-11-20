@@ -1,6 +1,10 @@
 import { type FormEvent, useState } from "react";
 
 import { PreVisitPriceGuide } from "@/features/orders/pre-visit-price-guide";
+import {
+  RepairOrderContactFields,
+  RepairOrderDeviceFields,
+} from "@/features/orders/repair-order-intake-fields";
 import { RepairRequestVisitFields } from "@/features/orders/repair-request-visit-fields";
 import { RepairSymptomGuide } from "@/features/orders/repair-symptom-guide";
 
@@ -21,11 +25,6 @@ type RepairRequestFormProps = {
   onSubmit: (input: RepairRequestInput, photo: File | null) => void;
 };
 
-const localDateTimeMinimum = () => {
-  const localNow = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000);
-  return localNow.toISOString().slice(0, 16);
-};
-
 export const RepairRequestForm = ({
   defaultPhone,
   isPending,
@@ -42,6 +41,7 @@ export const RepairRequestForm = ({
   const [selectedDeviceId, setSelectedDeviceId] = useState(initialDeviceId ?? "");
   const [problem, setProblem] = useState("");
   const [deviceType, setDeviceType] = useState("COMPUTER");
+  const [phone, setPhone] = useState(defaultPhone);
   const [repairLocation, setRepairLocation] = useState<RepairLocation>("SERVICE_CENTER");
   const [isWithinCity, setIsWithinCity] = useState(true);
   const supportedDevices = devices.filter(
@@ -60,11 +60,12 @@ export const RepairRequestForm = ({
       {
         deviceType: String(data.get("deviceType")),
         ...(selectedDevice ? { customerDeviceId: selectedDevice.id } : {}),
-        deviceBrand: String(data.get("deviceBrand") || "").trim(),
-        deviceModel: String(data.get("deviceModel") || "").trim(),
-        deviceSerialNumber: String(data.get("deviceSerialNumber") || "").trim(),
-        problem: String(data.get("problem")),
-        contactPhone: String(data.get("contactPhone")),
+        deviceBrand: selectedDevice?.brand ?? String(data.get("deviceBrand") || "").trim(),
+        deviceModel: selectedDevice?.model ?? String(data.get("deviceModel") || "").trim(),
+        deviceSerialNumber:
+          selectedDevice?.serialNumber ?? String(data.get("deviceSerialNumber") || "").trim(),
+        problem: problem.trim(),
+        contactPhone: phone.trim(),
         repairLocation,
         useNewRepairScenario: true,
         ...(repairLocation === "CUSTOMER_ADDRESS"
@@ -92,23 +93,6 @@ export const RepairRequestForm = ({
 
   return (
     <form onSubmit={submit} className="grid gap-4 md:grid-cols-2">
-      <label className="grid gap-1.5 text-sm font-medium">
-        Тип устройства
-        <select
-          name="deviceType"
-          value={selectedDevice?.deviceType ?? deviceType}
-          onChange={(event) => setDeviceType(event.target.value)}
-          disabled={Boolean(selectedDevice)}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 dark:border-slate-700 dark:bg-slate-900"
-        >
-          <option value="COMPUTER">ПК</option>
-          <option value="LAPTOP">Ноутбук</option>
-          <option value="MONOBLOCK">Моноблок</option>
-        </select>
-      </label>
-      {selectedDevice && (
-        <input type="hidden" name="deviceType" value={selectedDevice.deviceType} />
-      )}
       {supportedDevices.length > 0 && (
         <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
           Сохранённая техника
@@ -144,49 +128,14 @@ export const RepairRequestForm = ({
           </button>
         </div>
       )}
-      {!selectedDevice && (
-        <>
-          <label className="grid gap-1.5 text-sm font-medium">
-            Марка
-            <input
-              name="deviceBrand"
-              maxLength={120}
-              placeholder="Например, Lenovo"
-              className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-            />
-          </label>
-          <label className="grid gap-1.5 text-sm font-medium">
-            Модель
-            <input
-              name="deviceModel"
-              maxLength={160}
-              placeholder="Например, ThinkPad T14"
-              className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-            />
-          </label>
-          <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
-            Серийный номер (если известен)
-            <input
-              name="deviceSerialNumber"
-              maxLength={160}
-              className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-            />
-          </label>
-        </>
-      )}
-      <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
-        Опишите неисправность
-        <textarea
-          name="problem"
-          minLength={5}
-          maxLength={2000}
-          required
-          rows={3}
-          value={problem}
-          onChange={(event) => setProblem(event.target.value)}
-          className="rounded-xl border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
+      <RepairOrderDeviceFields
+        deviceType={selectedDevice?.deviceType ?? deviceType}
+        onDeviceTypeChange={setDeviceType}
+        deviceTypeLocked={Boolean(selectedDevice)}
+        showDeviceDetails={!selectedDevice}
+        problem={problem}
+        onProblemChange={setProblem}
+      />
       <div className="md:col-span-2">
         <RepairSymptomGuide
           deviceType={selectedDevice?.deviceType ?? deviceType}
@@ -201,103 +150,11 @@ export const RepairRequestForm = ({
         isWithinCity={isWithinCity}
         onWithinCityChange={setIsWithinCity}
       />
-      <label className="grid gap-1.5 text-sm font-medium">
-        Телефон для связи
-        <input
-          name="contactPhone"
-          type="tel"
-          minLength={7}
-          maxLength={32}
-          required
-          defaultValue={defaultPhone}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Город {repairLocation === "CUSTOMER_ADDRESS" ? "для выезда" : "(необязательно)"}
-        <input
-          name="city"
-          maxLength={120}
-          required={repairLocation === "CUSTOMER_ADDRESS"}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Улица {repairLocation === "CUSTOMER_ADDRESS" ? "для выезда" : "(необязательно)"}
-        <input
-          name="street"
-          maxLength={180}
-          required={repairLocation === "CUSTOMER_ADDRESS"}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Дом {repairLocation === "CUSTOMER_ADDRESS" ? "для выезда" : "(необязательно)"}
-        <input
-          name="house"
-          maxLength={30}
-          required={repairLocation === "CUSTOMER_ADDRESS"}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Квартира
-        <input
-          name="apartment"
-          maxLength={30}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Подъезд
-        <input
-          name="entrance"
-          maxLength={30}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Этаж
-        <input
-          name="floor"
-          maxLength={20}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Дополнительный телефон
-        <input
-          name="additionalPhone"
-          type="tel"
-          maxLength={32}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium">
-        Удобное время для связи или выезда
-        <input
-          name="preferredAt"
-          type="datetime-local"
-          min={localDateTimeMinimum()}
-          className="h-11 rounded-xl border border-slate-200 bg-white px-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
-      <p className="self-end text-xs leading-5 text-slate-500">
-        Время предварительное: сервис подтвердит его после проверки расписания.
-      </p>
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input type="checkbox" name="hasBarrier" className="size-4 accent-blue-600" />
-        Есть шлагбаум
-      </label>
-      <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
-        Дополнительная информация
-        <textarea
-          name="additionalInfo"
-          maxLength={500}
-          rows={2}
-          className="rounded-xl border border-slate-200 bg-white p-3 font-normal dark:border-slate-700 dark:bg-slate-900"
-        />
-      </label>
+      <RepairOrderContactFields
+        phone={phone}
+        onPhoneChange={setPhone}
+        repairLocation={repairLocation}
+      />
       <label className="grid gap-1.5 text-sm font-medium md:col-span-2">
         Фото техники (необязательно)
         <input
