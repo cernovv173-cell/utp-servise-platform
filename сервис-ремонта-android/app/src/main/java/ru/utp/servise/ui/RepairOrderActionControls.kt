@@ -39,7 +39,8 @@ internal fun RepairOrderActionControls(
                 "ASSIGNED" -> add("Начать ремонт" to "IN_PROGRESS")
                 "IN_PROGRESS" -> {
                     if (order.visitScenarioVersion < 1 ||
-                        order.technicianRepairCompletedAt != null || diagnosisOnlyReturn
+                        (order.repairLocation == "SERVICE_CENTER" &&
+                            (order.technicianRepairCompletedAt != null || diagnosisOnlyReturn))
                     ) {
                         add("Готова к выдаче" to "READY_FOR_PICKUP")
                     }

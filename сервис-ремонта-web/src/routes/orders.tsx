@@ -32,6 +32,7 @@ import { RepairWorkActPanel } from "@/features/orders/repair-work-act-panel";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
 
 import {
+  type RepairOrder,
   createOrder,
   getCustomerDevices,
   getCustomerServicePrices,
@@ -52,6 +53,22 @@ const statusLabels: Record<string, string> = {
   COMPLETED: "Завершена",
   CANCELLED: "Отменена",
 };
+
+const isActiveOnsiteVisit = (order: RepairOrder) =>
+  (order.visitScenarioVersion ?? 0) > 0 && order.repairLocation === "CUSTOMER_ADDRESS";
+
+const isDiagnosisOnlyReturn = (order: RepairOrder) =>
+  (order.visitScenarioVersion ?? 0) > 0 &&
+  Boolean(order.diagnosisCompletedAt) &&
+  order.estimates?.at(-1)?.status === "DECLINED" &&
+  order.items.length === 0;
+
+const isWaitingForTechnicianCompletion = (order: RepairOrder) =>
+  (order.visitScenarioVersion ?? 0) > 0 &&
+  order.repairLocation === "SERVICE_CENTER" &&
+  !order.technicianRepairCompletedAt &&
+  !isDiagnosisOnlyReturn(order);
+
 const OrdersPage = () => {
   const searchParams = Route.useSearch();
   const { token, user } = useAuth();
@@ -466,33 +483,31 @@ const OrdersPage = () => {
                     )}
                   </div>
                 )}
-                {user?.role === "ADMIN" && order.status === "IN_PROGRESS" && (
-                  <div className="mt-3 grid gap-2">
-                    {(order.visitScenarioVersion ?? 0) > 0 &&
-                      order.repairLocation === "SERVICE_CENTER" &&
-                      !order.technicianRepairCompletedAt && (
+                {user?.role === "ADMIN" &&
+                  order.status === "IN_PROGRESS" &&
+                  !isActiveOnsiteVisit(order) && (
+                    <div className="mt-3 grid gap-2">
+                      {isWaitingForTechnicianCompletion(order) && (
                         <p className="text-xs text-amber-700 dark:text-amber-300">
                           Ожидается отметка мастера о завершении ремонта.
                         </p>
                       )}
-                    <button
-                      type="button"
-                      disabled={
-                        statusMutation.isPending ||
-                        ((order.visitScenarioVersion ?? 0) > 0 &&
-                          order.repairLocation === "SERVICE_CENTER" &&
-                          !order.technicianRepairCompletedAt) ||
-                        order.estimates?.at(-1)?.status === "PENDING"
-                      }
-                      onClick={() =>
-                        statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
-                      }
-                      className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-                    >
-                      Подтвердить готовность к выдаче
-                    </button>
-                  </div>
-                )}
+                      <button
+                        type="button"
+                        disabled={
+                          statusMutation.isPending ||
+                          isWaitingForTechnicianCompletion(order) ||
+                          order.estimates?.at(-1)?.status === "PENDING"
+                        }
+                        onClick={() =>
+                          statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
+                        }
+                        className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                      >
+                        Подтвердить готовность к выдаче
+                      </button>
+                    </div>
+                  )}
                 {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (
                   <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
                     <p className="font-medium">К оплате по чеку {order.receipt.receiptNumber}</p>

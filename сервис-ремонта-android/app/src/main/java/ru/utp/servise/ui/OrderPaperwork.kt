@@ -1,6 +1,5 @@
 package ru.utp.servise.ui
 
-import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,15 +45,10 @@ internal fun OrderPaperworkDialog(
 ) {
     val context = LocalContext.current
     val intake = order.intake
-    val includeIntakeAct = order.visitScenarioVersion == 0
+    val includeIntakeAct =
+        !(order.visitScenarioVersion > 0 && order.repairLocation == "CUSTOMER_ADDRESS")
     val canEdit = role in listOf("ADMIN", "TECHNICIAN") &&
         order.status !in listOf("READY_FOR_PICKUP", "COMPLETED", "CANCELLED")
-    val legacyMediaObjectId = listOfNotNull(
-        intake?.frontPhotoObjectId,
-        intake?.backPhotoObjectId,
-        intake?.leftPhotoObjectId,
-        intake?.rightPhotoObjectId,
-    ).firstOrNull()
     val legacySummary = listOf(
         "Передняя сторона" to intake?.frontCondition,
         "Задняя сторона" to intake?.backCondition,
@@ -65,13 +59,6 @@ internal fun OrderPaperworkDialog(
     var conditionSummary by remember(order.id) {
         mutableStateOf(intake?.conditionSummary?.takeIf(String::isNotBlank) ?: legacySummary)
     }
-    var intakeMediaObjectId by remember(order.id) {
-        mutableStateOf(intake?.intakeMediaObjectId ?: legacyMediaObjectId)
-    }
-    var intakeMediaType by remember(order.id) {
-        mutableStateOf(intake?.intakeMediaType ?: if (legacyMediaObjectId != null) "IMAGE" else null)
-    }
-    var selectedMedia by remember(order.id) { mutableStateOf<Uri?>(null) }
     var serial by remember(order.id) { mutableStateOf(intake?.serialNumber.orEmpty()) }
     var accessories by remember(order.id) { mutableStateOf(intake?.includedAccessories.orEmpty()) }
     var notes by remember(order.id) { mutableStateOf(intake?.intakeNotes.orEmpty()) }
@@ -92,7 +79,6 @@ internal fun OrderPaperworkDialog(
                                     "Серийный номер: ${serial.ifBlank { "—" }}",
                                     "Заявленная неисправность: ${order.problem}",
                                     "Состояние устройства: ${conditionSummary.ifBlank { "Не указано" }}",
-                                    "Фото/видео осмотра: ${if (intakeMediaType == "VIDEO") "видео сохранено в электронном акте" else if (intakeMediaObjectId != null) "фото приложено" else "не приложено"}",
                                     "Комплектность: ${accessories.ifBlank { "—" }}",
                                     "Примечания: ${notes.ifBlank { "—" }}",
                                     "Подпись клиента: ____________________    Представитель сервиса: ____________________",
@@ -141,17 +127,11 @@ internal fun OrderPaperworkDialog(
                         )
                     }
                 }
-                val photos = if (includeIntakeAct && intakeMediaType != "VIDEO") {
-                    intakeMediaObjectId?.let { objectId ->
-                        listOf(OrderPaperworkPdfPhoto("Фото приёма", ApiClient.downloadMedia(token, objectId)))
-                    }.orEmpty()
-                } else emptyList()
-                saveOrderPaperworkPdf(context, uri, order.serviceNumber, pdfSections, photos)
+                saveOrderPaperworkPdf(context, uri, order.serviceNumber, pdfSections)
                 true
             }) { Toast.makeText(context, "PDF сохранён.", Toast.LENGTH_SHORT).show() }
         }
     }
-    val hasIntakeMedia = intakeMediaObjectId != null || selectedMedia != null
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -189,58 +169,8 @@ internal fun OrderPaperworkDialog(
                             maxLines = 6,
                             shape = RoundedCornerShape(12.dp),
                         )
-                        if (intakeMediaObjectId != null) {
-                            if (intakeMediaType == "VIDEO") {
-                                RemoteProjectVideo(
-                                    intakeMediaObjectId,
-                                    token,
-                                    Modifier.fillMaxWidth().height(170.dp),
-                                    "Видео осмотра",
-                                )
-                            } else {
-                                RemoteProjectImage(
-                                    intakeMediaObjectId,
-                                    token,
-                                    Modifier.fillMaxWidth().height(170.dp),
-                                    "Фото осмотра устройства",
-                                )
-                            }
-                        }
-                        MediaPickerButton(
-                            label = when {
-                                selectedMedia != null -> "Фото или видео выбрано · заменить"
-                                intakeMediaObjectId != null -> "Заменить фото или видео"
-                                else -> "Добавить одно фото или видео"
-                            },
-                        ) { uri -> selectedMedia = uri }
-                        selectedMedia?.let { uri ->
-                            Text(
-                                if (context.contentResolver.getType(uri)?.startsWith("video/") == true)
-                                    "Выбрано видео MP4. Оно загрузится при сохранении акта."
-                                else "Выбрано фото. Оно загрузится при сохранении акта.",
-                                color = UtpMuted,
-                                fontSize = 12.sp,
-                            )
-                        }
                     } else {
                         Text(conditionSummary.ifBlank { "Состояние не указано" }, fontSize = 13.sp, color = UtpMuted)
-                        if (intakeMediaObjectId != null) {
-                            if (intakeMediaType == "VIDEO") {
-                                RemoteProjectVideo(
-                                    intakeMediaObjectId,
-                                    token,
-                                    Modifier.fillMaxWidth().height(170.dp),
-                                    "Видео осмотра",
-                                )
-                            } else {
-                                RemoteProjectImage(
-                                    intakeMediaObjectId,
-                                    token,
-                                    Modifier.fillMaxWidth().height(170.dp),
-                                    "Фото осмотра устройства",
-                                )
-                            }
-                        }
                     }
                     if (canEdit) {
                         OutlinedTextField(
@@ -269,15 +199,6 @@ internal fun OrderPaperworkDialog(
                         Button(
                             onClick = {
                                 runAction({
-                                    selectedMedia?.let { uri ->
-                                        val media = readSelectedMedia(context, uri)
-                                        ApiClient.uploadIntakeMedia(
-                                            token,
-                                            order.id,
-                                            media.bytes,
-                                            media.contentType,
-                                        )
-                                    }
                                     ApiClient.saveOrderIntake(
                                         token,
                                         order.id,
@@ -288,16 +209,9 @@ internal fun OrderPaperworkDialog(
                                     )
                                 }) { onDismiss() }
                             },
-                            enabled = hasIntakeMedia && conditionSummary.trim().length >= 2,
+                            enabled = conditionSummary.trim().length >= 2,
                             modifier = Modifier.fillMaxWidth(),
                         ) { Text("Сохранить акт") }
-                        if (!hasIntakeMedia) {
-                            Text(
-                                "Добавьте одно фото или видео осмотра.",
-                                color = UtpMuted,
-                                fontSize = 12.sp,
-                            )
-                        }
                     } else {
                         Text("Серийный номер: ${intake?.serialNumber ?: "—"}", color = UtpMuted)
                         Text(

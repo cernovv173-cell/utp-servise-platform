@@ -96,7 +96,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   };
   const intake = {
     conditionSummary: "Корпус без повреждений, телефон не включается.",
-    intakeMediaObjectId: "intake-media-1",
+    intakeMediaObjectId: null,
   };
   const loyaltyEntries: Array<Record<string, unknown>> = [];
   const customerBalance = 1_000;

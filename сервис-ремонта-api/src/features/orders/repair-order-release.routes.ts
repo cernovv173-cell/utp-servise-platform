@@ -23,6 +23,7 @@ import {
   canViewRepairOrder,
 } from "./order-policy.js";
 import { getRepairFollowUpScheduledAt } from "./repair-follow-up-policy.js";
+import { isActiveOnsiteRepairOrder } from "./repair-visit-policy.js";
 import { assertWorkActApproved } from "./repair-work-act.shared.js";
 import {
   REPAIR_WARRANTY_DAYS,
@@ -111,19 +112,26 @@ export const createRepairOrderReleaseRouter = (
           "Заявка ещё не готова к выдаче.",
         );
       }
+      if (isActiveOnsiteRepairOrder(order)) {
+        throw new HttpError(
+          409,
+          "ONSITE_REPAIR_MUST_BE_COMPLETED_ONSITE_OR_TRANSFERRED",
+          "Выездную заявку завершает мастер на месте либо передаёт технику в сервисный центр.",
+        );
+      }
       const diagnosisOnlyReturn = isDiagnosisOnlyReturn(order);
       if (!diagnosisOnlyReturn) {
         assertWorkActApproved(order.workActRequired, order.workAct?.status);
       }
       const intake = await database.repairOrderIntake.findUnique({
         where: { orderId },
-        select: { conditionSummary: true, intakeMediaObjectId: true },
+        select: { conditionSummary: true },
       });
-      if (!intake?.conditionSummary.trim() || !intake.intakeMediaObjectId) {
+      if (!intake?.conditionSummary.trim()) {
         throw new HttpError(
           409,
           "INTAKE_REQUIRED",
-          "Перед выдачей заполните акт и добавьте одно фото или видео.",
+          "Перед выдачей заполните акт приёма и укажите состояние устройства.",
         );
       }
       const repairSubtotalRub =
@@ -213,19 +221,26 @@ export const createRepairOrderReleaseRouter = (
             "Заявка уже изменилась или не готова к выдаче.",
           );
         }
+        if (isActiveOnsiteRepairOrder(order)) {
+          throw new HttpError(
+            409,
+            "ONSITE_REPAIR_MUST_BE_COMPLETED_ONSITE_OR_TRANSFERRED",
+            "Выездную заявку завершает мастер на месте либо передаёт технику в сервисный центр.",
+          );
+        }
         const diagnosisOnlyReturn = isDiagnosisOnlyReturn(order);
         if (!diagnosisOnlyReturn) {
           assertWorkActApproved(order.workActRequired, order.workAct?.status);
         }
         const intake = await transaction.repairOrderIntake.findUnique({
           where: { orderId },
-          select: { conditionSummary: true, intakeMediaObjectId: true },
+          select: { conditionSummary: true },
         });
-        if (!intake?.conditionSummary.trim() || !intake.intakeMediaObjectId) {
+        if (!intake?.conditionSummary.trim()) {
           throw new HttpError(
             409,
             "INTAKE_REQUIRED",
-            "Перед выдачей заполните акт и добавьте одно фото или видео.",
+            "Перед выдачей заполните акт приёма и укажите состояние устройства.",
           );
         }
 

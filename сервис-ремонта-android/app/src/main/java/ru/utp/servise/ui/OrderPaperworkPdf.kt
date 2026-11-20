@@ -1,10 +1,8 @@
 package ru.utp.servise.ui
 
 import android.content.Context
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
 import android.net.Uri
@@ -17,17 +15,11 @@ internal data class OrderPaperworkPdfSection(
     val lines: List<String>,
 )
 
-internal data class OrderPaperworkPdfPhoto(
-    val title: String,
-    val bytes: ByteArray,
-)
-
 internal fun saveOrderPaperworkPdf(
     context: Context,
     uri: Uri,
     serviceNumber: String,
     sections: List<OrderPaperworkPdfSection>,
-    photos: List<OrderPaperworkPdfPhoto>,
 ) {
     val document = PdfDocument()
     val pageWidth = 595
@@ -111,26 +103,6 @@ internal fun saveOrderPaperworkPdf(
             y += 8f
         }
 
-        photos.forEach { photo ->
-            val bitmap = BitmapFactory.decodeByteArray(photo.bytes, 0, photo.bytes.size)
-                ?: return@forEach
-            try {
-                val scale = minOf(contentWidth / bitmap.width.toFloat(), 250f / bitmap.height)
-                val imageHeight = bitmap.height * scale
-                ensureRoom(imageHeight + 42f)
-                drawBlock(photo.title, sectionPaint, 6f)
-                val left = margin + (contentWidth - bitmap.width * scale) / 2f
-                canvas!!.drawBitmap(
-                    bitmap,
-                    null,
-                    RectF(left, y, left + bitmap.width * scale, y + imageHeight),
-                    Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG),
-                )
-                y += imageHeight + 16f
-            } finally {
-                bitmap.recycle()
-            }
-        }
         finishPage()
         context.contentResolver.openOutputStream(uri)?.use(document::writeTo)
             ?: error("Не удалось открыть файл для сохранения PDF.")

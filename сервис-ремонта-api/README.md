@@ -112,11 +112,13 @@ administrator-created orders remain available. Web and Android show the paused s
 ## Repair visit pickup
 
 For an assigned technician, an active home-visit order can be transferred to the service center
-after the technician confirms the customer's consent. The pickup endpoint still verifies the
-assigned technician, visit scenario, location, status, and that consent has not already been
-recorded. A home-visit intake act, condition summary, or photo/video is not required; the event
-history records only that the technician confirmed the customer's consent. The intake act remains
-available for orders created directly for the service center.
+after the technician confirms the customer's consent. The pickup endpoint verifies the assigned
+technician, visit scenario, location, status, and that consent has not already been recorded; it
+updates the order location so the service-center process becomes available. The technician closes a
+repair completed at the customer's address through the onsite-completion flow instead of moving it
+to `READY_FOR_PICKUP`. When a device is transferred, the service center fills its intake act after
+the device arrives, then continues through the normal estimate, repair, readiness, payment, and
+release steps. The intake act requires a condition summary, not an attachment.
 
 ## Closure announcement
 
@@ -358,12 +360,12 @@ existing workflow.
 
 ## Intake, work orders, and order release
 
-Administrators and the assigned technician maintain one intake act per repair order. It records a
-condition summary, one protected photo or video, the serial number, included accessories, and notes.
-The API requires the saved summary and one media file before release; the act becomes read-only
-once the order is ready, completed, or cancelled. The old four-side fields remain readable for
-history; the additive migration carries their descriptions and first available photo into the new
-fields without deleting the original columns or stored files.
+Administrators and the assigned technician maintain one intake act per service-center repair. It
+records a condition summary, serial number, included accessories, and notes. The first save creates
+the act record, so intake does not depend on an upload step. The API requires the saved summary before
+the order can become ready for pickup or be released; the act becomes read-only once the order is
+ready, completed, or cancelled. The old four-side fields and legacy attachment references remain
+readable for history without being required by the current workflow.
 
 New orders record whether repair is at the service center or at the customer's address. At a home
 visit, the customer supplies an approximate one-way distance from Pushkino's boundary; the assigned
@@ -378,9 +380,10 @@ new fees or status gates.
 For an on-site repair, the assigned technician agrees the repair price directly with the customer,
 records cash or bank-transfer payment, and closes the order without administrator approval. When an
 on-site repair is declined after diagnosis, the receipt contains the diagnostic and applicable travel
-fees. If the repair cannot be completed there, the technician records customer consent and the
-condition/accessories with one protected photo or video; the order then follows the normal service-
-center estimate and intake workflow.
+fees. If the repair cannot be completed there, the technician records customer consent to transport
+the device; after arrival at the service center, staff fill the normal intake act and continue through
+estimate and repair approval. A home-visit order still at the customer's address cannot be marked
+ready for pickup or released as a service-center order.
 
 For service-center repairs, the technician records work completion separately. Only an administrator
 can move a new-scenario order to `READY_FOR_PICKUP` and release it. Release shows repair and parts
@@ -513,7 +516,8 @@ service checks its weekly calendar and confirms or changes the time with the cus
 Android forms label this distinction; administrators can edit the preferred time from the order and
 assign a technician through the existing order workflow. Request photos use the existing protected
 order-photo storage and access rules. Intake paperwork, customer reviews, receipts, work orders, and
-warranties remain on their existing workflows; the intake act now accepts one image or MP4 video.
+warranties remain on their existing workflows; the intake act uses its text fields and does not need
+an attachment.
 News articles and site banners can also store either an image or an MP4 video, using protected media
 access for uploaded files.
 News articles use the `NEWS` kind by default. Administrators can create a `WORK_STORY` publication

@@ -1,6 +1,15 @@
 export const REPAIR_DIAGNOSIS_FEE_RUB = 850;
 export const REPAIR_VISIT_RUB_PER_KM = 25;
 
+export const isActiveOnsiteRepairOrder = ({
+  visitScenarioVersion,
+  repairLocation,
+}: {
+  visitScenarioVersion: number;
+  repairLocation: string | null;
+}): boolean =>
+  visitScenarioVersion > 0 && repairLocation === "CUSTOMER_ADDRESS";
+
 export const calculateRepairVisitFeeRub = ({
   visitScenarioVersion,
   repairLocation,

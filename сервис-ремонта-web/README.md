@@ -302,9 +302,14 @@ links remain expanded. New services and spare parts can be tagged for PC, laptop
 requests and estimates show only matching catalog entries, and a selected saved device supplies its
 type automatically. Customers can edit or cancel their own requests only while they are new, and may
 leave one review with an optional photo after completion. Assigned technicians can advance their
-assigned repair through the allowed status steps, prepare and send a versioned estimate, update the
-intake act, upload its single photo or video, and use the order chat. Only an administrator releases
-a service-center order after the technician marks the repair complete. The estimate is surfaced before the collapsible contact, photo and
+assigned repair through the allowed status steps, prepare and send a versioned estimate, record the
+device condition, serial number, included accessories and notes in the intake act, and use the order
+chat. An active field visit ends either with the technician completing the agreed repair and recording
+payment on site, or with the customer's consent to transfer the device to the service center. After
+arrival at the center, the order follows the normal intake, estimate, repair, completion and
+administrator-led release flow; arrival or transport is not itself a service-center release. Only an
+administrator releases a service-center order after the technician marks the repair complete. The
+estimate is surfaced before the collapsible contact, photo and
 history details; paperwork and chat are grouped separately. Administrators can create and edit
 requests, assign technicians, prepare estimates from the active catalog, review pending estimates,
 manage receipts, search by service number, and manage paperwork and repair chat. Customers can view

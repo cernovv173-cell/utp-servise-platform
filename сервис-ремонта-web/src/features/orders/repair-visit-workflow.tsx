@@ -36,6 +36,8 @@ export const RepairVisitWorkflow = ({
   const [repairPriceRub, setRepairPriceRub] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
   const isHomeVisit = order.repairLocation === "CUSTOMER_ADDRESS";
+  const wasTransferredToServiceCenter =
+    order.repairLocation === "SERVICE_CENTER" && order.visitPickupAgreedAt != null;
   const isStaff = role === "ADMIN" || role === "TECHNICIAN";
   const isAssignedTechnician = role === "TECHNICIAN" && order.assignedTechnicianId === userId;
   const canUseAssignedActions = role === "ADMIN" || isAssignedTechnician;
@@ -121,8 +123,25 @@ export const RepairVisitWorkflow = ({
     <section className="mt-3 grid gap-3 rounded-xl border border-blue-200 bg-blue-50/60 p-4 dark:border-blue-900 dark:bg-blue-950/20">
       <div className="flex items-center gap-2 text-sm font-semibold">
         <MapPinned size={17} aria-hidden="true" />
-        {isHomeVisit ? "Выезд мастера · Пушкино" : "Сценарий новой заявки"}
+        {isHomeVisit
+          ? "Выезд мастера · Пушкино"
+          : wasTransferredToServiceCenter
+            ? "После выезда · сервисный центр"
+            : "Ремонт в сервисном центре"}
       </div>
+
+      {wasTransferredToServiceCenter ? (
+        <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">
+          Согласие на перевозку зафиксировано. После поступления техники заполните акт состояния и
+          комплектности в сервисе, затем продолжайте по обычному порядку: смета, ремонт, проверка и
+          выдача администратором.
+        </p>
+      ) : !isHomeVisit ? (
+        <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">
+          Для ремонта в сервисном центре: приём техники и описание её состояния, согласование сметы,
+          ремонт и выдача администратором.
+        </p>
+      ) : null}
 
       {isHomeVisit && (
         <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 text-sm dark:border-slate-700 dark:bg-slate-950">
@@ -245,8 +264,9 @@ export const RepairVisitWorkflow = ({
           <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950">
             <p className="text-sm font-semibold">Если ремонт на месте невозможен</p>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              Если ремонт на месте невозможен, подтвердите согласие клиента забрать технику в
-              сервис. Акт приёма-передачи на выезде не оформляется.
+              Если на месте починить нельзя, подтвердите согласие клиента на перевозку. Акт
+              состояния и комплектности заполняется уже в сервисном центре после поступления
+              техники.
             </p>
             <button
               type="button"

@@ -43,6 +43,8 @@ internal fun RepairVisitWorkflow(
     if (order.visitScenarioVersion < 1 || role !in listOf("ADMIN", "TECHNICIAN")) return
 
     val isHomeVisit = order.repairLocation == "CUSTOMER_ADDRESS"
+    val wasTransferredToServiceCenter =
+        order.repairLocation == "SERVICE_CENTER" && order.visitPickupAgreedAt != null
     val isAssignedTechnician = role == "TECHNICIAN" && order.technicianId == currentUserId
     val canVerify = role == "ADMIN" || isAssignedTechnician
     var isWithinCity by remember(order.id) { mutableStateOf(order.visitIsWithinCity ?: true) }
@@ -70,11 +72,28 @@ internal fun RepairVisitWorkflow(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                if (isHomeVisit) "Выезд мастера · Пушкино" else "Новый порядок ремонта",
+                when {
+                    isHomeVisit -> "Выезд мастера · Пушкино"
+                    wasTransferredToServiceCenter -> "После выезда · сервисный центр"
+                    else -> "Ремонт в сервисном центре"
+                },
                 fontWeight = FontWeight.SemiBold,
                 fontSize = 14.sp,
                 color = UtpInk,
             )
+            if (wasTransferredToServiceCenter) {
+                Text(
+                    "Согласие на перевозку зафиксировано. После поступления техники заполните акт состояния и комплектности в сервисе, затем продолжайте по обычному порядку: смета, ремонт, проверка и выдача администратором.",
+                    fontSize = 12.sp,
+                    color = UtpMuted,
+                )
+            } else if (!isHomeVisit) {
+                Text(
+                    "Для ремонта в сервисном центре: приём техники и описание её состояния, согласование сметы, ремонт и выдача администратором.",
+                    fontSize = 12.sp,
+                    color = UtpMuted,
+                )
+            }
             if (isHomeVisit) {
                 Text(
                     "Ориентир клиента: ${if (order.visitIsWithinCity == true) "адрес в Пушкино" else "за городом"}" +
@@ -149,7 +168,7 @@ internal fun RepairVisitWorkflow(
             if (isHomeVisit && isAssignedTechnician && order.visitPickupAgreedAt == null &&
                 order.status in listOf("ASSIGNED", "IN_PROGRESS")) {
                 Text(
-                    "Если ремонт на месте невозможен, подтвердите согласие клиента забрать технику в сервис. Акт приёма-передачи на выезде не оформляется.",
+                    "Если на месте починить нельзя, подтвердите согласие клиента на перевозку. Акт состояния и комплектности заполняется уже в сервисном центре после поступления техники.",
                     fontSize = 11.sp,
                     color = UtpMuted,
                 )

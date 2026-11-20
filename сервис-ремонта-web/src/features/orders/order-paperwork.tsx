@@ -1,6 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileText, ImagePlus, Printer, ShieldCheck } from "lucide-react";
-import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { FileText, Printer, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "@/components/modal";
@@ -8,13 +8,7 @@ import { Modal, ModalContent, ModalDescription, ModalHeader, ModalTitle } from "
 import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
 import { type OrderDocumentKind, printOrderDocument } from "@/features/orders/order-document-print";
 
-import {
-  type RepairOrder,
-  type RepairOrderIntake,
-  fetchProtectedMedia,
-  saveOrderIntake,
-  uploadIntakeMedia,
-} from "@/lib/api";
+import { type RepairOrder, type RepairOrderIntake, saveOrderIntake } from "@/lib/api";
 
 const defaults = (intake: RepairOrderIntake | null | undefined) => ({
   conditionSummary:
@@ -22,8 +16,6 @@ const defaults = (intake: RepairOrderIntake | null | undefined) => ({
     [intake?.frontCondition, intake?.backCondition, intake?.leftCondition, intake?.rightCondition]
       .filter(Boolean)
       .join("\n"),
-  intakeMediaObjectId: intake?.intakeMediaObjectId ?? null,
-  intakeMediaType: intake?.intakeMediaType ?? null,
   serialNumber: intake?.serialNumber ?? "",
   includedAccessories: intake?.includedAccessories ?? "",
   intakeNotes: intake?.intakeNotes ?? "",
@@ -34,65 +26,6 @@ const documentTabs = [
   ["work-order", "Заказ-наряд"],
   ["warranty", "Гарантийный талон"],
 ] as const;
-
-const ProtectedOrderMedia = ({
-  token,
-  objectId,
-  mediaType,
-  label,
-}: {
-  token: string;
-  objectId: string | null;
-  mediaType: "IMAGE" | "VIDEO" | null;
-  label: string;
-}) => {
-  const media = useQuery({
-    queryKey: ["order-document-photo", token, objectId],
-    queryFn: () => fetchProtectedMedia(token, objectId!),
-    enabled: Boolean(objectId),
-  });
-  const imageRef = useRef<HTMLImageElement | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const isVideo = mediaType === "VIDEO" || media.data?.type.startsWith("video/");
-  useEffect(() => {
-    if (!media.data) return;
-    const objectUrl = URL.createObjectURL(media.data);
-    const video = videoRef.current;
-    const image = imageRef.current;
-    if (isVideo && video) video.src = objectUrl;
-    if (!isVideo && image) image.src = objectUrl;
-    return () => {
-      if (video?.src === objectUrl) {
-        video.pause();
-        video.removeAttribute("src");
-        video.load();
-      }
-      if (image?.src === objectUrl) image.removeAttribute("src");
-      URL.revokeObjectURL(objectUrl);
-    };
-  }, [isVideo, media.data]);
-  return media.data ? (
-    isVideo ? (
-      <video
-        ref={videoRef}
-        controls
-        playsInline
-        aria-label={label}
-        className="mt-2 aspect-video w-full rounded-lg border border-slate-200 bg-black object-contain dark:border-slate-700"
-      />
-    ) : (
-      <img
-        ref={imageRef}
-        alt={label}
-        className="mt-2 aspect-video w-full rounded-lg border border-slate-200 object-contain dark:border-slate-700"
-      />
-    )
-  ) : (
-    <div className="mt-2 grid aspect-video place-items-center rounded-lg bg-slate-100 text-xs text-slate-500 dark:bg-slate-800">
-      {media.isLoading ? "Загружаем медиа…" : "Фото или видео пока не добавлено"}
-    </div>
-  );
-};
 
 export const OrderPaperwork = ({
   order,
@@ -105,10 +38,25 @@ export const OrderPaperwork = ({
 }) => {
   const queryClient = useQueryClient();
   const isVisitOrder = (order.visitScenarioVersion ?? 0) > 0;
+  const isOnsiteVisit = isVisitOrder && order.repairLocation === "CUSTOMER_ADDRESS";
   const [open, setOpen] = useState(false);
-  const [document, setDocument] = useState<OrderDocumentKind>(
-    isVisitOrder ? "work-order" : "intake",
-  );
+  const [documentSelection, setDocumentSelection] = useState<{
+    orderId: string;
+    isOnsiteVisit: boolean;
+    kind: OrderDocumentKind;
+  }>({
+    orderId: order.id,
+    isOnsiteVisit,
+    kind: isOnsiteVisit ? "work-order" : "intake",
+  });
+  const document =
+    documentSelection.orderId === order.id && documentSelection.isOnsiteVisit === isOnsiteVisit
+      ? documentSelection.kind
+      : isOnsiteVisit
+        ? "work-order"
+        : "intake";
+  const setDocument = (kind: OrderDocumentKind) =>
+    setDocumentSelection({ orderId: order.id, isOnsiteVisit, kind });
   const [previousIntake, setPreviousIntake] = useState(order.intake);
   const [draft, setDraft] = useState(() => defaults(order.intake));
   if (previousIntake !== order.intake) {
@@ -116,20 +64,6 @@ export const OrderPaperwork = ({
     setDraft(defaults(order.intake));
   }
   const invalidateOrders = () => queryClient.invalidateQueries({ queryKey: ["orders", token] });
-  const upload = useMutation({
-    mutationFn: (file: File) => uploadIntakeMedia(token, order.id, file),
-    onSuccess: async ({ intake }) => {
-      setDraft((value) => ({
-        ...value,
-        intakeMediaObjectId: intake.intakeMediaObjectId,
-        intakeMediaType: intake.intakeMediaType,
-      }));
-      toast.success("Фото или видео добавлено в акт.");
-      await invalidateOrders();
-    },
-    onError: () =>
-      toast.error("Не удалось загрузить фото. Заявка доступна только участникам ремонта."),
-  });
   const save = useMutation({
     mutationFn: () =>
       saveOrderIntake(token, order.id, {
@@ -142,21 +76,16 @@ export const OrderPaperwork = ({
       toast.success("Акт приёма сохранён.");
       await invalidateOrders();
     },
-    onError: () => toast.error("Проверьте описание состояния и добавьте одно фото или видео."),
+    onError: () => toast.error("Проверьте описание состояния устройства и повторите сохранение."),
   });
   const print = (kind: OrderDocumentKind) => {
-    void printOrderDocument(kind, order, order.intake ?? null, order.warranty ?? null, token).catch(
+    void printOrderDocument(kind, order, order.intake ?? null, order.warranty ?? null).catch(
       (error: unknown) => {
         toast.error(
           error instanceof Error ? error.message : "Не удалось подготовить документ к печати.",
         );
       },
     );
-  };
-  const changeMedia = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    if (file) upload.mutate(file);
-    event.currentTarget.value = "";
   };
   const inputClass =
     "min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-950";
@@ -175,14 +104,14 @@ export const OrderPaperwork = ({
         <ModalHeader>
           <ModalTitle>Документы · {order.serviceNumber}</ModalTitle>
           <ModalDescription className="dark:text-slate-400">
-            {isVisitOrder
+            {isOnsiteVisit
               ? "Для выездной заявки акт приёма-передачи не оформляется. Здесь доступны заказ-наряд и гарантийный талон."
               : "Акт приёма фиксирует комплектность и внешнее состояние устройства; заказ-наряд использует данные ремонта, гарантийный талон формируется при выдаче заказа."}
           </ModalDescription>
         </ModalHeader>
         <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Документы заявки">
           {documentTabs
-            .filter(([value]) => !isVisitOrder || value !== "intake")
+            .filter(([value]) => !isOnsiteVisit || value !== "intake")
             .map(([value, label]) => (
               <button
                 key={value}
@@ -197,7 +126,7 @@ export const OrderPaperwork = ({
             ))}
         </div>
 
-        {!isVisitOrder && document === "intake" && (
+        {!isOnsiteVisit && document === "intake" && (
           <section className="mt-4 grid gap-4">
             <label className="grid gap-1 text-sm font-semibold">
               Внешнее состояние и видимые повреждения
@@ -215,31 +144,6 @@ export const OrderPaperwork = ({
                 placeholder="Кратко опишите состояние устройства и обнаруженные повреждения"
               />
             </label>
-            <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-              <p className="text-sm font-semibold">Фото или видео устройства</p>
-              <ProtectedOrderMedia
-                token={token}
-                objectId={draft.intakeMediaObjectId}
-                mediaType={draft.intakeMediaType}
-                label="Фото или видео состояния устройства"
-              />
-              {canEditIntake && (
-                <label className="mt-3 inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-medium dark:border-slate-700">
-                  <ImagePlus size={14} aria-hidden="true" />
-                  {draft.intakeMediaObjectId ? "Заменить файл" : "Добавить фото или видео"}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,video/mp4"
-                    className="sr-only"
-                    onChange={changeMedia}
-                    disabled={upload.isPending}
-                  />
-                </label>
-              )}
-              <p className="mt-2 text-xs text-slate-500">
-                Один файл: фото до 5 МБ или видео MP4 до 20 МБ.
-              </p>
-            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm font-medium">
                 Серийный номер
@@ -284,7 +188,7 @@ export const OrderPaperwork = ({
               {canEditIntake && (
                 <button
                   type="button"
-                  disabled={save.isPending || upload.isPending}
+                  disabled={save.isPending}
                   onClick={() => save.mutate()}
                   className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
                 >

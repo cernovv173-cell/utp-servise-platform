@@ -41,6 +41,7 @@ import { createRepairTechnicianCompletionRouter } from "./repair-technician-comp
 import {
   REPAIR_DIAGNOSIS_FEE_RUB,
   calculateRepairVisitFeeRub,
+  isActiveOnsiteRepairOrder,
 } from "./repair-visit-policy.js";
 import { createRepairVisitRouter } from "./repair-visits.routes.js";
 import { assertWorkActApproved } from "./repair-work-act.shared.js";
@@ -1517,28 +1518,21 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           "Акт приёма нельзя изменять после завершения ремонта.",
         );
       }
-      const existing = await database.repairOrderIntake.findUnique({
+      const intakeData = {
+        ...input,
+        serialNumber: input.serialNumber || null,
+        includedAccessories: input.includedAccessories || "",
+        intakeNotes: input.intakeNotes || "",
+        updatedById: user.id,
+      };
+      const intake = await database.repairOrderIntake.upsert({
         where: { orderId },
-        select: {
-          intakeMediaObjectId: true,
+        create: {
+          orderId,
+          ...intakeData,
+          createdById: user.id,
         },
-      });
-      if (!existing?.intakeMediaObjectId) {
-        throw new HttpError(
-          409,
-          "INTAKE_MEDIA_REQUIRED",
-          "Для акта приёма добавьте одно фото или видео устройства.",
-        );
-      }
-      const intake = await database.repairOrderIntake.update({
-        where: { orderId },
-        data: {
-          ...input,
-          serialNumber: input.serialNumber || null,
-          includedAccessories: input.includedAccessories || "",
-          intakeNotes: input.intakeNotes || "",
-          updatedById: user.id,
-        },
+        update: intakeData,
       });
       response.json({ intake });
     },
@@ -1699,10 +1693,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           );
         }
         if (status === "IN_PROGRESS" || status === "READY_FOR_PICKUP") {
-          const onsiteVisit =
-            current.visitScenarioVersion > 0 &&
-            current.repairLocation === "CUSTOMER_ADDRESS" &&
-            !current.visitPickupAgreedAt;
+          const onsiteVisit = isActiveOnsiteRepairOrder(current);
+          if (status === "READY_FOR_PICKUP" && onsiteVisit) {
+            throw new HttpError(
+              409,
+              "ONSITE_REPAIR_MUST_BE_COMPLETED_ONSITE_OR_TRANSFERRED",
+              "Выездную заявку завершает мастер на месте либо передаёт технику в сервисный центр.",
+            );
+          }
           const latestEstimate = await transaction.repairEstimate.findFirst({
             where: { orderId },
             orderBy: { version: "desc" },
@@ -1763,17 +1761,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         if (status === "READY_FOR_PICKUP") {
           const intake = await transaction.repairOrderIntake.findUnique({
             where: { orderId },
-            select: { conditionSummary: true, intakeMediaObjectId: true },
+            select: { conditionSummary: true },
           });
-          if (
-            !intake ||
-            !intake.conditionSummary.trim() ||
-            !intake.intakeMediaObjectId
-          ) {
+          if (!intake?.conditionSummary.trim()) {
             throw new HttpError(
               409,
               "INTAKE_REQUIRED",
-              "Перед выдачей заполните акт приёма и добавьте одно фото или видео.",
+              "Перед выдачей заполните акт приёма и укажите состояние устройства.",
             );
           }
         }
