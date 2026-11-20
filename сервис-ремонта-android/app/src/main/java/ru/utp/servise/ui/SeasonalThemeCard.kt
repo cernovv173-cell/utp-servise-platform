@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
@@ -86,7 +88,10 @@ fun SeasonalThemeCard(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(9.dp),
         ) {
             Column {
@@ -113,9 +118,8 @@ fun SeasonalThemeCard(
                 fontSize = 13.sp,
             )
             Text(
-                "Нажмите на сезон, чтобы сменить оформление. Выбор сохранится общим для сайта и Android. " +
-                    "Другие Android-устройства подхватят иконку при следующей синхронизации; если приложение " +
-                    "закрыто — при следующем запуске.",
+                "Нажмите на сезон, чтобы сменить оформление; прокрутите вниз, чтобы увидеть все варианты. " +
+                    "Выбор общий для сайта и Android и синхронизируется с устройствами.",
                 color = UtpMuted,
                 fontSize = 12.sp,
             )
