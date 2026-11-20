@@ -68,7 +68,6 @@ export const RepairWorkActPanel = (props: {
       key={key}
       {...props}
       currentUserId={currentUserId || props.order.assignedTechnicianId || "local"}
-      isAdmin={user?.role === "ADMIN"}
       isAssignedTechnician={
         user?.role === "TECHNICIAN" && props.order.assignedTechnicianId === user.id
       }
@@ -82,7 +81,6 @@ const RepairWorkActPanelContent = ({
   catalogItems,
   onRefresh,
   currentUserId,
-  isAdmin,
   isAssignedTechnician,
 }: {
   order: RepairOrder;
@@ -90,11 +88,10 @@ const RepairWorkActPanelContent = ({
   catalogItems: RepairCatalogItem[];
   onRefresh: () => Promise<unknown>;
   currentUserId: string;
-  isAdmin: boolean;
   isAssignedTechnician: boolean;
 }) => {
   const act = order.workAct ?? null;
-  const canManage = isAdmin || isAssignedTechnician;
+  const canManage = isAssignedTechnician;
   const canEditDraft = order.status === "IN_PROGRESS" && (act === null || act.status === "DRAFT");
   const [draftLines, setDraftLines] = useState<RepairWorkActLine[]>(() =>
     act ? linesForAct(act) : linesFromOrder(order),
@@ -106,6 +103,7 @@ const RepairWorkActPanelContent = ({
   const [includedLineIds, setIncludedLineIds] = useState<string[]>(() =>
     act?.status === "PENDING" ? act.itemsSnapshot.map((line) => line.lineId) : [],
   );
+  const [phoneConsentConfirmed, setPhoneConsentConfirmed] = useState(false);
 
   const activeCatalogItems = catalogItems.filter(
     (item) =>
@@ -145,7 +143,7 @@ const RepairWorkActPanelContent = ({
     },
     onSuccess: async () => {
       toast.success(
-        "Акт передан администратору. Он подтвердит итоговые строки без согласования с мастером.",
+        "Акт подготовлен. Позвоните клиенту, чтобы согласовать итоговые работы и стоимость.",
       );
       await onRefresh();
     },
@@ -155,7 +153,8 @@ const RepairWorkActPanelContent = ({
   const review = useMutation({
     mutationFn: () => reviewRepairWorkAct(token, order.id, act!.revision, includedLineIds),
     onSuccess: async () => {
-      toast.success("Акт подтверждён. Выбранные строки включены в итог заявки.");
+      toast.success("Ответ клиента по телефону сохранён. Состав акта зафиксирован в заявке.");
+      setPhoneConsentConfirmed(false);
       await onRefresh();
     },
     onError: (error) =>
@@ -212,8 +211,8 @@ const RepairWorkActPanelContent = ({
           </p>
           <h3 className="mt-1 text-base font-semibold">Акт выполненных работ</h3>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-600 dark:text-slate-300">
-            Мастер добавляет позиции без предварительного согласования. До подтверждения
-            администратором черновик не меняет чек, склад или расчёт мастера.
+            Мастер фиксирует фактически выполненные работы, звонит клиенту и сохраняет согласованный
+            состав. До ответа клиента черновик не меняет чек, склад или расчёт мастера.
           </p>
         </div>
         {act && (
@@ -229,8 +228,8 @@ const RepairWorkActPanelContent = ({
 
       {!act && order.status !== "IN_PROGRESS" && order.workActRequired && (
         <p className="mt-3 rounded-xl bg-white p-3 text-xs leading-5 text-slate-600 dark:bg-slate-950 dark:text-slate-300">
-          После начала ремонта мастер добавит выполненные работы в акт. Для новой заявки
-          администратор должен подтвердить акт перед выдачей.
+          После начала ремонта мастер добавит выполненные работы в акт. Для новой заявки мастер
+          должен согласовать акт с клиентом по телефону перед выдачей.
         </p>
       )}
 
@@ -243,7 +242,7 @@ const RepairWorkActPanelContent = ({
                 key={line.lineId}
                 className="flex flex-wrap items-center gap-3 rounded-xl bg-white p-3 text-sm dark:bg-slate-950"
               >
-                {act.status === "PENDING" && isAdmin && (
+                {act.status === "PENDING" && isAssignedTechnician && (
                   <input
                     type="checkbox"
                     checked={included}
@@ -269,11 +268,15 @@ const RepairWorkActPanelContent = ({
             );
           })}
           <p className="flex justify-between border-t border-violet-200 pt-3 text-sm font-semibold dark:border-violet-900">
-            <span>{act.status === "PENDING" && isAdmin ? "Итого выбранных строк" : "Итого"}</span>
+            <span>
+              {act.status === "PENDING" && isAssignedTechnician
+                ? "Итого согласованных строк"
+                : "Итого"}
+            </span>
             <span>
               {money(
                 total(
-                  act.status === "PENDING"
+                  act.status === "PENDING" && isAssignedTechnician
                     ? act.itemsSnapshot.filter((line) => includedLineIds.includes(line.lineId))
                     : actLines,
                 ),
@@ -282,21 +285,32 @@ const RepairWorkActPanelContent = ({
           </p>
           {act.status === "PENDING" && (
             <p className="text-xs text-slate-500">
-              {isAdmin
-                ? "Снимите отметки у строк, которые нужно удалить. Подтверждение сразу зафиксирует выбранный состав."
-                : "Акт передан администратору. После его подтверждения мастер не должен отдельно соглашаться с удалёнными строками."}
+              {isAssignedTechnician
+                ? "Снимите отметки у строк, которые клиент не согласовал по телефону. Остальные строки войдут в итог."
+                : "Мастер должен согласовать итоговый состав с клиентом и сохранить ответ по телефону."}
             </p>
           )}
-          {act.status === "PENDING" && isAdmin && (
-            <button
-              type="button"
-              disabled={review.isPending}
-              onClick={() => review.mutate()}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              <Check size={16} aria-hidden="true" />
-              {review.isPending ? "Подтверждаем…" : "Подтвердить акт"}
-            </button>
+          {act.status === "PENDING" && isAssignedTechnician && (
+            <div className="grid gap-3">
+              <label className="flex items-start gap-2 text-xs leading-5">
+                <input
+                  type="checkbox"
+                  checked={phoneConsentConfirmed}
+                  onChange={(event) => setPhoneConsentConfirmed(event.target.checked)}
+                  className="mt-1 size-4 shrink-0 accent-emerald-600"
+                />
+                Клиент согласовал выбранные работы и их стоимость по телефону.
+              </label>
+              <button
+                type="button"
+                disabled={review.isPending || !phoneConsentConfirmed}
+                onClick={() => review.mutate()}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                <Check size={16} aria-hidden="true" />
+                {review.isPending ? "Сохраняем…" : "Зафиксировать согласие по телефону"}
+              </button>
+            </div>
           )}
           {act.status === "APPROVED" && act.approvedBy && (
             <p className="text-xs text-slate-500">
@@ -307,7 +321,7 @@ const RepairWorkActPanelContent = ({
           {act.status === "APPROVED" && (act.removedItemsSnapshot?.length ?? 0) > 0 && (
             <details className="rounded-xl bg-white p-3 text-xs dark:bg-slate-950">
               <summary className="cursor-pointer font-semibold">
-                Удалённые администратором строки ({act.removedItemsSnapshot!.length})
+                Строки, не согласованные по телефону ({act.removedItemsSnapshot!.length})
               </summary>
               <ul className="mt-2 grid gap-1 text-slate-500">
                 {act.removedItemsSnapshot!.map((line) => (
@@ -324,8 +338,8 @@ const RepairWorkActPanelContent = ({
       {canEditDraft && (
         <div className="mt-4 grid gap-3">
           <p className="text-xs text-slate-500">
-            Исходные строки сметы сохранены. Мастер может добавлять фактически выполненные работы и
-            запчасти; удалять исходные строки будет решать администратор.
+            Исходные строки сметы сохранены. Мастер добавляет фактические работы и запчасти, затем
+            согласует итоговый состав с клиентом по телефону.
           </p>
           {draftLines.map((line) => (
             <div
@@ -427,16 +441,10 @@ const RepairWorkActPanelContent = ({
               className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-violet-700 px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               <Send size={15} aria-hidden="true" />
-              {submit.isPending ? "Передаём…" : "Передать администратору"}
+              {submit.isPending ? "Сохраняем…" : "Подготовить акт для звонка"}
             </button>
           </div>
         </div>
-      )}
-
-      {act?.status === "DRAFT" && isAdmin && (
-        <p className="mt-3 text-xs text-slate-500">
-          Мастер ещё не передал акт на подтверждение. Подтвердить черновик нельзя.
-        </p>
       )}
     </section>
   );

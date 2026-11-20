@@ -1,6 +1,7 @@
 import {
   BookOpen,
   ClipboardList,
+  FileText,
   Home,
   Leaf,
   LifeBuoy,
@@ -20,6 +21,7 @@ import type { Role } from "@/lib/api";
 export type NavigationRoute =
   | "/"
   | "/orders"
+  | "/checks"
   | "/shop"
   | "/loyalty"
   | "/account"
@@ -66,6 +68,7 @@ const navigationByRole: Record<Role, NavigationGroup> = {
     label: "Мастер",
     links: [
       { to: "/orders", label: "Заявки", compactLabel: "Заявки", icon: ClipboardList },
+      { to: "/checks", label: "Чеки и выдача", compactLabel: "Чеки", icon: FileText },
       { to: "/catalog", label: "Каталог", compactLabel: "Каталог", icon: Package },
       { to: "/salary", label: "Зарплата", compactLabel: "Зарплата", icon: Wallet },
       { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },

@@ -8,7 +8,7 @@ import { createOrdersRouter } from "../src/features/orders/orders.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("technicians stage repair changes for approval while administrators reconcile tracked stock", async (t) => {
+test("assigned technicians manage intake items; repair-stage changes use the work act", async (t) => {
   const orderId = "11111111-1111-4111-8111-111111111111";
   const catalogItemId = "22222222-2222-4222-8222-222222222222";
   const orderItemId = "33333333-3333-4333-8333-333333333333";
@@ -34,7 +34,7 @@ test("technicians stage repair changes for approval while administrators reconci
   };
   let stockQuantity: number | null = 3;
   let activeItemType = "SPARE_PART";
-  let orderStatus = "IN_PROGRESS";
+  let orderStatus = "ASSIGNED";
   const items: Array<Record<string, unknown>> = [];
   const databaseClient = {
     $queryRaw: async () => [],
@@ -164,25 +164,21 @@ test("technicians stage repair changes for approval while administrators reconci
     fetch(baseUrl, {
       method: "POST",
       headers: {
-        authorization: `Bearer ${token}`,
+        authorization: `Bearer ${technicianToken}`,
         "content-type": "application/json",
       },
       body: JSON.stringify({ catalogItemId, quantity }),
     });
 
-  const technicianAdd = await fetch(baseUrl, {
+  const adminAdd = await fetch(baseUrl, {
     method: "POST",
     headers: {
-      authorization: `Bearer ${technicianToken}`,
+      authorization: `Bearer ${token}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({ catalogItemId, quantity: 1 }),
   });
-  assert.equal(technicianAdd.status, 409);
-  assert.equal(
-    (await technicianAdd.json()).error.code,
-    "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
-  );
+  assert.equal(adminAdd.status, 403);
   assert.equal(stockQuantity, 3);
   assert.equal(items.length, 0);
 
@@ -198,52 +194,26 @@ test("technicians stage repair changes for approval while administrators reconci
     },
     body: JSON.stringify({ quantity: 3 }),
   });
-  assert.equal(technicianUpdate.status, 409);
-  assert.equal(
-    (await technicianUpdate.json()).error.code,
-    "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
-  );
-
-  const technicianDelete = await fetch(`${baseUrl}/${orderItemId}`, {
-    method: "DELETE",
-    headers: { authorization: `Bearer ${technicianToken}` },
-  });
-  assert.equal(technicianDelete.status, 409);
-  assert.equal(
-    (await technicianDelete.json()).error.code,
-    "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
-  );
-  assert.equal(stockQuantity, 1);
-  assert.equal(items[0]?.quantity, 2);
+  assert.equal(technicianUpdate.status, 200);
+  assert.equal(stockQuantity, 0);
+  assert.equal(items[0]?.quantity, 3);
 
   const excessQuantity = await fetch(`${baseUrl}/${orderItemId}`, {
     method: "PATCH",
     headers: {
-      authorization: `Bearer ${token}`,
+      authorization: `Bearer ${technicianToken}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({ quantity: 4 }),
   });
   assert.equal(excessQuantity.status, 409);
-  assert.equal(stockQuantity, 1);
-  assert.equal(items[0]?.quantity, 2);
-
-  const increased = await fetch(`${baseUrl}/${orderItemId}`, {
-    method: "PATCH",
-    headers: {
-      authorization: `Bearer ${token}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ quantity: 3 }),
-  });
-  assert.equal(increased.status, 200);
   assert.equal(stockQuantity, 0);
   assert.equal(items[0]?.quantity, 3);
 
   const decreased = await fetch(`${baseUrl}/${orderItemId}`, {
     method: "PATCH",
     headers: {
-      authorization: `Bearer ${token}`,
+      authorization: `Bearer ${technicianToken}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({ quantity: 2 }),
@@ -259,7 +229,7 @@ test("technicians stage repair changes for approval while administrators reconci
 
   const removed = await fetch(`${baseUrl}/${orderItemId}`, {
     method: "DELETE",
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization: `Bearer ${technicianToken}` },
   });
   assert.equal(removed.status, 200);
   assert.equal(stockQuantity, 3);
@@ -271,7 +241,7 @@ test("technicians stage repair changes for approval while administrators reconci
 
   const removePart = await fetch(`${baseUrl}/${orderItemId}`, {
     method: "DELETE",
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization: `Bearer ${technicianToken}` },
   });
   assert.equal(removePart.status, 200);
   assert.equal(stockQuantity, 3);
@@ -283,7 +253,7 @@ test("technicians stage repair changes for approval while administrators reconci
 
   const removeProduct = await fetch(`${baseUrl}/${orderItemId}`, {
     method: "DELETE",
-    headers: { authorization: `Bearer ${token}` },
+    headers: { authorization: `Bearer ${technicianToken}` },
   });
   assert.equal(removeProduct.status, 200);
   assert.equal(stockQuantity, 3);
@@ -291,6 +261,13 @@ test("technicians stage repair changes for approval while administrators reconci
   const reservedProductForCancellation = await addItem(2);
   assert.equal(reservedProductForCancellation.status, 201);
   assert.equal(stockQuantity, 1);
+  orderStatus = "IN_PROGRESS";
+  const directRepairStageAdd = await addItem(1);
+  assert.equal(directRepairStageAdd.status, 409);
+  assert.equal(
+    (await directRepairStageAdd.json()).error.code,
+    "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
+  );
   const cancelled = await fetch(
     `http://127.0.0.1:${address.port}/api/orders/${orderId}/status`,
     {
@@ -302,11 +279,11 @@ test("technicians stage repair changes for approval while administrators reconci
       body: JSON.stringify({ status: "CANCELLED" }),
     },
   );
-  assert.equal(cancelled.status, 200);
-  assert.equal(orderStatus, "CANCELLED");
-  assert.equal(stockQuantity, 3);
+  assert.equal(cancelled.status, 403);
+  assert.equal(orderStatus, "IN_PROGRESS");
+  assert.equal(stockQuantity, 1);
 
-  orderStatus = "IN_PROGRESS";
+  orderStatus = "ASSIGNED";
   stockQuantity = null;
   items.splice(0, items.length);
   const untrackedItem = await addItem(2);
@@ -315,7 +292,7 @@ test("technicians stage repair changes for approval while administrators reconci
   const updatedUntrackedQuantity = await fetch(`${baseUrl}/${orderItemId}`, {
     method: "PATCH",
     headers: {
-      authorization: `Bearer ${token}`,
+      authorization: `Bearer ${technicianToken}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({ quantity: 3 }),

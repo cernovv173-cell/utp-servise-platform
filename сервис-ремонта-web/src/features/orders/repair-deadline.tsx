@@ -51,10 +51,12 @@ export const RepairDeadlineEditor = ({
   order,
   token,
   onSaved,
+  showHistory = true,
 }: {
   order: RepairOrder;
   token: string;
   onSaved: () => Promise<unknown> | void;
+  showHistory?: boolean;
 }) => {
   const [value, setValue] = useState(() => localDateTime(order.expectedCompletionAt));
   const [note, setNote] = useState("");
@@ -116,7 +118,7 @@ export const RepairDeadlineEditor = ({
           {error}
         </p>
       )}
-      <RepairDeadlineHistory order={order} />
+      {showHistory && <RepairDeadlineHistory order={order} />}
     </div>
   );
 };

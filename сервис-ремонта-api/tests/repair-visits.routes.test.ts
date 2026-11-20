@@ -114,7 +114,7 @@ test("assigned technician can transfer a home-visit order without an intake act"
         authorization: `Bearer ${technicianToken}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ customerConsent: true }),
+      body: JSON.stringify({ customerConsent: true, approvalMethod: "PHONE" }),
     },
   );
 
@@ -123,7 +123,7 @@ test("assigned technician can transfer a home-visit order without an intake act"
   assert.equal(visit.orderUpdates, 1);
   assert.equal(
     visit.statusEvents[0]?.note,
-    "Мастер подтвердил согласие клиента на перевозку техники в сервис",
+    "Мастер зафиксировал согласие клиента по телефону на перевозку техники в сервис",
   );
   const body = (await response.json()) as { order: { repairLocation: string } };
   assert.equal(body.order.repairLocation, "SERVICE_CENTER");
@@ -141,7 +141,7 @@ test("another technician cannot transfer an unassigned home-visit order", async 
         authorization: `Bearer ${technicianToken}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ customerConsent: true }),
+      body: JSON.stringify({ customerConsent: true, approvalMethod: "PHONE" }),
     },
   );
 

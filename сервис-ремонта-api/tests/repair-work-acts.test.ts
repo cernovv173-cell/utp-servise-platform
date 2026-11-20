@@ -11,7 +11,7 @@ import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 import { HttpError } from "../src/lib/http/http-error.js";
 
-test("new repair finalization requires an administrator-approved work act", () => {
+test("repair finalization requires a work act approved after a client phone call", () => {
   assert.doesNotThrow(() => assertWorkActApproved(false, null));
   assert.doesNotThrow(() => assertWorkActApproved(true, "APPROVED"));
 
@@ -26,7 +26,7 @@ test("new repair finalization requires an administrator-approved work act", () =
   }
 });
 
-test("technician drafts the work act without stock changes; administrator approves only selected lines", async (t) => {
+test("assigned technician drafts and approves the work act after a phone call", async (t) => {
   const orderId = "11111111-1111-4111-8111-111111111111";
   const serviceId = "22222222-2222-4222-8222-222222222222";
   const oldPartId = "33333333-3333-4333-8333-333333333333";
@@ -333,7 +333,7 @@ test("technician drafts the work act without stock changes; administrator approv
       includedLineIds: [serviceLineId, newLineId],
     }),
   });
-  assert.equal(technicianReview.status, 403);
+  assert.equal(technicianReview.status, 400);
 
   const customerReview = await fetch(`${base}/review`, {
     method: "PATCH",
@@ -351,9 +351,23 @@ test("technician drafts the work act without stock changes; administrator approv
     body: JSON.stringify({
       expectedRevision: 2,
       includedLineIds: [serviceLineId, newLineId],
+      approvalMethod: "PHONE",
     }),
   });
-  assert.equal(approved.status, 200);
+  assert.equal(approved.status, 403);
+  assert.equal(stock.get(oldPartId), 4);
+  assert.equal(stock.get(newPartId), 3);
+
+  const technicianApproved = await fetch(`${base}/review`, {
+    method: "PATCH",
+    headers: headers(technicianToken),
+    body: JSON.stringify({
+      expectedRevision: 2,
+      includedLineIds: [serviceLineId, newLineId],
+      approvalMethod: "PHONE",
+    }),
+  });
+  assert.equal(technicianApproved.status, 200);
   assert.equal(stock.get(oldPartId), 5);
   assert.equal(stock.get(newPartId), 1);
   assert.equal(

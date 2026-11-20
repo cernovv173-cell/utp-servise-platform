@@ -31,7 +31,7 @@ export const registerRepairWorkActReviewRoute = (
   router.patch(
     "/orders/:orderId/work-act/review",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: reviewBody }),
     async (_request, response) => {
       const orderId = orderIdOf(response);
@@ -48,7 +48,7 @@ export const registerRepairWorkActReviewRoute = (
           },
         });
         const act = order?.workAct;
-        if (!order || !act) {
+        if (!order || order.assignedTechnicianId !== user.id || !act) {
           throw new HttpError(
             404,
             "WORK_ACT_NOT_FOUND",
@@ -244,6 +244,7 @@ export const registerRepairWorkActReviewRoute = (
             revision: { increment: 1 },
             approvedById: user.id,
             approvedAt: new Date(),
+            approvalMethod: input.approvalMethod,
             approvedItemsSnapshot: approved as unknown as Prisma.InputJsonValue,
             removedItemsSnapshot: removed as unknown as Prisma.InputJsonValue,
           },
@@ -261,7 +262,7 @@ export const registerRepairWorkActReviewRoute = (
             actorId: user.id,
             from: order.status,
             to: order.status,
-            note: `Администратор утвердил акт выполненных работ; удалено строк: ${removed.length}.`,
+            note: `Мастер зафиксировал согласие клиента по телефону на акт выполненных работ; удалено строк: ${removed.length}.`,
           },
         });
         return transaction.repairWorkAct.findUniqueOrThrow({
@@ -273,7 +274,7 @@ export const registerRepairWorkActReviewRoute = (
         database,
         orderId,
         user.id,
-        "Администратор подтвердил акт выполненных работ. Состав и стоимость зафиксированы в заявке.",
+        "Мастер зафиксировал телефонное согласие клиента на выполненные работы. Состав и стоимость зафиксированы в заявке.",
         "Акт выполненных работ подтверждён",
       );
       response.json({ workAct });

@@ -16,7 +16,7 @@ const assignedTechnicianToken = "T".repeat(48);
 const otherTechnicianToken = "O".repeat(48);
 const customerToken = "C".repeat(48);
 
-test("only admins and the assigned technician can append order items", async (t) => {
+test("only the assigned technician can append order items", async (t) => {
   const users = [
     {
       id: "admin-1",
@@ -167,14 +167,8 @@ test("only admins and the assigned technician can append order items", async (t)
     });
 
   const adminAnyOrder = await addItem(adminToken, unassignedOrderId);
-  assert.equal(adminAnyOrder.status, 201);
-  assert.equal(
-    (await adminAnyOrder.json()).order.items[0].addedBy.displayName,
-    "Admin",
-  );
-  assert.equal(items[0]?.name, "Диагностика");
-  assert.equal(items[0]?.unitPriceRub, 1800);
-  assert.equal(items[0]?.catalogItemId, catalogEntryId);
+  assert.equal(adminAnyOrder.status, 403);
+  assert.equal(items.length, 0);
 
   const ownAssignment = await addItem(assignedTechnicianToken, assignedOrderId);
   assert.equal(ownAssignment.status, 201);
@@ -190,7 +184,7 @@ test("only admins and the assigned technician can append order items", async (t)
     {
       method: "POST",
       headers: {
-        authorization: `Bearer ${adminToken}`,
+        authorization: `Bearer ${assignedTechnicianToken}`,
         "content-type": "application/json",
       },
       body: JSON.stringify({
@@ -200,17 +194,17 @@ test("only admins and the assigned technician can append order items", async (t)
     },
   );
   assert.equal(invalidQuantity.status, 400);
-  assert.equal(items.length, 2);
+  assert.equal(items.length, 1);
 
   const priceSpoof = await addItem(assignedTechnicianToken, assignedOrderId, {
     name: "Другая позиция",
     unitPriceRub: 1,
   });
   assert.equal(priceSpoof.status, 400);
-  assert.equal(items.length, 2);
+  assert.equal(items.length, 1);
 
   catalog[0]!.active = false;
   const disabledEntry = await addItem(assignedTechnicianToken, assignedOrderId);
   assert.equal(disabledEntry.status, 404);
-  assert.equal(items.length, 2);
+  assert.equal(items.length, 1);
 });

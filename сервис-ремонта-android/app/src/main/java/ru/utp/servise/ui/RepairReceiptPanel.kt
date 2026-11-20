@@ -29,9 +29,11 @@ import ru.utp.servise.data.ReceiptDraftItemQuantity
 internal fun RepairReceiptPanel(
     order: RepairOrder,
     role: String,
+    currentUserId: String,
     token: String,
     runAction: RunAction,
 ) {
+    val canManage = role == "TECHNICIAN" && currentUserId == order.technicianId
     var showPaymentMethods by remember(order.id) { mutableStateOf(false) }
     var showReceiptEditor by remember(order.id) { mutableStateOf(false) }
     order.receipt?.let { receipt ->
@@ -58,7 +60,7 @@ internal fun RepairReceiptPanel(
         )
     }
 
-    if (role == "ADMIN" && order.status == "COMPLETED" && order.receipt?.paymentStatus == "PENDING") {
+    if (canManage && order.status == "COMPLETED" && order.receipt?.paymentStatus == "PENDING") {
         val serviceTotalRub = order.items
             .filter { it.type == "SERVICE" }
             .sumOf { it.quantity * it.unitPriceRub }
@@ -83,7 +85,7 @@ internal fun RepairReceiptPanel(
     }
 
     if (
-        role == "ADMIN" && order.status == "COMPLETED" &&
+        canManage && order.status == "COMPLETED" &&
         order.receipt?.paymentStatus != "PAID"
     ) {
         OutlinedButton(
@@ -112,7 +114,7 @@ internal fun RepairReceiptPanel(
             },
         )
     }
-    if (role == "ADMIN" && order.receipt?.paymentStatus == "PENDING") {
+    if (canManage && order.receipt?.paymentStatus == "PENDING") {
         OutlinedButton(
             onClick = { showPaymentMethods = true },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),

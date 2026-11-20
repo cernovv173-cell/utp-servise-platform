@@ -17,7 +17,7 @@ import {
 } from "@/lib/api";
 
 const statusLabels: Record<RepairEstimate["status"], string> = {
-  PENDING: "Ожидает подтверждения администратора",
+  PENDING: "Ожидает телефонного ответа клиента",
   APPROVED: "Подтверждена",
   DECLINED: "Отклонена",
   SUPERSEDED: "Заменена новой версией",
@@ -48,15 +48,18 @@ export const RepairEstimatePanel = ({
   const [diagnosis, setDiagnosis] = useState("");
   const [draftItems, setDraftItems] = useState<DraftItem[]>([{ catalogItemId: "", quantity: "1" }]);
   const [decisionNote, setDecisionNote] = useState("");
+  const [phoneConsentConfirmed, setPhoneConsentConfirmed] = useState(false);
   const activeCatalogItems = catalogItems.filter(
     (item) =>
       item.active &&
       (item.type === "PRODUCT" || item.deviceTypes.includes(order.deviceType as RepairDeviceType)),
   );
-  const canManage =
-    user?.role === "ADMIN" ||
-    (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id);
-  const canSubmit = canManage && order.status === "ASSIGNED" && latest?.status !== "APPROVED";
+  const isAssignedTechnician =
+    user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id;
+  const canSubmit =
+    isAssignedTechnician &&
+    ["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
+    latest?.status !== "PENDING";
   const review = useMutation({
     mutationFn: ({
       estimateId,
@@ -70,10 +73,11 @@ export const RepairEstimatePanel = ({
     onSuccess: async (_result, variables) => {
       toast.success(
         variables.decision === "APPROVED"
-          ? "Смета подтверждена администратором. Работы и запчасти закреплены за заявкой."
+          ? "Мастер записал телефонное согласие клиента. Работы и запчасти закреплены за заявкой."
           : "Смета отклонена и возвращена на доработку.",
       );
       setDecisionNote("");
+      setPhoneConsentConfirmed(false);
       await onRefresh();
     },
     onError: (error) =>
@@ -89,7 +93,7 @@ export const RepairEstimatePanel = ({
         })),
       }),
     onSuccess: async () => {
-      toast.success("Смета передана администратору на подтверждение.");
+      toast.success("Смета подготовлена. Позвоните клиенту и зафиксируйте его ответ.");
       setDiagnosis("");
       setDraftItems([{ catalogItemId: "", quantity: "1" }]);
       await onRefresh();
@@ -121,7 +125,7 @@ export const RepairEstimatePanel = ({
 
   const latestPendingEstimate = latest?.status === "PENDING" ? latest : undefined;
   const canReview =
-    user?.role === "ADMIN" &&
+    isAssignedTechnician &&
     latestPendingEstimate &&
     ["ASSIGNED", "IN_PROGRESS"].includes(order.status);
 
@@ -134,9 +138,8 @@ export const RepairEstimatePanel = ({
           </p>
           <h3 className="mt-1 text-base font-semibold">Сметы ремонта</h3>
           <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-600 dark:text-slate-300">
-            Первоначальную смету администратор подтверждает до начала ремонта. Фактически
-            выполненные дополнительные работы мастер добавит в отдельный акт без предварительного
-            согласования.
+            Мастер согласует первоначальную и дополнительную смету с клиентом по телефону и отмечает
+            ответ здесь. Фактические дополнительные работы фиксируются отдельным актом.
           </p>
         </div>
         <span className="rounded-full border border-cyan-200 bg-white px-3 py-1 text-xs font-semibold text-cyan-900 dark:border-[#315989] dark:bg-[#102342] dark:text-cyan-100">
@@ -147,12 +150,20 @@ export const RepairEstimatePanel = ({
       {latestPendingEstimate && (
         <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4 dark:border-amber-900 dark:bg-slate-950">
           <p className="text-sm font-semibold">
-            {user?.role === "ADMIN"
-              ? `Смета №${latestPendingEstimate.version} ожидает вашего подтверждения.`
-              : `Смета №${latestPendingEstimate.version} передана администратору на проверку.`}
+            Смета №{latestPendingEstimate.version} ожидает телефонного согласования мастером с
+            клиентом.
           </p>
           {canReview && (
             <>
+              <label className="mt-3 flex items-start gap-2 text-xs leading-5">
+                <input
+                  type="checkbox"
+                  checked={phoneConsentConfirmed}
+                  onChange={(event) => setPhoneConsentConfirmed(event.target.checked)}
+                  className="mt-1 size-4 shrink-0 accent-emerald-600"
+                />
+                Клиент подтвердил этот состав и сумму по телефону (или сообщил об отказе).
+              </label>
               <label className="mt-3 grid gap-1 text-xs font-medium">
                 Комментарий к решению (необязательно)
                 <textarea
@@ -166,7 +177,7 @@ export const RepairEstimatePanel = ({
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
                   type="button"
-                  disabled={review.isPending}
+                  disabled={review.isPending || !phoneConsentConfirmed}
                   onClick={() =>
                     review.mutate({
                       estimateId: latestPendingEstimate.id,
@@ -180,7 +191,7 @@ export const RepairEstimatePanel = ({
                 </button>
                 <button
                   type="button"
-                  disabled={review.isPending}
+                  disabled={review.isPending || !phoneConsentConfirmed}
                   onClick={() =>
                     review.mutate({
                       estimateId: latestPendingEstimate.id,
@@ -242,6 +253,15 @@ export const RepairEstimatePanel = ({
                   Итого: {estimate.totalRub.toLocaleString("ru-RU")} ₽
                 </strong>
               </div>
+              {estimate.responseMethod === "PHONE" && (
+                <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+                  Ответ клиента зафиксирован мастером по телефону
+                  {estimate.respondedAt
+                    ? ` · ${new Date(estimate.respondedAt).toLocaleString("ru-RU")}`
+                    : ""}
+                  .
+                </p>
+              )}
               {estimate.customerResponseNote && (
                 <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600 dark:bg-slate-900 dark:text-slate-300">
                   Комментарий к решению: {estimate.customerResponseNote}
@@ -254,7 +274,11 @@ export const RepairEstimatePanel = ({
 
       {canSubmit && (
         <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-950">
-          <h4 className="text-sm font-semibold">"Подготовить первоначальную смету"</h4>
+          <h4 className="text-sm font-semibold">
+            {order.status === "IN_PROGRESS"
+              ? "Подготовить дополнительную смету"
+              : "Подготовить первоначальную смету"}
+          </h4>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             Цены берутся из каталога на сервере и не редактируются с этого экрана.
           </p>
@@ -347,7 +371,7 @@ export const RepairEstimatePanel = ({
               className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
             >
               <Send size={15} aria-hidden="true" />
-              {submit.isPending ? "Отправляем администратору…" : "Отправить администратору"}
+              {submit.isPending ? "Сохраняем…" : "Подготовить смету для звонка"}
             </button>
           </div>
           {activeCatalogItems.length === 0 && (

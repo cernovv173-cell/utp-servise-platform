@@ -11,21 +11,22 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 test("deadline changes are recorded and unchanged deadlines do not notify again", async (t) => {
   const orderId = "11111111-1111-4111-8111-111111111111";
   const customerId = "22222222-2222-4222-8222-222222222222";
-  const adminId = "33333333-3333-4333-8333-333333333333";
-  const token = "A".repeat(48);
-  const admin = {
-    id: adminId,
-    email: "admin@example.test",
-    displayName: "Администратор",
-    role: "ADMIN" as const,
+  const technicianId = "33333333-3333-4333-8333-333333333333";
+  const token = "T".repeat(48);
+  const technician = {
+    id: technicianId,
+    email: "technician@example.test",
+    displayName: "Мастер",
+    role: "TECHNICIAN" as const,
     active: true,
     mustChangePassword: false,
   };
   const order = {
     id: orderId,
     customerId,
-    assignedTechnicianId: null,
+    assignedTechnicianId: technicianId,
     expectedCompletionAt: null as Date | null,
+    status: "IN_PROGRESS",
   };
   const deadlineChanges: Array<Record<string, unknown>> = [];
   let notificationAttempts = 0;
@@ -33,7 +34,7 @@ test("deadline changes are recorded and unchanged deadlines do not notify again"
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) =>
         where.tokenHash === hashSessionToken(token)
-          ? { expiresAt: new Date(Date.now() + 60_000), user: admin }
+          ? { expiresAt: new Date(Date.now() + 60_000), user: technician }
           : null,
     },
     user: {
@@ -72,7 +73,7 @@ test("deadline changes are recorded and unchanged deadlines do not notify again"
           id: `change-${deadlineChanges.length + 1}`,
           createdAt: new Date(),
           ...data,
-          actor: { id: adminId, displayName: admin.displayName },
+          actor: { id: technicianId, displayName: technician.displayName },
         };
         deadlineChanges.push(entry);
         return entry;

@@ -48,6 +48,7 @@ export type RepairEstimate = {
   }[];
   totalRub: number;
   customerResponseNote: string | null;
+  responseMethod: "PHONE" | null;
   submittedAt: string;
   respondedAt: string | null;
   createdBy: { id: string; displayName: string } | null;
@@ -73,6 +74,7 @@ export type RepairWorkAct = {
   removedItemsSnapshot: RepairWorkActLine[] | null;
   submittedAt: string | null;
   approvedAt: string | null;
+  approvalMethod: "PHONE" | null;
   createdBy: { id: string; displayName: string } | null;
   approvedBy: { id: string; displayName: string } | null;
 };
@@ -181,8 +183,10 @@ export type RepairOrder = {
   diagnosisFeeRub?: number;
   visitFeeRub?: number;
   visitPickupAgreedAt?: string | null;
+  visitPickupApprovalMethod?: "PHONE" | null;
   technicianRepairCompletedAt?: string | null;
   onsiteRepairCompletedAt?: string | null;
+  onsiteApprovalMethod?: "PHONE" | null;
   contactPhone: string | null;
   city: string | null;
   street: string | null;
@@ -1184,7 +1188,10 @@ export const reviewRepairEstimate = (
   apiRequest<{ estimate: RepairEstimate }>(
     `/orders/${orderId}/estimates/${estimateId}/review`,
     token,
-    { method: "PATCH", body: JSON.stringify({ decision, note }) },
+    {
+      method: "PATCH",
+      body: JSON.stringify({ decision, note, approvalMethod: "PHONE" }),
+    },
   );
 
 export const saveRepairWorkAct = (
@@ -1214,7 +1221,7 @@ export const reviewRepairWorkAct = (
 ) =>
   apiRequest<{ workAct: RepairWorkAct }>(`/orders/${orderId}/work-act/review`, token, {
     method: "PATCH",
-    body: JSON.stringify({ expectedRevision, includedLineIds }),
+    body: JSON.stringify({ expectedRevision, includedLineIds, approvalMethod: "PHONE" }),
   });
 
 export const updateRepairOrderItemQuantity = (
@@ -1433,7 +1440,7 @@ export const verifyRepairVisitDistance = (
 export const consentRepairVisitPickup = (token: string, orderId: string) =>
   apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/visit-pickup`, token, {
     method: "POST",
-    body: JSON.stringify({ customerConsent: true }),
+    body: JSON.stringify({ customerConsent: true, approvalMethod: "PHONE" }),
   });
 
 export const completeOnsiteRepair = (
@@ -1451,7 +1458,7 @@ export const completeOnsiteRepair = (
     warranty: RepairWarranty | null;
   }>(`/orders/${orderId}/onsite-completion`, token, {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, approvalMethod: "PHONE" }),
   });
 
 export const createAdminCustomer = (

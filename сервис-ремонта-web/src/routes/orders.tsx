@@ -19,6 +19,7 @@ import type { OrderListView } from "@/features/orders/order-list-view";
 import { OrderPaperwork } from "@/features/orders/order-paperwork";
 import { RepairCompletionCard } from "@/features/orders/repair-completion-card";
 import { RepairDeadlineHistory } from "@/features/orders/repair-deadline";
+import { RepairDeadlineEditor } from "@/features/orders/repair-deadline";
 import { RepairEstimatePanel } from "@/features/orders/repair-estimate-panel";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
 import { RepairOrderDisclosureSummary } from "@/features/orders/repair-order-disclosure-summary";
@@ -274,7 +275,12 @@ const OrdersPage = () => {
                       orderId={order.id}
                       priority={order.priority}
                       token={token}
-                      canEdit={user?.role === "ADMIN"}
+                      canEdit={
+                        (user?.role === "ADMIN" && order.status === "REQUESTED") ||
+                        (user?.role === "TECHNICIAN" &&
+                          order.assignedTechnicianId === user.id &&
+                          ["ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP"].includes(order.status))
+                      }
                     />
                   </div>
                 )}
@@ -290,20 +296,23 @@ const OrdersPage = () => {
                   </p>
                 )}
                 <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
-                {user?.role === "ADMIN" && order.status === "READY_FOR_PICKUP" && token && (
-                  <div className="mt-3">
-                    <RepairOrderReleaseButton
-                      order={order}
-                      token={token}
-                      onRefresh={() =>
-                        Promise.all([
-                          queryClient.invalidateQueries({ queryKey: ["orders", token] }),
-                          queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
-                        ])
-                      }
-                    />
-                  </div>
-                )}
+                {user?.role === "TECHNICIAN" &&
+                  order.assignedTechnicianId === user.id &&
+                  order.status === "READY_FOR_PICKUP" &&
+                  token && (
+                    <div className="mt-3">
+                      <RepairOrderReleaseButton
+                        order={order}
+                        token={token}
+                        onRefresh={() =>
+                          Promise.all([
+                            queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                            queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                          ])
+                        }
+                      />
+                    </div>
+                  )}
                 {order.archivedAt && (
                   <p className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-xs font-medium text-violet-800 dark:border-[#7855c7]/50 dark:bg-[#211841] dark:text-[#d4b7ff]">
                     В архиве с {new Date(order.archivedAt).toLocaleString("ru-RU")}
@@ -316,6 +325,22 @@ const OrdersPage = () => {
                   </Link>
                 </div>
                 <RepairDeadlineHistory order={order} />
+                {token &&
+                  user?.role === "TECHNICIAN" &&
+                  order.assignedTechnicianId === user.id &&
+                  ["ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP"].includes(order.status) && (
+                    <RepairDeadlineEditor
+                      order={order}
+                      token={token}
+                      showHistory={false}
+                      onSaved={() =>
+                        Promise.all([
+                          queryClient.invalidateQueries({ queryKey: ["orders", token] }),
+                          queryClient.invalidateQueries({ queryKey: ["order-search", token] }),
+                        ])
+                      }
+                    />
+                  )}
                 {token && (
                   <RepairEstimatePanel
                     order={order}
@@ -377,8 +402,10 @@ const OrdersPage = () => {
                         order={order}
                         token={token}
                         canEditIntake={
-                          user?.role === "ADMIN" ||
-                          (user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id)
+                          (user?.role === "ADMIN" && order.status === "REQUESTED") ||
+                          (user?.role === "TECHNICIAN" &&
+                            order.assignedTechnicianId === user.id &&
+                            ["ASSIGNED", "IN_PROGRESS"].includes(order.status))
                         }
                       />
                       {(user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
@@ -397,8 +424,10 @@ const OrdersPage = () => {
                     canEdit={false}
                     canAdd={
                       user.role === "TECHNICIAN" &&
-                      order.status !== "COMPLETED" &&
-                      order.status !== "CANCELLED"
+                      order.assignedTechnicianId === user.id &&
+                      order.status === "ASSIGNED" &&
+                      !order.workActRequired &&
+                      (order.estimates?.length ?? 0) === 0
                     }
                     showEditHint={false}
                     isCatalogLoading={user.role === "TECHNICIAN" && catalog.isLoading}
@@ -441,7 +470,7 @@ const OrdersPage = () => {
                     </button>
                   </div>
                 )}
-                {user?.role === "TECHNICIAN" && token && (
+                {user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id && token && (
                   <div className="mt-3 grid gap-3">
                     {order.status === "ASSIGNED" && (
                       <button
@@ -453,10 +482,7 @@ const OrdersPage = () => {
                             order.repairLocation === "CUSTOMER_ADDRESS" &&
                             !order.visitPickupAgreedAt
                           ) &&
-                            Boolean(
-                              order.estimates?.length &&
-                              order.estimates.at(-1)?.status !== "APPROVED",
-                            ))
+                            order.estimates?.at(-1)?.status !== "APPROVED")
                         }
                         onClick={() =>
                           statusMutation.mutate({ orderId: order.id, status: "IN_PROGRESS" })
@@ -466,11 +492,12 @@ const OrdersPage = () => {
                         Начать ремонт
                       </button>
                     )}
-                    {order.status === "IN_PROGRESS" && (order.visitScenarioVersion ?? 0) < 1 && (
+                    {order.status === "IN_PROGRESS" && !isActiveOnsiteVisit(order) && (
                       <button
                         type="button"
                         disabled={
                           statusMutation.isPending ||
+                          isWaitingForTechnicianCompletion(order) ||
                           order.estimates?.at(-1)?.status === "PENDING" ||
                           (order.workActRequired && order.workAct?.status !== "APPROVED")
                         }
@@ -487,57 +514,44 @@ const OrdersPage = () => {
                       !order.review && <RepairReviewRequestButton order={order} token={token} />}
                   </div>
                 )}
-                {user?.role === "ADMIN" &&
+                {user?.role === "TECHNICIAN" &&
+                  order.assignedTechnicianId === user.id &&
                   order.status === "IN_PROGRESS" &&
-                  !isActiveOnsiteVisit(order) && (
-                    <div className="mt-3 grid gap-2">
-                      {isWaitingForTechnicianCompletion(order) && (
-                        <p className="text-xs text-amber-700 dark:text-amber-300">
-                          Ожидается отметка мастера о завершении ремонта.
-                        </p>
-                      )}
-                      <button
-                        type="button"
-                        disabled={
-                          statusMutation.isPending ||
-                          isWaitingForTechnicianCompletion(order) ||
-                          order.estimates?.at(-1)?.status === "PENDING"
-                        }
-                        onClick={() =>
-                          statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
-                        }
-                        className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-                      >
-                        Подтвердить готовность к выдаче
-                      </button>
+                  !isActiveOnsiteVisit(order) &&
+                  isWaitingForTechnicianCompletion(order) && (
+                    <p className="mt-3 text-xs text-amber-700 dark:text-amber-300">
+                      Сначала отметьте завершение ремонта.
+                    </p>
+                  )}
+                {user?.role === "TECHNICIAN" &&
+                  order.assignedTechnicianId === user.id &&
+                  order.status === "COMPLETED" &&
+                  order.receipt?.paymentStatus === "PENDING" && (
+                    <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
+                      <p className="font-medium">К оплате по чеку {order.receipt.receiptNumber}</p>
+                      <p className="mt-1 text-slate-500">
+                        Баланс: {(loyalty.data?.balance ?? 0).toLocaleString("ru-RU")} бонусов ·
+                        максимум к списанию:{" "}
+                        {Math.min(
+                          loyalty.data?.balance ?? 0,
+                          Math.floor(
+                            order.items
+                              .filter((item) => item.type === "SERVICE")
+                              .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0) *
+                              0.3,
+                          ),
+                        ).toLocaleString("ru-RU")}{" "}
+                        ₽
+                      </p>
+                      <p className="mt-1 font-semibold">
+                        Итог к оплате:{" "}
+                        {(order.receipt.totalRub - order.receipt.bonusDiscountRub).toLocaleString(
+                          "ru-RU",
+                        )}{" "}
+                        ₽
+                      </p>
                     </div>
                   )}
-                {order.status === "COMPLETED" && order.receipt?.paymentStatus === "PENDING" && (
-                  <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900">
-                    <p className="font-medium">К оплате по чеку {order.receipt.receiptNumber}</p>
-                    <p className="mt-1 text-slate-500">
-                      Баланс: {(loyalty.data?.balance ?? 0).toLocaleString("ru-RU")} бонусов ·
-                      максимум к списанию:{" "}
-                      {Math.min(
-                        loyalty.data?.balance ?? 0,
-                        Math.floor(
-                          order.items
-                            .filter((item) => item.type === "SERVICE")
-                            .reduce((sum, item) => sum + item.quantity * item.unitPriceRub, 0) *
-                            0.3,
-                        ),
-                      ).toLocaleString("ru-RU")}{" "}
-                      ₽
-                    </p>
-                    <p className="mt-1 font-semibold">
-                      Итог к оплате:{" "}
-                      {(order.receipt.totalRub - order.receipt.bonusDiscountRub).toLocaleString(
-                        "ru-RU",
-                      )}{" "}
-                      ₽
-                    </p>
-                  </div>
-                )}
                 {user?.role === "CUSTOMER" && order.status === "COMPLETED" && (
                   <RepairCompletionCard order={order} />
                 )}

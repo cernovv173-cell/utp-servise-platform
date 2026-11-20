@@ -30,6 +30,7 @@ private fun deadlineLabel(value: String?): String =
 internal fun RepairDeadlineSection(
     order: RepairOrder,
     role: String,
+    currentUserId: String,
     token: String,
     runAction: RunAction,
 ) {
@@ -37,7 +38,10 @@ internal fun RepairDeadlineSection(
         mutableStateOf(order.expectedCompletionAt)
     }
     var note by remember(order.id) { mutableStateOf("") }
-    val canEdit = role == "ADMIN"
+    val canEdit =
+        role == "TECHNICIAN" &&
+            currentUserId == order.technicianId &&
+            order.status in listOf("ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP")
 
     Card(
         modifier = Modifier.fillMaxWidth().padding(top = 10.dp),

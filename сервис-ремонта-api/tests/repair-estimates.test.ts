@@ -205,10 +205,23 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
   );
   assert.equal(order.status, "ASSIGNED");
 
-  const submitted = await fetch(`${baseUrl}/estimates`, {
+  const adminSubmission = await fetch(`${baseUrl}/estimates`, {
     method: "POST",
     headers: {
       authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      diagnosis: "Требуется заменить экран.",
+      items: [{ catalogItemId, quantity: 2 }],
+    }),
+  });
+  assert.equal(adminSubmission.status, 403);
+
+  const submitted = await fetch(`${baseUrl}/estimates`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${technicianToken}`,
       "content-type": "application/json",
     },
     body: JSON.stringify({
@@ -299,10 +312,9 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
       body: JSON.stringify({ decision: "APPROVED" }),
     },
   );
-  assert.equal(technicianApproval.status, 403);
+  assert.equal(technicianApproval.status, 400);
   assert.equal(stockQuantity, 5);
-
-  const approved = await fetch(
+  const adminApproval = await fetch(
     `${baseUrl}/estimates/${responseBody.estimate.id}/review`,
     {
       method: "PATCH",
@@ -310,11 +322,28 @@ test("repair estimate defers stock use until approval and blocks bypass", async 
         authorization: `Bearer ${adminToken}`,
         "content-type": "application/json",
       },
-      body: JSON.stringify({ decision: "APPROVED" }),
+      body: JSON.stringify({ decision: "APPROVED", approvalMethod: "PHONE" }),
+    },
+  );
+  assert.equal(adminApproval.status, 403);
+  assert.equal(stockQuantity, 5);
+  assert.equal(orderItems.length, 0);
+
+  const approved = await fetch(
+    `${baseUrl}/estimates/${responseBody.estimate.id}/review`,
+    {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${technicianToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ decision: "APPROVED", approvalMethod: "PHONE" }),
     },
   );
   assert.equal(approved.status, 200);
   assert.equal(stockQuantity, 3);
+  assert.equal(estimate?.responseMethod, "PHONE");
+  assert.equal(estimate?.respondedById, technicianId);
   assert.equal(orderItems.length, 1);
   assert.equal(orderItems[0]?.unitPriceRub, 12500);
   assert.equal(orderItems[0]?.quantity, 2);

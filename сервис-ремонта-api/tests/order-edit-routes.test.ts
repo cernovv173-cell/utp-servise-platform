@@ -8,7 +8,7 @@ import { createOrdersRouter } from "../src/features/orders/orders.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("customers can edit only their own new orders; administrators can edit orders in any status", async (t) => {
+test("customers edit their own unassigned orders and administrators edit only during intake", async (t) => {
   const tokens = {
     owner: "O".repeat(48),
     otherCustomer: "C".repeat(48),
@@ -170,6 +170,15 @@ test("customers can edit only their own new orders; administrators can edit orde
   });
   assert.equal(otherUser.status, 404);
 
+  const adminEditDuringIntake = await fetch(endpoint, {
+    method: "PATCH",
+    headers: headers(tokens.admin),
+    body: JSON.stringify({ address: "Москва, улица Новая, 10" }),
+  });
+  assert.equal(adminEditDuringIntake.status, 200);
+  assert.equal(changes.length, 3);
+  const problemAfterIntake = order.problem;
+
   order.status = "ASSIGNED";
   const customerAfterAssignment = await fetch(endpoint, {
     method: "PATCH",
@@ -178,12 +187,12 @@ test("customers can edit only their own new orders; administrators can edit orde
   });
   assert.equal(customerAfterAssignment.status, 409);
 
-  const adminEdit = await fetch(endpoint, {
+  const adminEditAfterAssignment = await fetch(endpoint, {
     method: "PATCH",
     headers: headers(tokens.admin),
     body: JSON.stringify({ address: "Москва, улица Новая, 10" }),
   });
-  assert.equal(adminEdit.status, 200);
+  assert.equal(adminEditAfterAssignment.status, 409);
   assert.equal(changes.length, 3);
 
   order.status = "IN_PROGRESS";
@@ -199,11 +208,8 @@ test("customers can edit only their own new orders; administrators can edit orde
       headers: headers(tokens.admin),
       body: JSON.stringify({ problem: `Исправление данных статуса ${status}` }),
     });
-    assert.equal(adminEdit.status, 200);
-    assert.equal(
-      (await adminEdit.json()).order.problem,
-      `Исправление данных статуса ${status}`,
-    );
+    assert.equal(adminEdit.status, 409);
+    assert.equal(order.problem, problemAfterIntake);
   }
-  assert.equal(changes.length, 7);
+  assert.equal(changes.length, 3);
 });

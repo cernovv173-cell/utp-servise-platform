@@ -70,6 +70,12 @@ test("avatars, order photos, and offer prizes remain visible only to authorized 
     { ...stranger, token: tokens.stranger },
     { ...admin, token: tokens.admin },
   ];
+  const order = {
+    id: "44444444-4444-4444-8444-444444444444",
+    customerId: owner.id,
+    assignedTechnicianId: null as string | null,
+    status: "REQUESTED" as "REQUESTED" | "ASSIGNED",
+  };
   let storedBytes = jpegFixture;
   let objectIdSequence = 0;
   const storage: MediaStorage = {
@@ -103,11 +109,7 @@ test("avatars, order photos, and offer prizes remain visible only to authorized 
           : null,
     },
     repairOrder: {
-      findUnique: async () => ({
-        id: "44444444-4444-4444-8444-444444444444",
-        customerId: owner.id,
-        assignedTechnicianId: null,
-      }),
+      findUnique: async () => ({ ...order }),
     },
     newsArticle: {
       findFirst: async () => null,
@@ -203,6 +205,28 @@ test("avatars, order photos, and offer prizes remain visible only to authorized 
   );
   assert.equal(savedPhoto.status, 201);
   assert.equal((await savedPhoto.json()).photo.objectId, "image-2");
+
+  order.status = "ASSIGNED";
+  order.assignedTechnicianId = "66666666-6666-4666-8666-666666666666";
+  const administratorPhoto = await fetch(
+    `${baseUrl}/orders/44444444-4444-4444-8444-444444444444/photos`,
+    {
+      method: "POST",
+      headers: authHeaders(tokens.admin),
+      body: jpegFixture,
+    },
+  );
+  assert.equal(administratorPhoto.status, 403);
+
+  const administratorIntakeMedia = await fetch(
+    `${baseUrl}/orders/44444444-4444-4444-8444-444444444444/intake/media`,
+    {
+      method: "POST",
+      headers: authHeaders(tokens.admin),
+      body: jpegFixture,
+    },
+  );
+  assert.equal(administratorIntakeMedia.status, 403);
 
   const visiblePhoto = await fetch(`${baseUrl}/media/image-2`, {
     headers: { authorization: `Bearer ${tokens.owner}` },

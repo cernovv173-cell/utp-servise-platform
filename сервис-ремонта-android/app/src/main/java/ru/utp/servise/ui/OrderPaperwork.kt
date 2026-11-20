@@ -39,6 +39,7 @@ import ru.utp.servise.data.statusLabel
 internal fun OrderPaperworkDialog(
     order: RepairOrder,
     role: String,
+    currentUserId: String,
     token: String,
     runAction: RunAction,
     onDismiss: () -> Unit,
@@ -47,8 +48,11 @@ internal fun OrderPaperworkDialog(
     val intake = order.intake
     val includeIntakeAct =
         !(order.visitScenarioVersion > 0 && order.repairLocation == "CUSTOMER_ADDRESS")
-    val canEdit = role in listOf("ADMIN", "TECHNICIAN") &&
-        order.status !in listOf("READY_FOR_PICKUP", "COMPLETED", "CANCELLED")
+    val canEdit =
+        (role == "ADMIN" && order.status == "REQUESTED") ||
+            (role == "TECHNICIAN" &&
+                order.technicianId == currentUserId &&
+                order.status in listOf("ASSIGNED", "IN_PROGRESS"))
     val legacySummary = listOf(
         "Передняя сторона" to intake?.frontCondition,
         "Задняя сторона" to intake?.backCondition,

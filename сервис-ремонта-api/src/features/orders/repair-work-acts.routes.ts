@@ -33,7 +33,7 @@ export const createRepairWorkActsRouter = (
   router.put(
     "/orders/:orderId/work-act",
     requireAuth,
-    requireRoles("TECHNICIAN", "ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: saveWorkActBody }),
     async (_request, response) => {
       const orderId = orderIdOf(response);
@@ -66,7 +66,7 @@ export const createRepairWorkActsRouter = (
           throw new HttpError(
             409,
             "WORK_ACT_ALREADY_SUBMITTED",
-            "Переданный администратору акт нельзя изменить.",
+            "Переданный на согласование акт нельзя изменить.",
           );
         }
         if ((order.workAct?.revision ?? 0) !== input.expectedRevision) {
@@ -222,7 +222,7 @@ export const createRepairWorkActsRouter = (
   router.patch(
     "/orders/:orderId/work-act/submit",
     requireAuth,
-    requireRoles("TECHNICIAN", "ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: revisionBody }),
     async (_request, response) => {
       const orderId = orderIdOf(response);
@@ -257,7 +257,7 @@ export const createRepairWorkActsRouter = (
           throw new HttpError(
             409,
             "WORK_ACT_NOT_SUBMITTABLE",
-            "Эту заявку нельзя передать с актом на проверку.",
+            "Для этой заявки нельзя подготовить акт к согласованию.",
           );
         }
         const lines = parseSnapshot(act.itemsSnapshot);

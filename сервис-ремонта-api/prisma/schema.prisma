@@ -123,6 +123,10 @@ enum RepairWorkActStatus {
   APPROVED
 }
 
+enum CustomerApprovalMethod {
+  PHONE
+}
+
 enum CraftOrderStatus {
   REQUESTED
   ACCEPTED
@@ -252,6 +256,7 @@ model User {
   reviewRequestsSent                RepairOrder[]                     @relation("RepairReviewRequestActor")
   statusChanges                     RepairStatusEvent[]               @relation("StatusActor")
   createdRepairEstimates            RepairEstimate[]                  @relation("RepairEstimateCreator")
+  respondedRepairEstimates          RepairEstimate[]                  @relation("RepairEstimateResponder")
   createdRepairWorkActs             RepairWorkAct[]                   @relation("RepairWorkActCreator")
   approvedRepairWorkActs            RepairWorkAct[]                   @relation("RepairWorkActApprover")
   repairDeadlineChanges             RepairOrderDeadlineChange[]       @relation("RepairDeadlineChangeActor")
@@ -408,8 +413,10 @@ model RepairOrder {
   diagnosisFeeRub             Int                            @default(0) @map("diagnosis_fee_rub")
   visitFeeRub                 Int                            @default(0) @map("visit_fee_rub")
   visitPickupAgreedAt         DateTime?                      @map("visit_pickup_agreed_at") @db.Timestamptz(3)
+  visitPickupApprovalMethod   CustomerApprovalMethod?        @map("visit_pickup_approval_method")
   technicianRepairCompletedAt DateTime?                      @map("technician_repair_completed_at") @db.Timestamptz(3)
   onsiteRepairCompletedAt     DateTime?                      @map("onsite_repair_completed_at") @db.Timestamptz(3)
+  onsiteApprovalMethod        CustomerApprovalMethod?        @map("onsite_approval_method")
   contactPhone                String?                        @map("contact_phone") @db.VarChar(32)
   city                        String?                        @db.VarChar(120)
   street                      String?                        @db.VarChar(180)
@@ -544,21 +551,24 @@ model RepairOrderItem {
 }
 
 model RepairEstimate {
-  id                   String               @id @default(uuid()) @db.Uuid
-  orderId              String               @map("order_id") @db.Uuid
-  createdById          String?              @map("created_by_id") @db.Uuid
+  id                   String                  @id @default(uuid()) @db.Uuid
+  orderId              String                  @map("order_id") @db.Uuid
+  createdById          String?                 @map("created_by_id") @db.Uuid
   version              Int
   kind                 RepairEstimateKind
-  status               RepairEstimateStatus @default(PENDING)
-  diagnosis            String               @db.VarChar(2000)
-  itemsSnapshot        Json                 @map("items_snapshot")
-  totalRub             Int                  @map("total_rub")
-  customerResponseNote String?              @map("customer_response_note") @db.VarChar(500)
-  submittedAt          DateTime             @default(now()) @map("submitted_at") @db.Timestamptz(3)
-  respondedAt          DateTime?            @map("responded_at") @db.Timestamptz(3)
-  createdAt            DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  order                RepairOrder          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  createdBy            User?                @relation("RepairEstimateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  status               RepairEstimateStatus    @default(PENDING)
+  diagnosis            String                  @db.VarChar(2000)
+  itemsSnapshot        Json                    @map("items_snapshot")
+  totalRub             Int                     @map("total_rub")
+  customerResponseNote String?                 @map("customer_response_note") @db.VarChar(500)
+  responseMethod       CustomerApprovalMethod? @map("response_method")
+  respondedById        String?                 @map("responded_by_id") @db.Uuid
+  submittedAt          DateTime                @default(now()) @map("submitted_at") @db.Timestamptz(3)
+  respondedAt          DateTime?               @map("responded_at") @db.Timestamptz(3)
+  createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  order                RepairOrder             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy            User?                   @relation("RepairEstimateCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  respondedBy          User?                   @relation("RepairEstimateResponder", fields: [respondedById], references: [id], onDelete: SetNull)
 
   @@unique([orderId, version])
   @@index([orderId, status, version])
@@ -566,22 +576,23 @@ model RepairEstimate {
 }
 
 model RepairWorkAct {
-  id                    String              @id @default(uuid()) @db.Uuid
-  orderId               String              @unique @map("order_id") @db.Uuid
-  createdById           String?             @map("created_by_id") @db.Uuid
-  approvedById          String?             @map("approved_by_id") @db.Uuid
-  status                RepairWorkActStatus @default(DRAFT)
-  revision              Int                 @default(1)
-  itemsSnapshot         Json                @map("items_snapshot")
-  approvedItemsSnapshot Json?               @map("approved_items_snapshot")
-  removedItemsSnapshot  Json?               @map("removed_items_snapshot")
-  submittedAt           DateTime?           @map("submitted_at") @db.Timestamptz(3)
-  approvedAt            DateTime?           @map("approved_at") @db.Timestamptz(3)
-  createdAt             DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt             DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
-  order                 RepairOrder         @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  createdBy             User?               @relation("RepairWorkActCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  approvedBy            User?               @relation("RepairWorkActApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  id                    String                  @id @default(uuid()) @db.Uuid
+  orderId               String                  @unique @map("order_id") @db.Uuid
+  createdById           String?                 @map("created_by_id") @db.Uuid
+  approvedById          String?                 @map("approved_by_id") @db.Uuid
+  approvalMethod        CustomerApprovalMethod? @map("approval_method")
+  status                RepairWorkActStatus     @default(DRAFT)
+  revision              Int                     @default(1)
+  itemsSnapshot         Json                    @map("items_snapshot")
+  approvedItemsSnapshot Json?                   @map("approved_items_snapshot")
+  removedItemsSnapshot  Json?                   @map("removed_items_snapshot")
+  submittedAt           DateTime?               @map("submitted_at") @db.Timestamptz(3)
+  approvedAt            DateTime?               @map("approved_at") @db.Timestamptz(3)
+  createdAt             DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  order                 RepairOrder             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy             User?                   @relation("RepairWorkActCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  approvedBy            User?                   @relation("RepairWorkActApprover", fields: [approvedById], references: [id], onDelete: SetNull)
 
   @@index([status, submittedAt])
   @@map("repair_work_acts")

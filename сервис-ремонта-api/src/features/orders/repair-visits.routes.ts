@@ -46,12 +46,18 @@ const distanceBody = z
       message: "Для адреса в Пушкино укажите 0 км; за городом — минимум 1 км.",
     },
   );
-const pickupBody = z.object({ customerConsent: z.literal(true) }).strict();
+const pickupBody = z
+  .object({
+    customerConsent: z.literal(true),
+    approvalMethod: z.literal("PHONE"),
+  })
+  .strict();
 const onsiteCompletionBody = z
   .object({
     repairAgreed: z.boolean(),
     repairPriceRub: z.number().int().min(0).max(2_147_483_647),
     paymentMethod: z.enum(["CASH", "BANK_TRANSFER"]),
+    approvalMethod: z.literal("PHONE"),
   })
   .strict()
   .refine(
@@ -75,7 +81,7 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/visit-distance",
     requireAuth,
-    requireRoles("TECHNICIAN", "ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: distanceBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -98,11 +104,7 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
             diagnosisCompletedAt: true,
           },
         });
-        if (
-          !current ||
-          (user.role === "TECHNICIAN" &&
-            current.assignedTechnicianId !== user.id)
-        ) {
+        if (!current || current.assignedTechnicianId !== user.id) {
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         }
         if (
@@ -146,7 +148,7 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
             from: current.status,
             to: current.status,
             note: isWithinCity
-              ? "Адрес проверен по Яндекс Картам: в пределах Пушкино, выезд бесплатный"
+              ? "Мастер проверил адрес по Яндекс Картам: в пределах Пушкино, выезд бесплатный"
               : `Расстояние проверено по Яндекс Картам: ${distanceKm} км в одну сторону от границы Пушкино`,
           },
         });
@@ -163,6 +165,7 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
     validateRequest({ params: orderIdParams, body: pickupBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
+      const input = bodyOf<z.infer<typeof pickupBody>>(response);
       const user = getAuthenticatedUser(response);
       const order = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
@@ -206,6 +209,7 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
           data: {
             repairLocation: "SERVICE_CENTER",
             visitPickupAgreedAt: new Date(),
+            visitPickupApprovalMethod: input.approvalMethod,
           },
         });
         await transaction.repairStatusEvent.create({
@@ -214,7 +218,7 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
             actorId: user.id,
             from: current.status,
             to: current.status,
-            note: "Мастер подтвердил согласие клиента на перевозку техники в сервис",
+            note: "Мастер зафиксировал согласие клиента по телефону на перевозку техники в сервис",
           },
         });
         return updated;
@@ -399,6 +403,7 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
           data: {
             status: "COMPLETED",
             onsiteRepairCompletedAt: now,
+            onsiteApprovalMethod: input.approvalMethod,
             bonusDiscountRub: 0,
             redeemBonuses: false,
           },
@@ -417,8 +422,8 @@ export const createRepairVisitRouter = (database: DatabaseClient): Router => {
             from: order.status,
             to: "COMPLETED",
             note: input.repairAgreed
-              ? `Мастер согласовал и завершил ремонт на выезде; оплата: ${input.paymentMethod === "CASH" ? "наличные" : "перевод"}; ${totalRub} ₽`
-              : `Клиент отказался от ремонта после диагностики; мастер принял оплату: ${input.paymentMethod === "CASH" ? "наличные" : "перевод"}; ${totalRub} ₽`,
+              ? `Мастер зафиксировал согласие клиента по телефону и завершил ремонт на выезде; оплата: ${input.paymentMethod === "CASH" ? "наличные" : "перевод"}; ${totalRub} ₽`
+              : `Клиент отказался от ремонта по телефону после диагностики; мастер принял оплату: ${input.paymentMethod === "CASH" ? "наличные" : "перевод"}; ${totalRub} ₽`,
           },
         });
         if (input.repairAgreed) {

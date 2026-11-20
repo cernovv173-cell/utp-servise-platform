@@ -42,7 +42,7 @@ test("formats repair notifications and bounds MAX retry delays", () => {
       serviceNumber: "SRV-2026-000001",
       deviceType: "COMPUTER",
     }),
-    "Работы завершены\nЗаявка: SRV-2026-000001\nУстройство: Компьютер\nАдминистратор проверит результат и сообщит, когда можно забрать устройство.",
+    "Работы завершены\nЗаявка: SRV-2026-000001\nУстройство: Компьютер\nМастер сообщил о завершении работ по заявке.",
   );
   assert.equal(
     formatMaxRepairNotification({

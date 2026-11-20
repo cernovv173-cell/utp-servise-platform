@@ -660,13 +660,12 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         if (!current || !canViewRepairOrder(user.role, user.id, current)) {
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         }
-        const editableStatus =
-          user.role === "ADMIN" || current.status === "REQUESTED";
+        const editableStatus = current.status === "REQUESTED";
         if (!editableStatus) {
           throw new HttpError(
             409,
             "ORDER_NOT_EDITABLE",
-            "Клиент может изменить данные заявки только до назначения мастера.",
+            "Данные заявки можно менять только на этапе приёма, до начала ремонта.",
           );
         }
         if (
@@ -761,23 +760,41 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/expected-completion",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: expectedCompletionBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
       const { expectedCompletionAt, note } =
         bodyOf<z.infer<typeof expectedCompletionBody>>(response);
-      const admin = getAuthenticatedUser(response);
+      const user = getAuthenticatedUser(response);
       const nextExpectedAt = expectedCompletionAt
         ? new Date(expectedCompletionAt)
         : null;
       const result = await database.$transaction(async (transaction) => {
         const current = await transaction.repairOrder.findUnique({
           where: { id: orderId },
-          select: { expectedCompletionAt: true },
+          select: {
+            expectedCompletionAt: true,
+            assignedTechnicianId: true,
+            status: true,
+          },
         });
         if (!current) {
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
+        if (current.assignedTechnicianId !== user.id) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
+        if (
+          !["ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP"].includes(
+            current.status,
+          )
+        ) {
+          throw new HttpError(
+            409,
+            "DEADLINE_NOT_EDITABLE",
+            "Срок готовности меняет назначенный мастер до закрытия заявки.",
+          );
         }
 
         const hasChanged =
@@ -800,7 +817,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           await transaction.repairOrderDeadlineChange.create({
             data: {
               orderId,
-              actorId: admin.id,
+              actorId: user.id,
               previousExpectedAt: current.expectedCompletionAt,
               expectedCompletionAt: nextExpectedAt,
               note: note || null,
@@ -812,7 +829,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           hasChanged,
           order: await transaction.repairOrder.findUniqueOrThrow({
             where: { id: orderId },
-            include: orderDetails("ADMIN"),
+            include: orderDetails(user.role),
           }),
         };
       });
@@ -831,7 +848,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         await sendRepairOrderNotification(
           database,
           result.order,
-          admin.id,
+          user.id,
           message,
         );
       }
@@ -842,11 +859,11 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/bonus-redemption",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: bonusRedemptionBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
-      const admin = getAuthenticatedUser(response);
+      const user = getAuthenticatedUser(response);
       const { redeemBonuses } =
         bodyOf<z.infer<typeof bonusRedemptionBody>>(response);
       const updated = await database.$transaction(async (transaction) => {
@@ -859,6 +876,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (!order)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        if (order.assignedTechnicianId !== user.id) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
         if (
           order.status !== "COMPLETED" ||
           !order.receipt ||
@@ -881,7 +901,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         const saved = await transaction.repairOrder.update({
           where: { id: orderId },
           data: { redeemBonuses, bonusDiscountRub },
-          include: orderDetails(admin.role),
+          include: orderDetails(user.role),
         });
         if (order.receipt) {
           await transaction.repairReceipt.update({
@@ -894,8 +914,8 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       await sendRepairOrderNotification(
         database,
         updated,
-        admin.id,
-        "Администратор обновил списание бонусов за услуги по заявке.",
+        user.id,
+        "Мастер обновил списание бонусов за услуги по заявке.",
       );
       response.json({ order: updated });
     },
@@ -904,7 +924,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.post(
     "/orders/:orderId/receipt",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: receiptDraftBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -926,6 +946,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (!order)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        if (order.assignedTechnicianId !== user.id) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
         if (order.status !== "COMPLETED") {
           throw new HttpError(
             409,
@@ -1104,13 +1127,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/receipt/payment",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: receiptPaymentBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
       const { paymentMethod } =
         bodyOf<z.infer<typeof receiptPaymentBody>>(response);
-      const admin = getAuthenticatedUser(response);
+      const user = getAuthenticatedUser(response);
       const receipt = await database.$transaction(async (transaction) => {
         await transaction.$queryRaw`
           SELECT "id" FROM "repair_orders" WHERE "id" = ${orderId}::uuid FOR UPDATE
@@ -1121,6 +1144,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (!order)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        if (order.assignedTechnicianId !== user.id) {
+          throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+        }
         if (order.status !== "COMPLETED") {
           throw new HttpError(
             409,
@@ -1180,7 +1206,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             data: {
               customerId: order.customerId,
               orderId,
-              actorId: admin.id,
+              actorId: user.id,
               type: "REDEEM",
               points: -bonusDiscountRub,
               reason: `Списание по оплаченному чеку ${currentReceipt.receiptNumber}`,
@@ -1193,7 +1219,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             data: {
               customerId: order.customerId,
               orderId,
-              actorId: admin.id,
+              actorId: user.id,
               type: "EARN",
               points: earnedPoints,
               reason: `Начисление 10% по оплаченному чеку ${currentReceipt.receiptNumber}`,
@@ -1204,7 +1230,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           inviteeId: order.customerId,
           orderId,
           serviceNumber: order.serviceNumber,
-          actorId: admin.id,
+          actorId: user.id,
         });
         return transaction.repairReceipt.findUniqueOrThrow({
           where: { id: currentReceipt.id },
@@ -1213,7 +1239,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       await sendRepairOrderNotificationForId(
         database,
         orderId,
-        admin.id,
+        user.id,
         "По заявке обновлён статус оплаты.",
       );
       response.json({
@@ -1260,21 +1286,26 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (!current)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
-        if (
-          current.status !== "REQUESTED" &&
-          current.status !== "ASSIGNED" &&
-          current.status !== "IN_PROGRESS"
-        ) {
+        const isEmergencyReassignment =
+          current.assignedTechnicianId === null &&
+          ["ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP"].includes(
+            current.status,
+          );
+        if (current.status !== "REQUESTED" && !isEmergencyReassignment) {
           throw new HttpError(
             409,
             "ORDER_NOT_ASSIGNABLE",
-            "Мастера можно менять только пока заявка не готова к выдаче.",
+            "Мастера назначают при первичном приёме; заменить можно только мастера, уже снятого с заявки.",
           );
         }
         const nextStatus =
           current.status === "REQUESTED" ? "ASSIGNED" : current.status;
         const update = await transaction.repairOrder.updateMany({
-          where: { id: current.id, status: current.status },
+          where: {
+            id: current.id,
+            status: current.status,
+            assignedTechnicianId: current.assignedTechnicianId,
+          },
           data: { assignedTechnicianId: technicianId, status: nextStatus },
         });
         if (update.count !== 1)
@@ -1289,8 +1320,8 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             actorId: admin.id,
             from: current.status,
             to: nextStatus,
-            note: current.assignedTechnicianId
-              ? `Мастер переназначен: ${technician.displayName}`
+            note: isEmergencyReassignment
+              ? `Назначен новый мастер после освобождения заявки: ${technician.displayName}`
               : `Назначен мастер: ${technician.displayName}`,
           },
         });
@@ -1315,7 +1346,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         database,
         order,
         admin.id,
-        "К заявке назначен или переназначен мастер.",
+        "К заявке назначен мастер.",
       );
       response.json({ order });
     },
@@ -1341,6 +1372,13 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       });
       if (!order || !canViewRepairOrder(user.role, user.id, order)) {
         throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
+      }
+      if (user.role === "ADMIN" && order.status !== "REQUESTED") {
+        throw new HttpError(
+          403,
+          "INTAKE_ADMIN_ONLY",
+          "Администратор заполняет акт только до передачи заявки мастеру.",
+        );
       }
       if (
         ["READY_FOR_PICKUP", "COMPLETED", "CANCELLED"].includes(order.status)
@@ -1374,7 +1412,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.post(
     "/orders/:orderId/diagnosis-completed",
     requireAuth,
-    requireRoles("TECHNICIAN", "ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -1398,11 +1436,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             visitDistanceVerifiedAt: true,
           },
         });
-        if (
-          !current ||
-          (user.role === "TECHNICIAN" &&
-            current.assignedTechnicianId !== user.id)
-        ) {
+        if (!current || current.assignedTechnicianId !== user.id) {
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         }
         if (current.diagnosisCompletedAt) {
@@ -1547,7 +1581,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             throw new HttpError(
               409,
               "ESTIMATE_APPROVAL_REQUIRED",
-              "Нельзя начать ремонт без подтверждённой сметы. Дождитесь решения администратора.",
+              "Нельзя начать ремонт без подтверждённой сметы. Сначала зафиксируйте согласие клиента по телефону.",
             );
           }
           if (
@@ -1557,7 +1591,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             throw new HttpError(
               409,
               "ESTIMATE_RESPONSE_PENDING",
-              "Дождитесь решения администратора по дополнительной смете.",
+              "Сначала зафиксируйте ответ клиента по телефону на дополнительную смету.",
             );
           }
           if (status === "READY_FOR_PICKUP") {
@@ -1677,7 +1711,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.post(
     "/orders/:orderId/items",
     requireAuth,
-    requireRoles("ADMIN", "TECHNICIAN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: orderItemBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -1722,14 +1756,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(
             409,
             "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
-            "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
+            "После отправки сметы состав работ можно менять только новой сметой, которую мастер согласует с клиентом.",
           );
         }
         if (existing.status === "IN_PROGRESS" && user.role === "TECHNICIAN") {
           throw new HttpError(
             409,
             "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
-            "Во время ремонта добавляйте услуги и запчасти в акт. Они попадут в чек и изменят склад только после подтверждения администратором.",
+            "Во время ремонта добавляйте услуги и запчасти в акт. Они попадут в чек и изменят склад после подтверждения клиентом по телефону.",
           );
         }
         const catalogItem = await transaction.repairCatalogItem.findFirst({
@@ -1811,7 +1845,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/items/:itemId",
     requireAuth,
-    requireRoles("ADMIN", "TECHNICIAN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderItemParams, body: orderItemQuantityBody }),
     async (_request, response) => {
       const { orderId, itemId } =
@@ -1863,7 +1897,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(
             409,
             "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
-            "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
+            "После отправки сметы состав работ можно менять только новой сметой, которую мастер согласует с клиентом.",
           );
         }
         if (
@@ -1873,7 +1907,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(
             409,
             "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
-            "Во время ремонта меняйте услуги и запчасти через акт. Чек и склад обновятся только после подтверждения администратором.",
+            "Во время ремонта меняйте услуги и запчасти через акт. Чек и склад обновятся после подтверждения клиентом по телефону.",
           );
         }
         const item = await transaction.repairOrderItem.findFirst({
@@ -1945,7 +1979,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.delete(
     "/orders/:orderId/items/:itemId",
     requireAuth,
-    requireRoles("ADMIN", "TECHNICIAN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderItemParams }),
     async (_request, response) => {
       const { orderId, itemId } =
@@ -1995,7 +2029,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(
             409,
             "ESTIMATE_REQUIRED_FOR_ITEM_CHANGES",
-            "После отправки сметы состав работ можно менять только новой сметой на проверку администратора.",
+            "После отправки сметы состав работ можно менять только через новую смету для согласования с клиентом по телефону.",
           );
         }
         if (
@@ -2005,7 +2039,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           throw new HttpError(
             409,
             "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
-            "Во время ремонта меняйте услуги и запчасти через акт. Чек и склад обновятся только после подтверждения администратором.",
+            "Во время ремонта меняйте услуги и запчасти через акт. Чек и склад обновятся после того, как назначенный мастер зафиксирует ответ клиента по телефону.",
           );
         }
         const item = await transaction.repairOrderItem.findFirst({

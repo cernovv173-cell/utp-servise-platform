@@ -88,7 +88,7 @@ export const createRepairOrderReleaseRouter = (
   router.get(
     "/orders/:orderId/release-summary",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -187,7 +187,7 @@ export const createRepairOrderReleaseRouter = (
   router.post(
     "/orders/:orderId/release",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: releaseBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);

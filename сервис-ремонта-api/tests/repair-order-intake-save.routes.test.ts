@@ -10,6 +10,7 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 
 test("assigned technician can create and update the service intake act without attachments", async (t) => {
   const sessionToken = "T".repeat(48);
+  const adminToken = "A".repeat(48);
   const technicianId = "22222222-2222-4222-8222-222222222222";
   const orderId = "33333333-3333-4333-8333-333333333333";
   const order = {
@@ -21,23 +22,27 @@ test("assigned technician can create and update the service intake act without a
   const state: { intake: Record<string, unknown> | null } = { intake: null };
   const database = {
     session: {
-      findUnique: async ({ where }: { where: { tokenHash: string } }) =>
-        where.tokenHash === hashSessionToken(sessionToken)
-          ? {
-              expiresAt: new Date(Date.now() + 60_000),
-              user: {
-                id: technicianId,
-                email: "technician@example.test",
-                displayName: "Мастер",
-                phoneNumber: null,
-                avatarObjectId: null,
-                role: "TECHNICIAN" as const,
-                active: true,
-                terminatedAt: null,
-                mustChangePassword: false,
-              },
-            }
-          : null,
+      findUnique: async ({ where }: { where: { tokenHash: string } }) => {
+        const token = [sessionToken, adminToken].find(
+          (candidate) => hashSessionToken(candidate) === where.tokenHash,
+        );
+        if (!token) return null;
+        const isAdmin = token === adminToken;
+        return {
+          expiresAt: new Date(Date.now() + 60_000),
+          user: {
+            id: isAdmin ? "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" : technicianId,
+            email: isAdmin ? "admin@example.test" : "technician@example.test",
+            displayName: isAdmin ? "Администратор" : "Мастер",
+            phoneNumber: null,
+            avatarObjectId: null,
+            role: isAdmin ? ("ADMIN" as const) : ("TECHNICIAN" as const),
+            active: true,
+            terminatedAt: null,
+            mustChangePassword: false,
+          },
+        };
+      },
     },
     repairOrder: {
       findUnique: async () => order,
@@ -112,16 +117,32 @@ test("assigned technician can create and update the service intake act without a
     state.intake?.conditionSummary,
     "Корпус целый, экран с царапиной.",
   );
+
+  const administratorEdit = await fetch(endpoint, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      conditionSummary: "Попытка изменения после назначения мастера",
+    }),
+  });
+  assert.equal(administratorEdit.status, 403);
+  assert.equal(
+    state.intake?.conditionSummary,
+    "Корпус целый, экран с царапиной.",
+  );
 });
 
 test("an active home-visit order cannot be marked ready for service-center pickup", async (t) => {
-  const sessionToken = "A".repeat(48);
-  const administratorId = "44444444-4444-4444-8444-444444444444";
+  const sessionToken = "T".repeat(48);
+  const technicianId = "22222222-2222-4222-8222-222222222222";
   const orderId = "55555555-5555-4555-8555-555555555555";
   const order = {
     id: orderId,
     customerId: "11111111-1111-4111-8111-111111111111",
-    assignedTechnicianId: "22222222-2222-4222-8222-222222222222",
+    assignedTechnicianId: technicianId,
     status: "IN_PROGRESS",
     visitScenarioVersion: 1,
     repairLocation: "CUSTOMER_ADDRESS",
@@ -138,12 +159,12 @@ test("an active home-visit order cannot be marked ready for service-center picku
           ? {
               expiresAt: new Date(Date.now() + 60_000),
               user: {
-                id: administratorId,
-                email: "admin@example.test",
-                displayName: "Администратор",
+                id: technicianId,
+                email: "technician@example.test",
+                displayName: "Мастер",
                 phoneNumber: null,
                 avatarObjectId: null,
-                role: "ADMIN" as const,
+                role: "TECHNICIAN" as const,
                 active: true,
                 terminatedAt: null,
                 mustChangePassword: false,

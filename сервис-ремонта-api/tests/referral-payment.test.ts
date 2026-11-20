@@ -8,18 +8,18 @@ import { createOrdersRouter } from "../src/features/orders/orders.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("a referral is paid with the first repair receipt, not repeated confirmations", async (t) => {
-  const sessionToken = "A".repeat(48);
+test("the assigned technician marks the first repair payment only once", async (t) => {
+  const sessionToken = "T".repeat(48);
   const customerId = "11111111-1111-4111-8111-111111111111";
   const orderId = "22222222-2222-4222-8222-222222222222";
   const receiptId = "33333333-3333-4333-8333-333333333333";
-  const admin = {
+  const technician = {
     id: "44444444-4444-4444-8444-444444444444",
-    email: "admin@example.test",
-    displayName: "Администратор",
+    email: "technician@example.test",
+    displayName: "Мастер",
     phoneNumber: null,
     avatarObjectId: null,
-    role: "ADMIN" as const,
+    role: "TECHNICIAN" as const,
     salaryRatePercent: 75,
     active: true,
     mustChangePassword: false,
@@ -34,6 +34,7 @@ test("a referral is paid with the first repair receipt, not repeated confirmatio
   const order = {
     id: orderId,
     customerId,
+    assignedTechnicianId: technician.id,
     serviceNumber: "SRV-2026-000001",
     status: "COMPLETED",
     redeemBonuses: false,
@@ -87,7 +88,7 @@ test("a referral is paid with the first repair receipt, not repeated confirmatio
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) =>
         where.tokenHash === hashSessionToken(sessionToken)
-          ? { expiresAt: new Date(Date.now() + 60_000), user: admin }
+          ? { expiresAt: new Date(Date.now() + 60_000), user: technician }
           : null,
     },
     repairOrder: { findUnique: async () => null },

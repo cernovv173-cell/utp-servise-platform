@@ -165,7 +165,12 @@ internal fun RepairOrderCard(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f),
                     )
-                    if (role == "ADMIN") {
+                    val canEditPriority =
+                        (role == "ADMIN" && order.status == "REQUESTED") ||
+                            (role == "TECHNICIAN" &&
+                                currentUserId == order.technicianId &&
+                                order.status in listOf("ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP"))
+                    if (canEditPriority) {
                         TextButton(
                             onClick = {
                                 runAction({
@@ -181,10 +186,10 @@ internal fun RepairOrderCard(
                         }
                     }
                 }
-                RepairEstimateSection(order, role, token, catalogItems, runAction)
+                RepairEstimateSection(order, role, token, catalogItems, currentUserId, runAction)
                 RepairWorkActSection(order, role, token, catalogItems, currentUserId, runAction)
                 RepairVisitWorkflow(order, role, currentUserId, token, runAction)
-                RepairDeadlineSection(order, role, token, runAction)
+                RepairDeadlineSection(order, role, currentUserId, token, runAction)
                 val structuredAddress = listOfNotNull(
                     order.city,
                     order.street,
@@ -304,14 +309,24 @@ internal fun RepairOrderCard(
                         }
                     }
                 }
-                PhotoPickerButton("Добавить фото к заказу") { uri: Uri ->
-                    runAction({
-                        ApiClient.uploadOrderPhoto(
-                            token,
-                            order.id,
-                            compressSelectedImage(context, uri),
-                        )
-                    }) {}
+                val canAddOrderPhoto = when (role) {
+                    "ADMIN" -> order.status == "REQUESTED"
+                    "TECHNICIAN" ->
+                        order.technicianId == currentUserId &&
+                            order.status !in listOf("READY_FOR_PICKUP", "COMPLETED", "CANCELLED")
+                    "CUSTOMER" -> order.status !in listOf("READY_FOR_PICKUP", "COMPLETED", "CANCELLED")
+                    else -> false
+                }
+                if (canAddOrderPhoto) {
+                    PhotoPickerButton("Добавить фото к заказу") { uri: Uri ->
+                        runAction({
+                            ApiClient.uploadOrderPhoto(
+                                token,
+                                order.id,
+                                compressSelectedImage(context, uri),
+                            )
+                        }) {}
+                    }
                 }
 
                 if (order.items.isNotEmpty()) {
@@ -328,7 +343,8 @@ internal fun RepairOrderCard(
                             }
                             Text("${item.quantity.toLong() * item.unitPriceRub} ₽", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
                             val canRemoveItem =
-                                role == "ADMIN" &&
+                                role == "TECHNICIAN" &&
+                                    currentUserId == order.technicianId &&
                                     order.estimates.isEmpty() &&
                                     order.status in listOf(
                                         "REQUESTED",
@@ -362,7 +378,7 @@ internal fun RepairOrderCard(
                     }
                 }
 
-                RepairReceiptPanel(order, role, token, runAction)
+                RepairReceiptPanel(order, role, currentUserId, token, runAction)
 
                 OutlinedButton(
                     onClick = { showPaperwork = true },
@@ -374,7 +390,11 @@ internal fun RepairOrderCard(
                         else "Акт приёма · заказ-наряд · гарантия",
                     )
                 }
-                if (role == "ADMIN" && order.status == "READY_FOR_PICKUP") {
+                if (
+                    role == "TECHNICIAN" &&
+                    currentUserId == order.technicianId &&
+                    order.status == "READY_FOR_PICKUP"
+                ) {
                     Button(
                         onClick = { showReleaseDialog = true },
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
@@ -434,7 +454,7 @@ internal fun RepairOrderCard(
         )
     }
     if (showPaperwork) {
-        OrderPaperworkDialog(order, role, token, runAction) { showPaperwork = false }
+        OrderPaperworkDialog(order, role, currentUserId, token, runAction) { showPaperwork = false }
     }
     if (showReleaseDialog) {
         RepairOrderReleaseDialog(order, token, runAction) { showReleaseDialog = false }

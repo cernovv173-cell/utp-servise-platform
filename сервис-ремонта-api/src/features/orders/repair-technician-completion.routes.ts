@@ -71,7 +71,7 @@ export const createRepairTechnicianCompletionRouter = (
             throw new HttpError(
               409,
               "ESTIMATE_RESPONSE_PENDING",
-              "Дождитесь решения администратора по дополнительной смете.",
+              "Сначала свяжитесь с клиентом по телефону и зафиксируйте ответ по дополнительной смете.",
             );
           }
           assertWorkActApproved(
@@ -103,7 +103,7 @@ export const createRepairTechnicianCompletionRouter = (
             actorId: user.id,
             from: current.status,
             to: current.status,
-            note: "Мастер отметил ремонт завершённым; ожидается выдача администратором",
+            note: "Мастер отметил ремонт завершённым; после оплаты и возврата техники заказ закроет мастер",
           },
         });
         await scheduleMaxRepairNotification(transaction, {
@@ -119,7 +119,7 @@ export const createRepairTechnicianCompletionRouter = (
         database,
         orderId,
         user.id,
-        `Мастер отметил ремонт по заявке завершённым. Администратор проверит готовность к выдаче.`,
+        `Мастер отметил ремонт по заявке завершённым. Техник может оформить выдачу клиенту.`,
         "Ремонт выполнен",
       );
       response.json({ order });

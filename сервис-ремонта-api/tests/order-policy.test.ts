@@ -45,18 +45,18 @@ test("loyalty earns 10% of cash actually paid after redemption", () => {
   assert.equal(calculateEarnedPoints(0), 0);
 });
 
-test("administrators can add order items to any order, technicians only to their assignment", () => {
+test("only the assigned technician can add order items", () => {
   assert.equal(
     canAddRepairOrderItem("ADMIN", "admin-1", {
       assignedTechnicianId: "tech-1",
     }),
-    true,
+    false,
   );
   assert.equal(
     canAddRepairOrderItem("ADMIN", "admin-1", {
       assignedTechnicianId: null,
     }),
-    true,
+    false,
   );
   assert.equal(
     canAddRepairOrderItem("TECHNICIAN", "tech-1", {
@@ -107,7 +107,7 @@ test("customers can only cancel their own not-yet-assigned orders", () => {
   );
 });
 
-test("technicians can only progress assigned work and cannot access another technician's order", () => {
+test("technicians can progress their assignment and cannot access another technician's order", () => {
   assert.equal(
     canTransitionRepairStatus("TECHNICIAN", "ASSIGNED", "IN_PROGRESS"),
     true,
@@ -123,7 +123,7 @@ test("technicians can only progress assigned work and cannot access another tech
       "READY_FOR_PICKUP",
       1,
     ),
-    false,
+    true,
   );
   assert.equal(
     canTransitionRepairStatus("TECHNICIAN", "IN_PROGRESS", "COMPLETED"),
@@ -153,17 +153,25 @@ test("technicians can only progress assigned work and cannot access another tech
   );
 });
 
-test("administrators may make forward changes without reopening terminal orders", () => {
+test("administrators can only cancel an unprocessed request through status changes", () => {
   assert.equal(
     canTransitionRepairStatus("ADMIN", "REQUESTED", "ASSIGNED"),
-    true,
+    false,
   );
   assert.equal(
     canTransitionRepairStatus("ADMIN", "IN_PROGRESS", "CANCELLED"),
-    true,
+    false,
   );
   assert.equal(
     canTransitionRepairStatus("ADMIN", "IN_PROGRESS", "READY_FOR_PICKUP"),
+    false,
+  );
+  assert.equal(
+    canTransitionRepairStatus("ADMIN", "ASSIGNED", "IN_PROGRESS"),
+    false,
+  );
+  assert.equal(
+    canTransitionRepairStatus("ADMIN", "REQUESTED", "CANCELLED"),
     true,
   );
   assert.equal(

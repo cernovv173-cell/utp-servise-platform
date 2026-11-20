@@ -81,6 +81,8 @@ const ChecksPage = () => {
       />
       <div className="grid gap-4">
         {(query.data?.orders ?? []).map((order) => {
+          const canManageOrder =
+            user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id;
           const total = order.items.reduce(
             (sum, item) => sum + item.quantity * item.unitPriceRub,
             0,
@@ -193,7 +195,7 @@ const ChecksPage = () => {
                   )}
                 </div>
               )}
-              {user?.role === "ADMIN" &&
+              {canManageOrder &&
                 order.status === "COMPLETED" &&
                 order.receipt?.paymentStatus !== "PAID" && (
                   <ReceiptDraftEditor
@@ -203,7 +205,7 @@ const ChecksPage = () => {
                     onSubmit={(draft) => issue.mutate({ orderId: order.id, draft })}
                   />
                 )}
-              {user?.role === "ADMIN" && order.status === "COMPLETED" && (
+              {canManageOrder && order.status === "COMPLETED" && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 print:hidden">
                   {order.receipt?.paymentStatus === "PENDING" && (
                     <>

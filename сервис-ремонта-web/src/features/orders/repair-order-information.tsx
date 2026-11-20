@@ -47,7 +47,10 @@ export const RepairOrderInformation = ({ order, token }: { order: RepairOrder; t
   ]
     .filter(Boolean)
     .join(", ");
-  const canAddPhoto = !["READY_FOR_PICKUP", "COMPLETED", "CANCELLED"].includes(order.status);
+  const canAddPhoto =
+    user?.role === "ADMIN"
+      ? order.status === "REQUESTED"
+      : !["READY_FOR_PICKUP", "COMPLETED", "CANCELLED"].includes(order.status);
 
   const selectPhoto = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0];

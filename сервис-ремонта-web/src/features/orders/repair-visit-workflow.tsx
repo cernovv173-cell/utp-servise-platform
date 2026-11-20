@@ -35,12 +35,14 @@ export const RepairVisitWorkflow = ({
   const [repairAgreed, setRepairAgreed] = useState(true);
   const [repairPriceRub, setRepairPriceRub] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"CASH" | "BANK_TRANSFER">("CASH");
+  const [pickupPhoneConsentConfirmed, setPickupPhoneConsentConfirmed] = useState(false);
+  const [onsitePhoneConsentConfirmed, setOnsitePhoneConsentConfirmed] = useState(false);
   const isHomeVisit = order.repairLocation === "CUSTOMER_ADDRESS";
   const wasTransferredToServiceCenter =
     order.repairLocation === "SERVICE_CENTER" && order.visitPickupAgreedAt != null;
   const isStaff = role === "ADMIN" || role === "TECHNICIAN";
   const isAssignedTechnician = role === "TECHNICIAN" && order.assignedTechnicianId === userId;
-  const canUseAssignedActions = role === "ADMIN" || isAssignedTechnician;
+  const canUseAssignedActions = isAssignedTechnician;
   const diagnosisComplete = Boolean(order.diagnosisCompletedAt);
   const verifiedDistance = order.visitDistanceVerifiedAt != null;
   const latestEstimate = order.estimates?.at(-1);
@@ -80,8 +82,7 @@ export const RepairVisitWorkflow = ({
   });
   const repairCompleteMutation = useMutation({
     mutationFn: () => markTechnicianRepairCompleted(token, order.id),
-    onSuccess: () =>
-      refresh("Ремонт отмечен завершённым; теперь администратор может подготовить выдачу."),
+    onSuccess: () => refresh("Ремонт отмечен завершённым; мастер может оформить выдачу клиенту."),
     onError: (error) =>
       toast.error(
         error instanceof Error ? error.message : "Не удалось отметить завершение ремонта.",
@@ -95,6 +96,9 @@ export const RepairVisitWorkflow = ({
       }
       if (!repairAgreed && !diagnosisComplete) {
         throw new Error("Сначала отметьте фактически проведённую диагностику.");
+      }
+      if (!onsitePhoneConsentConfirmed) {
+        throw new Error("Подтвердите, что ответ клиента получен по телефону.");
       }
       return completeOnsiteRepair(token, order.id, {
         repairAgreed,
@@ -132,14 +136,14 @@ export const RepairVisitWorkflow = ({
 
       {wasTransferredToServiceCenter ? (
         <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">
-          Согласие на перевозку зафиксировано. После поступления техники заполните акт состояния и
-          комплектности в сервисе, затем продолжайте по обычному порядку: смета, ремонт, проверка и
-          выдача администратором.
+          Согласие на перевозку зафиксировано по телефону. После поступления техники мастер заполнит
+          акт состояния и комплектности, согласует смету и работы с клиентом, затем сам оформит
+          оплату и выдачу.
         </p>
       ) : !isHomeVisit ? (
         <p className="text-xs leading-5 text-slate-600 dark:text-slate-400">
-          Для ремонта в сервисном центре: приём техники и описание её состояния, согласование сметы,
-          ремонт и выдача администратором.
+          После приёма мастер ведёт заявку до конца: описывает состояние техники, согласует смету и
+          дополнительные работы с клиентом по телефону, принимает оплату и выдаёт устройство.
         </p>
       ) : null}
 
@@ -264,16 +268,29 @@ export const RepairVisitWorkflow = ({
           <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950">
             <p className="text-sm font-semibold">Если ремонт на месте невозможен</p>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              Если на месте починить нельзя, подтвердите согласие клиента на перевозку. Акт
-              состояния и комплектности заполняется уже в сервисном центре после поступления
+              Если на месте починить нельзя, позвоните клиенту и зафиксируйте его согласие на
+              перевозку. Акт состояния и комплектности мастер заполнит в сервисе после поступления
               техники.
             </p>
+            <label className="flex items-start gap-2 text-xs leading-5">
+              <input
+                type="checkbox"
+                checked={pickupPhoneConsentConfirmed}
+                onChange={(event) => setPickupPhoneConsentConfirmed(event.target.checked)}
+                className="mt-1 size-4 shrink-0 accent-blue-600"
+              />
+              Клиент по телефону согласился передать устройство в сервисный центр.
+            </label>
             <button
               type="button"
               className={buttonClass}
-              disabled={pickupMutation.isPending}
+              disabled={pickupMutation.isPending || !pickupPhoneConsentConfirmed}
               onClick={() => {
-                if (window.confirm("Клиент согласен, чтобы мастер забрал технику в сервис?"))
+                if (
+                  window.confirm(
+                    "Подтверждаете согласие клиента на перевозку, полученное по телефону?",
+                  )
+                )
                   pickupMutation.mutate();
               }}
             >
@@ -288,7 +305,7 @@ export const RepairVisitWorkflow = ({
         !order.visitPickupAgreedAt &&
         ["ASSIGNED", "IN_PROGRESS"].includes(order.status) && (
           <div className="grid gap-3 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950">
-            <p className="text-sm font-semibold">Ремонт на месте согласует мастер</p>
+            <p className="text-sm font-semibold">Ремонт на месте согласует мастер по телефону</p>
             <div className="flex flex-wrap gap-3 text-sm">
               {(
                 [
@@ -350,14 +367,25 @@ export const RepairVisitWorkflow = ({
                 ? " (ремонт + выполненная диагностика + выезд)"
                 : " (диагностика + выезд)"}
             </p>
+            <label className="flex items-start gap-2 text-xs leading-5">
+              <input
+                type="checkbox"
+                checked={onsitePhoneConsentConfirmed}
+                onChange={(event) => setOnsitePhoneConsentConfirmed(event.target.checked)}
+                className="mt-1 size-4 shrink-0 accent-blue-600"
+              />
+              Клиент подтвердил по телефону сумму ремонта и способ завершения заявки.
+            </label>
             <button
               type="button"
               className={buttonClass}
-              disabled={onsiteMutation.isPending || expectedTotal < 1}
+              disabled={
+                onsiteMutation.isPending || expectedTotal < 1 || !onsitePhoneConsentConfirmed
+              }
               onClick={() => {
                 if (
                   window.confirm(
-                    "Подтвердите согласование суммы с клиентом и получение оплаты наличными или переводом.",
+                    "Подтверждаете согласование суммы с клиентом по телефону и получение оплаты наличными или переводом?",
                   )
                 )
                   onsiteMutation.mutate();
@@ -375,8 +403,8 @@ export const RepairVisitWorkflow = ({
         !order.technicianRepairCompletedAt && (
           <div className="grid gap-2 rounded-lg border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950">
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              После завершения работ отметьте это здесь. Администратор проверит заказ и отдельно
-              переведёт его в статус «Готова к выдаче».
+              После завершения работ отметьте это здесь. Затем мастер сам переведёт заказ в статус
+              «Готов к выдаче» и оформит возврат техники.
             </p>
             <button
               type="button"

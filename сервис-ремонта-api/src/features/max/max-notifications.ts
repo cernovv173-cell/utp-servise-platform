@@ -22,8 +22,7 @@ const notificationTitles: Record<MaxNotificationType, string> = {
 };
 
 const notificationDetails: Partial<Record<MaxNotificationType, string>> = {
-  TECHNICIAN_REPAIR_COMPLETED:
-    "Администратор проверит результат и сообщит, когда можно забрать устройство.",
+  TECHNICIAN_REPAIR_COMPLETED: "Мастер сообщил о завершении работ по заявке.",
 };
 
 const deviceLabels: Record<string, string> = {

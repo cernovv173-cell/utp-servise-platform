@@ -14,6 +14,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedButton
@@ -40,7 +41,7 @@ import ru.utp.servise.data.RepairOrder
 private data class DraftLine(val catalogItem: CatalogItem, var quantity: String = "1")
 
 private fun estimateStatusLabel(status: String): String = when (status) {
-    "PENDING" -> "Ожидает администратора"
+    "PENDING" -> "Ожидает ответа клиента по телефону"
     "APPROVED" -> "Подтверждена"
     "DECLINED" -> "Отклонена"
     else -> "Заменена новой версией"
@@ -61,17 +62,22 @@ internal fun RepairEstimateSection(
     role: String,
     token: String,
     catalogItems: List<CatalogItem>,
+    currentUserId: String,
     runAction: RunAction,
 ) {
     val latest = order.estimates.lastOrNull()
-    val canManage = role == "ADMIN" || role == "TECHNICIAN"
-    val canCompose = canManage &&
-        order.status == "ASSIGNED" &&
-        latest?.status != "APPROVED" &&
-        (role != "ADMIN" || order.technicianName.isNotBlank())
+    val isAssignedTechnician =
+        role == "TECHNICIAN" && order.technicianId == currentUserId
+    val canCompose = isAssignedTechnician &&
+        order.status in listOf("ASSIGNED", "IN_PROGRESS") &&
+        latest?.status != "PENDING"
+    val canReview = isAssignedTechnician &&
+        latest?.status == "PENDING" &&
+        order.status in listOf("ASSIGNED", "IN_PROGRESS")
     val isVisible = canCompose || role == "CUSTOMER" || order.estimates.isNotEmpty()
     var showComposer by remember(order.id) { mutableStateOf(false) }
     var responseNote by remember(order.id) { mutableStateOf("") }
+    var phoneConsentConfirmed by remember(order.id, latest?.id) { mutableStateOf(false) }
 
     if (!isVisible) return
 
@@ -84,7 +90,7 @@ internal fun RepairEstimateSection(
             Text("СМЕТА И ПРОВЕРКА", fontSize = 10.sp, color = UtpBlue, fontWeight = FontWeight.Bold, letterSpacing = 1.3.sp)
             Text("Стоимость ремонта", fontSize = 15.sp, color = UtpInk, fontWeight = FontWeight.SemiBold)
             Text(
-                "Первоначальную смету администратор подтверждает до начала ремонта. Фактически выполненные дополнительные работы мастер добавит в отдельный акт без предварительного согласования.",
+                "Назначенный мастер звонит клиенту, согласует смету и фиксирует его ответ. Дополнительные фактические работы мастер оформляет отдельным актом.",
                 fontSize = 11.sp,
                 color = UtpMuted,
                 lineHeight = 16.sp,
@@ -100,18 +106,25 @@ internal fun RepairEstimateSection(
 
             if (latest?.status == "PENDING") {
                 Text(
-                    if (role == "ADMIN") {
-                        "Смета ожидает вашего решения."
-                    } else {
-                        "Смета передана администратору на проверку."
-                    },
+                    "Смету нужно согласовать с клиентом по телефону и зафиксировать ответ.",
                     fontSize = 12.sp,
                     color = UtpMuted,
                 )
                 if (
-                    role == "ADMIN" &&
-                    order.status in listOf("ASSIGNED", "IN_PROGRESS")
+                    canReview
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = phoneConsentConfirmed,
+                            onCheckedChange = { phoneConsentConfirmed = it },
+                        )
+                        Text(
+                            "Клиент подтвердил сумму по телефону или сообщил об отказе",
+                            modifier = Modifier.weight(1f),
+                            fontSize = 11.sp,
+                            color = UtpInk,
+                        )
+                    }
                     OutlinedTextField(
                         value = responseNote,
                         onValueChange = { responseNote = it.take(500) },
@@ -122,6 +135,7 @@ internal fun RepairEstimateSection(
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(
+                            enabled = phoneConsentConfirmed,
                             onClick = {
                                 runAction(
                                     {
@@ -129,11 +143,15 @@ internal fun RepairEstimateSection(
                                             token, order.id, latest.id, "APPROVED", responseNote.ifBlank { null },
                                         )
                                     },
-                                ) { responseNote = "" }
+                                ) {
+                                    responseNote = ""
+                                    phoneConsentConfirmed = false
+                                }
                             },
                             modifier = Modifier.weight(1f),
                         ) { Text("Подтвердить смету") }
                         OutlinedButton(
+                            enabled = phoneConsentConfirmed,
                             onClick = {
                                 runAction(
                                     {
@@ -141,7 +159,10 @@ internal fun RepairEstimateSection(
                                             token, order.id, latest.id, "DECLINED", responseNote.ifBlank { null },
                                         )
                                     },
-                                ) { responseNote = "" }
+                                ) {
+                                    responseNote = ""
+                                    phoneConsentConfirmed = false
+                                }
                             },
                             modifier = Modifier.weight(1f),
                         ) { Text("Вернуть мастеру") }
@@ -154,7 +175,10 @@ internal fun RepairEstimateSection(
                     onClick = { showComposer = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Подготовить первоначальную смету")
+                    Text(
+                        if (order.status == "IN_PROGRESS") "Подготовить дополнительную смету"
+                        else "Подготовить первоначальную смету",
+                    )
                 }
             }
         }
@@ -234,7 +258,7 @@ private fun RepairEstimateComposerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Смета на проверку администратору") },
+        title = { Text("Подготовить смету для клиента") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -288,7 +312,7 @@ private fun RepairEstimateComposerDialog(
                     }
                 }
                 validation?.let { Text(it, color = androidx.compose.material3.MaterialTheme.colorScheme.error, fontSize = 11.sp) }
-                Text("Цена берётся из каталога. Списание со склада произойдёт после подтверждения администратором.", fontSize = 10.sp, lineHeight = 15.sp, color = UtpMuted)
+                Text("Цена берётся из каталога. Запчасти спишутся со склада после того, как мастер запишет телефонное согласие клиента.", fontSize = 10.sp, lineHeight = 15.sp, color = UtpMuted)
             }
         },
         confirmButton = {
@@ -303,7 +327,7 @@ private fun RepairEstimateComposerDialog(
                         )
                     }
                 },
-            ) { Text("Отправить администратору") }
+            ) { Text("Сохранить смету для звонка") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } },
     )

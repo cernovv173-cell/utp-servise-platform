@@ -75,8 +75,9 @@ internal fun RepairWorkActSection(
     runAction: RunAction,
 ) {
     val act = order.workAct
-    val isAdmin = role == "ADMIN"
-    val canManage = isAdmin || role == "TECHNICIAN"
+    val isAssignedTechnician =
+        role == "TECHNICIAN" && order.technicianId == currentUserId
+    val canManage = isAssignedTechnician
     if (!canManage) return
 
     val editable = order.status == "IN_PROGRESS" && (act == null || act.status == "DRAFT")
@@ -89,6 +90,9 @@ internal fun RepairWorkActSection(
         mutableStateListOf<String>().apply {
             if (act?.status == "PENDING") addAll(act.itemsSnapshot.map { it.lineId })
         }
+    }
+    var phoneConsentConfirmed by remember(order.id, act?.revision, act?.status) {
+        mutableStateOf(false)
     }
     var catalogExpanded by remember(order.id) { mutableStateOf(false) }
     val context = LocalContext.current.applicationContext
@@ -156,18 +160,18 @@ internal fun RepairWorkActSection(
                 }
             }
             Text(
-                "Мастер добавляет выполненные работы без предварительного согласования. До подтверждения администратора черновик не меняет чек, склад и расчёт мастера.",
+                "Мастер фиксирует выполненные работы, звонит клиенту и сохраняет согласованный состав. До ответа клиента черновик не меняет чек или склад.",
                 fontSize = 11.sp,
                 color = UtpMuted,
                 lineHeight = 16.sp,
             )
 
             if (act == null && order.status != "IN_PROGRESS" && order.workActRequired) {
-                Text("После начала ремонта мастер заполнит акт. Перед выдачей администратор подтвердит итоговые строки.", fontSize = 11.sp, color = UtpMuted)
+                Text("После начала ремонта мастер заполнит акт и согласует итоговые строки с клиентом по телефону.", fontSize = 11.sp, color = UtpMuted)
             }
 
             if ((act == null || act.status == "DRAFT") && editable) {
-                Text("Исходные строки сметы сохранены. Удалять их будет решать администратор.", fontSize = 10.sp, color = UtpMuted)
+                Text("Исходные строки сметы сохранены. Отметьте только те работы, которые клиент подтвердил по телефону.", fontSize = 10.sp, color = UtpMuted)
                 draft.forEachIndexed { index, item ->
                     Row(
                         modifier = Modifier.fillMaxWidth().background(
@@ -237,12 +241,12 @@ internal fun RepairWorkActSection(
                         },
                         modifier = Modifier.weight(1f),
                         enabled = draft.isNotEmpty() && draft.all { it.line.quantity in 1..99 },
-                    ) { Text("Передать администратору") }
+                    ) { Text("Подготовить акт для звонка") }
                 }
             }
 
             if (act?.status == "DRAFT" && !editable) {
-                Text("Мастер ещё не передал акт администратору на подтверждение.", fontSize = 11.sp, color = UtpMuted)
+                Text("Черновик ещё не подготовлен для согласования с клиентом.", fontSize = 11.sp, color = UtpMuted)
             }
 
             if (act?.status == "PENDING" || act?.status == "APPROVED") {
@@ -256,7 +260,7 @@ internal fun RepairWorkActSection(
                         ).padding(horizontal = 8.dp, vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        if (act.status == "PENDING" && isAdmin) {
+                        if (act.status == "PENDING" && isAssignedTechnician) {
                             Checkbox(
                                 checked = checked,
                                 onCheckedChange = { selected ->
@@ -272,16 +276,23 @@ internal fun RepairWorkActSection(
                         Text("${line.quantity.toLong() * line.unitPriceRub} ₽", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
                     }
                 }
-                val shownLines = if (act.status == "PENDING" && isAdmin) lines.filter { selectedIds.contains(it.lineId) } else lines
+                val shownLines = if (act.status == "PENDING" && isAssignedTechnician) lines.filter { selectedIds.contains(it.lineId) } else lines
                 Text(
-                    "Итого${if (act.status == "PENDING" && isAdmin) " выбранных строк" else ""}: ${actLineTotal(shownLines)} ₽",
+                    "Итого${if (act.status == "PENDING" && isAssignedTechnician) " согласованных строк" else ""}: ${actLineTotal(shownLines)} ₽",
                     modifier = Modifier.fillMaxWidth(),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = UtpInk,
                 )
-                if (act.status == "PENDING" && isAdmin) {
-                    Text("Снимите отметки у строк, которые нужно удалить; дополнительное согласование мастера не требуется.", fontSize = 10.sp, color = UtpMuted)
+                if (act.status == "PENDING" && isAssignedTechnician) {
+                    Text("Снимите отметки у строк, которые клиент не согласовал по телефону.", fontSize = 10.sp, color = UtpMuted)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = phoneConsentConfirmed,
+                            onCheckedChange = { phoneConsentConfirmed = it },
+                        )
+                        Text("Клиент согласовал выбранный состав и сумму по телефону", fontSize = 11.sp, color = UtpInk)
+                    }
                     Button(
                         onClick = {
                             runAction(
@@ -289,13 +300,12 @@ internal fun RepairWorkActSection(
                             ) {}
                         },
                         modifier = Modifier.fillMaxWidth(),
-                    ) { Text("Подтвердить акт") }
-                } else if (act.status == "PENDING") {
-                    Text("Акт ожидает решения администратора.", fontSize = 10.sp, color = UtpMuted)
+                        enabled = phoneConsentConfirmed,
+                    ) { Text("Зафиксировать согласие по телефону") }
                 } else {
                     Text("Подтвердил(а): ${act.approvedByName.orEmpty()}", fontSize = 10.sp, color = UtpMuted)
                     act.removedItemsSnapshot?.takeIf { it.isNotEmpty() }?.let { removed ->
-                        Text("Администратор удалил из акта: ${removed.joinToString { it.name }}", fontSize = 10.sp, color = UtpMuted)
+                        Text("Не согласованы по телефону: ${removed.joinToString { it.name }}", fontSize = 10.sp, color = UtpMuted)
                     }
                 }
             }

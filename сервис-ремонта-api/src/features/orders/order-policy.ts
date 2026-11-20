@@ -13,15 +13,13 @@ export const canTransitionRepairStatus = (
   role: UserRole,
   current: RepairStatus,
   next: RepairStatus,
-  visitScenarioVersion = 0,
+  _visitScenarioVersion = 0,
 ): boolean => {
   if (!transitions[current].includes(next)) return false;
-  if (role === "ADMIN") return true;
+  if (role === "ADMIN") return current === "REQUESTED" && next === "CANCELLED";
   if (role === "CUSTOMER")
     return current === "REQUESTED" && next === "CANCELLED";
-  if (current === "IN_PROGRESS" && next === "READY_FOR_PICKUP") {
-    return visitScenarioVersion < 1;
-  }
+  if (current === "IN_PROGRESS" && next === "READY_FOR_PICKUP") return true;
   return current === "ASSIGNED" && next === "IN_PROGRESS";
 };
 
@@ -39,9 +37,7 @@ export const canAddRepairOrderItem = (
   role: UserRole,
   userId: string,
   order: { assignedTechnicianId: string | null },
-): boolean =>
-  role === "ADMIN" ||
-  (role === "TECHNICIAN" && order.assignedTechnicianId === userId);
+): boolean => role === "TECHNICIAN" && order.assignedTechnicianId === userId;
 
 export const calculateMaxBonusDiscount = (
   totalRub: number,

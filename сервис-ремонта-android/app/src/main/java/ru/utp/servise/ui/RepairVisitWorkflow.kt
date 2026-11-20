@@ -13,6 +13,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
@@ -46,7 +47,7 @@ internal fun RepairVisitWorkflow(
     val wasTransferredToServiceCenter =
         order.repairLocation == "SERVICE_CENTER" && order.visitPickupAgreedAt != null
     val isAssignedTechnician = role == "TECHNICIAN" && order.technicianId == currentUserId
-    val canVerify = role == "ADMIN" || isAssignedTechnician
+    val canVerify = isAssignedTechnician
     var isWithinCity by remember(order.id) { mutableStateOf(order.visitIsWithinCity ?: true) }
     var distanceKm by remember(order.id) {
         mutableStateOf((order.visitVerifiedDistanceKm ?: order.visitCustomerDistanceKm)?.toString().orEmpty())
@@ -57,6 +58,8 @@ internal fun RepairVisitWorkflow(
     var showPickupConfirmation by remember(order.id) { mutableStateOf(false) }
     var showPaymentConfirmation by remember(order.id) { mutableStateOf(false) }
     var showDiagnosisConfirmation by remember(order.id) { mutableStateOf(false) }
+    var pickupPhoneConsentConfirmed by remember(order.id) { mutableStateOf(false) }
+    var onsitePhoneConsentConfirmed by remember(order.id) { mutableStateOf(false) }
     val canCompleteWork =
         order.status == "IN_PROGRESS" &&
             order.estimates.lastOrNull()?.status != "PENDING" &&
@@ -83,13 +86,13 @@ internal fun RepairVisitWorkflow(
             )
             if (wasTransferredToServiceCenter) {
                 Text(
-                    "Согласие на перевозку зафиксировано. После поступления техники заполните акт состояния и комплектности в сервисе, затем продолжайте по обычному порядку: смета, ремонт, проверка и выдача администратором.",
+                    "Согласие на перевозку зафиксировано по телефону. После поступления техники мастер заполнит акт состояния и комплектности, согласует смету и работы с клиентом, затем сам оформит оплату и выдачу.",
                     fontSize = 12.sp,
                     color = UtpMuted,
                 )
             } else if (!isHomeVisit) {
                 Text(
-                    "Для ремонта в сервисном центре: приём техники и описание её состояния, согласование сметы, ремонт и выдача администратором.",
+                    "После приёма мастер ведёт заявку до конца: описывает состояние техники, согласует смету и дополнительные работы по телефону, принимает оплату и выдаёт устройство.",
                     fontSize = 12.sp,
                     color = UtpMuted,
                 )
@@ -168,12 +171,20 @@ internal fun RepairVisitWorkflow(
             if (isHomeVisit && isAssignedTechnician && order.visitPickupAgreedAt == null &&
                 order.status in listOf("ASSIGNED", "IN_PROGRESS")) {
                 Text(
-                    "Если на месте починить нельзя, подтвердите согласие клиента на перевозку. Акт состояния и комплектности заполняется уже в сервисном центре после поступления техники.",
+                    "Если на месте починить нельзя, позвоните клиенту и зафиксируйте его согласие на перевозку. Акт мастер заполнит в сервисном центре после поступления техники.",
                     fontSize = 11.sp,
                     color = UtpMuted,
                 )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = pickupPhoneConsentConfirmed,
+                        onCheckedChange = { pickupPhoneConsentConfirmed = it },
+                    )
+                    Text("Клиент по телефону согласился передать устройство в сервис", fontSize = 11.sp, color = UtpInk)
+                }
                 OutlinedButton(
                     onClick = { showPickupConfirmation = true },
+                    enabled = pickupPhoneConsentConfirmed,
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Забрать в сервис") }
             }
@@ -214,9 +225,19 @@ internal fun RepairVisitWorkflow(
                     fontWeight = FontWeight.Bold,
                     color = UtpBlue,
                 )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = onsitePhoneConsentConfirmed,
+                        onCheckedChange = { onsitePhoneConsentConfirmed = it },
+                    )
+                    Text("Клиент подтвердил сумму по телефону или сообщил об отказе", fontSize = 11.sp, color = UtpInk)
+                }
                 Button(
                     onClick = { showPaymentConfirmation = true },
-                    enabled = total > 0 && (!repairAgreed || price > 0) && (repairAgreed || order.diagnosisCompletedAt != null),
+                    enabled = total > 0 &&
+                        onsitePhoneConsentConfirmed &&
+                        (!repairAgreed || price > 0) &&
+                        (repairAgreed || order.diagnosisCompletedAt != null),
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 ) { Text("Записать оплату и закрыть заявку") }
@@ -224,7 +245,7 @@ internal fun RepairVisitWorkflow(
 
             if (!isHomeVisit && isAssignedTechnician && order.status == "IN_PROGRESS") {
                 if (order.technicianRepairCompletedAt != null) {
-                    Text("Мастер отметил завершение работ. Ожидается выдача администратором.", fontSize = 12.sp, color = UtpBlue)
+                    Text("Мастер отметил завершение работ. Теперь мастер оформляет оплату и возврат техники.", fontSize = 12.sp, color = UtpBlue)
                 } else {
                     Button(
                         onClick = {
@@ -235,11 +256,11 @@ internal fun RepairVisitWorkflow(
                         shape = RoundedCornerShape(12.dp),
                     ) {
                         Text(
-                            if (!canCompleteWork) "Сначала подтвердите смету и акт администратором"
+                            if (!canCompleteWork) "Сначала согласуйте смету и акт с клиентом по телефону"
                             else "Отметить ремонт завершённым",
                         )
                     }
-                    Text("Статус «Готова к выдаче» после проверки выставляет администратор.", fontSize = 11.sp, color = UtpMuted)
+                    Text("После завершения работ мастер сам отмечает готовность к выдаче.", fontSize = 11.sp, color = UtpMuted)
                 }
             }
         }
@@ -249,11 +270,12 @@ internal fun RepairVisitWorkflow(
         AlertDialog(
             onDismissRequest = { showPickupConfirmation = false },
             title = { Text("Перевозка в сервис") },
-            text = { Text("Подтвердите, что клиент согласен, чтобы мастер забрал технику в сервис.") },
+            text = { Text("Подтвердите согласие клиента на перевозку в сервис, полученное по телефону.") },
             confirmButton = {
                 TextButton(onClick = {
                     showPickupConfirmation = false
                     runAction({ ApiClient.consentRepairVisitPickup(token, order.id) }) {}
+                    pickupPhoneConsentConfirmed = false
                 }) { Text("Подтвердить") }
             },
             dismissButton = {
@@ -283,13 +305,13 @@ internal fun RepairVisitWorkflow(
         AlertDialog(
             onDismissRequest = { showPaymentConfirmation = false },
             title = { Text("Подтвердите оплату на месте") },
-            text = { Text("Клиент согласовал сумму $total ₽ и оплатил ${if (paymentMethod == "CASH") "наличными" else "переводом"}?") },
+            text = { Text("Клиент согласовал сумму $total ₽ по телефону и оплатил ${if (paymentMethod == "CASH") "наличными" else "переводом"}?") },
             confirmButton = {
                 TextButton(onClick = {
                     showPaymentConfirmation = false
                     runAction({
                         ApiClient.completeOnsiteRepair(token, order.id, repairAgreed, price, paymentMethod)
-                    }) {}
+                    }) { onsitePhoneConsentConfirmed = false }
                 }) { Text("Подтвердить оплату") }
             },
             dismissButton = {

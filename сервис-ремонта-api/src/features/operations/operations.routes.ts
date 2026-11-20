@@ -4,7 +4,11 @@ import { z } from "zod";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  getAuthenticatedUser,
+  requireRoles,
+} from "../auth/auth.middleware.js";
 
 const dateRangeQuery = z
   .object({
@@ -233,28 +237,37 @@ export const createOperationsRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/admin/operations/orders/:orderId/priority",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("ADMIN", "TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: priorityBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
       const { priority } = bodyOf<z.infer<typeof priorityBody>>(response);
-      const order = await database.repairOrder
-        .update({
-          where: { id: orderId },
-          data: { priority },
-          select: { id: true, priority: true },
-        })
-        .catch((error: unknown) => {
-          if (
-            error &&
-            typeof error === "object" &&
-            "code" in error &&
-            error.code === "P2025"
-          ) {
-            throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
-          }
-          throw error;
-        });
+      const user = getAuthenticatedUser(response);
+      const updated =
+        user.role === "ADMIN"
+          ? await database.repairOrder.updateMany({
+              where: { id: orderId, status: "REQUESTED" },
+              data: { priority },
+            })
+          : await database.repairOrder.updateMany({
+              where: {
+                id: orderId,
+                assignedTechnicianId: user.id,
+                status: { in: ["ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP"] },
+              },
+              data: { priority },
+            });
+      if (updated.count !== 1) {
+        throw new HttpError(
+          409,
+          "ORDER_PRIORITY_NOT_EDITABLE",
+          "Приоритет меняет администратор до назначения мастера, затем — назначенный мастер до закрытия заявки.",
+        );
+      }
+      const order = await database.repairOrder.findUniqueOrThrow({
+        where: { id: orderId },
+        select: { id: true, priority: true },
+      });
       response.json({ order });
     },
   );

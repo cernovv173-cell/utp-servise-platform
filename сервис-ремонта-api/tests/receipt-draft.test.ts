@@ -14,8 +14,18 @@ test("receipt edits synchronize stock, service-only bonus discount and technicia
   const partItemId = "33333333-3333-4333-8333-333333333333";
   const sparePartId = "44444444-4444-4444-8444-444444444444";
   const adminId = "55555555-5555-4555-8555-555555555555";
+  const technicianId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
   const salaryEntryId = "66666666-6666-4666-8666-666666666666";
-  const token = "A".repeat(48);
+  const token = "T".repeat(48);
+  const adminToken = "A".repeat(48);
+  const technician = {
+    id: technicianId,
+    email: "technician@example.test",
+    displayName: "Мастер",
+    role: "TECHNICIAN" as const,
+    active: true,
+    mustChangePassword: false,
+  };
   const admin = {
     id: adminId,
     email: "admin@example.test",
@@ -55,8 +65,10 @@ test("receipt edits synchronize stock, service-only bonus discount and technicia
     session: {
       findUnique: async ({ where }: { where: { tokenHash: string } }) =>
         where.tokenHash === hashSessionToken(token)
-          ? { expiresAt: new Date(Date.now() + 60_000), user: admin }
-          : null,
+          ? { expiresAt: new Date(Date.now() + 60_000), user: technician }
+          : where.tokenHash === hashSessionToken(adminToken)
+            ? { expiresAt: new Date(Date.now() + 60_000), user: admin }
+            : null,
     },
     repairOrder: {
       findUnique: async ({ include }: { include?: Record<string, unknown> }) =>
@@ -65,7 +77,7 @@ test("receipt edits synchronize stock, service-only bonus discount and technicia
               id: orderId,
               serviceNumber: "SRV-2026-000001",
               customerId: "77777777-7777-4777-8777-777777777777",
-              assignedTechnicianId: null,
+              assignedTechnicianId: technicianId,
               status: "COMPLETED",
               contactPhone: null,
               redeemBonuses: true,
@@ -80,7 +92,7 @@ test("receipt edits synchronize stock, service-only bonus discount and technicia
           : {
               id: orderId,
               customerId: "77777777-7777-4777-8777-777777777777",
-              assignedTechnicianId: null,
+              assignedTechnicianId: technicianId,
             },
       update: async ({ data }: { data: { bonusDiscountRub: number } }) => {
         bonusDiscountRub = data.bonusDiscountRub;
@@ -169,6 +181,19 @@ test("receipt edits synchronize stock, service-only bonus discount and technicia
   t.after(() => server.close());
   const address = server.address();
   assert.ok(address && typeof address !== "string");
+
+  const adminAttempt = await fetch(
+    `http://127.0.0.1:${address.port}/api/orders/${orderId}/receipt`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ itemQuantities: [] }),
+    },
+  );
+  assert.equal(adminAttempt.status, 403);
 
   const response = await fetch(
     `http://127.0.0.1:${address.port}/api/orders/${orderId}/receipt`,

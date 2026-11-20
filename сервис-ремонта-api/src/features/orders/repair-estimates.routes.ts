@@ -56,6 +56,7 @@ const reviewEstimateBody = z
   .object({
     decision: z.enum(["APPROVED", "DECLINED"]),
     note: z.string().trim().max(500).optional(),
+    approvalMethod: z.literal("PHONE"),
   })
   .strict();
 
@@ -105,7 +106,7 @@ export const createRepairEstimatesRouter = (
   router.post(
     "/orders/:orderId/estimates",
     requireAuth,
-    requireRoles("ADMIN", "TECHNICIAN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: orderIdParams, body: submitEstimateBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -159,7 +160,7 @@ export const createRepairEstimatesRouter = (
           throw new HttpError(
             409,
             "INITIAL_ESTIMATE_ALREADY_APPROVED",
-            "Первоначальная смета уже подтверждена администратором. Дополнительную смету можно подготовить после начала ремонта.",
+            "Первоначальная смета уже подтверждена. Дополнительную смету можно подготовить после начала ремонта.",
           );
         }
 
@@ -276,7 +277,7 @@ export const createRepairEstimatesRouter = (
         database,
         result.order,
         user.id,
-        `Смета №${result.estimate.version} по заявке ${result.order.serviceNumber} подготовлена и ожидает подтверждения администратора.`,
+        `Смета №${result.estimate.version} по заявке ${result.order.serviceNumber} подготовлена мастером для согласования с клиентом по телефону.`,
       );
       response.status(201).json({ estimate: result.estimate });
     },
@@ -285,7 +286,7 @@ export const createRepairEstimatesRouter = (
   router.patch(
     estimateReviewPaths,
     requireAuth,
-    requireRoles("ADMIN"),
+    requireRoles("TECHNICIAN"),
     validateRequest({ params: reviewParams, body: reviewEstimateBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -314,7 +315,11 @@ export const createRepairEstimatesRouter = (
             status: true,
           },
         });
-        if (!order || !canViewRepairOrder(user.role, user.id, order)) {
+        if (
+          !order ||
+          order.assignedTechnicianId !== user.id ||
+          !canViewRepairOrder(user.role, user.id, order)
+        ) {
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         }
         const estimate = await transaction.repairEstimate.findFirst({
@@ -397,6 +402,8 @@ export const createRepairEstimatesRouter = (
           data: {
             status: body.decision,
             customerResponseNote: body.note || null,
+            responseMethod: body.approvalMethod,
+            respondedById: user.id,
             respondedAt: new Date(),
           },
         });
@@ -419,7 +426,7 @@ export const createRepairEstimatesRouter = (
         database,
         result.order,
         user.id,
-        `Администратор ${body.decision === "APPROVED" ? "подтвердил" : "отклонил"} смету №${result.estimate.version} по заявке ${result.order.serviceNumber}.`,
+        `Мастер зафиксировал по телефону ${body.decision === "APPROVED" ? "согласие клиента со сметой" : "отказ клиента от сметы"} №${result.estimate.version} по заявке ${result.order.serviceNumber}.`,
       );
       response.json({ estimate: result.estimate });
     },

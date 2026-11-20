@@ -11,6 +11,7 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 const adminToken = "A".repeat(48);
 const customerToken = "C".repeat(48);
 const procurementToken = "P".repeat(48);
+const technicianToken = "T".repeat(48);
 const orderId = "33333333-3333-4333-8333-333333333334";
 const partId = "33333333-3333-4333-8333-333333333335";
 
@@ -43,6 +44,15 @@ test("admin operations expose schedule, procurement and a bounded dashboard", as
       mustChangePassword: false,
       token: procurementToken,
     },
+    {
+      id: "tech-1",
+      email: "tech@test.invalid",
+      displayName: "Technician",
+      role: "TECHNICIAN" as const,
+      active: true,
+      mustChangePassword: false,
+      token: technicianToken,
+    },
   ];
   const updates: Array<{ id: string; data: Record<string, unknown> }> = [];
   const order = {
@@ -59,6 +69,7 @@ test("admin operations expose schedule, procurement and a bounded dashboard", as
     expectedCompletionAt: null,
     status: "REQUESTED",
     priority: "NORMAL",
+    assignedTechnicianId: null as string | null,
     customer: { displayName: "Клиент" },
     assignedTechnician: null,
   };
@@ -74,16 +85,36 @@ test("admin operations expose schedule, procurement and a bounded dashboard", as
     repairOrder: {
       findMany: async () => [order],
       count: async () => 2,
-      update: async ({
+      updateMany: async ({
         where,
         data,
       }: {
-        where: { id: string };
+        where: {
+          id: string;
+          status?: string | { in: string[] };
+          assignedTechnicianId?: string;
+        };
         data: Record<string, unknown>;
       }) => {
+        if (
+          where.id !== order.id ||
+          (where.status &&
+            (typeof where.status === "string"
+              ? where.status !== order.status
+              : !where.status.in.includes(order.status))) ||
+          (where.assignedTechnicianId &&
+            where.assignedTechnicianId !== "tech-1")
+        ) {
+          return { count: 0 };
+        }
         updates.push({ id: where.id, data });
-        return { id: where.id, priority: data.priority };
+        order.priority = data.priority as string;
+        return { count: 1 };
       },
+      findUniqueOrThrow: async () => ({
+        id: order.id,
+        priority: order.priority,
+      }),
     },
     repairCatalogItem: {
       findMany: async () => [
@@ -188,4 +219,35 @@ test("admin operations expose schedule, procurement and a bounded dashboard", as
   });
   assert.equal(priority.status, 200);
   assert.deepEqual(updates, [{ id: orderId, data: { priority: "URGENT" } }]);
+
+  order.status = "ASSIGNED";
+  order.assignedTechnicianId = "tech-1";
+  const administratorAfterAssignment = await fetch(
+    `${baseUrl}/orders/${orderId}/priority`,
+    {
+      method: "PATCH",
+      headers: {
+        ...headers(adminToken),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ priority: "NORMAL" }),
+    },
+  );
+  assert.equal(administratorAfterAssignment.status, 409);
+  assert.equal(updates.length, 1);
+
+  order.status = "IN_PROGRESS";
+  const technicianPriority = await fetch(
+    `${baseUrl}/orders/${orderId}/priority`,
+    {
+      method: "PATCH",
+      headers: {
+        ...headers(technicianToken),
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ priority: "NORMAL" }),
+    },
+  );
+  assert.equal(technicianPriority.status, 200);
+  assert.equal(updates.length, 2);
 });

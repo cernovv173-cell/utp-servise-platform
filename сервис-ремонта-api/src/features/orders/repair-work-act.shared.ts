@@ -57,6 +57,7 @@ export const reviewBody = z
   .object({
     expectedRevision: z.number().int().min(1).max(2_147_483_647),
     includedLineIds: z.array(z.string().uuid()).max(100),
+    approvalMethod: z.literal("PHONE"),
   })
   .strict()
   .superRefine(({ includedLineIds }, context) => {
@@ -122,7 +123,7 @@ export const assertWorkActApproved = (
     throw new HttpError(
       409,
       "WORK_ACT_APPROVAL_REQUIRED",
-      "Сначала администратор должен подтвердить акт выполненных работ.",
+      "Сначала мастер должен зафиксировать согласие клиента по телефону в акте выполненных работ.",
     );
   }
 };

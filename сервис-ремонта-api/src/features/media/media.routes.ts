@@ -488,6 +488,13 @@ export const createMediaRouter = (
       });
       if (!order || !canViewRepairOrder(user.role, user.id, order))
         return invalidMedia();
+      if (user.role === "ADMIN" && order.status !== "REQUESTED") {
+        throw new HttpError(
+          403,
+          "ORDER_MEDIA_INTAKE_ONLY",
+          "Администратор может добавлять фото только на этапе первичного приёма.",
+        );
+      }
       if (
         ["READY_FOR_PICKUP", "COMPLETED", "CANCELLED"].includes(order.status)
       ) {
@@ -533,10 +540,22 @@ export const createMediaRouter = (
       const user = getAuthenticatedUser(response);
       const order = await database.repairOrder.findUnique({
         where: { id: orderId },
-        select: { id: true, customerId: true, assignedTechnicianId: true },
+        select: {
+          id: true,
+          customerId: true,
+          assignedTechnicianId: true,
+          status: true,
+        },
       });
       if (!order || !canViewRepairOrder(user.role, user.id, order))
         return invalidMedia();
+      if (user.role === "ADMIN" && order.status !== "REQUESTED") {
+        throw new HttpError(
+          403,
+          "ORDER_MEDIA_INTAKE_ONLY",
+          "Администратор может прикладывать материалы только на этапе первичного приёма.",
+        );
+      }
       const media = mediaOf(request);
       const objectId = await storage.upload(media.bytes, media.contentType);
       try {

@@ -1046,7 +1046,7 @@ object ApiClient {
 
     fun consentRepairVisitPickup(token: String, orderId: String): RepairOrder = request(
         "POST", "/orders/$orderId/visit-pickup", token,
-        JSONObject().put("customerConsent", true),
+        JSONObject().put("customerConsent", true).put("approvalMethod", "PHONE"),
     ).getJSONObject("order").toOrder()
 
     fun completeOnsiteRepair(
@@ -1060,7 +1060,8 @@ object ApiClient {
         JSONObject()
             .put("repairAgreed", repairAgreed)
             .put("repairPriceRub", repairPriceRub)
-            .put("paymentMethod", paymentMethod),
+            .put("paymentMethod", paymentMethod)
+            .put("approvalMethod", "PHONE"),
     ).getJSONObject("order").toOrder()
 
     fun markTechnicianRepairCompleted(token: String, orderId: String): RepairOrder = request(
@@ -1137,7 +1138,8 @@ object ApiClient {
         token,
         JSONObject()
             .put("decision", decision)
-            .put("note", note ?: JSONObject.NULL),
+            .put("note", note ?: JSONObject.NULL)
+            .put("approvalMethod", "PHONE"),
     ).getJSONObject("estimate").toRepairEstimate()
 
     fun saveRepairWorkAct(
@@ -1184,7 +1186,10 @@ object ApiClient {
             "PATCH",
             "/orders/$orderId/work-act/review",
             token,
-            JSONObject().put("expectedRevision", expectedRevision).put("includedLineIds", lineIds),
+            JSONObject()
+                .put("expectedRevision", expectedRevision)
+                .put("includedLineIds", lineIds)
+                .put("approvalMethod", "PHONE"),
         ).getJSONObject("workAct").toRepairWorkAct()
     }
 

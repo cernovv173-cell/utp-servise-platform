@@ -8,7 +8,7 @@ import { createRepairOrderReleaseRouter } from "../src/features/orders/repair-or
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("standard order release verifies payment and issues receipt, warranty, and salary", async (t) => {
+test("assigned technician releases the order and verifies payment, warranty, and salary", async (t) => {
   const sessionToken = "T".repeat(48);
   const adminSessionToken = "A".repeat(48);
   const administratorId = "44444444-4444-4444-8444-444444444444";
@@ -217,13 +217,8 @@ test("standard order release verifies payment and issues receipt, warranty, and 
     "content-type": "application/json",
   };
 
-  const technicianSummary = await fetch(`${endpoint}/release-summary`, {
-    headers: technicianHeaders,
-  });
-  assert.equal(technicianSummary.status, 403);
-
   const summaryResponse = await fetch(`${endpoint}/release-summary`, {
-    headers,
+    headers: technicianHeaders,
   });
   assert.equal(summaryResponse.status, 200);
   const summary = (await summaryResponse.json()) as {
@@ -241,9 +236,12 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   assert.equal(summary.amountDueRub, 2000);
   assert.ok(summary.paymentMethods.includes("CARD_TERMINAL"));
 
+  const adminSummary = await fetch(`${endpoint}/release-summary`, { headers });
+  assert.equal(adminSummary.status, 403);
+
   const wrongAmount = await fetch(`${endpoint}/release`, {
     method: "POST",
-    headers,
+    headers: technicianHeaders,
     body: JSON.stringify({
       expectedAmountRub: 1639,
       paymentMethod: "CARD_TERMINAL",
@@ -255,7 +253,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
 
   const missingPaymentMethod = await fetch(`${endpoint}/release`, {
     method: "POST",
-    headers,
+    headers: technicianHeaders,
     body: JSON.stringify({ expectedAmountRub: 1640, redeemBonuses: true }),
   });
   assert.equal(missingPaymentMethod.status, 400);
@@ -263,7 +261,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
 
   const released = await fetch(`${endpoint}/release`, {
     method: "POST",
-    headers,
+    headers: technicianHeaders,
     body: JSON.stringify({
       expectedAmountRub: 1640,
       paymentMethod: "CARD_TERMINAL",
@@ -277,7 +275,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
   assert.equal(order.receipt?.totalRub, 2000);
   assert.equal(order.receipt?.bonusDiscountRub, 360);
   assert.equal(order.redeemBonuses, true);
-  assert.equal(recordedEvent?.actorId, administratorId);
+  assert.equal(recordedEvent?.actorId, technicianId);
   assert.equal(recordedEvent?.from, "READY_FOR_PICKUP");
   assert.equal(recordedEvent?.to, "COMPLETED");
   assert.equal(recordedWarranty?.warrantyNumber, `WTY-${order.serviceNumber}`);
@@ -301,7 +299,7 @@ test("standard order release verifies payment and issues receipt, warranty, and 
 
   const replay = await fetch(`${endpoint}/release`, {
     method: "POST",
-    headers,
+    headers: technicianHeaders,
     body: JSON.stringify({
       expectedAmountRub: 1640,
       paymentMethod: "CARD_TERMINAL",
