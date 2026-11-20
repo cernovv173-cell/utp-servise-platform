@@ -143,6 +143,9 @@ private fun SeasonalThemeHost(
             delay(60_000)
         }
     }
+    LaunchedEffect(context, seasonalTheme.activeSeason) {
+        SeasonalLauncherIcon.apply(context, seasonalTheme.activeSeason)
+    }
     UtpServiseTheme(season = seasonalTheme.activeSeason, dark = themeMode.isDark) {
         UtpServiseApp(
             seasonalTheme = seasonalTheme,
