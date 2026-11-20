@@ -116,6 +116,14 @@ internal fun RepairCompletionCard(order: RepairOrder, onReview: (String) -> Unit
                 }
             }
 
+            if (order.reviewRequestedAt != null && !order.hasReview) {
+                Text(
+                    "Мастер попросил поделиться впечатлением о ремонте.",
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+            }
+
             if (order.hasReview) {
                 Text(
                     "Спасибо! Ваш отзыв уже отправлен.",

@@ -42,6 +42,7 @@ class UtpFirebaseMessagingService : FirebaseMessagingService() {
             "shop_delivery_response" -> "Ответ по доставке магазина"
             "maintenance_reminder" -> "Пора обслужить технику"
             "repair_follow_up" -> "Как прошёл ремонт?"
+            "repair_review_request" -> "Мастер просит оставить отзыв"
             "repair_order_completed" -> "Ремонт завершён"
             "repair_order_ready" -> "Ремонт готов к выдаче"
             else -> "Новое сообщение по ремонту"

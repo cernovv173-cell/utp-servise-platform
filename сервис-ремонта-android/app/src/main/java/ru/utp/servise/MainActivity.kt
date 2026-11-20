@@ -84,18 +84,23 @@ import ru.utp.servise.data.phoneNumberValidationError
 class MainActivity : ComponentActivity() {
     private var updateCheckTrigger by mutableIntStateOf(0)
     private var pendingRepairFollowUpOrderId by mutableStateOf<String?>(null)
+    private var pendingRepairReviewRequestOrderId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         clearRetiredGameCache(this)
         if (BuildConfig.VK_ID_APP_ID.isNotBlank()) VKID.init(this)
         NotificationChannels.ensureCreated(this)
-        captureRepairFollowUpIntent(intent)
+        captureRepairNotificationIntent(intent)
         setContent {
             SeasonalThemeHost(
                 updateCheckTrigger = updateCheckTrigger,
                 pendingRepairFollowUpOrderId = pendingRepairFollowUpOrderId,
                 onRepairFollowUpNotificationConsumed = { pendingRepairFollowUpOrderId = null },
+                pendingRepairReviewRequestOrderId = pendingRepairReviewRequestOrderId,
+                onRepairReviewRequestNotificationConsumed = {
+                    pendingRepairReviewRequestOrderId = null
+                },
             )
         }
     }
@@ -103,12 +108,15 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        captureRepairFollowUpIntent(intent)
+        captureRepairNotificationIntent(intent)
     }
 
-    private fun captureRepairFollowUpIntent(intent: Intent?) {
-        if (intent?.getStringExtra("notificationType") != "repair_follow_up") return
-        pendingRepairFollowUpOrderId = intent.getStringExtra("orderId")?.takeIf(String::isNotBlank)
+    private fun captureRepairNotificationIntent(intent: Intent?) {
+        val orderId = intent?.getStringExtra("orderId")?.takeIf(String::isNotBlank) ?: return
+        when (intent.getStringExtra("notificationType")) {
+            "repair_follow_up" -> pendingRepairFollowUpOrderId = orderId
+            "repair_review_request" -> pendingRepairReviewRequestOrderId = orderId
+        }
     }
 
     override fun onResume() {
@@ -122,6 +130,8 @@ private fun SeasonalThemeHost(
     updateCheckTrigger: Int,
     pendingRepairFollowUpOrderId: String?,
     onRepairFollowUpNotificationConsumed: () -> Unit,
+    pendingRepairReviewRequestOrderId: String?,
+    onRepairReviewRequestNotificationConsumed: () -> Unit,
 ) {
     val context = LocalContext.current
     var themeMode by remember(context) { mutableStateOf(readThemeMode(context)) }
@@ -145,6 +155,8 @@ private fun SeasonalThemeHost(
             updateCheckTrigger = updateCheckTrigger,
             pendingRepairFollowUpOrderId = pendingRepairFollowUpOrderId,
             onRepairFollowUpNotificationConsumed = onRepairFollowUpNotificationConsumed,
+            pendingRepairReviewRequestOrderId = pendingRepairReviewRequestOrderId,
+            onRepairReviewRequestNotificationConsumed = onRepairReviewRequestNotificationConsumed,
         )
     }
 }
@@ -158,6 +170,8 @@ private fun UtpServiseApp(
     updateCheckTrigger: Int,
     pendingRepairFollowUpOrderId: String?,
     onRepairFollowUpNotificationConsumed: () -> Unit,
+    pendingRepairReviewRequestOrderId: String?,
+    onRepairReviewRequestNotificationConsumed: () -> Unit,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -498,6 +512,8 @@ private fun UtpServiseApp(
             onLogout = onLogout,
             pendingRepairFollowUpOrderId = pendingRepairFollowUpOrderId,
             onRepairFollowUpNotificationConsumed = onRepairFollowUpNotificationConsumed,
+            pendingRepairReviewRequestOrderId = pendingRepairReviewRequestOrderId,
+            onRepairReviewRequestNotificationConsumed = onRepairReviewRequestNotificationConsumed,
             )
         }
         AndroidAppUpdateGate(updateCheckTrigger)

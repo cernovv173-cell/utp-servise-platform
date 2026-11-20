@@ -149,6 +149,8 @@ internal fun AuthenticatedWorkspace(
     onLogout: () -> Unit,
     pendingRepairFollowUpOrderId: String?,
     onRepairFollowUpNotificationConsumed: () -> Unit,
+    pendingRepairReviewRequestOrderId: String?,
+    onRepairReviewRequestNotificationConsumed: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val appContext = LocalContext.current
@@ -212,6 +214,17 @@ internal fun AuthenticatedWorkspace(
                 }
             }
             onRepairFollowUpNotificationConsumed()
+        }
+    }
+    LaunchedEffect(pendingRepairReviewRequestOrderId, user.role) {
+        val orderId = pendingRepairReviewRequestOrderId
+        if (orderId != null) {
+            if (user.role == "CUSTOMER") {
+                navController.navigate("customer/review/$orderId") {
+                    launchSingleTop = true
+                }
+            }
+            onRepairReviewRequestNotificationConsumed()
         }
     }
     val onCampaignNavigate: (String) -> Unit = { target ->

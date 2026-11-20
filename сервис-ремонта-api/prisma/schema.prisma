@@ -249,6 +249,7 @@ model User {
   customerOrders                    RepairOrder[]                     @relation("CustomerOrders")
   shopOrders                        ShopOrder[]                       @relation("ShopOrderCustomer")
   assignedOrders                    RepairOrder[]                     @relation("AssignedOrders")
+  reviewRequestsSent                RepairOrder[]                     @relation("RepairReviewRequestActor")
   statusChanges                     RepairStatusEvent[]               @relation("StatusActor")
   createdRepairEstimates            RepairEstimate[]                  @relation("RepairEstimateCreator")
   createdRepairWorkActs             RepairWorkAct[]                   @relation("RepairWorkActCreator")
@@ -430,11 +431,14 @@ model RepairOrder {
   createdAt                   DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                   DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
   archivedAt                  DateTime?                      @map("archived_at") @db.Timestamptz(3)
+  reviewRequestedAt           DateTime?                      @map("review_requested_at") @db.Timestamptz(3)
+  reviewRequestedById         String?                        @map("review_requested_by_id") @db.Uuid
   customer                    User                           @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
   customerDevice              CustomerDevice?                @relation(fields: [customerDeviceId], references: [id], onDelete: SetNull)
   warrantyOriginOrder         RepairOrder?                   @relation("WarrantyClaims", fields: [warrantyOriginOrderId], references: [id], onDelete: SetNull)
   warrantyClaims              RepairOrder[]                  @relation("WarrantyClaims")
   assignedTechnician          User?                          @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
+  reviewRequestedBy           User?                          @relation("RepairReviewRequestActor", fields: [reviewRequestedById], references: [id], onDelete: SetNull)
   statusEvents                RepairStatusEvent[]
   items                       RepairOrderItem[]
   estimates                   RepairEstimate[]

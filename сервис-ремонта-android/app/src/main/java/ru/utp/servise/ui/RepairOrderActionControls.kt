@@ -6,16 +6,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.RepairOrder
+import ru.utp.servise.data.RepairReviewRequestResult
 
 @Composable
 internal fun RepairOrderActionControls(
     order: RepairOrder,
     role: String,
     token: String,
+    currentUserId: String,
     runAction: RunAction,
     onEdit: () -> Unit,
     onAssign: () -> Unit,
@@ -23,6 +30,9 @@ internal fun RepairOrderActionControls(
     onChat: (String) -> Unit,
     onReview: (String) -> Unit,
 ) {
+    var reviewRequestResult by remember(order.id) {
+        mutableStateOf<RepairReviewRequestResult?>(null)
+    }
     val diagnosisOnlyReturn =
         order.visitScenarioVersion > 0 &&
             order.diagnosisCompletedAt != null &&
@@ -116,6 +126,30 @@ internal fun RepairOrderActionControls(
     }
     if (role == "CUSTOMER" && order.status == "COMPLETED") {
         RepairCompletionCard(order = order, onReview = onReview)
+    }
+    if (
+        role == "TECHNICIAN" &&
+        currentUserId == order.technicianId &&
+        order.status == "COMPLETED" &&
+        !order.hasReview
+    ) {
+        val requestAlreadySent = order.reviewRequestedAt != null || reviewRequestResult != null
+        ActionButton(
+            label = if (requestAlreadySent) "Запрос уже отправлен" else "Запросить отзыв",
+            enabled = !requestAlreadySent,
+            onClick = {
+                runAction({ ApiClient.requestRepairReview(token, order.id) }) { result ->
+                    reviewRequestResult = result as? RepairReviewRequestResult
+                }
+            },
+        )
+        if (reviewRequestResult?.notificationSent == false) {
+            Text(
+                "Push не доставлен; просьба сохранена в заказе клиента.",
+                modifier = Modifier.padding(top = 6.dp),
+                fontWeight = FontWeight.Medium,
+            )
+        }
     }
 }
 

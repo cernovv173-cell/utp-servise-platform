@@ -301,8 +301,10 @@ summaries; opening a card reveals its details and available actions. Direct admi
 links remain expanded. New services and spare parts can be tagged for PC, laptop, and monoblock; existing phone/tablet orders and their warranty history remain readable. Software services may be grouped as `ПО` without changing their names or prices;
 requests and estimates show only matching catalog entries, and a selected saved device supplies its
 type automatically. Customers can edit or cancel their own requests only while they are new, and may
-leave one review with an optional photo after completion. Assigned technicians can advance their
-assigned repair through the allowed status steps, prepare and send a versioned estimate, record the
+leave one review with an optional photo after completion. A completed order exposes a one-time
+“Запросить отзыв” action only to its assigned technician; it sends a push to the customer's existing
+review form, and the saved request remains visible in the customer's completed order if push delivery
+is unavailable. Assigned technicians can advance their assigned repair through the allowed status steps, prepare and send a versioned estimate, record the
 device condition, serial number, included accessories and notes in the intake act, and use the order
 chat. An active field visit ends either with the technician completing the agreed repair and recording
 payment on site, or with the customer's consent to transfer the device to the service center. After

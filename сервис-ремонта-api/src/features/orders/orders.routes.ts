@@ -37,6 +37,7 @@ import {
   canViewRepairOrder,
 } from "./order-policy.js";
 import { createRepairOrderReleaseRouter } from "./repair-order-release.routes.js";
+import { createRepairReviewRequestRouter } from "./repair-review-request.routes.js";
 import { createRepairTechnicianCompletionRouter } from "./repair-technician-completion.routes.js";
 import {
   REPAIR_DIAGNOSIS_FEE_RUB,
@@ -2328,5 +2329,6 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.use(createRepairOrderReleaseRouter(database));
   router.use(createRepairVisitRouter(database));
   router.use(createRepairTechnicianCompletionRouter(database));
+  router.use(createRepairReviewRequestRouter(database));
   return router;
 };

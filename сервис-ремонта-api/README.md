@@ -413,6 +413,14 @@ same answer is idempotent, while changing an already saved answer is rejected. T
 `20261116120000_repair_order_follow_ups` migration creates only the follow-up queue and does not
 backfill or modify existing orders.
 
+The assigned technician may also request a review once from a completed order. The API records the
+request timestamp and technician, then sends the customer a `repair_review_request` push with a
+direct link to the existing review form. Orders that are not completed, belong to another technician,
+or already have a review reject the request. Repeated requests do not send another push; the saved
+request remains visible in the customer's completed order if push delivery is unavailable. The
+additive `20261120130000_repair_order_review_requests` migration adds nullable fields only and does
+not change existing orders.
+
 ## Customer complaints and suggestions
 
 Authenticated customers can submit a private complaint or suggestion with a message of up to 2,000

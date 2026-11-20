@@ -27,6 +27,7 @@ import { RepairOrderIntakeNotice } from "@/features/orders/repair-order-intake-n
 import { RepairOrderListTabs } from "@/features/orders/repair-order-list-tabs";
 import { RepairOrderReleaseButton } from "@/features/orders/repair-order-release-button";
 import { RepairRequestForm } from "@/features/orders/repair-request-form";
+import { RepairReviewRequestButton } from "@/features/orders/repair-review-request-button";
 import { RepairVisitWorkflow } from "@/features/orders/repair-visit-workflow";
 import { RepairWorkActPanel } from "@/features/orders/repair-work-act-panel";
 import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-view";
@@ -481,6 +482,9 @@ const OrdersPage = () => {
                         Готова к выдаче
                       </button>
                     )}
+                    {order.status === "COMPLETED" &&
+                      order.assignedTechnicianId === user.id &&
+                      !order.review && <RepairReviewRequestButton order={order} token={token} />}
                   </div>
                 )}
                 {user?.role === "ADMIN" &&

@@ -1283,6 +1283,24 @@ object ApiClient {
         JSONObject().put("response", response),
     ).getJSONObject("followUp").toRepairOrderFollowUp()
 
+    fun requestRepairReview(token: String, orderId: String): RepairReviewRequestResult {
+        val result = request(
+            "POST",
+            "/orders/$orderId/review-request",
+            token,
+            JSONObject(),
+        )
+        return RepairReviewRequestResult(
+            reviewRequestedAt = result.getString("reviewRequestedAt"),
+            alreadyRequested = result.optBoolean("alreadyRequested"),
+            notificationSent = if (result.isNull("notificationSent")) {
+                null
+            } else {
+                result.optBoolean("notificationSent")
+            },
+        )
+    }
+
     fun createReview(token: String, orderId: String, rating: Int, comment: String, image: ByteArray? = null): CustomerReview {
         val review = request(
         "POST", "/reviews", token,

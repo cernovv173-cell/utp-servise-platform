@@ -386,6 +386,7 @@ internal fun RepairOrderCard(
                     order = order,
                     role = role,
                     token = token,
+                    currentUserId = currentUserId,
                     runAction = runAction,
                     onEdit = { showEdit = true },
                     onAssign = { showAssignment = true },

@@ -65,6 +65,11 @@ export const RepairCompletionCard = ({ order }: { order: RepairOrder }) => {
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
+          {order.reviewRequestedAt && !order.review && (
+            <p className="mb-2 text-sm text-slate-600 dark:text-slate-300" role="status">
+              Мастер попросил поделиться впечатлением о ремонте.
+            </p>
+          )}
           {order.review ? (
             <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
               Спасибо! Ваш отзыв уже отправлен.

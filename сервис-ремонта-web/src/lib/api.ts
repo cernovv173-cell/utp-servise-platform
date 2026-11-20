@@ -202,6 +202,7 @@ export type RepairOrder = {
   redeemBonuses: boolean;
   bonusDiscountRub: number;
   createdAt: string;
+  reviewRequestedAt?: string | null;
   statusEvents?: {
     from: string | null;
     to: string;
@@ -248,6 +249,12 @@ export type RepairOrder = {
 };
 
 export type RepairLocation = "CUSTOMER_ADDRESS" | "SERVICE_CENTER";
+
+export type RepairReviewRequestResult = {
+  reviewRequestedAt: string;
+  alreadyRequested: boolean;
+  notificationSent: boolean | null;
+};
 
 export type CustomerDevice = {
   id: string;
@@ -1834,6 +1841,11 @@ export const updateOrderStatus = (token: string, orderId: string, status: string
   apiRequest<{ order: RepairOrder }>(`/orders/${orderId}/status`, token, {
     method: "PATCH",
     body: JSON.stringify({ status }),
+  });
+
+export const requestRepairOrderReview = (token: string, orderId: string) =>
+  apiRequest<RepairReviewRequestResult>(`/orders/${orderId}/review-request`, token, {
+    method: "POST",
   });
 
 export const completeRepairDiagnosis = (token: string, orderId: string) =>

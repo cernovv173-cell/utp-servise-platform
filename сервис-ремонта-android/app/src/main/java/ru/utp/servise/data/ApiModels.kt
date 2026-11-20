@@ -173,6 +173,13 @@ data class RepairOrder(
     val visitPickupAgreedAt: String? = null,
     val technicianRepairCompletedAt: String? = null,
     val onsiteRepairCompletedAt: String? = null,
+    val reviewRequestedAt: String? = null,
+)
+
+data class RepairReviewRequestResult(
+    val reviewRequestedAt: String,
+    val alreadyRequested: Boolean,
+    val notificationSent: Boolean?,
 )
 
 data class OperationsDashboard(

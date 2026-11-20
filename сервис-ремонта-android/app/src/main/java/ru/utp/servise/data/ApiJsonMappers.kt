@@ -117,6 +117,7 @@ internal fun JSONObject.toOrder(): RepairOrder {
         visitPickupAgreedAt = nullableString("visitPickupAgreedAt"),
         technicianRepairCompletedAt = nullableString("technicianRepairCompletedAt"),
         onsiteRepairCompletedAt = nullableString("onsiteRepairCompletedAt"),
+        reviewRequestedAt = nullableString("reviewRequestedAt"),
     )
 }
 
