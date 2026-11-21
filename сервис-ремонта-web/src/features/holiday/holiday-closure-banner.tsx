@@ -62,51 +62,53 @@ export const HolidayClosureBanner = ({ phoneNumber }: HolidayClosureBannerProps)
       aria-label="График работы в новогодние праздники"
       className="mx-auto w-full max-w-7xl px-4 py-5 md:px-8 md:py-7"
     >
-      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-950 p-6 text-white shadow-[0_24px_70px_rgba(30,64,175,0.25)] sm:p-9">
-        <div className="pointer-events-none absolute -top-20 -right-14 size-64 rounded-full border border-white/10" />
-        <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold tracking-[0.14em] uppercase">
-              <Snowflake size={15} aria-hidden="true" />
-              {settings.title}
-            </p>
-            <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
-              {settings.message}
-            </h2>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
-              {getClosureScheduleText(settings)}
-            </p>
-            {dialNumber && (
-              <a
-                href={`tel:${dialNumber}`}
-                className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/35 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20"
-                aria-label={`Если заказ срочный, позвоните по номеру ${emergencyPhone}`}
-              >
-                <Phone size={17} aria-hidden="true" />
-                Если заказ срочный — звоните: {emergencyPhone}
-              </a>
-            )}
-          </div>
-
-          <div className="rounded-2xl border border-white/15 bg-slate-950/25 p-4 backdrop-blur sm:p-5">
-            <p className="mb-3 flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-blue-100 uppercase">
-              <Clock3 size={15} aria-hidden="true" />
-              До открытия
-            </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {countdownItems.map(([key, label]) => (
-                <div
-                  key={key}
-                  className="rounded-xl border border-white/10 bg-white/10 px-2 py-3 text-center"
+      <div className="holiday-closure-fire-frame">
+        <div className="relative isolate overflow-hidden rounded-[calc(2rem-3px)] bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-950 p-6 text-white shadow-[0_24px_70px_rgba(30,64,175,0.25)] sm:p-9">
+          <div className="pointer-events-none absolute -top-20 -right-14 size-64 rounded-full border border-white/10" />
+          <div className="relative z-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div>
+              <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-bold tracking-[0.14em] uppercase">
+                <Snowflake size={15} aria-hidden="true" />
+                {settings.title}
+              </p>
+              <h2 className="mt-4 text-2xl font-semibold tracking-tight sm:text-3xl">
+                {settings.message}
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-blue-100 sm:text-base">
+                {getClosureScheduleText(settings)}
+              </p>
+              {dialNumber && (
+                <a
+                  href={`tel:${dialNumber}`}
+                  className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/35 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/20"
+                  aria-label={`Если заказ срочный, позвоните по номеру ${emergencyPhone}`}
                 >
-                  <p className="font-mono text-3xl leading-none font-bold tabular-nums sm:text-4xl">
-                    {String(countdown[key]).padStart(2, "0")}
-                  </p>
-                  <p className="mt-2 text-[10px] font-semibold tracking-[0.12em] text-blue-100 sm:text-xs">
-                    {label}
-                  </p>
-                </div>
-              ))}
+                  <Phone size={17} aria-hidden="true" />
+                  Если заказ срочный — звоните: {emergencyPhone}
+                </a>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-white/15 bg-slate-950/25 p-4 backdrop-blur sm:p-5">
+              <p className="mb-3 flex items-center gap-2 text-xs font-bold tracking-[0.14em] text-blue-100 uppercase">
+                <Clock3 size={15} aria-hidden="true" />
+                До открытия
+              </p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {countdownItems.map(([key, label]) => (
+                  <div
+                    key={key}
+                    className="rounded-xl border border-white/10 bg-white/10 px-2 py-3 text-center"
+                  >
+                    <p className="font-mono text-3xl leading-none font-bold tabular-nums sm:text-4xl">
+                      {String(countdown[key]).padStart(2, "0")}
+                    </p>
+                    <p className="mt-2 text-[10px] font-semibold tracking-[0.12em] text-blue-100 sm:text-xs">
+                      {label}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
