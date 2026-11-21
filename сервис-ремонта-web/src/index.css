@@ -633,79 +633,78 @@ html[data-theme="dark"] .app-card:hover {
   }
 }
 
-@property --holiday-fire-angle {
+@property --flowing-fire-angle {
   syntax: "<angle>";
   inherits: false;
   initial-value: 0deg;
 }
 
-@keyframes holiday-fire-flow {
+@keyframes flowing-fire-flow {
   to {
-    --holiday-fire-angle: 360deg;
+    --flowing-fire-angle: 360deg;
   }
 }
 
-@keyframes holiday-fire-flicker {
+@keyframes flowing-fire-flicker {
   0%,
   100% {
-    opacity: 0.44;
+    opacity: 0.56;
   }
 
   35% {
-    opacity: 0.68;
+    opacity: 0.8;
   }
 
   68% {
-    opacity: 0.5;
+    opacity: 0.64;
   }
 }
 
-.holiday-closure-fire-frame {
+.flowing-fire-frame {
   position: relative;
   isolation: isolate;
   padding: 3px;
-  border-radius: 2rem;
   background: repeating-conic-gradient(
-    from var(--holiday-fire-angle),
-    #7c2d12 0deg 12deg,
-    #f97316 12deg 16deg,
-    #fff1b7 16deg 18deg,
+    from var(--flowing-fire-angle),
+    #9a3412 0deg 12deg,
+    #fb923c 12deg 16deg,
+    #fff7cc 16deg 18deg,
     #f97316 18deg 25deg,
-    #7c2d12 25deg 45deg
+    #9a3412 25deg 45deg
   );
-  box-shadow: 0 0 17px rgb(249 115 22 / 28%);
-  animation: holiday-fire-flow 4.8s linear infinite;
+  box-shadow: 0 0 22px rgb(249 115 22 / 40%);
+  animation: flowing-fire-flow 4.8s linear infinite;
 }
 
-.holiday-closure-fire-frame::before {
+.flowing-fire-frame::before {
   position: absolute;
   z-index: -1;
-  inset: -6px;
+  inset: -7px;
   border-radius: inherit;
   background: repeating-conic-gradient(
-    from var(--holiday-fire-angle),
-    #7c2d12 0deg 12deg,
-    #f97316 12deg 16deg,
-    #fff1b7 16deg 18deg,
+    from var(--flowing-fire-angle),
+    #9a3412 0deg 12deg,
+    #fb923c 12deg 16deg,
+    #fff7cc 16deg 18deg,
     #f97316 18deg 25deg,
-    #7c2d12 25deg 45deg
+    #9a3412 25deg 45deg
   );
-  filter: blur(12px);
-  opacity: 0.44;
+  filter: blur(14px);
+  opacity: 0.56;
   pointer-events: none;
   content: "";
   animation:
-    holiday-fire-flow 4.8s linear infinite,
-    holiday-fire-flicker 1.4s ease-in-out infinite;
+    flowing-fire-flow 4.8s linear infinite,
+    flowing-fire-flicker 1.4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .holiday-closure-fire-frame,
-  .holiday-closure-fire-frame::before {
+  .flowing-fire-frame,
+  .flowing-fire-frame::before {
     animation: none;
   }
 
-  .holiday-closure-fire-frame::before {
-    opacity: 0.32;
+  .flowing-fire-frame::before {
+    opacity: 0.4;
   }
 }

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Gift, Trophy } from "lucide-react";
 
+import { FlowingFireFrame } from "@/components/flowing-fire-frame";
 import { PublicAuthTrigger } from "@/components/public-site-shell";
 
 import {
@@ -86,79 +87,85 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
             ].filter((reward) => reward.prize || reward.points > 0);
 
             return (
-              <article
+              <FlowingFireFrame
                 key={offer.id}
-                className={`relative flex min-h-64 flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white shadow-lg sm:p-8 ${isGiveaway ? "from-violet-800 via-indigo-700 to-purple-600" : "from-blue-800 via-sky-700 to-cyan-600"} ${offers.length === 1 ? "lg:col-span-2" : ""}`}
+                enabled={isGiveaway}
+                borderRadius="calc(1.5rem + 3px)"
+                className={offers.length === 1 ? "lg:col-span-2" : ""}
               >
-                <div className="flex items-start gap-4">
-                  <span className="grid size-14 shrink-0 place-items-center rounded-2xl border border-white/25 bg-white/15 backdrop-blur">
-                    <Icon size={28} aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold tracking-[0.16em] text-white/80 uppercase">
-                      {isGiveaway ? "Розыгрыш" : "Акция"}
-                    </p>
-                    <h3 className="mt-1 text-xl leading-tight font-bold sm:text-2xl">
-                      {offer.title}
-                    </h3>
+                <article
+                  className={`relative flex min-h-64 flex-col justify-between overflow-hidden rounded-3xl bg-gradient-to-br p-6 text-white shadow-lg sm:p-8 ${isGiveaway ? "from-violet-800 via-indigo-700 to-purple-600" : "from-blue-800 via-sky-700 to-cyan-600"}`}
+                >
+                  <div className="flex items-start gap-4">
+                    <span className="grid size-14 shrink-0 place-items-center rounded-2xl border border-white/25 bg-white/15 backdrop-blur">
+                      <Icon size={28} aria-hidden="true" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold tracking-[0.16em] text-white/80 uppercase">
+                        {isGiveaway ? "Розыгрыш" : "Акция"}
+                      </p>
+                      <h3 className="mt-1 text-xl leading-tight font-bold sm:text-2xl">
+                        {offer.title}
+                      </h3>
+                    </div>
                   </div>
-                </div>
 
-                <p className="mt-4 line-clamp-4 max-w-3xl text-sm leading-6 text-white/90 sm:text-base">
-                  {offer.content}
-                </p>
-
-                {rewards.length > 0 && (
-                  <ul className="mt-4 grid gap-2 sm:grid-cols-3">
-                    {rewards.map(({ place, prize, points, imageObjectId }) => (
-                      <li
-                        key={place}
-                        className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm"
-                      >
-                        {imageObjectId && (
-                          <img
-                            src={getPublicCustomerOfferPrizeImageUrl(offer.id, place)}
-                            alt={`Фото приза за ${place}-е место`}
-                            className="size-16 shrink-0 rounded-lg object-cover"
-                            loading="lazy"
-                          />
-                        )}
-                        <span className="min-w-0">
-                          <span className="block text-xs font-semibold text-white/70">
-                            {place}-е место
-                          </span>
-                          <span className="mt-0.5 block font-medium">
-                            {[prize, points > 0 ? `${points} баллов` : null]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-white/20 pt-4">
-                  <p className="text-sm text-white/80">
-                    Действует до {formatEndDate(offer.endsAt)}
+                  <p className="mt-4 line-clamp-4 max-w-3xl text-sm leading-6 text-white/90 sm:text-base">
+                    {offer.content}
                   </p>
-                  {isCustomer ? (
-                    <Link
-                      to="/offers"
-                      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-slate-900 transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    >
-                      Условия и участие <ArrowRight size={17} aria-hidden="true" />
-                    </Link>
-                  ) : (
-                    <PublicAuthTrigger
-                      intent="login"
-                      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-slate-900 transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                    >
-                      Войти и участвовать <ArrowRight size={17} aria-hidden="true" />
-                    </PublicAuthTrigger>
+
+                  {rewards.length > 0 && (
+                    <ul className="mt-4 grid gap-2 sm:grid-cols-3">
+                      {rewards.map(({ place, prize, points, imageObjectId }) => (
+                        <li
+                          key={place}
+                          className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-3 py-2 text-sm"
+                        >
+                          {imageObjectId && (
+                            <img
+                              src={getPublicCustomerOfferPrizeImageUrl(offer.id, place)}
+                              alt={`Фото приза за ${place}-е место`}
+                              className="size-16 shrink-0 rounded-lg object-cover"
+                              loading="lazy"
+                            />
+                          )}
+                          <span className="min-w-0">
+                            <span className="block text-xs font-semibold text-white/70">
+                              {place}-е место
+                            </span>
+                            <span className="mt-0.5 block font-medium">
+                              {[prize, points > 0 ? `${points} баллов` : null]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </div>
-              </article>
+
+                  <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-white/20 pt-4">
+                    <p className="text-sm text-white/80">
+                      Действует до {formatEndDate(offer.endsAt)}
+                    </p>
+                    {isCustomer ? (
+                      <Link
+                        to="/offers"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-slate-900 transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                      >
+                        Условия и участие <ArrowRight size={17} aria-hidden="true" />
+                      </Link>
+                    ) : (
+                      <PublicAuthTrigger
+                        intent="login"
+                        className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-slate-900 transition hover:bg-white/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                      >
+                        Войти и участвовать <ArrowRight size={17} aria-hidden="true" />
+                      </PublicAuthTrigger>
+                    )}
+                  </div>
+                </article>
+              </FlowingFireFrame>
             );
           })}
         </div>

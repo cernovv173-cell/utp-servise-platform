@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Clock3, Phone, Snowflake } from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { FlowingFireFrame } from "@/components/flowing-fire-frame";
+
 import { getClosureAnnouncement } from "@/lib/api";
 
 import {
@@ -62,7 +64,7 @@ export const HolidayClosureBanner = ({ phoneNumber }: HolidayClosureBannerProps)
       aria-label="График работы в новогодние праздники"
       className="mx-auto w-full max-w-7xl px-4 py-5 md:px-8 md:py-7"
     >
-      <div className="holiday-closure-fire-frame">
+      <FlowingFireFrame borderRadius="2rem">
         <div className="relative isolate overflow-hidden rounded-[calc(2rem-3px)] bg-gradient-to-br from-blue-700 via-indigo-700 to-slate-950 p-6 text-white shadow-[0_24px_70px_rgba(30,64,175,0.25)] sm:p-9">
           <div className="pointer-events-none absolute -top-20 -right-14 size-64 rounded-full border border-white/10" />
           <div className="relative z-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
@@ -112,7 +114,7 @@ export const HolidayClosureBanner = ({ phoneNumber }: HolidayClosureBannerProps)
             </div>
           </div>
         </div>
-      </div>
+      </FlowingFireFrame>
     </section>
   );
 };
