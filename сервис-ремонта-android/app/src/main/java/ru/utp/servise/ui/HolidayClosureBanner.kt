@@ -36,6 +36,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.ClosureAnnouncementSettings
+import ru.utp.servise.data.FlowingFireSettings
 import java.time.Duration
 import java.time.Instant
 
@@ -43,9 +44,19 @@ import java.time.Instant
 fun HolidayClosureBanner(phoneNumber: String?) {
     var now by remember { mutableStateOf(Instant.now()) }
     var settings by remember { mutableStateOf<ClosureAnnouncementSettings?>(null) }
+    var fireSettings by remember { mutableStateOf(FlowingFireSettings.DEFAULT) }
     LaunchedEffect(Unit) {
         settings = withContext(Dispatchers.IO) {
             runCatching { ApiClient.closureAnnouncement() }.getOrNull()
+        }
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val updated = withContext(Dispatchers.IO) {
+                runCatching { ApiClient.flowingFireSettings() }.getOrNull()
+            }
+            if (updated != null) fireSettings = updated
+            delay(30_000)
         }
     }
     val currentSettings = settings ?: return
@@ -75,7 +86,13 @@ fun HolidayClosureBanner(phoneNumber: String?) {
     val dialNumber = displayPhone.filter { it.isDigit() || it == '+' }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .flowingFireBorder(
+                enabled = fireSettings.closure.enabled,
+                palette = fireSettings.closure.palette,
+                cornerRadius = 24.dp,
+            ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF173B83)),
     ) {

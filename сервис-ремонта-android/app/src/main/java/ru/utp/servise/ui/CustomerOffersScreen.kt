@@ -28,9 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
+import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.CustomerOffer
 import ru.utp.servise.data.CustomerOfferWinner
+import ru.utp.servise.data.FlowingFireEffectSettings
+import ru.utp.servise.data.FlowingFireSettings
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -44,8 +49,13 @@ fun CustomerOffersScreen(
     onParticipate: (String) -> Unit,
 ) {
     var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    var fireSettings by remember { mutableStateOf(FlowingFireSettings.DEFAULT) }
     LaunchedEffect(Unit) {
         while (true) {
+            val updatedSettings = withContext(Dispatchers.IO) {
+                runCatching { ApiClient.flowingFireSettings() }.getOrNull()
+            }
+            if (updatedSettings != null) fireSettings = updatedSettings
             delay(60_000)
             currentTimeMillis = System.currentTimeMillis()
         }
@@ -87,6 +97,7 @@ fun CustomerOffersScreen(
                     offer = offer,
                     token = token,
                     currentTimeMillis = currentTimeMillis,
+                    fireEffect = fireSettings.giveaway,
                     busy = busy,
                     onParticipate = { onParticipate(offer.id) },
                 )
@@ -100,6 +111,7 @@ private fun CustomerOfferCard(
     offer: CustomerOffer,
     token: String,
     currentTimeMillis: Long,
+    fireEffect: FlowingFireEffectSettings,
     busy: Boolean,
     onParticipate: () -> Unit,
 ) {
@@ -112,7 +124,13 @@ private fun CustomerOfferCard(
     val resultsArePublished = offer.resultsPublishedAt != null
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .flowingFireBorder(
+                enabled = isGiveaway && fireEffect.enabled,
+                palette = fireEffect.palette,
+                cornerRadius = 20.dp,
+            ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface),
     ) {

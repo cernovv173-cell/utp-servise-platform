@@ -36,6 +36,7 @@ import ru.utp.servise.data.AdminQuickActionPreferences
 import ru.utp.servise.data.ApiClient
 import ru.utp.servise.data.ClosureAnnouncementSettings
 import ru.utp.servise.data.CatalogVisibilitySettings
+import ru.utp.servise.data.FlowingFireSettings
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.CatalogItem
@@ -170,6 +171,8 @@ internal fun AuthenticatedWorkspace(
         mutableStateOf<ClosureAnnouncementSettings?>(null)
     }
     var closureAnnouncementLoadFailed by remember(token) { mutableStateOf(false) }
+    var flowingFireSettings by remember(token) { mutableStateOf<FlowingFireSettings?>(null) }
+    var flowingFireSettingsLoadFailed by remember(token) { mutableStateOf(false) }
     var catalogVisibility by remember(token) {
         mutableStateOf<CatalogVisibilitySettings?>(null)
     }
@@ -194,6 +197,12 @@ internal fun AuthenticatedWorkspace(
             }
             closureAnnouncement = announcementResult.getOrNull()
             closureAnnouncementLoadFailed = announcementResult.isFailure
+
+            val fireSettingsResult = withContext(Dispatchers.IO) {
+                runCatching { ApiClient.flowingFireSettings() }
+            }
+            flowingFireSettings = fireSettingsResult.getOrNull()
+            flowingFireSettingsLoadFailed = fireSettingsResult.isFailure
         }
     }
     val onRefreshChat: (String) -> Unit = { orderId ->
@@ -777,6 +786,31 @@ internal fun AuthenticatedWorkspace(
                                                     closureAnnouncement = saved
                                                     closureAnnouncementLoadFailed = false
                                                 }
+                                            }
+                                        }
+                                    },
+                                    flowingFireSettings = flowingFireSettings,
+                                    flowingFireSettingsLoadFailed = flowingFireSettingsLoadFailed,
+                                    flowingFireSettingsSaving = busy,
+                                    onRetryFlowingFireSettings = {
+                                        scope.launch {
+                                            val result = withContext(Dispatchers.IO) {
+                                                runCatching { ApiClient.flowingFireSettings() }
+                                            }
+                                            flowingFireSettings = result.getOrNull()
+                                            flowingFireSettingsLoadFailed = result.isFailure
+                                            result.exceptionOrNull()?.let {
+                                                onError(
+                                                    it.message ?: "Не удалось загрузить настройки рамок.",
+                                                )
+                                            }
+                                        }
+                                    },
+                                    onFlowingFireSettingsChanged = { settings ->
+                                        runAction({ ApiClient.updateFlowingFireSettings(token, settings) }) { result ->
+                                            (result as? FlowingFireSettings)?.let { saved ->
+                                                flowingFireSettings = saved
+                                                flowingFireSettingsLoadFailed = false
                                             }
                                         }
                                     },

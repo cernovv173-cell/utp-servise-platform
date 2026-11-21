@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import ru.utp.servise.data.ClosureAnnouncementSettings
 import ru.utp.servise.data.CatalogVisibilitySettings
+import ru.utp.servise.data.FlowingFireSettings
 
 @Composable
 internal fun AdminAppSettingsScreen(
@@ -49,6 +50,11 @@ internal fun AdminAppSettingsScreen(
     onRetryClosureAnnouncement: () -> Unit,
     onClosureAnnouncementChanged: (ClosureAnnouncementSettings) -> Unit,
     onSaveClosureAnnouncement: () -> Unit,
+    flowingFireSettings: FlowingFireSettings?,
+    flowingFireSettingsLoadFailed: Boolean,
+    flowingFireSettingsSaving: Boolean,
+    onRetryFlowingFireSettings: () -> Unit,
+    onFlowingFireSettingsChanged: (FlowingFireSettings) -> Unit,
     onOpenVersion: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -169,6 +175,13 @@ internal fun AdminAppSettingsScreen(
             onSettingsChanged = onClosureAnnouncementChanged,
             onRetry = onRetryClosureAnnouncement,
             onSave = onSaveClosureAnnouncement,
+        )
+        FlowingFireSettingsCard(
+            settings = flowingFireSettings,
+            loadFailed = flowingFireSettingsLoadFailed,
+            saving = flowingFireSettingsSaving,
+            onSettingsChanged = onFlowingFireSettingsChanged,
+            onRetry = onRetryFlowingFireSettings,
         )
         OutlinedButton(
             onClick = onOpenVersion,

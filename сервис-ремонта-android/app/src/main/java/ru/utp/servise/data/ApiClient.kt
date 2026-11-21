@@ -685,6 +685,31 @@ object ApiClient {
             .put("phoneNumber", settings.phoneNumber),
     ).toClosureAnnouncementSettings()
 
+    fun flowingFireSettings(): FlowingFireSettings =
+        request("GET", "/company/flowing-fire-settings").toFlowingFireSettings()
+
+    fun updateFlowingFireSettings(
+        token: String,
+        settings: FlowingFireSettings,
+    ): FlowingFireSettings = request(
+        "PUT",
+        "/admin/company/flowing-fire-settings",
+        token,
+        JSONObject()
+            .put(
+                "closure",
+                JSONObject()
+                    .put("enabled", settings.closure.enabled)
+                    .put("palette", settings.closure.palette),
+            )
+            .put(
+                "giveaway",
+                JSONObject()
+                    .put("enabled", settings.giveaway.enabled)
+                    .put("palette", settings.giveaway.palette),
+            ),
+    ).toFlowingFireSettings()
+
     fun updateCompanyInfo(token: String, company: CompanyInfo): CompanyInfo = request(
         "PUT", "/about", token, company.toRequestJson(),
     ).getJSONObject("company").toCompanyInfo()
@@ -1377,6 +1402,17 @@ object ApiClient {
         reopenTime = getString("reopenTime"),
         phoneNumber = optString("phoneNumber"),
     )
+
+    private fun JSONObject.toFlowingFireSettings() = FlowingFireSettings(
+        closure = getJSONObject("closure").toFlowingFireEffectSettings("EMBER"),
+        giveaway = getJSONObject("giveaway").toFlowingFireEffectSettings("CYAN"),
+    )
+
+    private fun JSONObject.toFlowingFireEffectSettings(defaultPalette: String) =
+        FlowingFireEffectSettings(
+            enabled = optBoolean("enabled", true),
+            palette = optString("palette", defaultPalette),
+        )
 
     internal fun request(method: String, path: String, token: String? = null, body: JSONObject? = null): JSONObject {
         if (baseUrl.isBlank()) throw ApiException("API_NOT_CONFIGURED", "Адрес сервера ещё не настроен для этой сборки.")

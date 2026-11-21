@@ -36,6 +36,23 @@ data class ClosureAnnouncementSettings(
     val phoneNumber: String,
 )
 
+data class FlowingFireEffectSettings(
+    val enabled: Boolean,
+    val palette: String,
+)
+
+data class FlowingFireSettings(
+    val closure: FlowingFireEffectSettings,
+    val giveaway: FlowingFireEffectSettings,
+) {
+    companion object {
+        val DEFAULT = FlowingFireSettings(
+            closure = FlowingFireEffectSettings(enabled = true, palette = "EMBER"),
+            giveaway = FlowingFireEffectSettings(enabled = true, palette = "CYAN"),
+        )
+    }
+}
+
 data class OrderAddress(
     val contactPhone: String,
     val city: String,

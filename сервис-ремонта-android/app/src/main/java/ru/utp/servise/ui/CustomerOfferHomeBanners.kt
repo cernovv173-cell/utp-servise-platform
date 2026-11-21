@@ -36,6 +36,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import ru.utp.servise.data.ApiClient
+import ru.utp.servise.data.FlowingFireEffectSettings
+import ru.utp.servise.data.FlowingFireSettings
 import ru.utp.servise.data.PublicCustomerOffer
 import java.time.Instant
 import java.time.ZoneId
@@ -52,6 +54,7 @@ fun CustomerOfferHomeBanners(
     var currentTimeMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     var hasLoaded by remember { mutableStateOf(false) }
     var loadFailed by remember { mutableStateOf(false) }
+    var fireSettings by remember { mutableStateOf(FlowingFireSettings.DEFAULT) }
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -64,6 +67,10 @@ fun CustomerOfferHomeBanners(
             }.onFailure {
                 loadFailed = true
             }
+            val fireSettingsResult = withContext(Dispatchers.IO) {
+                runCatching { ApiClient.flowingFireSettings() }
+            }
+            fireSettingsResult.getOrNull()?.let { fireSettings = it }
             hasLoaded = true
             currentTimeMillis = System.currentTimeMillis()
             delay(30_000)
@@ -110,7 +117,7 @@ fun CustomerOfferHomeBanners(
             } else {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(activeOffers.take(3), key = PublicCustomerOffer::id) { offer ->
-                        CompactCustomerOfferCard(offer, onOpenOffers)
+                        CompactCustomerOfferCard(offer, onOpenOffers, fireSettings.giveaway)
                     }
                 }
             }
@@ -127,7 +134,7 @@ fun CustomerOfferHomeBanners(
                 color = UtpInk,
             )
             activeOffers.take(3).forEach { offer ->
-                CustomerOfferBanner(offer, onOpenOffers)
+                CustomerOfferBanner(offer, onOpenOffers, fireSettings.giveaway)
             }
         }
     }
@@ -137,13 +144,21 @@ fun CustomerOfferHomeBanners(
 private fun CompactCustomerOfferCard(
     offer: PublicCustomerOffer,
     onClick: () -> Unit,
+    fireEffect: FlowingFireEffectSettings,
 ) {
     val isGiveaway = offer.type == "GIVEAWAY"
     val backgroundColor = if (isGiveaway) UtpBlue else UtpMint
     val foregroundColor = if (isGiveaway) Color.White else UtpInk
 
     Card(
-        modifier = Modifier.width(290.dp).clickable(onClick = onClick),
+        modifier = Modifier
+            .width(290.dp)
+            .clickable(onClick = onClick)
+            .flowingFireBorder(
+                enabled = isGiveaway && fireEffect.enabled,
+                palette = fireEffect.palette,
+                cornerRadius = 20.dp,
+            ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
     ) {
@@ -212,7 +227,11 @@ private fun CompactCustomerOfferCard(
 }
 
 @Composable
-private fun CustomerOfferBanner(offer: PublicCustomerOffer, onOpenOffers: () -> Unit) {
+private fun CustomerOfferBanner(
+    offer: PublicCustomerOffer,
+    onOpenOffers: () -> Unit,
+    fireEffect: FlowingFireEffectSettings,
+) {
     val isGiveaway = offer.type == "GIVEAWAY"
     val backgroundColor = if (isGiveaway) UtpBlue else UtpMint
     val foregroundColor = if (isGiveaway) Color.White else UtpInk
@@ -220,7 +239,13 @@ private fun CustomerOfferBanner(offer: PublicCustomerOffer, onOpenOffers: () -> 
     val buttonTextColor = if (isGiveaway) UtpBlue else Color.White
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .flowingFireBorder(
+                enabled = isGiveaway && fireEffect.enabled,
+                palette = fireEffect.palette,
+                cornerRadius = 24.dp,
+            ),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = backgroundColor),
     ) {
