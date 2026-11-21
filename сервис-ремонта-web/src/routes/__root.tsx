@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { BrandLogo } from "@/components/brand-logo";
 
 import { AuthProvider } from "@/features/auth/auth-provider";
+import { ReadingProgressButton } from "@/features/reading-progress/reading-progress-button";
 import { SeasonalSceneBackground } from "@/features/seasonal/seasonal-scene-background";
 import {
   getDisplayedSeason,
@@ -41,6 +42,7 @@ const RootComponent = () => {
         <div className="relative z-10">
           <Outlet />
         </div>
+        <ReadingProgressButton />
       </AuthProvider>
     </div>
   );
