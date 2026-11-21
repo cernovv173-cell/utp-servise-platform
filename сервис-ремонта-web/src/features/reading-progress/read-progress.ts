@@ -1,4 +1,4 @@
-export const READ_PROGRESS_VISIBILITY_THRESHOLD = 50;
+export const READ_PROGRESS_VISIBILITY_THRESHOLD = 30;
 
 export const calculateReadProgress = (
   scrollTop: number,

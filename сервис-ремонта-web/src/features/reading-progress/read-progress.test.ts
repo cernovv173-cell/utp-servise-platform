@@ -19,9 +19,9 @@ describe("page reading progress", () => {
     expect(calculateReadProgress(0, 800, 800)).toBe(0);
   });
 
-  it("shows the return-to-top button starting at halfway", () => {
-    expect(READ_PROGRESS_VISIBILITY_THRESHOLD).toBe(50);
-    expect(shouldShowReadProgressButton(49)).toBe(false);
-    expect(shouldShowReadProgressButton(50)).toBe(true);
+  it("shows the return-to-top button after 30% of the page", () => {
+    expect(READ_PROGRESS_VISIBILITY_THRESHOLD).toBe(30);
+    expect(shouldShowReadProgressButton(29)).toBe(false);
+    expect(shouldShowReadProgressButton(30)).toBe(true);
   });
 });
