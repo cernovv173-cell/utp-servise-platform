@@ -907,6 +907,18 @@ export type ClosureAnnouncementSettings = {
   phoneNumber: string;
 };
 
+export type FlowingFirePalette = "EMBER" | "CYAN" | "VIOLET" | "ROSE" | "EMERALD" | "GOLD";
+
+export type FlowingFireEffectSettings = {
+  enabled: boolean;
+  palette: FlowingFirePalette;
+};
+
+export type FlowingFireSettings = {
+  closure: FlowingFireEffectSettings;
+  giveaway: FlowingFireEffectSettings;
+};
+
 export type CatalogVisibilitySettings = {
   servicesVisible: boolean;
   productsVisible: boolean;
@@ -1634,6 +1646,15 @@ export const getClosureAnnouncement = (signal?: AbortSignal) =>
 
 export const updateClosureAnnouncement = (token: string, settings: ClosureAnnouncementSettings) =>
   apiRequest<ClosureAnnouncementSettings>("/admin/company/closure-announcement", token, {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
+
+export const getFlowingFireSettings = (signal?: AbortSignal) =>
+  apiRequest<FlowingFireSettings>("/company/flowing-fire-settings", null, { signal });
+
+export const updateFlowingFireSettings = (token: string, settings: FlowingFireSettings) =>
+  apiRequest<FlowingFireSettings>("/admin/company/flowing-fire-settings", token, {
     method: "PUT",
     body: JSON.stringify(settings),
   });

@@ -6,6 +6,10 @@ import test from "node:test";
 import { hashSessionToken } from "../src/features/auth/auth.middleware.js";
 import { DEFAULT_CLOSURE_ANNOUNCEMENT } from "../src/features/company/closure-announcement-settings.js";
 import { createCompanyRouter } from "../src/features/company/company.routes.js";
+import {
+  DEFAULT_FLOWING_FIRE_SETTINGS,
+  FLOWING_FIRE_SETTINGS_KEY,
+} from "../src/features/company/flowing-fire-settings.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
@@ -165,4 +169,108 @@ test("closure announcement rejects impossible and reversed dates", async (t) => 
     );
     assert.equal(response.status, 400);
   }
+});
+
+test("flowing fire settings are public to read and administrator-only to update", async (t) => {
+  const adminToken = "A".repeat(48);
+  const customerToken = "C".repeat(48);
+  let storedValue: unknown = null;
+  const users = new Map([
+    [adminToken, { id: "admin", role: "ADMIN" as const }],
+    [customerToken, { id: "customer", role: "CUSTOMER" as const }],
+  ]);
+  const databaseClient = {
+    appSetting: {
+      findUnique: async ({ where }: { where: { key: string } }) =>
+        where.key === FLOWING_FIRE_SETTINGS_KEY && storedValue !== null
+          ? { value: storedValue }
+          : null,
+      upsert: async ({
+        create,
+        update,
+      }: {
+        create: { key: string; value: unknown };
+        update: { value: unknown };
+      }) => {
+        storedValue = update.value ?? create.value;
+        return { value: storedValue };
+      },
+    },
+    session: {
+      findUnique: async ({ where }: { where: { tokenHash: string } }) => {
+        const entry = [...users.entries()].find(
+          ([token]) => hashSessionToken(token) === where.tokenHash,
+        )?.[1];
+        if (!entry) return null;
+        return {
+          expiresAt: new Date(Date.now() + 60_000),
+          user: {
+            email: null,
+            login: null,
+            displayName: entry.role,
+            phoneNumber: null,
+            gender: null,
+            birthDate: null,
+            telegramChatId: null,
+            maxUserId: null,
+            avatarObjectId: null,
+            active: true,
+            terminatedAt: null,
+            mustChangePassword: false,
+            ...entry,
+          },
+        };
+      },
+    },
+  };
+  const app = express();
+  app.use(express.json());
+  app.use(
+    "/api",
+    createCompanyRouter(databaseClient as unknown as DatabaseClient),
+  );
+  app.use(errorHandler);
+  const server = app.listen(0);
+  await once(server, "listening");
+  t.after(() => server.close());
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const endpoint = `http://127.0.0.1:${address.port}/api`;
+
+  const initial = await fetch(`${endpoint}/company/flowing-fire-settings`);
+  assert.equal(initial.status, 200);
+  assert.equal(initial.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await initial.json(), DEFAULT_FLOWING_FIRE_SETTINGS);
+
+  const selectedSettings = {
+    closure: { enabled: false, palette: "VIOLET" },
+    giveaway: { enabled: true, palette: "CYAN" },
+  };
+  const forbidden = await fetch(
+    `${endpoint}/admin/company/flowing-fire-settings`,
+    {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${customerToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(selectedSettings),
+    },
+  );
+  assert.equal(forbidden.status, 403);
+
+  const saved = await fetch(`${endpoint}/admin/company/flowing-fire-settings`, {
+    method: "PUT",
+    headers: {
+      authorization: `Bearer ${adminToken}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(selectedSettings),
+  });
+  assert.equal(saved.status, 200);
+  assert.deepEqual(await saved.json(), selectedSettings);
+  assert.deepEqual(
+    await (await fetch(`${endpoint}/company/flowing-fire-settings`)).json(),
+    selectedSettings,
+  );
 });

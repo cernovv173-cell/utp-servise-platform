@@ -664,15 +664,19 @@ html[data-theme="dark"] .app-card:hover {
   position: relative;
   isolation: isolate;
   padding: 3px;
+  --flow-fire-dark: #7c2d12;
+  --flow-fire-hot: #f97316;
+  --flow-fire-light: #fff1b7;
+  --flow-fire-mid: #fb923c;
   background: repeating-conic-gradient(
     from var(--flowing-fire-angle),
-    #9a3412 0deg 12deg,
-    #fb923c 12deg 16deg,
-    #fff7cc 16deg 18deg,
-    #f97316 18deg 25deg,
-    #9a3412 25deg 45deg
+    var(--flow-fire-dark) 0deg 12deg,
+    var(--flow-fire-hot) 12deg 16deg,
+    var(--flow-fire-light) 16deg 18deg,
+    var(--flow-fire-mid) 18deg 25deg,
+    var(--flow-fire-dark) 25deg 45deg
   );
-  box-shadow: 0 0 22px rgb(249 115 22 / 40%);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--flow-fire-hot) 40%, transparent);
   animation: flowing-fire-flow 4.8s linear infinite;
 }
 
@@ -683,11 +687,11 @@ html[data-theme="dark"] .app-card:hover {
   border-radius: inherit;
   background: repeating-conic-gradient(
     from var(--flowing-fire-angle),
-    #9a3412 0deg 12deg,
-    #fb923c 12deg 16deg,
-    #fff7cc 16deg 18deg,
-    #f97316 18deg 25deg,
-    #9a3412 25deg 45deg
+    var(--flow-fire-dark) 0deg 12deg,
+    var(--flow-fire-hot) 12deg 16deg,
+    var(--flow-fire-light) 16deg 18deg,
+    var(--flow-fire-mid) 18deg 25deg,
+    var(--flow-fire-dark) 25deg 45deg
   );
   filter: blur(14px);
   opacity: 0.56;

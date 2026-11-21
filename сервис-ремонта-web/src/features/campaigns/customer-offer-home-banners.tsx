@@ -9,6 +9,10 @@ import {
   getCompletedCustomerOffers,
   getRunningCustomerOffers,
 } from "@/features/campaigns/customer-offer-home-banner-state";
+import {
+  DEFAULT_FLOWING_FIRE_SETTINGS,
+  useFlowingFireSettings,
+} from "@/features/visual-effects/use-flowing-fire-settings";
 
 import { getPublicCustomerOfferPrizeImageUrl, getPublicCustomerOffers } from "@/lib/api";
 import { useCurrentTime } from "@/lib/current-time";
@@ -29,6 +33,8 @@ const formatResultDate = (value: string) =>
 
 export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: boolean }) => {
   const now = useCurrentTime();
+  const fireSettingsQuery = useFlowingFireSettings();
+  const giveawayFire = fireSettingsQuery.data?.giveaway ?? DEFAULT_FLOWING_FIRE_SETTINGS.giveaway;
   const query = useQuery({
     queryKey: ["public-customer-offers"],
     queryFn: ({ signal }) => getPublicCustomerOffers(signal),
@@ -89,7 +95,8 @@ export const CustomerOfferHomeBanners = ({ isCustomer = false }: { isCustomer?: 
             return (
               <FlowingFireFrame
                 key={offer.id}
-                enabled={isGiveaway}
+                enabled={isGiveaway && giveawayFire.enabled}
+                palette={giveawayFire.palette}
                 borderRadius="calc(1.5rem + 3px)"
                 className={offers.length === 1 ? "lg:col-span-2" : ""}
               >

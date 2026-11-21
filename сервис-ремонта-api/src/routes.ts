@@ -9,6 +9,7 @@ import { createBannersRouter } from "./features/banners/banners.routes.js";
 import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
 import { createChatRouter } from "./features/chat/chat.routes.js";
 import { createCompanyRouter } from "./features/company/company.routes.js";
+import { DEFAULT_FLOWING_FIRE_SETTINGS } from "./features/company/flowing-fire-settings.js";
 import { createCraftsRouter } from "./features/crafts/crafts.routes.js";
 import { createCustomerFeedbackRouter } from "./features/customer-feedback/customer-feedback.routes.js";
 import { createCustomerOffersRouter } from "./features/customer-offers/customer-offers.routes.js";
@@ -109,6 +110,18 @@ export const createApiRouter = ({
           reopenTime: "08:30",
           phoneNumber: "",
         });
+        return;
+      }
+      next();
+    },
+  );
+
+  router.get(
+    "/company/flowing-fire-settings",
+    async (_request, response, next) => {
+      if (!database) {
+        response.set("Cache-Control", "no-store");
+        response.json(DEFAULT_FLOWING_FIRE_SETTINGS);
         return;
       }
       next();

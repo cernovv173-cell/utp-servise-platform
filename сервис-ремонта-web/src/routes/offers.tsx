@@ -9,6 +9,10 @@ import { ProtectedImage } from "@/components/protected-image";
 
 import { useAuth } from "@/features/auth/auth-context";
 import { BenefitsNavigation } from "@/features/navigation/benefits-navigation";
+import {
+  DEFAULT_FLOWING_FIRE_SETTINGS,
+  useFlowingFireSettings,
+} from "@/features/visual-effects/use-flowing-fire-settings";
 
 import { type CustomerOffer, getCustomerOffers, participateInCustomerOffer } from "@/lib/api";
 import { useCurrentTime } from "@/lib/current-time";
@@ -20,11 +24,15 @@ const OfferCard = ({
   now,
   joining,
   onParticipate,
+  fireEnabled,
+  firePalette,
 }: {
   offer: CustomerOffer;
   now: number;
   joining: boolean;
   onParticipate: () => void;
+  fireEnabled: boolean;
+  firePalette: "EMBER" | "CYAN" | "VIOLET" | "ROSE" | "EMERALD" | "GOLD";
 }) => {
   const startsAt = new Date(offer.startsAt).getTime();
   const endsAt = new Date(offer.endsAt).getTime();
@@ -55,7 +63,11 @@ const OfferCard = ({
   const myReward = rewards.find((reward) => reward.place === offer.myParticipation?.place);
 
   return (
-    <FlowingFireFrame enabled={isGiveaway} borderRadius="calc(1rem + 3px)">
+    <FlowingFireFrame
+      enabled={isGiveaway && fireEnabled}
+      palette={firePalette}
+      borderRadius="calc(1rem + 3px)"
+    >
       <SectionCard className="grid content-start gap-4">
         <div className="flex items-start gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-cyan-200">
@@ -163,6 +175,8 @@ const OffersPage = () => {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const now = useCurrentTime();
+  const fireSettingsQuery = useFlowingFireSettings();
+  const giveawayFire = fireSettingsQuery.data?.giveaway ?? DEFAULT_FLOWING_FIRE_SETTINGS.giveaway;
   const query = useQuery({
     queryKey: ["customer-offers", token],
     queryFn: ({ signal }) => getCustomerOffers(token!, signal),
@@ -201,6 +215,8 @@ const OffersPage = () => {
               now={now}
               joining={participate.isPending && participate.variables?.offerId === offer.id}
               onParticipate={() => participate.mutate({ offerId: offer.id })}
+              fireEnabled={giveawayFire.enabled}
+              firePalette={giveawayFire.palette}
             />
           ))}
           {(query.data?.offers.length ?? 0) === 0 && (

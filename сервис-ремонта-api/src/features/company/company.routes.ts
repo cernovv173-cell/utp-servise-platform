@@ -16,6 +16,11 @@ import {
   saveClosureAnnouncement,
 } from "./closure-announcement-settings.js";
 import {
+  flowingFireSettingsSchema,
+  readFlowingFireSettings,
+  saveFlowingFireSettings,
+} from "./flowing-fire-settings.js";
+import {
   readRepairOrderIntake,
   repairOrderIntakeSchema,
   saveRepairOrderIntake,
@@ -105,6 +110,28 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
     response.set("Cache-Control", "no-store");
     response.json(await readClosureAnnouncement(database));
   });
+
+  router.get("/company/flowing-fire-settings", async (_request, response) => {
+    response.set("Cache-Control", "no-store");
+    response.json(await readFlowingFireSettings(database));
+  });
+
+  router.put(
+    "/admin/company/flowing-fire-settings",
+    requireAuth,
+    requireRoles("ADMIN"),
+    validateRequest({ body: flowingFireSettingsSchema }),
+    async (_request, response) => {
+      const settings = (
+        response.locals.input as {
+          readonly body: z.infer<typeof flowingFireSettingsSchema>;
+        }
+      ).body;
+      await saveFlowingFireSettings(database, settings);
+      response.set("Cache-Control", "no-store");
+      response.json(settings);
+    },
+  );
 
   router.put(
     "/admin/company/closure-announcement",

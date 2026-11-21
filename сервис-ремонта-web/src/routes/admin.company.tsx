@@ -6,6 +6,7 @@ import { AdminBackLink } from "@/features/admin/admin-back-link";
 import { CatalogVisibilityControl } from "@/features/admin/catalog-visibility-control";
 import { ClosureAnnouncementControl } from "@/features/admin/closure-announcement-control";
 import { CompanyAdmin } from "@/features/admin/company-admin";
+import { FlowingFireSettingsControl } from "@/features/admin/flowing-fire-settings-control";
 import { RepairOrderIntakeControl } from "@/features/admin/repair-order-intake-control";
 import { useAuth } from "@/features/auth/auth-context";
 
@@ -28,6 +29,7 @@ const AdminCompanyPage = () => {
           <RepairOrderIntakeControl />
           <CatalogVisibilityControl />
           <ClosureAnnouncementControl />
+          <FlowingFireSettingsControl />
           <CompanyAdmin />
         </div>
       )}
