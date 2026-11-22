@@ -415,12 +415,22 @@ outside the repair percentage. These additive fields are introduced by migration
 [`../docs/repair-visit-scenario.md`](../docs/repair-visit-scenario.md) for the complete workflow.
 
 A production-only worker creates one XLSX report for each fully completed Moscow calendar month at
-10:00 on the first day of the following month. The workbook has a summary for every technician and
-a detailed row for each recorded repair or craft-order salary entry. It uses the frozen `salaryRub`,
-rate, service total, and repair visit-fee values saved with each entry; repair diagnosis/travel fees
-are shown separately and are already included in the recorded salary. The report is an accrued-pay
-summary only: the system does not record payroll taxes, deductions, or advances, so they are not
-subtracted. Customer names, contacts, addresses, and device details are excluded from the workbook.
+10:00 on the first day of the following month. The workbook has a summary for every technician, a
+detailed row for each recorded repair or craft-order salary entry, and a separate adjustment ledger.
+It uses the frozen `salaryRub`, rate, service total, and repair visit-fee values saved with each
+entry; repair diagnosis/travel fees are shown separately and are already included in the recorded
+salary. Administrators enter actual tax amounts manually; the system does not infer tax status or
+calculate tax rates. The amount remaining to pay is recorded salary less active tax, advance, and
+deduction records. Each adjustment stores its date, reason, creator, and (if cancelled) cancellation
+reason; cancelled entries remain visible in the ledger but do not reduce the amount due. This is an
+internal accrual summary, not a statutory payroll or tax document. Customer names, contacts,
+addresses, and device details are excluded from the workbook.
+
+Adjustments are recorded against a monthly report and a technician by administrators only. The
+adjustment date must fall inside that report month. The report's adjustment and file versions ensure
+the private archived XLSX is refreshed after a change; previously sent MAX deliveries are queued for
+the latest version. An uncertain MAX delivery result is not retried automatically to avoid duplicate
+payroll files, while the current workbook remains available to administrators in the archive.
 
 Each report is stored as a private project-storage object and indexed in
 `technician_monthly_salary_reports`. Administrators can list and download reports through the

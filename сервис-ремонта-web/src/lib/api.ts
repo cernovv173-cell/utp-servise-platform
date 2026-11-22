@@ -802,8 +802,53 @@ export type MonthlySalaryReport = {
   workCount: number;
   technicianCount: number;
   totalSalaryRub: number;
+  taxRub: number;
+  advanceRub: number;
+  deductionRub: number;
+  netPayRub: number;
   generatedAt: string;
   deliveryCounts: MonthlySalaryReportDeliveryCounts;
+};
+
+export type TechnicianPayrollAdjustmentType = "TAX" | "ADVANCE" | "DEDUCTION";
+
+export type MonthlySalaryReportSettlement = {
+  technicianId: string | null;
+  technicianName: string;
+  workCount: number;
+  serviceTotalRub: number;
+  visitFeesRub: number;
+  salaryRub: number;
+  taxRub: number;
+  advanceRub: number;
+  deductionRub: number;
+  netPayRub: number;
+};
+
+export type MonthlySalaryReportAdjustment = {
+  id: string;
+  technicianId: string | null;
+  technicianName: string;
+  type: TechnicianPayrollAdjustmentType;
+  amountRub: number;
+  description: string;
+  occurredAt: string;
+  createdByName: string;
+  voidedAt: string | null;
+  voidedByName: string | null;
+  voidReason: string | null;
+};
+
+export type MonthlySalaryReportAdjustments = {
+  settlements: MonthlySalaryReportSettlement[];
+  totals: {
+    salaryRub: number;
+    taxRub: number;
+    advanceRub: number;
+    deductionRub: number;
+    netPayRub: number;
+  };
+  adjustments: MonthlySalaryReportAdjustment[];
 };
 
 export type SiteBanner = {
@@ -2146,6 +2191,49 @@ export const getSalarySummary = (token: string, timeZone: string, signal?: Abort
 
 export const getMonthlySalaryReports = (token: string, signal?: AbortSignal) =>
   apiRequest<{ reports: MonthlySalaryReport[] }>("/admin/salary-reports", token, { signal });
+
+export const getMonthlySalaryReportAdjustments = (
+  token: string,
+  reportId: string,
+  signal?: AbortSignal,
+) =>
+  apiRequest<MonthlySalaryReportAdjustments>(
+    `/admin/salary-reports/${encodeURIComponent(reportId)}/adjustments`,
+    token,
+    { signal },
+  );
+
+export const createMonthlySalaryReportAdjustment = (
+  token: string,
+  reportId: string,
+  input: {
+    technicianId: string;
+    type: TechnicianPayrollAdjustmentType;
+    amountRub: number;
+    description: string;
+    occurredAt: string;
+  },
+) =>
+  apiRequest<{
+    adjustment: MonthlySalaryReportAdjustment;
+    workbookCurrent: boolean;
+    type: TechnicianPayrollAdjustmentType;
+  }>(`/admin/salary-reports/${encodeURIComponent(reportId)}/adjustments`, token, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const voidMonthlySalaryReportAdjustment = (
+  token: string,
+  reportId: string,
+  adjustmentId: string,
+  reason: string,
+) =>
+  apiRequest<{ voided: true; workbookCurrent: boolean }>(
+    `/admin/salary-reports/${encodeURIComponent(reportId)}/adjustments/${encodeURIComponent(adjustmentId)}/void`,
+    token,
+    { method: "POST", body: JSON.stringify({ reason }) },
+  );
 
 export const downloadMonthlySalaryReport = async (
   token: string,

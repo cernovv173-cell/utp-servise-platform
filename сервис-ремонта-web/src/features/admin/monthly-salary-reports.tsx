@@ -1,10 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Download, FileSpreadsheet } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 
+import { MonthlySalaryReportAdjustmentEditor } from "@/features/admin/monthly-salary-report-adjustment-editor";
 import { useAuth } from "@/features/auth/auth-context";
 
 import {
@@ -35,6 +37,7 @@ const getDeliveryLabel = (report: MonthlySalaryReport): string => {
 
 export const MonthlySalaryReports = () => {
   const { token } = useAuth();
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ["admin-monthly-salary-reports", token],
     queryFn: ({ signal }) => getMonthlySalaryReports(token!, signal),
@@ -55,6 +58,7 @@ export const MonthlySalaryReports = () => {
       toast.error(error instanceof Error ? error.message : "Не удалось скачать отчёт.");
     },
   });
+  const selectedReport = query.data?.reports.find((report) => report.id === selectedReportId);
 
   return (
     <div className="grid gap-5">
@@ -68,12 +72,11 @@ export const MonthlySalaryReports = () => {
           <h2 className="font-semibold">Ежемесячные начисления мастерам</h2>
           <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
             Отчёт в формате XLSX формируется 1-го числа после 10:00 по московскому времени. Он
-            включает список работ и записанные начисления каждого мастера. Файл остаётся в архиве,
-            даже если администратор не подключён к МАКС.
+            включает список работ, отдельные суммы налога, авансов, удержаний и остаток к выплате.
+            Файл остаётся в архиве, даже если администратор не подключён к МАКС.
           </p>
           <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-            Указано начисление по данным сервиса; налоги, удержания и авансы здесь не
-            рассчитываются.
+            Налог администратор вносит вручную. Сервис не рассчитывает налоговую ставку.
           </p>
         </div>
       </SectionCard>
@@ -98,8 +101,12 @@ export const MonthlySalaryReports = () => {
                 <TableHead className="text-right dark:text-slate-300">Мастеров</TableHead>
                 <TableHead className="text-right dark:text-slate-300">Работ</TableHead>
                 <TableHead className="text-right dark:text-slate-300">Начислено</TableHead>
+                <TableHead className="text-right dark:text-slate-300">Налог</TableHead>
+                <TableHead className="text-right dark:text-slate-300">Авансы</TableHead>
+                <TableHead className="text-right dark:text-slate-300">Удержания</TableHead>
+                <TableHead className="text-right dark:text-slate-300">К выплате</TableHead>
                 <TableHead className="dark:text-slate-300">МАКС</TableHead>
-                <TableHead className="text-right dark:text-slate-300">Файл</TableHead>
+                <TableHead className="text-right dark:text-slate-300">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -121,25 +128,51 @@ export const MonthlySalaryReports = () => {
                     <TableCell className="text-right font-semibold tabular-nums">
                       {formatRubles(report.totalSalaryRub)}
                     </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatRubles(report.taxRub)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatRubles(report.advanceRub)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatRubles(report.deductionRub)}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold tabular-nums">
+                      {formatRubles(report.netPayRub)}
+                    </TableCell>
                     <TableCell className="min-w-56 text-xs text-slate-600 dark:text-slate-300">
                       {getDeliveryLabel(report)}
                     </TableCell>
                     <TableCell className="text-right">
-                      <button
-                        type="button"
-                        disabled={downloadMutation.isPending}
-                        onClick={() =>
-                          downloadMutation.mutate({
-                            reportId: report.id,
-                            fileName: report.fileName,
-                          })
-                        }
-                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950"
-                        aria-label={`Скачать отчёт за ${formatPeriod(report.periodStart, report.periodEnd)}`}
-                      >
-                        <Download size={16} aria-hidden="true" />
-                        {downloading ? "Готовим…" : "XLSX"}
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          aria-pressed={selectedReportId === report.id}
+                          onClick={() =>
+                            setSelectedReportId((current) =>
+                              current === report.id ? null : report.id,
+                            )
+                          }
+                          className="min-h-10 rounded-xl border border-blue-200 px-3 text-sm font-semibold text-blue-800 transition hover:bg-blue-50 dark:border-blue-900 dark:text-blue-200 dark:hover:bg-blue-950/40"
+                        >
+                          {selectedReportId === report.id ? "Скрыть учёт" : "Учёт"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={downloadMutation.isPending}
+                          onClick={() =>
+                            downloadMutation.mutate({
+                              reportId: report.id,
+                              fileName: report.fileName,
+                            })
+                          }
+                          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-wait disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200 dark:hover:bg-emerald-950"
+                          aria-label={`Скачать отчёт за ${formatPeriod(report.periodStart, report.periodEnd)}`}
+                        >
+                          <Download size={16} aria-hidden="true" />
+                          {downloading ? "Готовим…" : "XLSX"}
+                        </button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -155,6 +188,9 @@ export const MonthlySalaryReports = () => {
           </p>
         </SectionCard>
       )}
+      {selectedReport ? (
+        <MonthlySalaryReportAdjustmentEditor key={selectedReport.id} report={selectedReport} />
+      ) : null}
     </div>
   );
 };

@@ -12,6 +12,7 @@ import {
   sendMaxFileMessage,
   uploadMaxFile,
 } from "../max/max-bot.js";
+import { refreshMonthlySalaryReportWorkbook } from "./monthly-salary-report-files.js";
 import {
   MONTHLY_SALARY_REPORT_CONTENT_TYPE,
   buildMonthlySalaryWorkbook,
@@ -148,6 +149,7 @@ export const generateMonthlySalaryReport = async (
   const fileName = `master-work-${monthText}.xlsx`;
   const bytes = await buildMonthlySalaryWorkbook({
     data,
+    adjustments: [],
     periodLabel: periodLabel(month),
     generatedAt,
   });
@@ -445,6 +447,24 @@ export const runMonthlySalaryReportWorkerTick = async (
         );
         break;
       }
+    }
+  }
+
+  const staleReports = await database.$queryRaw<Array<{ id: string }>>`
+    SELECT "id"
+    FROM "technician_monthly_salary_reports"
+    WHERE "adjustment_version" > "file_adjustment_version"
+    ORDER BY "period_start" ASC
+    LIMIT ${MAX_REPORTS_PER_TICK}
+  `;
+  for (const report of staleReports) {
+    try {
+      await refreshMonthlySalaryReportWorkbook(database, report.id, now);
+    } catch {
+      logger.warn(
+        { reportId: report.id },
+        "monthly_salary_report_refresh_failed",
+      );
     }
   }
 

@@ -173,6 +173,12 @@ enum MonthlySalaryReportDeliveryStatus {
   SKIPPED
 }
 
+enum TechnicianPayrollAdjustmentType {
+  TAX
+  ADVANCE
+  DEDUCTION
+}
+
 enum MaxLoginStatus {
   PENDING
   AWAITING_CONTACT
@@ -309,6 +315,9 @@ model User {
   maxLoginRequests                  MaxLoginRequest[]
   maxCredentialDelivery             MaxCredentialDelivery?
   monthlySalaryReportDeliveries     TechnicianMonthlySalaryReportDelivery[] @relation("MonthlySalaryReportRecipient")
+  payrollAdjustmentsAsTechnician    TechnicianPayrollAdjustment[]           @relation("PayrollAdjustmentTechnician")
+  payrollAdjustmentsCreated         TechnicianPayrollAdjustment[]           @relation("PayrollAdjustmentCreatedBy")
+  payrollAdjustmentsVoided          TechnicianPayrollAdjustment[]           @relation("PayrollAdjustmentVoidedBy")
   referralsSent                     CustomerReferral[]                      @relation("ReferralInviter")
   referralReceived                  CustomerReferral?                       @relation("ReferralInvitee")
   referralPromoCodes                CustomerReferralCode[]                  @relation("ReferralPromoCodeOwner")
@@ -663,18 +672,21 @@ model TechnicianSalaryEntry {
 }
 
 model TechnicianMonthlySalaryReport {
-  id              String                                  @id @default(uuid()) @db.Uuid
-  periodStart     DateTime                                @map("period_start") @db.Date
-  periodEnd       DateTime                                @map("period_end") @db.Date
-  fileObjectId    String                                  @map("file_object_id") @db.VarChar(255)
-  fileName        String                                  @map("file_name") @db.VarChar(180)
-  workCount       Int                                     @map("work_count")
-  technicianCount Int                                     @map("technician_count")
-  totalSalaryRub  Int                                     @map("total_salary_rub")
-  generatedAt     DateTime                                @default(now()) @map("generated_at") @db.Timestamptz(3)
-  createdAt       DateTime                                @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime                                @updatedAt @map("updated_at") @db.Timestamptz(3)
-  deliveries      TechnicianMonthlySalaryReportDelivery[]
+  id                    String                                  @id @default(uuid()) @db.Uuid
+  periodStart           DateTime                                @map("period_start") @db.Date
+  periodEnd             DateTime                                @map("period_end") @db.Date
+  fileObjectId          String                                  @map("file_object_id") @db.VarChar(255)
+  fileName              String                                  @map("file_name") @db.VarChar(180)
+  workCount             Int                                     @map("work_count")
+  technicianCount       Int                                     @map("technician_count")
+  totalSalaryRub        Int                                     @map("total_salary_rub")
+  adjustmentVersion     Int                                     @default(0) @map("adjustment_version")
+  fileAdjustmentVersion Int                                     @default(0) @map("file_adjustment_version")
+  generatedAt           DateTime                                @default(now()) @map("generated_at") @db.Timestamptz(3)
+  createdAt             DateTime                                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime                                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  deliveries            TechnicianMonthlySalaryReportDelivery[]
+  adjustments           TechnicianPayrollAdjustment[]
 
   @@unique([periodStart])
   @@map("technician_monthly_salary_reports")
@@ -699,6 +711,33 @@ model TechnicianMonthlySalaryReportDelivery {
   @@index([status, nextAttemptAt, lockedUntil])
   @@index([recipientUserId, createdAt])
   @@map("technician_monthly_salary_report_deliveries")
+}
+
+model TechnicianPayrollAdjustment {
+  id             String                          @id @default(uuid()) @db.Uuid
+  reportId       String                          @map("report_id") @db.Uuid
+  technicianId   String?                         @map("technician_id") @db.Uuid
+  technicianName String                          @map("technician_name") @db.VarChar(120)
+  type           TechnicianPayrollAdjustmentType
+  amountRub      Int                             @map("amount_rub")
+  description    String                          @db.VarChar(250)
+  occurredAt     DateTime                        @map("occurred_at") @db.Date
+  createdById    String?                         @map("created_by_id") @db.Uuid
+  createdByName  String                          @map("created_by_name") @db.VarChar(120)
+  voidedAt       DateTime?                       @map("voided_at") @db.Timestamptz(3)
+  voidedById     String?                         @map("voided_by_id") @db.Uuid
+  voidedByName   String?                         @map("voided_by_name") @db.VarChar(120)
+  voidReason     String?                         @map("void_reason") @db.VarChar(250)
+  createdAt      DateTime                        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime                        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  report         TechnicianMonthlySalaryReport   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  technician     User?                           @relation("PayrollAdjustmentTechnician", fields: [technicianId], references: [id], onDelete: SetNull)
+  createdBy      User?                           @relation("PayrollAdjustmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  voidedBy       User?                           @relation("PayrollAdjustmentVoidedBy", fields: [voidedById], references: [id], onDelete: SetNull)
+
+  @@index([reportId, technicianId, type])
+  @@index([reportId, occurredAt])
+  @@map("technician_payroll_adjustments")
 }
 
 model RepairOrderPhoto {

@@ -1,6 +1,10 @@
 import ExcelJS from "exceljs";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
+import {
+  type MonthlySalaryReportAdjustment,
+  summarizeMonthlySalarySettlements,
+} from "./monthly-salary-report-adjustments.js";
 import type { SalaryPeriodRange } from "./salary-periods.js";
 
 export const MONTHLY_SALARY_REPORT_CONTENT_TYPE =
@@ -197,7 +201,7 @@ const addReportTitle = (
   worksheet.getCell(2, 1).font = { bold: true, size: 11 };
   worksheet.mergeCells(3, 1, 3, columnCount);
   worksheet.getCell(3, 1).value =
-    "Суммы отражают записанные начисления; налоги, удержания и авансы не вычтены.";
+    "Налог вводится вручную. Остаток = начисление − налог − аванс − удержания; это внутренний расчёт, не налоговый документ.";
   worksheet.getCell(3, 1).font = { italic: true, color: { argb: "FF526474" } };
 };
 
@@ -230,6 +234,7 @@ const toExcelMoscowDate = (date: Date): Date => {
 
 export const buildMonthlySalaryWorkbook = async (input: {
   readonly data: MonthlySalaryReportData;
+  readonly adjustments: readonly MonthlySalaryReportAdjustment[];
   readonly periodLabel: string;
   readonly generatedAt: Date;
 }): Promise<Buffer> => {
@@ -239,6 +244,10 @@ export const buildMonthlySalaryWorkbook = async (input: {
   workbook.modified = input.generatedAt;
   workbook.subject = "Ежемесячный отчёт по начислениям мастеров";
   workbook.title = `Начисления мастерам — ${input.periodLabel}`;
+  const { settlements, totals } = summarizeMonthlySalarySettlements(
+    input.data,
+    input.adjustments,
+  );
 
   const summary = workbook.addWorksheet("Сводка", {
     views: [{ state: "frozen", ySplit: 4 }],
@@ -249,33 +258,49 @@ export const buildMonthlySalaryWorkbook = async (input: {
     { header: "Работы, ₽", key: "serviceTotalRub", width: 18 },
     { header: "Диагностика и выезды, ₽", key: "visitFeesRub", width: 24 },
     { header: "Начислено, ₽", key: "salaryRub", width: 20 },
+    { header: "Налог, ₽", key: "taxRub", width: 16 },
+    { header: "Авансы, ₽", key: "advanceRub", width: 16 },
+    { header: "Удержания, ₽", key: "deductionRub", width: 18 },
+    { header: "Остаток к выплате, ₽", key: "netPayRub", width: 23 },
   ];
-  addReportTitle(summary, input.periodLabel, 5);
+  addReportTitle(summary, input.periodLabel, 9);
   summary.addRow([
     "Мастер",
     "Работ",
     "Работы, ₽",
     "Диагностика и выезды, ₽",
     "Начислено, ₽",
+    "Налог, ₽",
+    "Авансы, ₽",
+    "Удержания, ₽",
+    "Остаток к выплате, ₽",
   ]);
-  for (const row of input.data.summaries) {
+  for (const row of settlements) {
     summary.addRow([
       row.technicianName,
       row.workCount,
       row.serviceTotalRub,
       row.visitFeesRub,
       row.salaryRub,
+      row.taxRub,
+      row.advanceRub,
+      row.deductionRub,
+      row.netPayRub,
     ]);
   }
   summary.addRow([
     "ИТОГО",
     input.data.workCount,
-    input.data.summaries.reduce((total, row) => total + row.serviceTotalRub, 0),
-    input.data.summaries.reduce((total, row) => total + row.visitFeesRub, 0),
+    settlements.reduce((total, row) => total + row.serviceTotalRub, 0),
+    settlements.reduce((total, row) => total + row.visitFeesRub, 0),
     input.data.totalSalaryRub,
+    totals.taxRub,
+    totals.advanceRub,
+    totals.deductionRub,
+    totals.netPayRub,
   ]);
   summary.getColumn(2).numFmt = "0";
-  for (const column of [3, 4, 5])
+  for (const column of [3, 4, 5, 6, 7, 8, 9])
     summary.getColumn(column).numFmt = '#,##0 "₽"';
   setHeaderStyle(summary);
   summary.getRow(summary.rowCount).font = { bold: true };
@@ -319,6 +344,49 @@ export const buildMonthlySalaryWorkbook = async (input: {
   for (const column of [5, 6, 8])
     details.getColumn(column).numFmt = '#,##0 "₽"';
   setHeaderStyle(details);
+
+  const adjustmentSheet = workbook.addWorksheet("Налог и удержания");
+  adjustmentSheet.columns = [
+    { header: "Дата", key: "occurredAt", width: 18 },
+    { header: "Мастер", key: "technicianName", width: 28 },
+    { header: "Вид записи", key: "type", width: 18 },
+    { header: "Описание", key: "description", width: 36 },
+    { header: "Сумма, ₽", key: "amountRub", width: 18 },
+    { header: "Записал", key: "createdByName", width: 24 },
+    { header: "Статус", key: "status", width: 16 },
+    { header: "Причина отмены", key: "voidReason", width: 36 },
+  ];
+  addReportTitle(adjustmentSheet, input.periodLabel, 8);
+  adjustmentSheet.addRow([
+    "Дата",
+    "Мастер",
+    "Вид записи",
+    "Описание",
+    "Сумма, ₽",
+    "Записал",
+    "Статус",
+    "Причина отмены",
+  ]);
+  const adjustmentLabels = {
+    TAX: "Налог",
+    ADVANCE: "Аванс",
+    DEDUCTION: "Удержание",
+  } as const;
+  for (const adjustment of input.adjustments) {
+    adjustmentSheet.addRow([
+      toExcelMoscowDate(adjustment.occurredAt),
+      adjustment.technicianName,
+      adjustmentLabels[adjustment.type],
+      adjustment.description,
+      adjustment.amountRub,
+      adjustment.createdByName,
+      adjustment.voidedAt ? "Отменено" : "Действует",
+      adjustment.voidReason ?? "",
+    ]);
+  }
+  adjustmentSheet.getColumn(1).numFmt = "dd.mm.yyyy";
+  adjustmentSheet.getColumn(5).numFmt = '#,##0 "₽"';
+  setHeaderStyle(adjustmentSheet);
 
   const bytes = await workbook.xlsx.writeBuffer();
   return Buffer.from(bytes);
