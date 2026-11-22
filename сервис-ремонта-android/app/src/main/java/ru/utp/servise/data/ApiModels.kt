@@ -83,6 +83,14 @@ data class RepairOrderIntakeInput(
     val problem: String,
     val address: OrderAddress,
     val details: RepairRequestDetails = RepairRequestDetails(),
+    val businessOrder: Boolean = false,
+)
+
+data class CustomerBusinessProfile(
+    val id: String,
+    val companyName: String,
+    val createdAt: String,
+    val updatedAt: String,
 )
 
 data class CustomerDeviceRepair(
@@ -198,6 +206,8 @@ data class RepairOrder(
     val technicianRepairCompletedAt: String? = null,
     val onsiteRepairCompletedAt: String? = null,
     val reviewRequestedAt: String? = null,
+    val businessProfileId: String? = null,
+    val businessProfileCompanyName: String? = null,
 )
 
 data class RepairReviewRequestResult(

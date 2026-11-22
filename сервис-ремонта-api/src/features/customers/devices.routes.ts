@@ -12,6 +12,9 @@ import {
 import { supportedRepairDeviceTypes } from "../catalog/repair-device-types.js";
 
 const deviceIdParams = z.object({ deviceId: z.string().uuid() });
+const deviceScopeQuery = z
+  .object({ scope: z.enum(["personal", "business"]).optional() })
+  .strict();
 const dateOnly = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/u)
@@ -33,7 +36,12 @@ const deviceFields = {
   maintenanceNote: z.string().trim().max(250).nullable().optional(),
 };
 
-const createDeviceBody = z.object(deviceFields).strict();
+const createDeviceBody = z
+  .object({
+    ...deviceFields,
+    scope: z.enum(["personal", "business"]).optional(),
+  })
+  .strict();
 const updateDeviceBody = z
   .object(deviceFields)
   .partial()
@@ -54,15 +62,43 @@ export const createCustomerDevicesRouter = (
 ): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
+  const getBusinessProfileId = async (customerId: string) => {
+    const profile = await database.customerBusinessProfile.findUnique({
+      where: { ownerUserId: customerId },
+      select: { id: true },
+    });
+    return profile?.id ?? null;
+  };
+  const requireBusinessProfileId = async (customerId: string) => {
+    const profileId = await getBusinessProfileId(customerId);
+    if (!profileId) {
+      throw new HttpError(
+        404,
+        "BUSINESS_PROFILE_NOT_FOUND",
+        "Профиль компании не найден.",
+      );
+    }
+    return profileId;
+  };
 
   router.get(
     "/customer/devices",
     requireAuth,
     requireRoles("CUSTOMER"),
+    validateRequest({ query: deviceScopeQuery }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
+      const { scope = "personal" } = (
+        response.locals.input as { query: z.infer<typeof deviceScopeQuery> }
+      ).query;
+      const businessProfileId =
+        scope === "business" ? await getBusinessProfileId(user.id) : null;
+      if (scope === "business" && !businessProfileId) {
+        response.json({ devices: [] });
+        return;
+      }
       const devices = await database.customerDevice.findMany({
-        where: { customerId: user.id },
+        where: { customerId: user.id, businessProfileId },
         include: {
           repairOrders: {
             orderBy: { createdAt: "desc" },
@@ -98,16 +134,20 @@ export const createCustomerDevicesRouter = (
       const body = (
         response.locals.input as { body: z.infer<typeof createDeviceBody> }
       ).body;
+      const { scope = "personal", ...fields } = body;
+      const businessProfileId =
+        scope === "business" ? await requireBusinessProfileId(user.id) : null;
       const device = await database.customerDevice.create({
         data: {
           customerId: user.id,
-          deviceType: body.deviceType,
-          nickname: body.nickname || null,
-          brand: body.brand || null,
-          model: body.model || null,
-          serialNumber: body.serialNumber || null,
-          nextMaintenanceAt: parseDate(body.nextMaintenanceAt),
-          maintenanceNote: body.maintenanceNote || null,
+          businessProfileId,
+          deviceType: fields.deviceType,
+          nickname: fields.nickname || null,
+          brand: fields.brand || null,
+          model: fields.model || null,
+          serialNumber: fields.serialNumber || null,
+          nextMaintenanceAt: parseDate(fields.nextMaintenanceAt),
+          maintenanceNote: fields.maintenanceNote || null,
         },
       });
       response.status(201).json({ device: { ...device, repairOrders: [] } });
@@ -118,17 +158,26 @@ export const createCustomerDevicesRouter = (
     "/customer/devices/:deviceId",
     requireAuth,
     requireRoles("CUSTOMER"),
-    validateRequest({ params: deviceIdParams, body: updateDeviceBody }),
+    validateRequest({
+      params: deviceIdParams,
+      query: deviceScopeQuery,
+      body: updateDeviceBody,
+    }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
+      const { scope = "personal" } = (
+        response.locals.input as { query: z.infer<typeof deviceScopeQuery> }
+      ).query;
       const { deviceId } = (
         response.locals.input as { params: z.infer<typeof deviceIdParams> }
       ).params;
+      const businessProfileId =
+        scope === "business" ? await requireBusinessProfileId(user.id) : null;
       const body = (
         response.locals.input as { body: z.infer<typeof updateDeviceBody> }
       ).body;
       const current = await database.customerDevice.findFirst({
-        where: { id: deviceId, customerId: user.id },
+        where: { id: deviceId, customerId: user.id, businessProfileId },
         select: { id: true },
       });
       if (!current)
@@ -154,14 +203,19 @@ export const createCustomerDevicesRouter = (
     "/customer/devices/:deviceId",
     requireAuth,
     requireRoles("CUSTOMER"),
-    validateRequest({ params: deviceIdParams }),
+    validateRequest({ params: deviceIdParams, query: deviceScopeQuery }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
+      const { scope = "personal" } = (
+        response.locals.input as { query: z.infer<typeof deviceScopeQuery> }
+      ).query;
       const { deviceId } = (
         response.locals.input as { params: z.infer<typeof deviceIdParams> }
       ).params;
+      const businessProfileId =
+        scope === "business" ? await requireBusinessProfileId(user.id) : null;
       const deleted = await database.customerDevice.deleteMany({
-        where: { id: deviceId, customerId: user.id },
+        where: { id: deviceId, customerId: user.id, businessProfileId },
       });
       if (deleted.count === 0)
         throw new HttpError(404, "DEVICE_NOT_FOUND", "Техника не найдена.");

@@ -36,6 +36,7 @@ import { ServiceNumberBarcode } from "@/features/orders/service-number-barcode-v
 import {
   type RepairOrder,
   createOrder,
+  getCustomerBusinessProfile,
   getCustomerDevices,
   getCustomerServicePrices,
   getLoyalty,
@@ -75,6 +76,7 @@ const OrdersPage = () => {
   const searchParams = Route.useSearch();
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
+  const businessScope = searchParams.scope === "business" && user?.role === "CUSTOMER";
   const [formOpen, setFormOpen] = useState(Boolean(searchParams.device));
   const [listView, setListView] = useState<OrderListView>("active");
   const [searchInput, setSearchInput] = useState("");
@@ -87,9 +89,15 @@ const OrdersPage = () => {
     staleTime: 0,
   });
   const acceptingNewOrders = orderIntake.data?.acceptingNewOrders !== false;
+  const businessProfile = useQuery({
+    queryKey: ["customer-business-profile", token],
+    queryFn: ({ signal }) => getCustomerBusinessProfile(token!, signal),
+    enabled: Boolean(token && businessScope && user?.role === "CUSTOMER"),
+  });
   const query = useQuery({
-    queryKey: ["orders", token, archiveView],
-    queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
+    queryKey: ["orders", token, archiveView, businessScope ? "business" : undefined],
+    queryFn: ({ signal }) =>
+      getOrders(token!, signal, archiveView, businessScope ? "business" : undefined),
     enabled: Boolean(token),
   });
   const catalog = useQuery({
@@ -98,8 +106,9 @@ const OrdersPage = () => {
     enabled: Boolean(token && ["ADMIN", "TECHNICIAN"].includes(user?.role ?? "")),
   });
   const devices = useQuery({
-    queryKey: ["customer-devices", token],
-    queryFn: ({ signal }) => getCustomerDevices(token!, signal),
+    queryKey: ["customer-devices", token, businessScope ? "business" : "personal"],
+    queryFn: ({ signal }) =>
+      getCustomerDevices(token!, signal, businessScope ? "business" : "personal"),
     enabled: Boolean(token && user?.role === "CUSTOMER"),
   });
   const servicePrices = useQuery({
@@ -108,8 +117,9 @@ const OrdersPage = () => {
     enabled: Boolean(token && user?.role === "CUSTOMER"),
   });
   const searchQuery = useQuery({
-    queryKey: ["order-search", token, user?.role, search],
-    queryFn: ({ signal }) => searchOrders(token!, search, signal),
+    queryKey: ["order-search", token, user?.role, businessScope, search],
+    queryFn: ({ signal }) =>
+      searchOrders(token!, search, signal, businessScope ? "business" : undefined),
     enabled: Boolean(token && search.length >= 2),
   });
   const isSearching = search.length >= 2;
@@ -166,26 +176,63 @@ const OrdersPage = () => {
   return (
     <AppShell active="/orders">
       <PageTitle
-        eyebrow="ЗАКАЗЫ"
-        title={user?.role === "TECHNICIAN" ? "Назначенные заказы" : "Мои заявки"}
+        eyebrow={businessScope ? "КОРПОРАТИВНЫЙ КАБИНЕТ" : "ЗАКАЗЫ"}
+        title={
+          user?.role === "TECHNICIAN"
+            ? "Назначенные заказы"
+            : businessScope
+              ? "Заявки компании"
+              : "Мои заявки"
+        }
         description={
           user?.role === "TECHNICIAN"
             ? "Работайте с назначенными ремонтами, фиксируйте этапы и состав заказа."
-            : "Создавайте заявки и отслеживайте этапы ремонта."
+            : businessScope
+              ? "История корпоративных ремонтов и документы по устройствам компании."
+              : "Создавайте заявки и отслеживайте этапы ремонта."
         }
         action={
           user?.role === "CUSTOMER" ? (
             acceptingNewOrders ? (
               <button
                 onClick={() => setFormOpen((value) => !value)}
+                disabled={businessScope && !businessProfile.data?.profile}
                 className="min-h-11 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
               >
-                {formOpen ? "Закрыть" : "+ Создать заявку"}
+                {formOpen
+                  ? "Закрыть"
+                  : businessScope
+                    ? "+ Новая заявка компании"
+                    : "+ Создать заявку"}
               </button>
             ) : undefined
           ) : undefined
         }
       />
+      {businessScope && (
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50/80 p-4 text-sm text-blue-950 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-100">
+          <span>
+            Заявки и устройства в этом разделе относятся к компании; личная история остаётся
+            отдельно.
+          </span>
+          <Link to="/business" className="font-semibold underline underline-offset-2">
+            В кабинет компании
+          </Link>
+        </div>
+      )}
+      {businessScope && businessProfile.data && !businessProfile.data.profile && (
+        <SectionCard className="mb-5">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Чтобы отправлять заявки компании, сначала создайте её профиль.
+          </p>
+          <Link
+            to="/business"
+            className="mt-3 inline-flex min-h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white"
+          >
+            Создать профиль компании
+          </Link>
+        </SectionCard>
+      )}
       <CampaignPlacement placement="SERVICE" className="mb-5" />
       {user?.role === "CUSTOMER" && !acceptingNewOrders && (
         <RepairOrderIntakeNotice className="mb-5" />
@@ -206,7 +253,12 @@ const OrdersPage = () => {
             pricesLoading={servicePrices.isLoading}
             pricesError={servicePrices.isError}
             initialDeviceId={searchParams.device}
-            onSubmit={(input, photo) => mutation.mutate({ input, photo })}
+            onSubmit={(input, photo) =>
+              mutation.mutate({
+                input: businessScope ? { ...input, businessOrder: true } : input,
+                photo,
+              })
+            }
           />
         </SectionCard>
       )}
@@ -576,6 +628,9 @@ const OrdersPage = () => {
 };
 
 export const Route = createFileRoute("/orders")({
-  validateSearch: z.object({ device: z.string().optional() }),
+  validateSearch: z.object({
+    device: z.string().optional(),
+    scope: z.enum(["personal", "business"]).optional(),
+  }),
   component: OrdersPage,
 });

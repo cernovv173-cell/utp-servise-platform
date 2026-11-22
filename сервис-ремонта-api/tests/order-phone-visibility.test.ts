@@ -90,7 +90,10 @@ test("order phone details are loaded only through role-scoped order lists", asyn
     );
   }
 
-  assert.deepEqual(calls[0]?.where, { customerId: users[0]!.id });
+  assert.deepEqual(calls[0]?.where, {
+    customerId: users[0]!.id,
+    businessProfileId: null,
+  });
   assert.deepEqual(calls[1]?.where, { assignedTechnicianId: users[1]!.id });
   assert.deepEqual(calls[2]?.where, {});
   assert.equal(calls[0]?.include.customer.select.phoneNumber, false);

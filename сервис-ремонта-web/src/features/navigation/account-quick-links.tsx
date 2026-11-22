@@ -13,7 +13,16 @@ import {
 import type { Role } from "@/lib/api";
 
 type AccountShortcut = {
-  to: "/devices" | "/offers" | "/reviews" | "/news" | "/support" | "/about" | "/crafts" | "/chats";
+  to:
+    | "/devices"
+    | "/business"
+    | "/offers"
+    | "/reviews"
+    | "/news"
+    | "/support"
+    | "/about"
+    | "/crafts"
+    | "/chats";
   title: string;
   description: string;
   icon: LucideIcon;
@@ -21,6 +30,12 @@ type AccountShortcut = {
 
 const shortcutsByRole: Partial<Record<Role, readonly AccountShortcut[]>> = {
   CUSTOMER: [
+    {
+      to: "/business",
+      title: "Кабинет компании",
+      description: "Техника, ремонты и документы компании",
+      icon: Building2,
+    },
     {
       to: "/devices",
       title: "Моя техника",

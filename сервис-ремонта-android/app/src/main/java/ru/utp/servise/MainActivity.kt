@@ -49,6 +49,7 @@ import ru.utp.servise.data.CraftItem
 import ru.utp.servise.data.CraftOrder
 import ru.utp.servise.data.CustomerReview
 import ru.utp.servise.data.CustomerDevice
+import ru.utp.servise.data.CustomerBusinessProfile
 import ru.utp.servise.data.CustomerOffer
 import ru.utp.servise.data.CustomerServicePrice
 import ru.utp.servise.data.NewsArticle
@@ -190,6 +191,9 @@ private fun UtpServiseApp(
     var staff by remember { mutableStateOf<List<StaffMember>>(emptyList()) }
     var reviews by remember { mutableStateOf<List<CustomerReview>>(emptyList()) }
     var customerDevices by remember { mutableStateOf<List<CustomerDevice>>(emptyList()) }
+    var customerBusinessProfile by remember { mutableStateOf<CustomerBusinessProfile?>(null) }
+    var businessDevices by remember { mutableStateOf<List<CustomerDevice>>(emptyList()) }
+    var businessOrders by remember { mutableStateOf<List<RepairOrder>>(emptyList()) }
     var customerOffers by remember { mutableStateOf<List<CustomerOffer>>(emptyList()) }
     var customerServicePrices by remember { mutableStateOf<List<CustomerServicePrice>>(emptyList()) }
     var catalogItems by remember { mutableStateOf<List<CatalogItem>>(emptyList()) }
@@ -284,6 +288,9 @@ private fun UtpServiseApp(
         staff = emptyList()
         reviews = emptyList()
         customerDevices = emptyList()
+        customerBusinessProfile = null
+        businessDevices = emptyList()
+        businessOrders = emptyList()
         customerOffers = emptyList()
         customerServicePrices = emptyList()
         catalogItems = emptyList()
@@ -311,6 +318,9 @@ private fun UtpServiseApp(
                             orders = emptyList(),
                             reviews = emptyList(),
                             customerDevices = emptyList(),
+                            customerBusinessProfile = null,
+                            businessDevices = emptyList(),
+                            businessOrders = emptyList(),
                             customerOffers = emptyList(),
                             customerServicePrices = emptyList(),
                             staff = emptyList(),
@@ -331,11 +341,21 @@ private fun UtpServiseApp(
                             token,
                             technologyFactStore.previousFactId(),
                         )
+                        val businessProfile = if (currentUser.role == "CUSTOMER") {
+                            ApiClient.customerBusinessProfile(token)
+                        } else null
                         WorkspaceData(
                             orders = ApiClient.orders(token, archived = false) +
                                 ApiClient.orders(token, archived = true),
                             reviews = ApiClient.reviews(token),
                             customerDevices = if (currentUser.role == "CUSTOMER") ApiClient.customerDevices(token) else emptyList(),
+                            customerBusinessProfile = businessProfile,
+                            businessDevices = if (businessProfile != null) {
+                                ApiClient.customerDevices(token, scope = "business")
+                            } else emptyList(),
+                            businessOrders = if (businessProfile != null) {
+                                ApiClient.orders(token, scope = "business")
+                            } else emptyList(),
                             customerOffers = if (currentUser.role == "CUSTOMER") ApiClient.customerOffers(token) else emptyList(),
                             customerServicePrices = if (currentUser.role == "CUSTOMER") ApiClient.customerServicePrices(token) else emptyList(),
                             staff = if (currentUser.role == "ADMIN") ApiClient.staff(token) else emptyList(),
@@ -359,6 +379,9 @@ private fun UtpServiseApp(
                 orders = data.orders
                 reviews = data.reviews
                 customerDevices = data.customerDevices
+                customerBusinessProfile = data.customerBusinessProfile
+                businessDevices = data.businessDevices
+                businessOrders = data.businessOrders
                 customerOffers = data.customerOffers
                 customerServicePrices = data.customerServicePrices
                 staff = data.staff
@@ -460,6 +483,9 @@ private fun UtpServiseApp(
             staff = staff,
             reviews = reviews,
             customerDevices = customerDevices,
+            customerBusinessProfile = customerBusinessProfile,
+            businessDevices = businessDevices,
+            businessOrders = businessOrders,
             customerOffers = customerOffers,
             customerServicePrices = customerServicePrices,
             catalogItems = catalogItems,

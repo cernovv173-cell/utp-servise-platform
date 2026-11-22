@@ -164,18 +164,25 @@ object ApiClient {
         request("POST", "/auth/change-password", token, JSONObject().put("currentPassword", currentPassword).put("newPassword", newPassword))
     )
 
-    fun orders(token: String, archived: Boolean? = null): List<RepairOrder> {
-        val path = when (archived) {
-            true -> "/orders?archive=archived"
-            false -> "/orders?archive=active"
-            null -> "/orders"
-        }
+    fun orders(
+        token: String,
+        archived: Boolean? = null,
+        scope: String? = null,
+    ): List<RepairOrder> {
+        val query = buildList {
+            archived?.let { add("archive=${if (it) "archived" else "active"}") }
+            scope?.let { add("scope=${URLEncoder.encode(it, Charsets.UTF_8.name())}") }
+        }.joinToString("&")
+        val path = if (query.isEmpty()) "/orders" else "/orders?$query"
         return request("GET", path, token).getJSONArray("orders").mapObjects { it.toOrder() }
     }
 
-    fun searchOrders(token: String, serviceNumber: String): List<RepairOrder> {
+    fun searchOrders(token: String, serviceNumber: String, scope: String? = null): List<RepairOrder> {
         val query = URLEncoder.encode(serviceNumber.trim(), Charsets.UTF_8.name())
-        return request("GET", "/orders/search?serviceNumber=$query", token)
+        val scopeQuery = scope?.let {
+            "&scope=${URLEncoder.encode(it, Charsets.UTF_8.name())}"
+        }.orEmpty()
+        return request("GET", "/orders/search?serviceNumber=$query$scopeQuery", token)
             .getJSONArray("orders").mapObjects { it.toOrder() }
     }
 
@@ -868,8 +875,21 @@ object ApiClient {
         return request("POST", "/orders", token, body).getJSONObject("order").toOrder()
     }
 
-    fun customerDevices(token: String): List<CustomerDevice> =
-        request("GET", "/customer/devices", token)
+    fun customerBusinessProfile(token: String): CustomerBusinessProfile? =
+        request("GET", "/customer/business-profile", token)
+            .optJSONObject("profile")
+            ?.toCustomerBusinessProfile()
+
+    fun saveCustomerBusinessProfile(token: String, companyName: String): CustomerBusinessProfile =
+        request(
+            "PUT",
+            "/customer/business-profile",
+            token,
+            JSONObject().put("companyName", companyName.trim()),
+        ).getJSONObject("profile").toCustomerBusinessProfile()
+
+    fun customerDevices(token: String, scope: String? = null): List<CustomerDevice> =
+        request("GET", "/customer/devices${scope?.let { "?scope=$it" }.orEmpty()}", token)
             .getJSONArray("devices")
             .mapObjects { it.toCustomerDevice() }
 
@@ -890,6 +910,7 @@ object ApiClient {
         serialNumber: String,
         nextMaintenanceAt: String?,
         maintenanceNote: String,
+        scope: String? = null,
     ): CustomerDevice {
         val body = JSONObject()
             .put("deviceType", deviceType)
@@ -899,6 +920,7 @@ object ApiClient {
             .put("serialNumber", serialNumber.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
             .put("nextMaintenanceAt", nextMaintenanceAt ?: JSONObject.NULL)
             .put("maintenanceNote", maintenanceNote.takeIf { it.isNotBlank() } ?: JSONObject.NULL)
+            .apply { scope?.let { put("scope", it) } }
         return request("POST", "/customer/devices", token, body)
             .getJSONObject("device")
             .toCustomerDevice()
@@ -909,17 +931,18 @@ object ApiClient {
         deviceId: String,
         nextMaintenanceAt: String?,
         maintenanceNote: String,
+        scope: String? = null,
     ): CustomerDevice = request(
         "PATCH",
-        "/customer/devices/$deviceId",
+        "/customer/devices/$deviceId${scope?.let { "?scope=$it" }.orEmpty()}",
         token,
         JSONObject()
             .put("nextMaintenanceAt", nextMaintenanceAt ?: JSONObject.NULL)
             .put("maintenanceNote", maintenanceNote.takeIf { it.isNotBlank() } ?: JSONObject.NULL),
     ).getJSONObject("device").toCustomerDevice()
 
-    fun deleteCustomerDevice(token: String, deviceId: String) {
-        request("DELETE", "/customer/devices/$deviceId", token)
+    fun deleteCustomerDevice(token: String, deviceId: String, scope: String? = null) {
+        request("DELETE", "/customer/devices/$deviceId${scope?.let { "?scope=$it" }.orEmpty()}", token)
     }
 
     fun createAdministratorOrder(
@@ -1351,6 +1374,7 @@ object ApiClient {
                 details.preferredAt?.let { put("preferredAt", it) }
                 if (customerRequest) {
                     details.customerDeviceId?.let { put("customerDeviceId", it) }
+                    if (input.businessOrder) put("businessOrder", true)
                 }
                 if (details.repairLocation == "CUSTOMER_ADDRESS") {
                     details.visitIsWithinCity?.let { put("visitIsWithinCity", it) }

@@ -118,8 +118,18 @@ internal fun JSONObject.toOrder(): RepairOrder {
         technicianRepairCompletedAt = nullableString("technicianRepairCompletedAt"),
         onsiteRepairCompletedAt = nullableString("onsiteRepairCompletedAt"),
         reviewRequestedAt = nullableString("reviewRequestedAt"),
+        businessProfileId = nullableString("businessProfileId"),
+        businessProfileCompanyName = optJSONObject("businessProfile")
+            ?.nullableString("companyName"),
     )
 }
+
+internal fun JSONObject.toCustomerBusinessProfile() = CustomerBusinessProfile(
+    id = getString("id"),
+    companyName = getString("companyName"),
+    createdAt = optString("createdAt"),
+    updatedAt = optString("updatedAt"),
+)
 
 internal fun JSONObject.toOperationsDashboard() = OperationsDashboard(
     periodDays = optInt("periodDays"),

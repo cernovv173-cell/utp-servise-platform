@@ -8,6 +8,16 @@ home address. Other signed-in users receive the public card fields, but the API 
 from their response entirely. A missing profile is initialized when its owner opens the card. The
 additive `20261031120000_technician_home_address` migration stores the private address.
 
+## Customer business profiles
+
+Authenticated customers can create or rename one company profile through `GET` and `PUT /api/customer/business-profile`. The owner is always taken from the signed-in session. Device and repair
+order lists support personal and business scopes; personal is the default, and a business request can
+only use a device owned by the same customer and linked to that customer's profile. Warranty claims
+retain the source order's business association. Existing devices and orders stay personal; the additive
+`20261122090000_customer_business_accounts` migration does not reclassify historical records. The
+profile is an organizational label, not legal-entity verification. It does not support employee
+accounts or accounting documents; repair paperwork continues to come from the existing order records.
+
 Install dependencies and start the development server:
 
 ```bash

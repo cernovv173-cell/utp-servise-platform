@@ -79,6 +79,12 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
                         Icons.Filled.Build,
                         "Сохранённые устройства, напоминания и гарантийные обращения.",
                     ),
+                    WorkspaceDestination(
+                        "customer/business",
+                        "Кабинет компании",
+                        Icons.Filled.Build,
+                        "Техника организации, корпоративные заявки и документы.",
+                    ),
                 ),
             ),
             WorkspaceSectionGroup(

@@ -75,6 +75,7 @@ class WorkspaceNavigationTest {
             .sectionGroups.flatMap { group -> group.destinations.map { it.route } }
 
         assertTrue(customerRoutes.contains("customer/devices"))
+        assertTrue(customerRoutes.contains("customer/business"))
         assertTrue(customerRoutes.contains("customer/offers"))
         assertTrue(customerRoutes.contains("customer/loyalty"))
         assertTrue(customerRoutes.contains("customer/news"))
@@ -99,6 +100,7 @@ class WorkspaceNavigationTest {
         val procurement = workspaceNavigationForRole("PROCUREMENT")
 
         assertEquals("customer/profile", customer.selectedTabRoute("customer/history"))
+        assertEquals("customer/profile", customer.selectedTabRoute("customer/business/orders"))
         assertEquals("customer/shop", customer.selectedTabRoute("customer/shop/item/product/123"))
         assertEquals("customer/shop", customer.selectedTabRoute("customer/shop/cart"))
         assertEquals("customer/profile", customer.selectedTabRoute("customer/guides/prepare-laptop"))

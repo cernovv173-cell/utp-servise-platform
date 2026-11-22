@@ -50,6 +50,8 @@ fun CustomerDevicesScreen(
     onSaveReminder: (String, String?, String) -> Unit,
     onDelete: (String) -> Unit,
     busy: Boolean,
+    isBusiness: Boolean = false,
+    onBack: (() -> Unit)? = null,
 ) {
     var deviceType by remember { mutableStateOf(deviceTypes.first()) }
     var typeMenu by remember { mutableStateOf(false) }
@@ -64,15 +66,29 @@ fun CustomerDevicesScreen(
         Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Моя техника", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        onBack?.let { back -> TextButton(onClick = back) { Text("← Назад") } }
         Text(
-            "Сохраните устройство, чтобы повторная заявка и история ремонта всегда были под рукой.",
+            if (isBusiness) "Техника компании" else "Моя техника",
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            color = UtpInk,
+        )
+        Text(
+            if (isBusiness) {
+                "Список компании отделён от личной техники. Создавайте корпоративные заявки прямо из карточки устройства."
+            } else {
+                "Сохраните устройство, чтобы повторная заявка и история ремонта всегда были под рукой."
+            },
             fontSize = 13.sp,
             color = UtpMuted,
         )
         Card(shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
             Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                Text("Добавить устройство", fontWeight = FontWeight.SemiBold, color = UtpInk)
+                Text(
+                    if (isBusiness) "Добавить технику компании" else "Добавить устройство",
+                    fontWeight = FontWeight.SemiBold,
+                    color = UtpInk,
+                )
                 Box {
                     OutlinedButton(onClick = { typeMenu = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp)) {
                         Text(deviceType.deviceLabel(), modifier = Modifier.weight(1f))
@@ -92,7 +108,11 @@ fun CustomerDevicesScreen(
                 MaintenanceDatePicker(maintenanceDate) { maintenanceDate = it }
                 DeviceTextField(maintenanceNote, { maintenanceNote = it.take(250) }, "Что нужно проверить (необязательно)")
                 Text(
-                    "В срок напомним в приложении и отправим push, если на телефоне включены уведомления.",
+                    if (isBusiness) {
+                        "Напоминание относится к этому устройству компании и будет отправлено ответственному аккаунту."
+                    } else {
+                        "В срок напомним в приложении и отправим push, если на телефоне включены уведомления."
+                    },
                     fontSize = 12.sp,
                     color = UtpMuted,
                 )
@@ -101,12 +121,22 @@ fun CustomerDevicesScreen(
                     onClick = { onCreate(deviceType, nickname.trim(), brand.trim(), model.trim(), serialNumber.trim(), maintenanceDate.ifBlank { null }, maintenanceNote.trim()) },
                     modifier = Modifier.fillMaxWidth().height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                ) { Text(if (busy) "Сохраняем…" else "Добавить технику") }
+                ) {
+                    Text(
+                        if (busy) "Сохраняем…"
+                        else if (isBusiness) "Добавить технику компании"
+                        else "Добавить технику",
+                    )
+                }
             }
         }
         if (devices.isEmpty()) {
             Card(shape = RoundedCornerShape(18.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
-                Text("Сохранённых устройств пока нет.", Modifier.padding(16.dp), color = UtpMuted)
+                Text(
+                    if (isBusiness) "Техники компании пока нет." else "Сохранённых устройств пока нет.",
+                    Modifier.padding(16.dp),
+                    color = UtpMuted,
+                )
             }
         }
         devices.forEach { device ->
@@ -117,6 +147,7 @@ fun CustomerDevicesScreen(
                 onSaveReminder = { date, note -> onSaveReminder(device.id, date, note) },
                 onDelete = { onDelete(device.id) },
                 busy = busy,
+                isBusiness = isBusiness,
             )
         }
     }
@@ -130,6 +161,7 @@ private fun DeviceCard(
     onSaveReminder: (String?, String) -> Unit,
     onDelete: () -> Unit,
     busy: Boolean,
+    isBusiness: Boolean,
 ) {
     var date by remember(device.id, device.nextMaintenanceAt) { mutableStateOf(device.nextMaintenanceAt?.take(10).orEmpty()) }
     var note by remember(device.id, device.maintenanceNote) { mutableStateOf(device.maintenanceNote.orEmpty()) }
@@ -139,8 +171,16 @@ private fun DeviceCard(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Удалить устройство?") },
-            text = { Text("Связь с карточкой будет удалена, но история заявок, чеки и гарантия останутся.") },
+            title = { Text(if (isBusiness) "Удалить технику компании?" else "Удалить устройство?") },
+            text = {
+                Text(
+                    if (isBusiness) {
+                        "Устройство исчезнет из корпоративного списка, но заявки, чеки и гарантия останутся."
+                    } else {
+                        "Связь с карточкой будет удалена, но история заявок, чеки и гарантия останутся."
+                    },
+                )
+            },
             confirmButton = {
                 TextButton(onClick = { confirmDelete = false; onDelete() }) { Text("Удалить") }
             },
@@ -216,7 +256,7 @@ private fun DeviceCard(
             ) { Text("Сохранить напоминание") }
             if (device.deviceType in deviceTypes) {
                 Button(onClick = onRepeat, enabled = !busy, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
-                    Text("Повторить заявку")
+                    Text(if (isBusiness) "Новая заявка компании" else "Повторить заявку")
                 }
             }
             Text("История ремонта", fontWeight = FontWeight.SemiBold, color = UtpInk)

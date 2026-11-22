@@ -46,6 +46,7 @@ export const createOrderBody = repairOrderIntakeFieldsBody
   .extend({
     customerDeviceId: z.string().uuid().optional(),
     contactPhone: repairOrderContactPhone,
+    businessOrder: z.boolean().optional(),
   })
   .strict();
 
@@ -132,10 +133,18 @@ export const createRepairOrderWithinTransaction = async (
     input: RepairOrderIntakeInput;
     statusNote: string;
     savedDevice?: SavedDevice | null;
+    businessProfileId?: string | null;
   },
 ) => {
-  const { actorId, customerId, contactPhone, input, statusNote, savedDevice } =
-    options;
+  const {
+    actorId,
+    customerId,
+    contactPhone,
+    input,
+    statusNote,
+    savedDevice,
+    businessProfileId,
+  } = options;
   const sequence = await transaction.$queryRaw<Array<{ value: bigint }>>`
     SELECT nextval('repair_service_number_seq') AS value
   `;
@@ -144,6 +153,7 @@ export const createRepairOrderWithinTransaction = async (
     data: {
       serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
       customerId,
+      businessProfileId: businessProfileId ?? null,
       workActRequired: true,
       customerDeviceId: savedDevice?.id ?? null,
       deviceType: savedDevice?.deviceType ?? input.deviceType,

@@ -40,6 +40,7 @@ import ru.utp.servise.data.FlowingFireSettings
 import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.AppUser
 import ru.utp.servise.data.CatalogItem
+import ru.utp.servise.data.CustomerBusinessProfile
 import ru.utp.servise.data.CustomerDevice
 import ru.utp.servise.data.CustomerOffer
 import ru.utp.servise.data.CustomerServicePrice
@@ -117,6 +118,9 @@ internal fun AuthenticatedWorkspace(
     staff: List<StaffMember>,
     reviews: List<CustomerReview>,
     customerDevices: List<CustomerDevice>,
+    customerBusinessProfile: CustomerBusinessProfile?,
+    businessDevices: List<CustomerDevice>,
+    businessOrders: List<RepairOrder>,
     customerServicePrices: List<CustomerServicePrice>,
     catalogItems: List<CatalogItem>,
     craftItems: List<CraftItem>,
@@ -306,6 +310,22 @@ internal fun AuthenticatedWorkspace(
                                 onOpenChat = { navController.navigate("chat/$it") },
                                 onOpenGuide = { slug -> navController.navigate("customer/guides/$slug") },
                                 onBack = { navController.popBackStack() },
+                            )
+                            registerCustomerBusinessRoutes(
+                                navController = navController,
+                                user = user,
+                                token = token,
+                                profile = customerBusinessProfile,
+                                devices = businessDevices,
+                                orders = businessOrders,
+                                servicePrices = customerServicePrices,
+                                banners = banners,
+                                acceptingNewOrders = acceptingNewOrders,
+                                busy = busy,
+                                runAction = runAction,
+                                refresh = refresh,
+                                onError = onError,
+                                onCampaignNavigate = onCampaignNavigate,
                             )
                             composable("technician/profile/{technicianId}") { entry ->
                                 TechnicianProfileScreen(

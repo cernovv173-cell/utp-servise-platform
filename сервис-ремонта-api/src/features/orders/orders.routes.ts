@@ -62,7 +62,16 @@ import {
 
 const orderIdParams = z.object({ orderId: z.string().uuid() });
 const orderListQuery = z
-  .object({ archive: z.enum(["active", "archived"]).optional() })
+  .object({
+    archive: z.enum(["active", "archived"]).optional(),
+    scope: z.enum(["personal", "business"]).optional(),
+  })
+  .strict();
+const orderSearchQuery = z
+  .object({
+    serviceNumber: z.string().trim().min(2).max(32),
+    scope: z.enum(["personal", "business"]).optional(),
+  })
   .strict();
 const orderItemParams = z.object({
   orderId: z.string().uuid(),
@@ -195,6 +204,9 @@ const paramsOf = <T>(response: { locals: { input?: unknown } }): T =>
   (response.locals.input as { readonly params: T }).params;
 
 const orderDetails = (role: UserRole) => ({
+  businessProfile: {
+    select: { id: true, companyName: true },
+  },
   warrantyOriginOrder: {
     select: { id: true, serviceNumber: true },
   },
@@ -296,6 +308,33 @@ const orderDetails = (role: UserRole) => ({
   receipt: true,
 });
 
+const getOrdersRoleWhere = async (
+  database: DatabaseClient,
+  user: { id: string; role: UserRole },
+  scope?: "personal" | "business",
+) => {
+  if (user.role === "CUSTOMER") {
+    if (scope === "business") {
+      const profile = await database.customerBusinessProfile.findUnique({
+        where: { ownerUserId: user.id },
+        select: { id: true },
+      });
+      return profile
+        ? { customerId: user.id, businessProfileId: profile.id }
+        : null;
+    }
+    return { customerId: user.id, businessProfileId: null };
+  }
+  if (scope) {
+    throw new HttpError(
+      400,
+      "ORDER_SCOPE_CUSTOMER_ONLY",
+      "Область заявок доступна только клиентскому аккаунту.",
+    );
+  }
+  return user.role === "TECHNICIAN" ? { assignedTechnicianId: user.id } : {};
+};
+
 const isUniqueViolation = (error: unknown): boolean =>
   typeof error === "object" &&
   error !== null &&
@@ -313,17 +352,16 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     validateRequest({ query: orderListQuery }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
-      const roleWhere =
-        user.role === "CUSTOMER"
-          ? { customerId: user.id }
-          : user.role === "TECHNICIAN"
-            ? { assignedTechnicianId: user.id }
-            : {};
-      const { archive } = (
+      const { archive, scope } = (
         response.locals.input as {
           readonly query: z.infer<typeof orderListQuery>;
         }
       ).query;
+      const roleWhere = await getOrdersRoleWhere(database, user, scope);
+      if (!roleWhere) {
+        response.json({ orders: [] });
+        return;
+      }
       const archiveWhere =
         archive === "active"
           ? { archivedAt: null }
@@ -344,22 +382,19 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
     "/orders/search",
     requireAuth,
     requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
-    validateRequest({
-      query: z.object({ serviceNumber: z.string().trim().min(2).max(32) }),
-    }),
+    validateRequest({ query: orderSearchQuery }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const query = (
         response.locals.input as {
-          readonly query: { readonly serviceNumber: string };
+          readonly query: z.infer<typeof orderSearchQuery>;
         }
       ).query;
-      const roleWhere =
-        user.role === "CUSTOMER"
-          ? { customerId: user.id }
-          : user.role === "TECHNICIAN"
-            ? { assignedTechnicianId: user.id }
-            : {};
+      const roleWhere = await getOrdersRoleWhere(database, user, query.scope);
+      if (!roleWhere) {
+        response.json({ orders: [] });
+        return;
+      }
       const orders = await database.repairOrder.findMany({
         where: {
           ...roleWhere,
@@ -404,9 +439,27 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           SELECT "id" FROM "users" WHERE "id" = ${user.id}::uuid FOR UPDATE
         `;
         await assertRepairOrderIntakeOpen(transaction);
+        const businessProfile = input.businessOrder
+          ? await transaction.customerBusinessProfile.findUnique({
+              where: { ownerUserId: user.id },
+              select: { id: true },
+            })
+          : null;
+        if (input.businessOrder && !businessProfile) {
+          throw new HttpError(
+            404,
+            "BUSINESS_PROFILE_NOT_FOUND",
+            "Сначала создайте профиль компании.",
+          );
+        }
+        const businessProfileId = businessProfile?.id ?? null;
         const savedDevice = input.customerDeviceId
           ? await transaction.customerDevice.findFirst({
-              where: { id: input.customerDeviceId, customerId: user.id },
+              where: {
+                id: input.customerDeviceId,
+                customerId: user.id,
+                businessProfileId,
+              },
             })
           : null;
         if (input.customerDeviceId && !savedDevice) {
@@ -428,6 +481,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           contactPhone: input.contactPhone,
           input,
           statusNote: "Заявка создана",
+          businessProfileId,
           savedDevice: savedDevice
             ? {
                 id: savedDevice.id,
@@ -506,6 +560,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
           data: {
             serviceNumber: `SRV-${new Date().getUTCFullYear()}-${number}`,
             customerId: user.id,
+            businessProfileId: source.businessProfileId,
             workActRequired: true,
             customerDeviceId: source.customerDeviceId,
             warrantyOriginOrderId: source.id,

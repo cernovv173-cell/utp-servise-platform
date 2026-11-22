@@ -304,6 +304,7 @@ model User {
   createdCustomerOffers             CustomerOffer[]                   @relation("CustomerOfferCreator")
   customerOfferEntries              CustomerOfferParticipation[]      @relation("CustomerOfferParticipant")
   customerOfferWinnerPushDeliveries CustomerOfferWinnerPushDelivery[]
+  businessProfile                   CustomerBusinessProfile?
 
   @@index([role, active])
   @@map("users")
@@ -395,6 +396,7 @@ model RepairOrder {
   serviceNumber               String                         @unique @map("service_number") @db.VarChar(32)
   customerId                  String                         @map("customer_id") @db.Uuid
   customerDeviceId            String?                        @map("customer_device_id") @db.Uuid
+  businessProfileId           String?                        @map("business_profile_id") @db.Uuid
   warrantyOriginOrderId       String?                        @map("warranty_origin_order_id") @db.Uuid
   assignedTechnicianId        String?                        @map("assigned_technician_id") @db.Uuid
   deviceType                  String                         @map("device_type") @db.VarChar(120)
@@ -442,6 +444,7 @@ model RepairOrder {
   reviewRequestedById         String?                        @map("review_requested_by_id") @db.Uuid
   customer                    User                           @relation("CustomerOrders", fields: [customerId], references: [id], onDelete: Restrict)
   customerDevice              CustomerDevice?                @relation(fields: [customerDeviceId], references: [id], onDelete: SetNull)
+  businessProfile             CustomerBusinessProfile?       @relation(fields: [businessProfileId], references: [id], onDelete: SetNull)
   warrantyOriginOrder         RepairOrder?                   @relation("WarrantyClaims", fields: [warrantyOriginOrderId], references: [id], onDelete: SetNull)
   warrantyClaims              RepairOrder[]                  @relation("WarrantyClaims")
   assignedTechnician          User?                          @relation("AssignedOrders", fields: [assignedTechnicianId], references: [id], onDelete: SetNull)
@@ -471,6 +474,7 @@ model RepairOrder {
   @@index([preferredAt, status])
   @@index([status, expectedCompletionAt])
   @@index([customerDeviceId])
+  @@index([businessProfileId, createdAt])
   @@index([warrantyOriginOrderId])
   @@index([archivedAt, createdAt])
   @@map("repair_orders")
@@ -497,6 +501,7 @@ model RepairOrderFollowUp {
 model CustomerDevice {
   id                 String                              @id @default(uuid()) @db.Uuid
   customerId         String                              @map("customer_id") @db.Uuid
+  businessProfileId  String?                             @map("business_profile_id") @db.Uuid
   deviceType         String                              @map("device_type") @db.VarChar(120)
   nickname           String?                             @db.VarChar(120)
   brand              String?                             @db.VarChar(120)
@@ -507,11 +512,26 @@ model CustomerDevice {
   createdAt          DateTime                            @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime                            @updatedAt @map("updated_at") @db.Timestamptz(3)
   customer           User                                @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  businessProfile    CustomerBusinessProfile?            @relation(fields: [businessProfileId], references: [id], onDelete: SetNull)
   repairOrders       RepairOrder[]
   reminderDeliveries DeviceMaintenanceReminderDelivery[]
 
   @@index([customerId, createdAt])
+  @@index([businessProfileId, createdAt])
   @@map("customer_devices")
+}
+
+model CustomerBusinessProfile {
+  id           String           @id @default(uuid()) @db.Uuid
+  ownerUserId  String           @unique @map("owner_user_id") @db.Uuid
+  companyName  String           @map("company_name") @db.VarChar(160)
+  createdAt    DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  owner        User             @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  devices      CustomerDevice[]
+  repairOrders RepairOrder[]
+
+  @@map("customer_business_profiles")
 }
 
 model DeviceMaintenanceReminderDelivery {

@@ -14,6 +14,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdvertisingRouteImport } from './routes/advertising'
+import { Route as BusinessRouteImport } from './routes/business'
 import { Route as CatalogRouteImport } from './routes/catalog'
 import { Route as ChatsRouteImport } from './routes/chats'
 import { Route as ChecksRouteImport } from './routes/checks'
@@ -87,6 +88,11 @@ const AdminRoute = AdminRouteImport.update({
 const AdvertisingRoute = AdvertisingRouteImport.update({
   id: '/advertising',
   path: '/advertising',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessRoute = BusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CatalogRoute = CatalogRouteImport.update({
@@ -343,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
   '/advertising': typeof AdvertisingRoute
+  '/business': typeof BusinessRoute
   '/catalog': typeof CatalogRoute
   '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
@@ -399,6 +406,7 @@ export interface FileRoutesByTo {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
   '/advertising': typeof AdvertisingRoute
+  '/business': typeof BusinessRoute
   '/catalog': typeof CatalogRoute
   '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
@@ -454,6 +462,7 @@ export interface FileRoutesById {
   '/account': typeof AccountRoute
   '/admin': typeof AdminRouteWithChildren
   '/advertising': typeof AdvertisingRoute
+  '/business': typeof BusinessRoute
   '/catalog': typeof CatalogRoute
   '/chats': typeof ChatsRoute
   '/checks': typeof ChecksRoute
@@ -512,6 +521,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/advertising'
+    | '/business'
     | '/catalog'
     | '/chats'
     | '/checks'
@@ -568,6 +578,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/advertising'
+    | '/business'
     | '/catalog'
     | '/chats'
     | '/checks'
@@ -622,6 +633,7 @@ export interface FileRouteTypes {
     | '/account'
     | '/admin'
     | '/advertising'
+    | '/business'
     | '/catalog'
     | '/chats'
     | '/checks'
@@ -679,6 +691,7 @@ export interface RootRouteChildren {
   AccountRoute: typeof AccountRoute
   AdminRoute: typeof AdminRouteWithChildren
   AdvertisingRoute: typeof AdvertisingRoute
+  BusinessRoute: typeof BusinessRoute
   CatalogRoute: typeof CatalogRoute
   ChatsRoute: typeof ChatsRoute
   ChecksRoute: typeof ChecksRoute
@@ -738,6 +751,13 @@ declare module '@tanstack/react-router' {
       path: '/advertising'
       fullPath: '/advertising'
       preLoaderRoute: typeof AdvertisingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business': {
+      id: '/business'
+      path: '/business'
+      fullPath: '/business'
+      preLoaderRoute: typeof BusinessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/catalog': {
@@ -1191,6 +1211,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountRoute: AccountRoute,
   AdminRoute: AdminRouteWithChildren,
   AdvertisingRoute: AdvertisingRoute,
+  BusinessRoute: BusinessRoute,
   CatalogRoute: CatalogRoute,
   ChatsRoute: ChatsRoute,
   ChecksRoute: ChecksRoute,

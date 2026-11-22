@@ -12,6 +12,7 @@ test("warranty claims require the customer's active completed warranty and get a
   const customerId = "11111111-1111-4111-8111-111111111111";
   const sourceOrderId = "22222222-2222-4222-8222-222222222222";
   const claimOrderId = "33333333-3333-4333-8333-333333333333";
+  const businessProfileId = "77777777-7777-4777-8777-777777777777";
   const token = "C".repeat(48);
   const customer = {
     id: customerId,
@@ -26,6 +27,7 @@ test("warranty claims require the customer's active completed warranty and get a
   const source = {
     id: sourceOrderId,
     customerId,
+    businessProfileId,
     serviceNumber: "SRV-2026-000001",
     status: "COMPLETED",
     customerDeviceId: "44444444-4444-4444-8444-444444444444",
@@ -151,6 +153,7 @@ test("warranty claims require the customer's active completed warranty and get a
   assert.equal(initialMessage?.content, "Снова выключается при работе");
   assert.equal(createdData?.warrantyOriginOrderId, sourceOrderId);
   assert.equal(createdData?.customerDeviceId, source.customerDeviceId);
+  assert.equal(createdData?.businessProfileId, businessProfileId);
   assert.equal(createdData?.address, source.address);
   assert.equal(createdData?.problem, "Снова выключается при работе");
   assert.deepEqual((await created.json()).order.warrantyOriginOrder, {

@@ -29,6 +29,7 @@ const readLocalizedJson = async <T>(response: Response, fallback: string): Promi
 export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
 export type StaffRole = Exclude<Role, "CUSTOMER"> | "ADMIN_ASSISTANT";
 export type OrderArchiveView = "active" | "archived";
+export type OrderScope = "personal" | "business";
 export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
 export type RepairCatalogServiceCategory = "SOFTWARE";
 export type RepairDeviceType = "COMPUTER" | "LAPTOP" | "MONOBLOCK";
@@ -166,6 +167,8 @@ export type MaxLoginPoll =
 export type RepairOrder = {
   id: string;
   serviceNumber: string;
+  businessProfileId?: string | null;
+  businessProfile?: { id: string; companyName: string } | null;
   deviceType: string;
   deviceBrand?: string | null;
   deviceModel?: string | null;
@@ -280,6 +283,13 @@ export type CustomerDevice = {
     warrantyOriginOrder?: { id: string; serviceNumber: string } | null;
     receipt: { receiptNumber: string; issuedAt: string } | null;
   }[];
+};
+
+export type CustomerBusinessProfile = {
+  id: string;
+  companyName: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type OperationsDashboard = {
@@ -997,13 +1007,38 @@ export const registerRequest = (
     }),
   });
 
-export const getOrders = (token: string, signal?: AbortSignal, archive?: OrderArchiveView) =>
-  apiRequest<{ orders: RepairOrder[] }>(`/orders${archive ? `?archive=${archive}` : ""}`, token, {
+export const getOrders = (
+  token: string,
+  signal?: AbortSignal,
+  archive?: OrderArchiveView,
+  scope?: OrderScope,
+) => {
+  const query = new URLSearchParams();
+  if (archive) query.set("archive", archive);
+  if (scope) query.set("scope", scope);
+  const queryString = query.toString();
+  return apiRequest<{ orders: RepairOrder[] }>(
+    `/orders${queryString ? `?${queryString}` : ""}`,
+    token,
+    { signal },
+  );
+};
+
+export const getCustomerBusinessProfile = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ profile: CustomerBusinessProfile | null }>("/customer/business-profile", token, {
     signal,
   });
 
-export const getCustomerDevices = (token: string, signal?: AbortSignal) =>
-  apiRequest<{ devices: CustomerDevice[] }>("/customer/devices", token, { signal });
+export const saveCustomerBusinessProfile = (token: string, companyName: string) =>
+  apiRequest<{ profile: CustomerBusinessProfile }>("/customer/business-profile", token, {
+    method: "PUT",
+    body: JSON.stringify({ companyName }),
+  });
+
+export const getCustomerDevices = (token: string, signal?: AbortSignal, scope?: OrderScope) => {
+  const query = scope ? `?scope=${scope}` : "";
+  return apiRequest<{ devices: CustomerDevice[] }>(`/customer/devices${query}`, token, { signal });
+};
 
 export type CustomerDeviceInput = Pick<CustomerDevice, "deviceType"> &
   Partial<
@@ -1011,7 +1046,7 @@ export type CustomerDeviceInput = Pick<CustomerDevice, "deviceType"> &
       CustomerDevice,
       "nickname" | "brand" | "model" | "serialNumber" | "nextMaintenanceAt" | "maintenanceNote"
     >
-  >;
+  > & { scope?: OrderScope };
 
 export const createCustomerDevice = (token: string, input: CustomerDeviceInput) =>
   apiRequest<{ device: CustomerDevice }>("/customer/devices", token, {
@@ -1023,14 +1058,18 @@ export const updateCustomerDevice = (
   token: string,
   deviceId: string,
   input: Partial<CustomerDeviceInput>,
+  scope?: OrderScope,
 ) =>
-  apiRequest<{ device: CustomerDevice }>(`/customer/devices/${deviceId}`, token, {
-    method: "PATCH",
-    body: JSON.stringify(input),
-  });
+  apiRequest<{ device: CustomerDevice }>(
+    `/customer/devices/${deviceId}${scope ? `?scope=${scope}` : ""}`,
+    token,
+    { method: "PATCH", body: JSON.stringify(input) },
+  );
 
-export const deleteCustomerDevice = (token: string, deviceId: string) =>
-  apiRequest<void>(`/customer/devices/${deviceId}`, token, { method: "DELETE" });
+export const deleteCustomerDevice = (token: string, deviceId: string, scope?: OrderScope) =>
+  apiRequest<void>(`/customer/devices/${deviceId}${scope ? `?scope=${scope}` : ""}`, token, {
+    method: "DELETE",
+  });
 
 export const createWarrantyClaim = (token: string, originalOrderId: string, problem: string) =>
   apiRequest<{ order: RepairOrder }>(`/orders/${originalOrderId}/warranty-claims`, token, {
@@ -1093,6 +1132,7 @@ export type RepairOrderIntakeFields = {
 export type CreateCustomerRepairOrderInput = Omit<RepairOrderIntakeFields, "contactPhone"> & {
   contactPhone: string;
   customerDeviceId?: string;
+  businessOrder?: boolean;
 };
 
 export type CreateAdminRepairOrderInput = RepairOrderIntakeFields & { customerId: string };
@@ -1752,12 +1792,18 @@ export const setExpectedCompletion = (
     body: JSON.stringify({ expectedCompletionAt, note }),
   });
 
-export const searchOrders = (token: string, serviceNumber: string, signal?: AbortSignal) =>
-  apiRequest<{ orders: RepairOrder[] }>(
-    `/orders/search?serviceNumber=${encodeURIComponent(serviceNumber)}`,
-    token,
-    { signal },
-  );
+export const searchOrders = (
+  token: string,
+  serviceNumber: string,
+  signal?: AbortSignal,
+  scope?: OrderScope,
+) => {
+  const query = new URLSearchParams({ serviceNumber });
+  if (scope) query.set("scope", scope);
+  return apiRequest<{ orders: RepairOrder[] }>(`/orders/search?${query.toString()}`, token, {
+    signal,
+  });
+};
 
 export const getStaff = (token: string, signal?: AbortSignal) =>
   apiRequest<{ staff: StaffMember[] }>("/staff", token, { signal });

@@ -89,6 +89,7 @@ test("order number search returns only records available to the signed-in role",
   });
   assert.deepEqual(calls[1]?.where, {
     customerId: users[1]!.id,
+    businessProfileId: null,
     serviceNumber: { contains: "SRV-2026", mode: "insensitive" },
   });
   assert.equal(calls[1]?.include.customer.select.phoneNumber, false);

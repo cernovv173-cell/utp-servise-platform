@@ -6,6 +6,7 @@ import { createAuthRouter } from "./features/auth/auth.routes.js";
 import { createMaxEmailLoginRouter } from "./features/auth/max-email-login.routes.js";
 import { createPasswordResetRouter } from "./features/auth/password-reset.routes.js";
 import { createBannersRouter } from "./features/banners/banners.routes.js";
+import { createCustomerBusinessProfileRouter } from "./features/business/business-profile.routes.js";
 import { createCatalogRouter } from "./features/catalog/catalog.routes.js";
 import { createChatRouter } from "./features/chat/chat.routes.js";
 import { createCompanyRouter } from "./features/company/company.routes.js";
@@ -145,6 +146,7 @@ export const createApiRouter = ({
     router.use(createAndroidAppRouter(database.client));
     router.use(createStaffRouter(database.client));
     router.use(createCustomerAdminRouter(database.client));
+    router.use(createCustomerBusinessProfileRouter(database.client));
     router.use(createCustomerDevicesRouter(database.client));
     router.use(createCustomerFeedbackRouter(database.client));
     router.use(createSupportChatRouter(database.client));
@@ -196,6 +198,7 @@ export const createApiRouter = ({
         request.path.startsWith("/admin/feedback") ||
         request.path.startsWith("/customer/feedback") ||
         request.path.startsWith("/customer/devices") ||
+        request.path.startsWith("/customer/business-profile") ||
         request.path.startsWith("/media") ||
         request.path.startsWith("/craft-items") ||
         request.path.startsWith("/craft-orders") ||
