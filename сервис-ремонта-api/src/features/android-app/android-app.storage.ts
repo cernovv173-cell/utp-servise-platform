@@ -111,16 +111,57 @@ const safeHttpsUrl = (value: string | null): string => {
   return parsed.toString();
 };
 
-export const getProjectApkDownloadUrl = async (
+const downloadFromSignedUrl = async (value: string): Promise<Response> => {
+  let url = safeHttpsUrl(value);
+  for (let redirectCount = 0; redirectCount <= 5; redirectCount += 1) {
+    let response: Response;
+    try {
+      response = await fetch(url, { redirect: "manual" });
+    } catch {
+      throw new HttpError(
+        502,
+        "APK_STORAGE_ERROR",
+        "Не удалось скачать APK из хранилища.",
+      );
+    }
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location || redirectCount === 5) {
+        throw new HttpError(
+          502,
+          "APK_STORAGE_ERROR",
+          "Хранилище вернуло недопустимую ссылку на APK.",
+        );
+      }
+      url = safeHttpsUrl(new URL(location, url).toString());
+      continue;
+    }
+    if (!response.ok || !response.body) {
+      throw new HttpError(
+        response.status === 404 ? 404 : 502,
+        response.status === 404 ? "APK_NOT_FOUND" : "APK_STORAGE_ERROR",
+        "Не удалось скачать APK из хранилища.",
+      );
+    }
+    return response;
+  }
+  throw new HttpError(
+    502,
+    "APK_STORAGE_ERROR",
+    "Хранилище вернуло слишком много перенаправлений.",
+  );
+};
+
+export const downloadProjectApk = async (
   objectId: string,
-): Promise<string> => {
+): Promise<Response> => {
   const response = await storageRequest(
     `/objects/${encodeURIComponent(objectId)}/download`,
     { redirect: "manual" },
   );
   const location = response.headers.get("location");
   if (response.status >= 300 && response.status < 400 && location) {
-    return safeHttpsUrl(location);
+    return downloadFromSignedUrl(location);
   }
   if (!response.ok) {
     throw new HttpError(404, "APK_NOT_FOUND", "Файл приложения не найден.");
@@ -137,11 +178,17 @@ export const getProjectApkDownloadUrl = async (
       readonly url?: unknown;
     } | null;
     const url = payload?.downloadUrl ?? payload?.signedUrl ?? payload?.url;
-    return safeHttpsUrl(typeof url === "string" ? url : null);
+    if (typeof url !== "string") {
+      throw new HttpError(
+        502,
+        "APK_STORAGE_ERROR",
+        "Хранилище не вернуло ссылку на APK.",
+      );
+    }
+    return downloadFromSignedUrl(url);
   }
-  throw new HttpError(
-    502,
-    "APK_STORAGE_ERROR",
-    "Хранилище не вернуло ссылку на APK.",
-  );
+  if (!response.body) {
+    throw new HttpError(404, "APK_NOT_FOUND", "Файл приложения не найден.");
+  }
+  return response;
 };

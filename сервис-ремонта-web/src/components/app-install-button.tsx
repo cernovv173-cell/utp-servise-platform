@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bot, House } from "lucide-react";
+import { Bot, Check, House, LoaderCircle } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   Modal,
@@ -12,9 +14,13 @@ import {
   ModalTrigger,
 } from "@/components/modal";
 
+import { readApkResponse } from "@/features/android-app/read-apk-response";
+
 import { getAndroidApk, getAndroidApkDownloadUrl } from "@/lib/api";
 
 export const AppInstallButton = () => {
+  const [downloadStatus, setDownloadStatus] = useState<"idle" | "downloading" | "complete">("idle");
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
   const apkQuery = useQuery({
     queryKey: ["android-app"],
     queryFn: ({ signal }) => getAndroidApk(signal),
@@ -28,19 +34,80 @@ export const AppInstallButton = () => {
       : apkQuery.isError || apkQuery.isPending
         ? "/downloads/ru.utp.servise.apk"
         : null;
+  const downloadApk = async () => {
+    if (!downloadUrl || downloadStatus === "downloading") return;
+    setDownloadStatus("downloading");
+    setDownloadProgress(0);
+
+    try {
+      const response = await fetch(downloadUrl, { cache: "no-store" });
+      if (!response.ok) throw new Error("APK download failed");
+
+      const file = await readApkResponse(
+        response,
+        apkQuery.data?.apk.sizeBytes,
+        setDownloadProgress,
+      );
+      const blobUrl = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = apkQuery.data?.apk.fileName || "UTP-Servise.apk";
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      setDownloadStatus("complete");
+      window.setTimeout(() => {
+        setDownloadStatus("idle");
+        setDownloadProgress(null);
+      }, 2_000);
+    } catch {
+      setDownloadStatus("idle");
+      setDownloadProgress(null);
+      toast.error("Не удалось скачать APK. Попробуйте ещё раз.");
+    }
+  };
 
   return (
     <div className="flex flex-wrap items-center gap-3">
       {downloadUrl ? (
-        <a
-          href={downloadUrl}
-          download="UTP-Servise.apk"
-          aria-label="Скачать последнюю версию ЕНОТ СЕРВИС для Android"
-          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-red-600 px-5 text-sm font-semibold text-white shadow-md shadow-red-600/25 transition hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+        <button
+          type="button"
+          onClick={downloadApk}
+          disabled={downloadStatus === "downloading"}
+          aria-busy={downloadStatus === "downloading"}
+          aria-label={
+            downloadStatus === "downloading"
+              ? downloadProgress === null
+                ? "Скачивание APK"
+                : `Скачивание APK: ${downloadProgress}%`
+              : "Скачать последнюю версию ЕНОТ СЕРВИС для Android"
+          }
+          className="relative inline-flex min-h-11 min-w-40 items-center justify-center gap-2 overflow-hidden rounded-full bg-red-600 px-5 text-sm font-semibold text-white shadow-md shadow-red-600/25 transition hover:bg-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 disabled:cursor-wait disabled:hover:bg-red-600"
         >
-          <Bot size={18} aria-hidden="true" />
-          Android APK
-        </a>
+          {downloadStatus === "downloading" ? (
+            <LoaderCircle size={18} className="animate-spin" aria-hidden="true" />
+          ) : downloadStatus === "complete" ? (
+            <Check size={18} aria-hidden="true" />
+          ) : (
+            <Bot size={18} aria-hidden="true" />
+          )}
+          <span aria-live="polite" aria-atomic="true">
+            {downloadStatus === "downloading"
+              ? downloadProgress === null
+                ? "Загрузка…"
+                : `Загрузка ${downloadProgress}%`
+              : downloadStatus === "complete"
+                ? "Готово"
+                : "Android APK"}
+          </span>
+          {downloadStatus === "downloading" && downloadProgress !== null && (
+            <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-1 bg-red-950/30">
+              <span
+                className="block h-full bg-white/90 transition-[width] duration-150"
+                style={{ width: `${downloadProgress}%` }}
+              />
+            </span>
+          )}
+        </button>
       ) : (
         <span
           aria-label="Скачивание Android-приложения временно недоступно"

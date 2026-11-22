@@ -35,10 +35,12 @@ export const AdminOrderCreate = ({
   onCreated,
   trigger,
   triggerClassName,
+  triggerAriaLabel,
 }: {
   onCreated: () => void;
   trigger?: ReactNode;
   triggerClassName?: string;
+  triggerAriaLabel?: string;
 }) => {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
@@ -156,6 +158,7 @@ export const AdminOrderCreate = ({
       <button
         type="button"
         onClick={() => setOpen(true)}
+        aria-label={triggerAriaLabel}
         className={
           triggerClassName ??
           "min-h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"

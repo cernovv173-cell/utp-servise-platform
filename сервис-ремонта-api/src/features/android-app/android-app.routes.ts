@@ -1,5 +1,7 @@
 import express, { type RequestHandler, Router } from "express";
 import { createHash } from "node:crypto";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { z } from "zod";
 
 import { Prisma } from "../../generated/prisma/client.js";
@@ -17,7 +19,7 @@ import {
 } from "./android-apk-metadata.js";
 import {
   deleteProjectApk,
-  getProjectApkDownloadUrl,
+  downloadProjectApk,
   uploadProjectApk,
 } from "./android-app.storage.js";
 
@@ -72,7 +74,7 @@ type ActiveApkRecord = z.infer<typeof activeApkSchema>;
 export type AndroidApkStorage = {
   readonly upload: typeof uploadProjectApk;
   readonly delete: typeof deleteProjectApk;
-  readonly downloadUrl: typeof getProjectApkDownloadUrl;
+  readonly download: typeof downloadProjectApk;
 };
 
 export type AndroidAppUpdateNotificationSender = typeof sendPushNotification;
@@ -80,7 +82,7 @@ export type AndroidAppUpdateNotificationSender = typeof sendPushNotification;
 const projectApkStorage: AndroidApkStorage = {
   upload: uploadProjectApk,
   delete: deleteProjectApk,
-  downloadUrl: getProjectApkDownloadUrl,
+  download: downloadProjectApk,
 };
 
 const apkBody: RequestHandler = express.raw({
@@ -303,13 +305,34 @@ export const createAndroidAppRouter = (
     if (record.status === "deleted") {
       throw new HttpError(404, "APK_NOT_FOUND", "APK пока не загружен.");
     }
-    const url = await storage.downloadUrl(record.objectId);
+    const file = await storage.download(record.objectId);
+    if (!file.ok || !file.body) {
+      throw new HttpError(
+        502,
+        "APK_DOWNLOAD_FAILED",
+        "Не удалось скачать APK.",
+      );
+    }
     await recordProductAnalytics(
       database,
       "APP_DOWNLOAD",
       productAnalyticsChannel(request),
     );
-    response.redirect(302, url);
+    response.status(200);
+    response.setHeader("Cache-Control", "no-store");
+    response.setHeader("Content-Type", APK_CONTENT_TYPE);
+    response.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${APK_FILE_NAME}"`,
+    );
+    response.setHeader("Content-Length", String(record.sizeBytes));
+    response.setHeader("Access-Control-Expose-Headers", "Content-Length");
+    await pipeline(
+      Readable.fromWeb(
+        file.body as import("node:stream/web").ReadableStream<Uint8Array>,
+      ),
+      response,
+    );
   });
 
   router.get(

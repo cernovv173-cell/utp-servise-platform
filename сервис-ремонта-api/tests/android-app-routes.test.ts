@@ -176,8 +176,17 @@ test("public APK link follows the current upload and administrators can replace 
       storedObjects.delete(objectId);
       deletedObjects.push(objectId);
     },
-    downloadUrl: async (objectId) =>
-      `https://files.example.test/${objectId}?token=signed`,
+    download: async (objectId) => {
+      const bytes = storedObjects.get(objectId);
+      return bytes
+        ? new Response(new Uint8Array(bytes), {
+            headers: {
+              "content-length": String(bytes.length),
+              "content-type": APK_CONTENT_TYPE,
+            },
+          })
+        : new Response(null, { status: 404 });
+    },
   };
   const previousOrigin = process.env.WEB_APP_ORIGIN;
   process.env.WEB_APP_ORIGIN = "https://site.example.test";
@@ -339,11 +348,17 @@ test("public APK link follows the current upload and administrators can replace 
   const firstDownload = await fetch(`${baseUrl}/android-app/download`, {
     redirect: "manual",
   });
-  assert.equal(firstDownload.status, 302);
+  assert.equal(firstDownload.status, 200);
+  assert.equal(firstDownload.headers.get("content-type"), APK_CONTENT_TYPE);
   assert.equal(
-    firstDownload.headers.get("location"),
-    "https://files.example.test/apk-1?token=signed",
+    firstDownload.headers.get("content-length"),
+    String(firstBytes.length),
   );
+  assert.equal(
+    firstDownload.headers.get("content-disposition"),
+    'attachment; filename="UTP-Servise.apk"',
+  );
+  assert.deepEqual(Buffer.from(await firstDownload.arrayBuffer()), firstBytes);
   assert.equal(recordedAnalyticsEvents.length, 2);
   assert.ok(
     recordedAnalyticsEvents.every(
@@ -381,9 +396,10 @@ test("public APK link follows the current upload and administrators can replace 
   const currentDownload = await fetch(`${baseUrl}/android-app/download`, {
     redirect: "manual",
   });
-  assert.equal(
-    currentDownload.headers.get("location"),
-    "https://files.example.test/apk-2?token=signed",
+  assert.equal(currentDownload.status, 200);
+  assert.deepEqual(
+    Buffer.from(await currentDownload.arrayBuffer()),
+    secondBytes,
   );
   assert.equal(recordedAnalyticsEvents.length, 3);
 
