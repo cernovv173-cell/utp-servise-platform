@@ -32,6 +32,7 @@ describe("role-aware primary navigation", () => {
       "/admin/orders",
       "/admin",
       "/admin/seasonal",
+      "/admin/salary-reports",
       "/catalog",
       "/account",
     ]);

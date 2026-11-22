@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 import https from "node:https";
 
@@ -15,6 +15,7 @@ export class MaxApiError extends Error {
     readonly code: "NOT_CONFIGURED" | "NETWORK" | "API_ERROR",
     readonly errorCode?: number,
     readonly retryAfterSeconds?: number,
+    readonly apiErrorCode?: string,
   ) {
     super("MAX Bot API request failed.");
     this.name = "MaxApiError";
@@ -99,6 +100,104 @@ const maxRequest = async <T>(
         response.once("error", () => reject(new MaxApiError("NETWORK")));
         response.once("end", () => {
           const statusCode = response.statusCode ?? 0;
+          const responseText = Buffer.concat(chunks).toString("utf8");
+          let responseBody: unknown;
+          try {
+            responseBody = JSON.parse(responseText) as unknown;
+          } catch {
+            responseBody = undefined;
+          }
+          if (statusCode < 200 || statusCode >= 300) {
+            const retryAfter = Number(response.headers["retry-after"]);
+            const errorBody =
+              responseBody && typeof responseBody === "object"
+                ? (responseBody as Record<string, unknown>)
+                : undefined;
+            const apiErrorCode =
+              typeof errorBody?.code === "string"
+                ? errorBody.code
+                : typeof errorBody?.error_code === "string"
+                  ? errorBody.error_code
+                  : typeof errorBody?.error === "string"
+                    ? errorBody.error
+                    : undefined;
+            reject(
+              new MaxApiError(
+                "API_ERROR",
+                statusCode,
+                Number.isFinite(retryAfter) && retryAfter > 0
+                  ? retryAfter
+                  : undefined,
+                apiErrorCode,
+              ),
+            );
+            return;
+          }
+
+          if (responseBody === undefined) {
+            reject(new MaxApiError("API_ERROR", statusCode));
+            return;
+          }
+          resolve(responseBody as T);
+        });
+      },
+    );
+    request.setTimeout(10_000, () => {
+      request.destroy();
+    });
+    request.once("error", () => reject(new MaxApiError("NETWORK")));
+    if (body) request.write(body);
+    request.end();
+  });
+};
+
+type MaxFileUpload = {
+  readonly url?: unknown;
+  readonly token?: unknown;
+};
+
+const uploadMaxFileBytes = async (input: {
+  readonly url: string;
+  readonly fileName: string;
+  readonly contentType: string;
+  readonly bytes: Buffer;
+}): Promise<string | null> => {
+  const parsedUrl = new URL(input.url);
+  if (
+    parsedUrl.protocol !== "https:" ||
+    !["fu.oneme.ru", "omu.okcdn.ru"].includes(parsedUrl.hostname)
+  ) {
+    throw new MaxApiError("API_ERROR");
+  }
+
+  const boundary = `----AmaziMax${randomUUID().replaceAll("-", "")}`;
+  const prefix = Buffer.from(
+    `--${boundary}\r\n` +
+      `Content-Disposition: form-data; name="data"; filename="${input.fileName}"\r\n` +
+      `Content-Type: ${input.contentType}\r\n\r\n`,
+    "utf8",
+  );
+  const suffix = Buffer.from(`\r\n--${boundary}--\r\n`, "utf8");
+  const body = Buffer.concat([prefix, input.bytes, suffix]);
+
+  return new Promise<string | null>((resolve, reject) => {
+    const request = https.request(
+      parsedUrl,
+      {
+        method: "POST",
+        agent: maxApiAgent,
+        headers: {
+          "content-type": `multipart/form-data; boundary=${boundary}`,
+          "content-length": body.length,
+        },
+      },
+      (response) => {
+        const chunks: Buffer[] = [];
+        response.on("data", (chunk: Buffer) => chunks.push(chunk));
+        response.once("error", () => reject(new MaxApiError("NETWORK")));
+        response.once("end", () => {
+          const statusCode = response.statusCode ?? 0;
+          const responseText = Buffer.concat(chunks).toString("utf8");
           if (statusCode < 200 || statusCode >= 300) {
             const retryAfter = Number(response.headers["retry-after"]);
             reject(
@@ -112,21 +211,74 @@ const maxRequest = async <T>(
             );
             return;
           }
-
+          let result: unknown;
           try {
-            resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")) as T);
+            result = JSON.parse(responseText) as unknown;
           } catch {
-            reject(new MaxApiError("API_ERROR", statusCode));
+            result = undefined;
           }
+          const token =
+            result && typeof result === "object" && "token" in result
+              ? result.token
+              : undefined;
+          resolve(typeof token === "string" && token.length > 0 ? token : null);
         });
       },
     );
-    request.setTimeout(10_000, () => {
-      request.destroy();
-    });
+    request.setTimeout(20_000, () => request.destroy());
     request.once("error", () => reject(new MaxApiError("NETWORK")));
-    if (body) request.write(body);
-    request.end();
+    request.end(body);
+  });
+};
+
+export const uploadMaxFile = async (input: {
+  readonly bytes: Buffer;
+  readonly fileName: string;
+  readonly contentType: string;
+}): Promise<string> => {
+  if (
+    input.bytes.length === 0 ||
+    input.bytes.length > 10 * 1024 * 1024 ||
+    !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/u.test(input.fileName) ||
+    !/^[A-Za-z0-9][A-Za-z0-9.+-]*\/[A-Za-z0-9][A-Za-z0-9.+-]*$/u.test(
+      input.contentType,
+    )
+  ) {
+    throw new MaxApiError("API_ERROR");
+  }
+  const upload = await maxRequest<MaxFileUpload>("/uploads?type=file", {
+    method: "POST",
+  });
+  if (
+    typeof upload.url !== "string" ||
+    (upload.token !== undefined &&
+      (typeof upload.token !== "string" || upload.token.length === 0))
+  ) {
+    throw new MaxApiError("API_ERROR");
+  }
+  const uploadedToken = await uploadMaxFileBytes({
+    url: upload.url,
+    fileName: input.fileName,
+    contentType: input.contentType,
+    bytes: input.bytes,
+  });
+  const token =
+    uploadedToken ?? (typeof upload.token === "string" ? upload.token : null);
+  if (!token) throw new MaxApiError("API_ERROR");
+  return token;
+};
+
+export const sendMaxFileMessage = async (
+  userId: string,
+  text: string,
+  fileToken: string,
+): Promise<void> => {
+  await maxRequest(`/messages?user_id=${encodeURIComponent(userId)}`, {
+    method: "POST",
+    body: {
+      text,
+      attachments: [{ type: "file", payload: { token: fileToken } }],
+    },
   });
 };
 

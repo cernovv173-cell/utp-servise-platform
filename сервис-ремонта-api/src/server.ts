@@ -10,6 +10,7 @@ import { startBirthdayPushWorker } from "./features/notifications/birthday-push-
 import { startMaintenanceReminderWorker } from "./features/notifications/maintenance-reminder-worker.js";
 import { startOrderArchiveWorker } from "./features/orders/order-archive-worker.js";
 import { startRepairFollowUpPushWorker } from "./features/orders/repair-follow-up-push-worker.js";
+import { startMonthlySalaryReportWorker } from "./features/salary/monthly-salary-report-worker.js";
 import { startTelegramNotificationWorker } from "./features/telegram/telegram-notifications.js";
 import { setupTelegramWebhookIfUnclaimed } from "./features/telegram/telegram-webhook-setup.js";
 import { readConfig } from "./lib/config.js";
@@ -78,6 +79,10 @@ const start = async (): Promise<void> => {
     database && config.nodeEnv === "production"
       ? startMaxNotificationWorker(database.client)
       : () => undefined;
+  const stopMonthlySalaryReportWorker =
+    database && config.nodeEnv === "production"
+      ? startMonthlySalaryReportWorker(database.client)
+      : () => undefined;
   const server = app.listen(config.port, host, () => {
     logger.info({ host, port: config.port }, "Backend server started");
     if (database && config.nodeEnv === "production") {
@@ -102,6 +107,7 @@ const start = async (): Promise<void> => {
     stopOrderArchiveWorker();
     stopTelegramNotificationWorker();
     stopMaxNotificationWorker();
+    stopMonthlySalaryReportWorker();
     server.close((serverError) => {
       void (database?.close() ?? Promise.resolve())
         .catch(() => {

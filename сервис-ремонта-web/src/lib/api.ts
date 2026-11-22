@@ -789,6 +789,23 @@ export type SalarySummary = {
   }>;
 };
 
+export type MonthlySalaryReportDeliveryCounts = Record<
+  "PENDING" | "PROCESSING" | "SENDING" | "SENT" | "FAILED" | "UNKNOWN" | "SKIPPED",
+  number
+>;
+
+export type MonthlySalaryReport = {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  fileName: string;
+  workCount: number;
+  technicianCount: number;
+  totalSalaryRub: number;
+  generatedAt: string;
+  deliveryCounts: MonthlySalaryReportDeliveryCounts;
+};
+
 export type SiteBanner = {
   id: string;
   title: string;
@@ -2126,6 +2143,42 @@ export const getReferralProgram = (token: string, signal?: AbortSignal) =>
 
 export const getSalarySummary = (token: string, timeZone: string, signal?: AbortSignal) =>
   apiRequest<SalarySummary>(`/salary?timeZone=${encodeURIComponent(timeZone)}`, token, { signal });
+
+export const getMonthlySalaryReports = (token: string, signal?: AbortSignal) =>
+  apiRequest<{ reports: MonthlySalaryReport[] }>("/admin/salary-reports", token, { signal });
+
+export const downloadMonthlySalaryReport = async (
+  token: string,
+  reportId: string,
+  signal?: AbortSignal,
+): Promise<Blob> => {
+  const response = await localizedFetch(
+    `${apiBase}/admin/salary-reports/${encodeURIComponent(reportId)}/file`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      signal,
+    },
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { code?: unknown; message?: unknown };
+    } | null;
+    throw new ApiRequestError(
+      typeof payload?.error?.code === "string" ? payload.error.code : "REQUEST_FAILED",
+      response.status,
+      russianErrorMessage(payload?.error?.message, response.status),
+    );
+  }
+  const contentType = response.headers.get("content-type")?.split(";", 1)[0];
+  if (contentType !== "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+    throw new ApiRequestError(
+      "INVALID_RESPONSE",
+      response.status,
+      "Сервер вернул файл неподдерживаемого формата.",
+    );
+  }
+  return response.blob();
+};
 
 export const getAdminLoyalty = (token: string, signal?: AbortSignal) =>
   apiRequest<{ customers: LoyaltyCustomer[] }>("/admin/loyalty", token, { signal });

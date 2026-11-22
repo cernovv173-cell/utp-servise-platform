@@ -1,4 +1,4 @@
-type CalendarDate = { year: number; month: number; day: number };
+export type CalendarDate = { year: number; month: number; day: number };
 
 export type SalaryPeriodRange = { startsAt: Date; endsAt: Date };
 export type SalaryPeriodName = "day" | "week" | "month";
@@ -20,6 +20,11 @@ const datePartsAt = (date: Date, timeZone: string): CalendarDate => {
     day: Number(values.day),
   };
 };
+
+export const getCalendarDateParts = (
+  date: Date,
+  timeZone: string,
+): CalendarDate => datePartsAt(date, timeZone);
 
 const shiftCalendarDate = (date: CalendarDate, days: number): CalendarDate => {
   const shifted = new Date(
@@ -67,6 +72,28 @@ const localMidnightAsDate = (date: CalendarDate, timeZone: string): Date => {
   return new Date(estimate);
 };
 
+export const getSalaryMonthRangeForCalendarMonth = (
+  year: number,
+  month: number,
+  timeZone: string,
+): SalaryPeriodRange => {
+  if (
+    !Number.isInteger(year) ||
+    year < 1 ||
+    !Number.isInteger(month) ||
+    month < 1 ||
+    month > 12
+  ) {
+    throw new RangeError("Salary month must be a valid calendar month.");
+  }
+  const nextMonth =
+    month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 };
+  return {
+    startsAt: localMidnightAsDate({ year, month, day: 1 }, timeZone),
+    endsAt: localMidnightAsDate({ ...nextMonth, day: 1 }, timeZone),
+  };
+};
+
 export const getSalaryPeriodRanges = (
   now: Date,
   timeZone: string,
@@ -77,7 +104,11 @@ export const getSalaryPeriodRanges = (
   ).getUTCDay();
   const daysFromMonday = (weekday + 6) % 7;
   const weekStart = shiftCalendarDate(today, -daysFromMonday);
-  const monthStart = { year: today.year, month: today.month, day: 1 };
+  const month = getSalaryMonthRangeForCalendarMonth(
+    today.year,
+    today.month,
+    timeZone,
+  );
 
   return {
     day: {
@@ -88,14 +119,6 @@ export const getSalaryPeriodRanges = (
       startsAt: localMidnightAsDate(weekStart, timeZone),
       endsAt: localMidnightAsDate(shiftCalendarDate(weekStart, 7), timeZone),
     },
-    month: {
-      startsAt: localMidnightAsDate(monthStart, timeZone),
-      endsAt: localMidnightAsDate(
-        monthStart.month === 12
-          ? { year: monthStart.year + 1, month: 1, day: 1 }
-          : { year: monthStart.year, month: monthStart.month + 1, day: 1 },
-        timeZone,
-      ),
-    },
+    month,
   };
 };

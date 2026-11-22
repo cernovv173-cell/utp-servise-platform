@@ -10,6 +10,7 @@ export type SupportedImageType = (typeof supportedImageTypes)[number];
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 20 * 1024 * 1024;
+const MAX_PROJECT_FILE_BYTES = 10 * 1024 * 1024;
 export const supportedVideoTypes = ["video/mp4"] as const;
 export type SupportedVideoType = (typeof supportedVideoTypes)[number];
 export type SupportedMediaType = SupportedImageType | SupportedVideoType;
@@ -19,15 +20,14 @@ type StorageConfig = {
   readonly token: string;
 };
 
-const storageConfig = (): StorageConfig => {
+const storageConfig = (
+  errorCode = "IMAGE_STORAGE_UNAVAILABLE",
+  unavailableMessage = "Хранилище фотографий временно недоступно.",
+): StorageConfig => {
   const apiUrl = process.env.AMAZI_STORAGE_API_URL?.trim().replace(/\/+$/, "");
   const token = process.env.AMAZI_STORAGE_PROJECT_TOKEN?.trim();
   if (!apiUrl || !token) {
-    throw new HttpError(
-      503,
-      "IMAGE_STORAGE_UNAVAILABLE",
-      "Хранилище фотографий временно недоступно.",
-    );
+    throw new HttpError(503, errorCode, unavailableMessage);
   }
   return { apiUrl, token };
 };
@@ -93,8 +93,14 @@ export const validateMedia = (
 const storageRequest = async (
   path: string,
   init: RequestInit = {},
+  errorCode = "IMAGE_STORAGE_ERROR",
+  connectionMessage = "Не удалось связаться с хранилищем фотографий.",
 ): Promise<Response> => {
-  const config = storageConfig();
+  const isProjectFileRequest = errorCode === "PROJECT_FILE_STORAGE_ERROR";
+  const config = storageConfig(
+    isProjectFileRequest ? "PROJECT_FILE_STORAGE_ERROR" : undefined,
+    isProjectFileRequest ? "Хранилище файлов временно недоступно." : undefined,
+  );
   try {
     return await fetch(`${config.apiUrl}${path}`, {
       ...init,
@@ -104,12 +110,59 @@ const storageRequest = async (
       },
     });
   } catch {
+    throw new HttpError(502, errorCode, connectionMessage);
+  }
+};
+
+export const uploadProjectFile = async (
+  bytes: Buffer,
+  contentType: string,
+  fileName: string,
+): Promise<string> => {
+  if (
+    bytes.length === 0 ||
+    bytes.length > MAX_PROJECT_FILE_BYTES ||
+    !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,119}$/u.test(fileName) ||
+    !/^[a-zA-Z0-9][a-zA-Z0-9.+-]*\/[a-zA-Z0-9][a-zA-Z0-9.+-]*$/u.test(
+      contentType,
+    )
+  ) {
     throw new HttpError(
-      502,
-      "IMAGE_STORAGE_ERROR",
-      "Не удалось связаться с хранилищем фотографий.",
+      400,
+      "INVALID_PROJECT_FILE",
+      "Файл отчёта имеет недопустимый формат или размер.",
     );
   }
+  const form = new FormData();
+  form.append(
+    "file",
+    new Blob([new Uint8Array(bytes)], { type: contentType }),
+    fileName,
+  );
+  const response = await storageRequest(
+    "/uploads",
+    { method: "POST", body: form },
+    "PROJECT_FILE_STORAGE_ERROR",
+    "Не удалось связаться с хранилищем файлов.",
+  );
+  if (!response.ok) {
+    throw new HttpError(
+      502,
+      "PROJECT_FILE_STORAGE_ERROR",
+      "Не удалось сохранить файл отчёта.",
+    );
+  }
+  const result = (await response.json().catch(() => null)) as {
+    readonly objectId?: unknown;
+  } | null;
+  if (typeof result?.objectId !== "string" || result.objectId.length === 0) {
+    throw new HttpError(
+      502,
+      "PROJECT_FILE_STORAGE_ERROR",
+      "Хранилище не подтвердило сохранение файла отчёта.",
+    );
+  }
+  return result.objectId;
 };
 
 export const uploadProjectMedia = async (
@@ -146,23 +199,54 @@ export const uploadProjectMedia = async (
   return result.objectId;
 };
 
-export const deleteProjectImage = async (objectId: string): Promise<void> => {
+const deleteProjectObject = async (
+  objectId: string,
+  errorCode: string,
+  failureMessage: string,
+): Promise<void> => {
   const response = await storageRequest(
     `/objects/${encodeURIComponent(objectId)}`,
     { method: "DELETE" },
+    errorCode,
+    failureMessage,
   );
   if (!response.ok && response.status !== 404) {
-    throw new HttpError(
-      502,
-      "IMAGE_STORAGE_ERROR",
-      "Не удалось удалить старую фотографию.",
-    );
+    throw new HttpError(502, errorCode, failureMessage);
   }
 };
 
-const resolveDownloadResponse = async (objectId: string): Promise<Response> => {
+export const deleteProjectImage = async (objectId: string): Promise<void> =>
+  deleteProjectObject(
+    objectId,
+    "IMAGE_STORAGE_ERROR",
+    "Не удалось удалить старую фотографию.",
+  );
+
+export const deleteProjectFile = async (objectId: string): Promise<void> =>
+  deleteProjectObject(
+    objectId,
+    "PROJECT_FILE_STORAGE_ERROR",
+    "Не удалось удалить файл отчёта из хранилища.",
+  );
+
+const resolveDownloadResponse = async (
+  objectId: string,
+  errorCode = "IMAGE_STORAGE_ERROR",
+): Promise<Response> => {
+  const isProjectFile = errorCode === "PROJECT_FILE_STORAGE_ERROR";
+  const missingFileMessage = isProjectFile
+    ? "Хранилище не вернуло файл."
+    : "Хранилище не вернуло фотографию.";
+  const invalidUrlMessage = isProjectFile
+    ? "Хранилище вернуло недопустимый адрес файла."
+    : "Хранилище вернуло недопустимый адрес фотографии.";
   let response = await storageRequest(
     `/objects/${encodeURIComponent(objectId)}/download`,
+    {},
+    errorCode,
+    isProjectFile
+      ? "Не удалось получить файл из хранилища."
+      : "Не удалось получить фотографию из хранилища.",
   );
   const responseType = response.headers.get("content-type")?.split(";", 1)[0];
   if (response.ok && responseType?.toLowerCase() === "application/json") {
@@ -174,23 +258,62 @@ const resolveDownloadResponse = async (objectId: string): Promise<Response> => {
     const downloadUrl =
       payload?.downloadUrl ?? payload?.signedUrl ?? payload?.url;
     if (typeof downloadUrl !== "string") {
-      throw new HttpError(
-        502,
-        "IMAGE_STORAGE_ERROR",
-        "Хранилище не вернуло фотографию.",
-      );
+      throw new HttpError(502, errorCode, missingFileMessage);
     }
     const parsedUrl = new URL(downloadUrl);
     if (parsedUrl.protocol !== "https:") {
+      throw new HttpError(502, errorCode, invalidUrlMessage);
+    }
+    try {
+      response = await fetch(parsedUrl);
+    } catch {
       throw new HttpError(
         502,
-        "IMAGE_STORAGE_ERROR",
-        "Хранилище вернуло недопустимый адрес фотографии.",
+        errorCode,
+        isProjectFile
+          ? "Не удалось скачать файл из хранилища."
+          : "Не удалось скачать фотографию из хранилища.",
       );
     }
-    response = await fetch(parsedUrl);
   }
   return response;
+};
+
+export const downloadProjectFile = async (
+  objectId: string,
+): Promise<{ readonly bytes: Buffer; readonly contentType: string }> => {
+  const response = await resolveDownloadResponse(
+    objectId,
+    "PROJECT_FILE_STORAGE_ERROR",
+  );
+  if (!response.ok) {
+    throw new HttpError(
+      404,
+      "PROJECT_FILE_NOT_FOUND",
+      "Файл отчёта не найден.",
+    );
+  }
+  const contentType = response.headers
+    .get("content-type")
+    ?.split(";", 1)[0]
+    ?.trim()
+    .toLowerCase();
+  if (!contentType) {
+    throw new HttpError(
+      502,
+      "PROJECT_FILE_STORAGE_ERROR",
+      "Хранилище вернуло файл без типа содержимого.",
+    );
+  }
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length === 0 || bytes.length > MAX_PROJECT_FILE_BYTES) {
+    throw new HttpError(
+      502,
+      "PROJECT_FILE_STORAGE_ERROR",
+      "Файл отчёта повреждён или превышает допустимый размер.",
+    );
+  }
+  return { bytes, contentType };
 };
 
 export const downloadProjectMedia = async (

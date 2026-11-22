@@ -414,6 +414,25 @@ outside the repair percentage. These additive fields are introduced by migration
 `20261111080000_repair_visit_scenario`; existing order rows default to scenario version 0. See
 [`../docs/repair-visit-scenario.md`](../docs/repair-visit-scenario.md) for the complete workflow.
 
+A production-only worker creates one XLSX report for each fully completed Moscow calendar month at
+10:00 on the first day of the following month. The workbook has a summary for every technician and
+a detailed row for each recorded repair or craft-order salary entry. It uses the frozen `salaryRub`,
+rate, service total, and repair visit-fee values saved with each entry; repair diagnosis/travel fees
+are shown separately and are already included in the recorded salary. The report is an accrued-pay
+summary only: the system does not record payroll taxes, deductions, or advances, so they are not
+subtracted. Customer names, contacts, addresses, and device details are excluded from the workbook.
+
+Each report is stored as a private project-storage object and indexed in
+`technician_monthly_salary_reports`. Administrators can list and download reports through the
+admin-only `GET /admin/salary-reports` and `GET /admin/salary-reports/:reportId/file` endpoints; the
+web admin archive is at `/admin/salary-reports`. An XLSX copy is retained in that archive whether or
+not any administrator has linked MAX. When the MAX bot is configured, the worker queues a file
+delivery only for active administrator accounts with a linked MAX user ID. Delivery retries are
+bounded; an uncertain message result is not resent automatically to avoid duplicate payroll files.
+No report for a month before the feature was enabled is generated. The monthly archive is retained
+until an administrator removes it through a future supported retention workflow; there is currently
+no automatic deletion.
+
 The former pickup-QR endpoints are no longer available; legacy code records and columns are retained
 for historical data.
 

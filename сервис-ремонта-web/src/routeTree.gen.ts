@@ -46,6 +46,7 @@ import { Route as AdminOrderEditingRouteImport } from './routes/admin.order-edit
 import { Route as AdminOrdersRouteImport } from './routes/admin.orders'
 import { Route as AdminOverviewRouteImport } from './routes/admin.overview'
 import { Route as AdminProcurementRouteImport } from './routes/admin.procurement'
+import { Route as AdminSalaryReportsRouteImport } from './routes/admin.salary-reports'
 import { Route as AdminScheduleRouteImport } from './routes/admin.schedule'
 import { Route as AdminSeasonalRouteImport } from './routes/admin.seasonal'
 import { Route as AdminShopOrdersRouteImport } from './routes/admin.shop-orders'
@@ -250,6 +251,11 @@ const AdminProcurementRoute = AdminProcurementRouteImport.update({
   path: '/procurement',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSalaryReportsRoute = AdminSalaryReportsRouteImport.update({
+  id: '/salary-reports',
+  path: '/salary-reports',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminScheduleRoute = AdminScheduleRouteImport.update({
   id: '/schedule',
   path: '/schedule',
@@ -381,6 +387,7 @@ export interface FileRoutesByFullPath {
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
+  '/admin/salary-reports': typeof AdminSalaryReportsRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
@@ -436,6 +443,7 @@ export interface FileRoutesByTo {
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
+  '/admin/salary-reports': typeof AdminSalaryReportsRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
@@ -494,6 +502,7 @@ export interface FileRoutesById {
   '/admin/orders': typeof AdminOrdersRouteWithChildren
   '/admin/overview': typeof AdminOverviewRoute
   '/admin/procurement': typeof AdminProcurementRoute
+  '/admin/salary-reports': typeof AdminSalaryReportsRoute
   '/admin/schedule': typeof AdminScheduleRoute
   '/admin/seasonal': typeof AdminSeasonalRoute
   '/admin/shop-orders': typeof AdminShopOrdersRoute
@@ -553,6 +562,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/overview'
     | '/admin/procurement'
+    | '/admin/salary-reports'
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
@@ -608,6 +618,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/overview'
     | '/admin/procurement'
+    | '/admin/salary-reports'
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
@@ -665,6 +676,7 @@ export interface FileRouteTypes {
     | '/admin/orders'
     | '/admin/overview'
     | '/admin/procurement'
+    | '/admin/salary-reports'
     | '/admin/schedule'
     | '/admin/seasonal'
     | '/admin/shop-orders'
@@ -977,6 +989,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProcurementRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/salary-reports': {
+      id: '/admin/salary-reports'
+      path: '/salary-reports'
+      fullPath: '/admin/salary-reports'
+      preLoaderRoute: typeof AdminSalaryReportsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/schedule': {
       id: '/admin/schedule'
       path: '/schedule'
@@ -1130,6 +1149,7 @@ interface AdminRouteChildren {
   AdminOrdersRoute: typeof AdminOrdersRouteWithChildren
   AdminOverviewRoute: typeof AdminOverviewRoute
   AdminProcurementRoute: typeof AdminProcurementRoute
+  AdminSalaryReportsRoute: typeof AdminSalaryReportsRoute
   AdminScheduleRoute: typeof AdminScheduleRoute
   AdminSeasonalRoute: typeof AdminSeasonalRoute
   AdminShopOrdersRoute: typeof AdminShopOrdersRoute
@@ -1148,6 +1168,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminOrdersRoute: AdminOrdersRouteWithChildren,
   AdminOverviewRoute: AdminOverviewRoute,
   AdminProcurementRoute: AdminProcurementRoute,
+  AdminSalaryReportsRoute: AdminSalaryReportsRoute,
   AdminScheduleRoute: AdminScheduleRoute,
   AdminSeasonalRoute: AdminSeasonalRoute,
   AdminShopOrdersRoute: AdminShopOrdersRoute,

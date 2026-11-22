@@ -6,7 +6,9 @@ import {
   hasMaxWebhookSecret,
   isMaxWebhookSecretValid,
   maxWebhookSecret,
+  sendMaxFileMessage,
   sendMaxMessage,
+  uploadMaxFile,
 } from "../src/features/max/max-bot.js";
 import {
   formatMaxRepairNotification,
@@ -133,5 +135,53 @@ test("uses the official MAX API host and keeps the bot token in the auth header"
       "MAX_WEBHOOK_SIGNING_SECRET",
       previousEnvironment.signingSecret,
     );
+  }
+});
+
+test("uploads an XLSX through the MAX file endpoint and attaches its returned token", async () => {
+  const previousToken = process.env.MAX_BOT_TOKEN;
+  const botToken = "test-token-only-not-a-live-credential";
+  const fileToken = "test-uploaded-file-token";
+  process.env.MAX_BOT_TOKEN = botToken;
+  const mock = mockMaxApiRequests((request) => {
+    if (request.url.endsWith("/uploads?type=file")) {
+      return {
+        body: { url: "https://fu.oneme.ru/api/upload.do?signature=test" },
+      };
+    }
+    if (request.url.startsWith("https://fu.oneme.ru/")) {
+      return { body: { fileId: "test-file-id", token: fileToken } };
+    }
+    return { body: { message: {} } };
+  });
+
+  try {
+    const uploadedToken = await uploadMaxFile({
+      bytes: Buffer.from("xlsx test content"),
+      fileName: "master-work-2026-11.xlsx",
+      contentType:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    assert.equal(uploadedToken, fileToken);
+    assert.equal(mock.requests[0]?.authorization, botToken);
+    assert.equal(
+      mock.requests[1]?.url,
+      "https://fu.oneme.ru/api/upload.do?signature=test",
+    );
+    assert.equal(mock.requests[1]?.authorization, null);
+    assert.match(
+      mock.requests[1]!.body,
+      /Content-Disposition: form-data; name="data"; filename="master-work-2026-11\.xlsx"/u,
+    );
+
+    await sendMaxFileMessage("123456789", "Отчёт за месяц", uploadedToken);
+    assert.equal(mock.requests[2]?.authorization, botToken);
+    assert.deepEqual(JSON.parse(mock.requests[2]!.body), {
+      text: "Отчёт за месяц",
+      attachments: [{ type: "file", payload: { token: fileToken } }],
+    });
+  } finally {
+    mock.restore();
+    restoreEnvironment("MAX_BOT_TOKEN", previousToken);
   }
 });

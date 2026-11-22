@@ -38,13 +38,19 @@ export const mockMaxApiRequests = (
 
     const request = new EventEmitter() as EventEmitter & {
       destroy: () => EventEmitter;
-      end: () => EventEmitter;
+      end: (chunk?: string | Uint8Array) => EventEmitter;
       setTimeout: () => EventEmitter;
       write: (chunk: string | Uint8Array) => boolean;
     };
     Object.assign(request, {
       destroy: () => request,
-      end: () => {
+      end: (chunk?: string | Uint8Array) => {
+        if (chunk) {
+          requestInfo.body +=
+            typeof chunk === "string"
+              ? chunk
+              : Buffer.from(chunk).toString("utf8");
+        }
         const result = respond(requestInfo);
         const response = Object.assign(new EventEmitter(), {
           statusCode: result.status ?? 200,

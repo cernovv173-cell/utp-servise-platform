@@ -1,6 +1,7 @@
 import {
   BookOpen,
   ClipboardList,
+  FileSpreadsheet,
   FileText,
   Home,
   Leaf,
@@ -29,6 +30,7 @@ export type NavigationRoute =
   | "/salary"
   | "/admin"
   | "/admin/seasonal"
+  | "/admin/salary-reports"
   | "/admin/orders"
   | "/admin/procurement";
 
@@ -88,6 +90,12 @@ const navigationByRole: Record<Role, NavigationGroup> = {
       { to: "/admin/orders", label: "Заявки", compactLabel: "Заявки", icon: ClipboardList },
       { to: "/admin", label: "Управление", compactLabel: "Управление", icon: Settings },
       { to: "/admin/seasonal", label: "Оформление", compactLabel: "Сезон", icon: Leaf },
+      {
+        to: "/admin/salary-reports",
+        label: "Отчёты",
+        compactLabel: "Отчёты",
+        icon: FileSpreadsheet,
+      },
       { to: "/catalog", label: "Каталог", compactLabel: "Каталог", icon: Package },
       { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
     ],

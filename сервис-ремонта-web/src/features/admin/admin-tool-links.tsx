@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import {
   Building2,
   ChevronRight,
+  FileSpreadsheet,
   FileText,
   Gift,
   type LucideIcon,
@@ -21,6 +22,7 @@ const adminTools: Array<{
     | "/admin/loyalty"
     | "/admin/company"
     | "/admin/feedback"
+    | "/admin/salary-reports"
     | "/news";
   title: string;
   description: string;
@@ -67,6 +69,12 @@ const adminTools: Array<{
     title: "Жалобы и предложения",
     description: "Входящие сообщения клиентов и их статусы",
     icon: MessageSquareText,
+  },
+  {
+    to: "/admin/salary-reports",
+    title: "Отчёты по зарплате",
+    description: "Ежемесячные начисления мастерам в XLSX",
+    icon: FileSpreadsheet,
   },
 ];
 
