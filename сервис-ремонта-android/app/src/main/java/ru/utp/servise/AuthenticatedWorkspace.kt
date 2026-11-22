@@ -64,6 +64,7 @@ import ru.utp.servise.data.SupportChatInboxItem
 import ru.utp.servise.navigation.workspaceNavigationForRole
 import ru.utp.servise.registerAdminOrderChatsRoute
 import ru.utp.servise.registerAdminCampaignRoutes
+import ru.utp.servise.registerAdminSalaryReportRoute
 import ru.utp.servise.registerCustomerHelpRoutes
 import ru.utp.servise.registerTechnicianChatRoute
 import ru.utp.servise.ui.AdminChatInboxScreen
@@ -651,6 +652,11 @@ internal fun AuthenticatedWorkspace(
                                 onError = onError,
                                 onBack = { navController.popBackStack() },
                             )
+                            registerAdminSalaryReportRoute(
+                                token = token,
+                                onError = onError,
+                                onBack = { navController.popBackStack() },
+                            )
                             composable("admin/home") {
                                 AdministratorHomeScreen(
                                     orders = orders,
@@ -713,6 +719,7 @@ internal fun AuthenticatedWorkspace(
                                     onOffers = { navController.navigate("admin/offers") },
                                     onBanners = { navController.navigate("admin/banners") },
                                     onLoyalty = { navController.navigate("admin/loyalty") },
+                                    onSalaryReports = { navController.navigate("admin/salary-reports") },
                                     onAppSettings = { navController.navigate("admin/app-settings") { launchSingleTop = true } },
                                 )
                             }

@@ -80,6 +80,7 @@ fun AdminManagementScreen(
     onOffers: () -> Unit,
     onBanners: () -> Unit,
     onLoyalty: () -> Unit,
+    onSalaryReports: () -> Unit,
     onAppSettings: () -> Unit,
 ) {
     val groups = listOf(
@@ -106,6 +107,7 @@ fun AdminManagementScreen(
                 ManagementAction("История бонусов", "Балансы и операции по клиентам", Icons.Filled.Star, onLoyalty),
                 ManagementAction("Отзывы", "Отзывы клиентов о ремонтах", Icons.Filled.Star, onReviews),
                 ManagementAction("Зарплата мастеров", "Начисления и индивидуальные ставки", Icons.Filled.Star, onSalary),
+                ManagementAction("Отчёты по зарплате", "Месячный Excel, налог, авансы и удержания", Icons.Filled.Info, onSalaryReports),
             ),
         ),
         ManagementActionGroup(
