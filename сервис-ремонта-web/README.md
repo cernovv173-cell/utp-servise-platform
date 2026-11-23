@@ -243,14 +243,18 @@ administrator can also enable browser system notifications from the header; thes
 the site tab is in the background, as long as the page remains open. Browser notifications are not
 delivered after the site is closed.
 
-In `/checks`, only administrators can apply customer loyalty bonuses to an unpaid repair receipt.
-The server caps redemption at 30% of service lines only; spare parts and craft-product orders are
-not eligible. The receipt identifies the redeemed amount on its own “Оплата бонусами” line, and
-customers can view it without being able to initiate redemption. One point equals one ruble of
-discount, but points are not cash and cannot be withdrawn or transferred. Repair receipts earn 10%
-of the amount paid in cash, and craft orders earn 5% after payment. Previously credited game points
-remain in customer loyalty balances; game rewards are no longer issued. Preventive work qualifies
-only when included in a repair order as a service line and uses the same 30% limit.
+In `/checks`, the assigned technician can apply customer loyalty bonuses to an unpaid completed
+repair receipt. An administrator can apply bonuses and confirm payment only for service-center
+orders; active customer-address visits remain under the assigned technician's workflow. Legacy
+orders with no saved location are treated as service-center repairs, while an unknown location is
+not sufficient for administrator access. The server caps redemption at 30% of service lines only;
+spare parts and craft-product orders are not eligible. The receipt identifies the redeemed amount
+on its own “Оплата бонусами” line, and customers can view it without being able to initiate
+redemption. One point equals one ruble of discount, but points are not cash and cannot be withdrawn
+or transferred. Repair receipts earn 10% of the amount paid in cash, and craft orders earn 5% after
+payment. Previously credited game points remain in customer loyalty balances; game rewards are no
+longer issued. Preventive work qualifies only when included in a repair order as a service line and
+uses the same 30% limit.
 
 On `/loyalty`, customers receive three personal, one-use referral codes, each valid for six months
 from issue, and can copy an individual registration link for each. A code is attached to a new

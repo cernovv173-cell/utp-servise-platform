@@ -119,6 +119,17 @@ requests. Administrators change that setting with `PUT /admin/company/order-inta
 When paused, the API rejects only customer `POST /orders` requests; existing orders and
 administrator-created orders remain available. Web and Android show the paused state to customers.
 
+## Repair receipt bonus redemption
+
+For a completed repair with an unpaid receipt, the assigned technician can manage bonus redemption
+for their order. An administrator can manage bonus redemption and confirm payment only when the
+order's saved location is `SERVICE_CENTER`; active `CUSTOMER_ADDRESS` visits are denied. Legacy
+orders with visit-scenario version `0` and no saved location are treated as service-center repairs;
+missing or unrecognized location data on a newer order does not grant administrator access. The same
+server-side authorization protects the bonus-redemption and receipt-payment endpoints; customers and
+technicians not assigned to the order cannot use them. Existing redemption limits still apply: only
+service lines are eligible, capped at the lesser of the customer's balance and 30% of those lines.
+
 ## Repair visit pickup
 
 For an assigned technician, an active home-visit order can be transferred to the service center

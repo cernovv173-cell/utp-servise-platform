@@ -33,6 +33,27 @@ export const canViewRepairOrder = (
   return order.assignedTechnicianId === userId;
 };
 
+export const isWorkshopRepairOrder = (order: {
+  repairLocation: string | null;
+  visitScenarioVersion: number;
+}): boolean =>
+  order.repairLocation === "SERVICE_CENTER" ||
+  (order.visitScenarioVersion === 0 && order.repairLocation === null);
+
+export const canManageRepairOrderBonusRedemption = (
+  role: UserRole,
+  userId: string,
+  order: {
+    assignedTechnicianId: string | null;
+    repairLocation: string | null;
+    visitScenarioVersion: number;
+  },
+): boolean => {
+  if (role === "TECHNICIAN") return order.assignedTechnicianId === userId;
+  if (role === "ADMIN") return isWorkshopRepairOrder(order);
+  return false;
+};
+
 export const canAddRepairOrderItem = (
   role: UserRole,
   userId: string,

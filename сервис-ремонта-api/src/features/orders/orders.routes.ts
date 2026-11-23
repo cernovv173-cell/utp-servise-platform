@@ -33,6 +33,7 @@ import {
   calculateMaxBonusDiscount,
   calculateServiceBonusEligibleRub,
   canAddRepairOrderItem,
+  canManageRepairOrderBonusRedemption,
   canTransitionRepairStatus,
   canViewRepairOrder,
 } from "./order-policy.js";
@@ -914,7 +915,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/bonus-redemption",
     requireAuth,
-    requireRoles("TECHNICIAN"),
+    requireRoles("TECHNICIAN", "ADMIN"),
     validateRequest({ params: orderIdParams, body: bonusRedemptionBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -931,7 +932,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (!order)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
-        if (order.assignedTechnicianId !== user.id) {
+        if (!canManageRepairOrderBonusRedemption(user.role, user.id, order)) {
+          if (user.role === "ADMIN") {
+            throw new HttpError(
+              403,
+              "BONUS_REDEMPTION_LOCATION_RESTRICTED",
+              "Администратор может списывать бонусы только по ремонту в сервисном центре.",
+            );
+          }
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         }
         if (
@@ -970,7 +978,9 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         database,
         updated,
         user.id,
-        "Мастер обновил списание бонусов за услуги по заявке.",
+        user.role === "ADMIN"
+          ? "Администратор обновил списание бонусов за услуги по заявке."
+          : "Мастер обновил списание бонусов за услуги по заявке.",
       );
       response.json({ order: updated });
     },
@@ -1182,7 +1192,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/receipt/payment",
     requireAuth,
-    requireRoles("TECHNICIAN"),
+    requireRoles("TECHNICIAN", "ADMIN"),
     validateRequest({ params: orderIdParams, body: receiptPaymentBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -1199,7 +1209,14 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         });
         if (!order)
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
-        if (order.assignedTechnicianId !== user.id) {
+        if (!canManageRepairOrderBonusRedemption(user.role, user.id, order)) {
+          if (user.role === "ADMIN") {
+            throw new HttpError(
+              403,
+              "RECEIPT_PAYMENT_LOCATION_RESTRICTED",
+              "Администратор может подтвердить оплату только по ремонту в сервисном центре.",
+            );
+          }
           throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
         }
         if (order.status !== "COMPLETED") {

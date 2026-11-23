@@ -6,8 +6,10 @@ import {
   calculateMaxBonusDiscount,
   calculateServiceBonusEligibleRub,
   canAddRepairOrderItem,
+  canManageRepairOrderBonusRedemption,
   canTransitionRepairStatus,
   canViewRepairOrder,
+  isWorkshopRepairOrder,
 } from "../src/features/orders/order-policy.js";
 
 test("loyalty limits redemption to the smaller of balance and 30% of the receipt", () => {
@@ -43,6 +45,75 @@ test("loyalty earns 10% of cash actually paid after redemption", () => {
   assert.equal(calculateEarnedPoints(1_000), 100);
   assert.equal(calculateEarnedPoints(700), 70);
   assert.equal(calculateEarnedPoints(0), 0);
+});
+
+test("admins can manage bonus redemption only for service-center orders", () => {
+  const workshopOrder = {
+    assignedTechnicianId: "tech-1",
+    repairLocation: "SERVICE_CENTER",
+    visitScenarioVersion: 1,
+  };
+  const onsiteOrder = {
+    assignedTechnicianId: "tech-1",
+    repairLocation: "CUSTOMER_ADDRESS",
+    visitScenarioVersion: 1,
+  };
+  const legacyWorkshopOrder = {
+    assignedTechnicianId: "tech-1",
+    repairLocation: null,
+    visitScenarioVersion: 0,
+  };
+  const unknownLocationOrder = {
+    assignedTechnicianId: "tech-1",
+    repairLocation: null,
+    visitScenarioVersion: 1,
+  };
+
+  assert.equal(isWorkshopRepairOrder(workshopOrder), true);
+  assert.equal(isWorkshopRepairOrder(legacyWorkshopOrder), true);
+  assert.equal(isWorkshopRepairOrder(onsiteOrder), false);
+  assert.equal(isWorkshopRepairOrder(unknownLocationOrder), false);
+
+  assert.equal(
+    canManageRepairOrderBonusRedemption("ADMIN", "admin-1", workshopOrder),
+    true,
+  );
+  assert.equal(
+    canManageRepairOrderBonusRedemption(
+      "ADMIN",
+      "admin-1",
+      legacyWorkshopOrder,
+    ),
+    true,
+  );
+  assert.equal(
+    canManageRepairOrderBonusRedemption("ADMIN", "admin-1", onsiteOrder),
+    false,
+  );
+  assert.equal(
+    canManageRepairOrderBonusRedemption(
+      "ADMIN",
+      "admin-1",
+      unknownLocationOrder,
+    ),
+    false,
+  );
+  assert.equal(
+    canManageRepairOrderBonusRedemption("TECHNICIAN", "tech-1", onsiteOrder),
+    true,
+  );
+  assert.equal(
+    canManageRepairOrderBonusRedemption("TECHNICIAN", "tech-2", onsiteOrder),
+    false,
+  );
+  assert.equal(
+    canManageRepairOrderBonusRedemption(
+      "CUSTOMER",
+      "customer-1",
+      workshopOrder,
+    ),
+    false,
+  );
 });
 
 test("only the assigned technician can add order items", () => {

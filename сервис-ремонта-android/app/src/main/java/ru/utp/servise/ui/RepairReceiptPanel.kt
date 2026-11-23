@@ -33,7 +33,12 @@ internal fun RepairReceiptPanel(
     token: String,
     runAction: RunAction,
 ) {
-    val canManage = role == "TECHNICIAN" && currentUserId == order.technicianId
+    val canManageReceipt = role == "TECHNICIAN" && currentUserId == order.technicianId
+    val isWorkshopOrder =
+        order.repairLocation == "SERVICE_CENTER" ||
+            (order.visitScenarioVersion == 0 && order.repairLocation == null)
+    val canManagePayment =
+        canManageReceipt || (role == "ADMIN" && isWorkshopOrder)
     var showPaymentMethods by remember(order.id) { mutableStateOf(false) }
     var showReceiptEditor by remember(order.id) { mutableStateOf(false) }
     order.receipt?.let { receipt ->
@@ -60,7 +65,7 @@ internal fun RepairReceiptPanel(
         )
     }
 
-    if (canManage && order.status == "COMPLETED" && order.receipt?.paymentStatus == "PENDING") {
+    if (canManagePayment && order.status == "COMPLETED" && order.receipt?.paymentStatus == "PENDING") {
         val serviceTotalRub = order.items
             .filter { it.type == "SERVICE" }
             .sumOf { it.quantity * it.unitPriceRub }
@@ -85,7 +90,7 @@ internal fun RepairReceiptPanel(
     }
 
     if (
-        canManage && order.status == "COMPLETED" &&
+        canManageReceipt && order.status == "COMPLETED" &&
         order.receipt?.paymentStatus != "PAID"
     ) {
         OutlinedButton(
@@ -114,7 +119,7 @@ internal fun RepairReceiptPanel(
             },
         )
     }
-    if (canManage && order.receipt?.paymentStatus == "PENDING") {
+    if (canManagePayment && order.receipt?.paymentStatus == "PENDING") {
         OutlinedButton(
             onClick = { showPaymentMethods = true },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),

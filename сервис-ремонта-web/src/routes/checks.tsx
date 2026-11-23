@@ -83,6 +83,10 @@ const ChecksPage = () => {
         {(query.data?.orders ?? []).map((order) => {
           const canManageOrder =
             user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id;
+          const isWorkshopOrder =
+            order.repairLocation === "SERVICE_CENTER" ||
+            (order.visitScenarioVersion === 0 && (order.repairLocation ?? null) === null);
+          const canManagePayment = canManageOrder || (user?.role === "ADMIN" && isWorkshopOrder);
           const total = order.items.reduce(
             (sum, item) => sum + item.quantity * item.unitPriceRub,
             0,
@@ -205,7 +209,7 @@ const ChecksPage = () => {
                     onSubmit={(draft) => issue.mutate({ orderId: order.id, draft })}
                   />
                 )}
-              {canManageOrder && order.status === "COMPLETED" && (
+              {canManagePayment && order.status === "COMPLETED" && (
                 <div className="mt-4 flex flex-wrap items-center gap-2 print:hidden">
                   {order.receipt?.paymentStatus === "PENDING" && (
                     <>

@@ -37,6 +37,8 @@ test("the assigned technician marks the first repair payment only once", async (
     assignedTechnicianId: technician.id,
     serviceNumber: "SRV-2026-000001",
     status: "COMPLETED",
+    repairLocation: "CUSTOMER_ADDRESS",
+    visitScenarioVersion: 1,
     redeemBonuses: false,
     receipt: { id: receiptId },
     items: [{ type: "SERVICE", quantity: 1, unitPriceRub: 1_000 }],
