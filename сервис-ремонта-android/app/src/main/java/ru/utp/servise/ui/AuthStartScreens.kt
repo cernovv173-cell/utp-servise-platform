@@ -45,8 +45,8 @@ internal val customerLoginPortalOption =
 
 internal val staffLoginPortalOption = LoginPortalOption(
     "STAFF",
-    "Я администратор",
-    "Для команды: мастер, закупки или администратор. Раздел откроется по вашей учётной записи.",
+    "Я сотрудник",
+    "Мастер, закупки или администратор — система определит вашу роль после входа.",
     Icons.Filled.Settings,
 )
 

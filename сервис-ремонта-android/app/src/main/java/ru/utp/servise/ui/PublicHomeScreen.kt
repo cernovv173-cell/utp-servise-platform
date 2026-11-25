@@ -214,10 +214,10 @@ fun PublicHomeScreen(
                     Text("Войти в аккаунт клиента")
                 }
                 OutlinedButton(onClick = onStaffLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
-                    Text("Войти как администратор")
+                    Text("Войти как сотрудник")
                 }
                 Text(
-                    "Вход для команды: раздел мастера, закупок или администратора определится по вашей учётной записи.",
+                    "Мастер, закупки или администратор — система определит вашу роль после входа.",
                     color = UtpMuted,
                     fontSize = 12.sp,
                     lineHeight = 17.sp,

@@ -14,10 +14,10 @@ class AuthStartScreensTest {
     }
 
     @Test
-    fun `staff entry is labelled administrator and explains account-based routing`() {
+    fun `staff entry is labelled employee and explains account-based routing`() {
         assertEquals("STAFF", staffLoginPortalOption.portal)
-        assertTrue(staffLoginPortalOption.title.contains("администратор", ignoreCase = true))
-        assertTrue(staffLoginPortalOption.description.contains("учётной записи", ignoreCase = true))
+        assertTrue(staffLoginPortalOption.title.contains("сотрудник", ignoreCase = true))
+        assertTrue(staffLoginPortalOption.description.contains("после входа", ignoreCase = true))
     }
 
     @Test
