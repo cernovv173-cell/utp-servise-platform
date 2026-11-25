@@ -219,6 +219,9 @@ sign in with the verified email and password.
 The Web `/login` page supports password and MAX sign-in. Yandex ID sign-in was removed; its callback
 page and client component no longer exist. VK ID sign-in is intentionally not offered in the Web
 client; the server-side VK endpoint remains available to other clients.
+For password sign-in, customers keep a separate choice while staff select one of three roles from a
+single list: technician, procurement, or administrator. This only selects the expected account role;
+access to protected operations continues to be enforced by the API.
 
 The shared app-install controls offer the Android APK and instructions for adding the website to an
 iPhone or iPad Home Screen from Safari as a web app. The iOS control creates a website shortcut; it

@@ -6,16 +6,16 @@ import org.junit.Test
 
 class AuthStartScreensTest {
     @Test
-    fun `role chooser includes all supported account types once`() {
-        val portals = loginPortalOptions.map(LoginPortalOption::portal)
+    fun `staff role selector includes only technician procurement and admin`() {
+        val portals = staffLoginPortalOptions.map(LoginPortalOption::portal)
 
-        assertEquals(listOf("CUSTOMER", "TECHNICIAN", "PROCUREMENT", "ADMIN"), portals)
+        assertEquals(listOf("TECHNICIAN", "PROCUREMENT", "ADMIN"), portals)
         assertEquals(portals.size, portals.distinct().size)
     }
 
     @Test
-    fun `customer option is presented first in role chooser`() {
-        val customer = loginPortalOptions.first()
+    fun `customer login remains a separate option`() {
+        val customer = customerLoginPortalOption
 
         assertEquals("CUSTOMER", customer.portal)
         assertTrue(customer.title.contains("клиент", ignoreCase = true))

@@ -5,8 +5,10 @@ import { toast } from "sonner";
 
 import { AppInstallButton } from "@/components/app-install-button";
 import { BrandLogo } from "@/components/brand-logo";
+import { Select } from "@/components/select";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { isStaffLoginRole, staffLoginRoleOptions } from "@/features/auth/login-role-options";
 import { MaxLogin } from "@/features/auth/max-login";
 
 import {
@@ -335,24 +337,37 @@ export const LoginExperience = ({
             {!registering && !recovering && (
               <fieldset className="grid gap-2">
                 <legend className="mb-1 text-sm font-medium">Войти как</legend>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {(
-                    [
-                      ["CUSTOMER", "Клиент"],
-                      ["TECHNICIAN", "Мастер"],
-                      ["PROCUREMENT", "Мастер закупки"],
-                      ["ADMIN", "Администратор Енот-сервис.рф"],
-                    ] as const
-                  ).map(([value, label]) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setRole(value)}
-                      className={`min-h-10 rounded-xl border px-2 text-xs font-medium ${role === value ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950" : "border-slate-200 bg-white text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                <button
+                  aria-pressed={role === "CUSTOMER"}
+                  className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${role === "CUSTOMER" ? "border-blue-600 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/60" : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"}`}
+                  onClick={() => setRole("CUSTOMER")}
+                  type="button"
+                >
+                  <span className="grid gap-0.5">
+                    <span className="text-sm font-semibold">Клиент</span>
+                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                      Заявки, ремонт и магазин
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    className={`grid size-5 shrink-0 place-items-center rounded-full border text-xs ${role === "CUSTOMER" ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 text-transparent dark:border-slate-600"}`}
+                  >
+                    ✓
+                  </span>
+                </button>
+                <div className="grid gap-1.5">
+                  <span className="text-sm font-medium">Роль сотрудника</span>
+                  <Select
+                    ariaLabel="Роль сотрудника"
+                    className="h-11 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    onValueChange={(value) => {
+                      if (isStaffLoginRole(value)) setRole(value);
+                    }}
+                    options={staffLoginRoleOptions}
+                    placeholder="Выберите роль из списка"
+                    value={role === "CUSTOMER" ? undefined : role}
+                  />
                 </div>
               </fieldset>
             )}

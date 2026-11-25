@@ -12,12 +12,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -25,9 +24,10 @@ import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -51,8 +50,10 @@ internal data class LoginPortalOption(
     val icon: ImageVector,
 )
 
-internal val loginPortalOptions = listOf(
-    LoginPortalOption("CUSTOMER", "Я клиент", "Заявки, ремонт и магазин", Icons.Filled.Person),
+internal val customerLoginPortalOption =
+    LoginPortalOption("CUSTOMER", "Я клиент", "Заявки, ремонт и магазин", Icons.Filled.Person)
+
+internal val staffLoginPortalOptions = listOf(
     LoginPortalOption("TECHNICIAN", "Я мастер", "Мои ремонты и график", Icons.Filled.Build),
     LoginPortalOption("PROCUREMENT", "Я занимаюсь закупками", "Детали и остатки", Icons.Filled.ShoppingCart),
     LoginPortalOption("ADMIN", "Я администратор", "Управление сервисом", Icons.Filled.Settings),
@@ -137,12 +138,14 @@ internal fun LoginRoleSelectionScreen(
     onRegisterCustomer: () -> Unit,
     onExploreServices: () -> Unit,
 ) {
-    var selectedPortal by remember { mutableStateOf("CUSTOMER") }
+    var selectedStaffPortal by remember { mutableStateOf<String?>(null) }
+    var staffRoleMenuExpanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(androidx.compose.ui.graphics.Color.Transparent)
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp),
     ) {
         TextButton(onClick = onBack) { Text("←  Назад") }
@@ -155,70 +158,136 @@ internal fun LoginRoleSelectionScreen(
             modifier = Modifier.padding(top = 5.dp, bottom = 16.dp),
         )
 
-        LazyColumn(
-            modifier = Modifier.weight(1f).selectableGroup(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+        Text(
+            "Вход для клиента",
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = UtpMuted,
+        )
+        Card(
+            onClick = { onContinue(customerLoginPortalOption.portal) },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+            ),
         ) {
-            items(loginPortalOptions, key = LoginPortalOption::portal) { option ->
-                val selected = selectedPortal == option.portal
-                Card(
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .selectable(
-                            selected = selected,
-                            onClick = { selectedPortal = option.portal },
-                            role = Role.RadioButton,
-                        )
-                        .border(
-                            width = if (selected) 2.dp else 1.dp,
-                            color = if (selected) UtpBlue else MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
-                            shape = RoundedCornerShape(20.dp),
+                        .size(42.dp)
+                        .background(
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = RoundedCornerShape(14.dp),
                         ),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (selected) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.92f)
-                        } else {
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-                        },
-                    ),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .background(
-                                    color = if (selected) UtpBlue.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(14.dp),
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(option.icon, contentDescription = null, tint = UtpBlue, modifier = Modifier.size(22.dp))
-                        }
-                        Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
-                            Text(option.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = UtpInk)
-                            Text(option.description, fontSize = 12.sp, color = UtpMuted, lineHeight = 17.sp)
-                        }
-                        RadioButton(selected = selected, onClick = null)
+                    Icon(
+                        customerLoginPortalOption.icon,
+                        contentDescription = null,
+                        tint = UtpBlue,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+                Column(modifier = Modifier.weight(1f).padding(start = 12.dp)) {
+                    Text(
+                        customerLoginPortalOption.title,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = UtpInk,
+                    )
+                    Text(
+                        customerLoginPortalOption.description,
+                        fontSize = 12.sp,
+                        color = UtpMuted,
+                        lineHeight = 17.sp,
+                    )
+                }
+            }
+        }
+
+        Text(
+            "Вход для сотрудников",
+            modifier = Modifier.padding(top = 18.dp),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = UtpMuted,
+        )
+        Box(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            val selectedOption = staffLoginPortalOptions.firstOrNull { it.portal == selectedStaffPortal }
+            Card(
+                onClick = { staffRoleMenuExpanded = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                        shape = RoundedCornerShape(18.dp),
+                    ),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+                ),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            selectedOption?.title ?: "Выберите роль сотрудника",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = UtpInk,
+                        )
+                        Text(
+                            selectedOption?.description ?: "Мастер, закупки или администратор",
+                            fontSize = 12.sp,
+                            color = UtpMuted,
+                            lineHeight = 17.sp,
+                        )
                     }
+                    Icon(
+                        Icons.Filled.ArrowDropDown,
+                        contentDescription = "Выбрать роль",
+                        tint = UtpBlue,
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = staffRoleMenuExpanded,
+                onDismissRequest = { staffRoleMenuExpanded = false },
+            ) {
+                staffLoginPortalOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = {
+                            Column {
+                                Text(option.title, fontWeight = FontWeight.SemiBold)
+                                Text(option.description, fontSize = 12.sp, color = UtpMuted)
+                            }
+                        },
+                        onClick = {
+                            selectedStaffPortal = option.portal
+                            staffRoleMenuExpanded = false
+                        },
+                    )
                 }
             }
         }
 
         Button(
-            onClick = { onContinue(selectedPortal) },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
+            onClick = { selectedStaffPortal?.let(onContinue) },
+            modifier = Modifier.fillMaxWidth().height(52.dp).padding(top = 10.dp),
             shape = RoundedCornerShape(16.dp),
+            enabled = selectedStaffPortal != null,
         ) {
             Text("Продолжить", fontWeight = FontWeight.SemiBold)
         }
-        if (selectedPortal == "CUSTOMER") {
-            TextButton(onClick = onRegisterCustomer, modifier = Modifier.fillMaxWidth()) {
-                Text("Новый клиент? Зарегистрироваться")
-            }
+        TextButton(onClick = onRegisterCustomer, modifier = Modifier.fillMaxWidth()) {
+            Text("Новый клиент? Зарегистрироваться")
         }
         TextButton(onClick = onExploreServices, modifier = Modifier.fillMaxWidth()) {
             Text("Посмотреть услуги и контакты")
