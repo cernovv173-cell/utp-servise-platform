@@ -4,6 +4,11 @@ import type { Prisma } from "../../generated/prisma/client.js";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { publicUser } from "../auth/auth.middleware.js";
+import {
+  type LoginPortal,
+  isStaffAccountRole,
+  matchesLoginPortal,
+} from "../auth/login-portal.js";
 import { buildSession } from "../auth/session.js";
 import { getMaxBotProfile } from "./max-bot.js";
 
@@ -42,8 +47,7 @@ export const startMaxLogin = async (
   database: DatabaseClient,
   referralCode?: string,
   targetUserId?: string,
-  expectedRole:
-    "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT" = "CUSTOMER",
+  expectedRole: LoginPortal = "CUSTOMER",
 ): Promise<{
   readonly url: string;
   readonly pollToken: string;
@@ -60,6 +64,7 @@ export const startMaxLogin = async (
   const pollToken = randomBytes(32).toString("base64url");
   const now = new Date();
   const expiresAt = new Date(now.getTime() + MAX_LOGIN_TTL_MILLISECONDS);
+  const expectedStaff = expectedRole === "STAFF";
 
   await database.$transaction([
     database.maxLoginRequest.deleteMany({
@@ -85,7 +90,8 @@ export const startMaxLogin = async (
         tokenHash: hashMaxLoginToken(token),
         pollTokenHash: hashMaxLoginToken(pollToken),
         referralCode: referralCode ?? null,
-        expectedRole,
+        expectedRole: expectedStaff ? "CUSTOMER" : expectedRole,
+        expectedStaff,
         ...(targetUserId ? { userId: targetUserId } : {}),
         expiresAt,
       },
@@ -215,7 +221,9 @@ export const pollMaxLogin = async (
       !user ||
       !user.active ||
       user.terminatedAt ||
-      user.role !== request.expectedRole
+      !(request.expectedStaff
+        ? isStaffAccountRole(user.role)
+        : matchesLoginPortal(request.expectedRole, user.role))
     ) {
       const message =
         "Аккаунт недоступен для входа через МАКС. Обратитесь к администратору сервиса.";

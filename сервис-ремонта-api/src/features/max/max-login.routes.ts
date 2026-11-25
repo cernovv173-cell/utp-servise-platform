@@ -7,6 +7,7 @@ import {
   productAnalyticsChannel,
   recordProductAnalytics,
 } from "../analytics/product-analytics.js";
+import { loginPortalSchema } from "../auth/login-portal.js";
 import { referralCodeSchema } from "../referrals/referral-code.js";
 import { hasMaxBotToken, hasMaxWebhookSecret } from "./max-bot.js";
 import { pollMaxLogin, startMaxLogin } from "./max-login.service.js";
@@ -14,9 +15,7 @@ import { pollMaxLogin, startMaxLogin } from "./max-login.service.js";
 const startSchema = z
   .object({
     referralCode: referralCodeSchema,
-    expectedRole: z
-      .enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"])
-      .default("CUSTOMER"),
+    expectedRole: loginPortalSchema.default("CUSTOMER"),
   })
   .strict();
 

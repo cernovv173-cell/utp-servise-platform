@@ -12,6 +12,7 @@ import {
 import { createCustomerWithReferral } from "../referrals/customer-registration.js";
 import { referralCodeSchema } from "../referrals/referral-code.js";
 import { publicUser } from "./auth.middleware.js";
+import { loginPortalSchema, matchesLoginPortal } from "./login-portal.js";
 import { hashPassword, verifyPassword } from "./passwords.js";
 import { createSession, isUniqueViolation } from "./session.js";
 import { type VkIdentity, getVkIdentity } from "./vk-id.js";
@@ -20,7 +21,7 @@ const vkLoginSchema = z
   .object({
     accessToken: z.string().trim().min(20).max(4096),
     password: z.string().min(1).max(128).optional(),
-    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"]),
+    portal: loginPortalSchema,
     referralCode: referralCodeSchema,
   })
   .strict();
@@ -147,7 +148,7 @@ export const createVkAuthRouter = (
           );
           return;
         }
-        if (user.role !== input.portal) {
+        if (!matchesLoginPortal(input.portal, user.role)) {
           next(
             new HttpError(
               403,

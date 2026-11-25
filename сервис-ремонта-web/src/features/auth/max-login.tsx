@@ -4,8 +4,8 @@ import { toast } from "sonner";
 
 import {
   type AuthResponse,
+  type LoginPortal,
   type MaxLoginStart,
-  type Role,
   maxLoginConfigRequest,
   pollMaxLoginRequest,
   startMaxLoginRequest,
@@ -36,7 +36,7 @@ export const MaxLogin = ({
   onSuccess,
 }: {
   referralCode?: string;
-  expectedRole?: Role;
+  expectedRole?: LoginPortal;
   compact?: boolean;
   disabled?: boolean;
   onError: (message: string) => void;

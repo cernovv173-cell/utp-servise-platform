@@ -17,6 +17,7 @@ import {
   publicUser,
 } from "./auth.middleware.js";
 import { LoginAttemptThrottle } from "./login-attempt-throttle.js";
+import { loginPortalSchema, matchesLoginPortal } from "./login-portal.js";
 import {
   hashPassword,
   performDummyPasswordCheck,
@@ -65,7 +66,7 @@ const loginSchema = z
   .object({
     email: loginIdentifierSchema,
     password: z.string().min(1).max(128),
-    portal: z.enum(["CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"]),
+    portal: loginPortalSchema,
   })
   .strict();
 const changePasswordSchema = z
@@ -168,7 +169,12 @@ export const createAuthRouter = (
       const valid = user
         ? await verifyPassword(input.password, user.passwordHash)
         : (await performDummyPasswordCheck(input.password), false);
-      if (!user || !valid || !user.active || user.role !== input.portal) {
+      if (
+        !user ||
+        !valid ||
+        !user.active ||
+        !matchesLoginPortal(input.portal, user.role)
+      ) {
         loginThrottle.recordFailure(input.email);
         next(
           new HttpError(

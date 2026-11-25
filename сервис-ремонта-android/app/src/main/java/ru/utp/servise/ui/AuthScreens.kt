@@ -77,9 +77,7 @@ fun AuthNavigation(
                 onBackToStart = { controller.popBackStack() },
                 onRequest = { controller.navigate("register") },
                 onCustomerLogin = { controller.navigate("login/CUSTOMER") },
-                onTechnicianLogin = { controller.navigate("login/TECHNICIAN") },
-                onProcurementLogin = { controller.navigate("login/PROCUREMENT") },
-                onAdminLogin = { controller.navigate("login/ADMIN") },
+                onStaffLogin = { controller.navigate("login/STAFF") },
                 seasonalTheme = seasonalTheme,
             )
         }
@@ -157,7 +155,16 @@ private fun LoginScreen(
     ) {
         TextButton(onClick = onBack) { Text("←  Назад") }
         BrandHeader(modifier = Modifier.padding(bottom = 14.dp), subtitle = "Вход в личный кабинет")
-        Text(if (recovering) "Восстановление пароля" else "Вход: ${portal.roleLabel()}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = UtpInk)
+        Text(
+            when {
+                recovering -> "Восстановление пароля"
+                portal == "STAFF" -> "Вход для команды"
+                else -> "Вход: ${portal.roleLabel()}"
+            },
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            color = UtpInk,
+        )
         Text(
             if (recovering) "Укажите почту или логин. Код придёт на привязанную почту и/или в МАКС."
             else "Введите адрес электронной почты или логин и пароль.",
@@ -411,6 +418,7 @@ private fun String.roleLabel(): String = when (this) {
     "TECHNICIAN" -> "мастера"
     "PROCUREMENT" -> "мастера закупки"
     "ADMIN" -> "администратора Енот-сервис.рф"
+    "STAFF" -> "сотрудника"
     else -> "пользователя"
 }
 

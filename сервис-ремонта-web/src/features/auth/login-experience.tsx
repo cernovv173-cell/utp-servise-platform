@@ -5,15 +5,14 @@ import { toast } from "sonner";
 
 import { AppInstallButton } from "@/components/app-install-button";
 import { BrandLogo } from "@/components/brand-logo";
-import { Select } from "@/components/select";
 
 import { useAuth } from "@/features/auth/auth-context";
-import { isStaffLoginRole, staffLoginRoleOptions } from "@/features/auth/login-role-options";
+import { loginPortalOptions } from "@/features/auth/login-role-options";
 import { MaxLogin } from "@/features/auth/max-login";
 
 import {
   type AuthResponse,
-  type Role,
+  type LoginPortal,
   loginRequest,
   registerRequest,
   requestPasswordReset,
@@ -52,7 +51,7 @@ export const LoginExperience = ({
   const [referralCode, setReferralCode] = useState(referralFromLink);
   const [recovering, setRecovering] = useState(false);
   const [recoverySent, setRecoverySent] = useState(false);
-  const [role, setRole] = useState<Role>("CUSTOMER");
+  const [portal, setPortal] = useState<LoginPortal>("CUSTOMER");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [password, setPassword] = useState("");
@@ -109,7 +108,7 @@ export const LoginExperience = ({
             String(values.get("password")),
             enteredReferralCode,
           )
-        : await loginRequest(String(values.get("email")), String(values.get("password")), role);
+        : await loginRequest(String(values.get("email")), String(values.get("password")), portal);
       if (registering) {
         setSession(session);
         if (isDialog) {
@@ -258,11 +257,42 @@ export const LoginExperience = ({
               <AppInstallButton />
             </div>
           )}
+          {!registering && !recovering && (
+            <fieldset className="mt-6 grid gap-2">
+              <legend className="mb-1 text-sm font-medium">Войти как</legend>
+              {loginPortalOptions.map((option) => {
+                const selected = portal === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    aria-pressed={selected}
+                    className={`flex min-h-16 w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${selected ? "border-blue-600 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/60" : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"}`}
+                    onClick={() => setPortal(option.value)}
+                    type="button"
+                  >
+                    <span className="grid gap-0.5">
+                      <span className="text-sm font-semibold">{option.label}</span>
+                      <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                        {option.description}
+                      </span>
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`grid size-5 shrink-0 place-items-center rounded-full border text-xs ${selected ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 text-transparent dark:border-slate-600"}`}
+                    >
+                      ✓
+                    </span>
+                  </button>
+                );
+              })}
+            </fieldset>
+          )}
           {!recovering && (
             <div className="mt-6">
               <MaxLogin
                 referralCode={referralCode}
-                expectedRole={registering ? "CUSTOMER" : role}
+                expectedRole={registering ? "CUSTOMER" : portal}
                 compact={!registering}
                 disabled={busy}
                 onError={() => setError("")}
@@ -333,43 +363,6 @@ export const LoginExperience = ({
                   подтверждения оплаты сервисом вы и ваш друг получите по 250 бонусных баллов.
                 </span>
               </label>
-            )}
-            {!registering && !recovering && (
-              <fieldset className="grid gap-2">
-                <legend className="mb-1 text-sm font-medium">Войти как</legend>
-                <button
-                  aria-pressed={role === "CUSTOMER"}
-                  className={`flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 ${role === "CUSTOMER" ? "border-blue-600 bg-blue-50 dark:border-blue-400 dark:bg-blue-950/60" : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"}`}
-                  onClick={() => setRole("CUSTOMER")}
-                  type="button"
-                >
-                  <span className="grid gap-0.5">
-                    <span className="text-sm font-semibold">Клиент</span>
-                    <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                      Заявки, ремонт и магазин
-                    </span>
-                  </span>
-                  <span
-                    aria-hidden="true"
-                    className={`grid size-5 shrink-0 place-items-center rounded-full border text-xs ${role === "CUSTOMER" ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 text-transparent dark:border-slate-600"}`}
-                  >
-                    ✓
-                  </span>
-                </button>
-                <div className="grid gap-1.5">
-                  <span className="text-sm font-medium">Роль сотрудника</span>
-                  <Select
-                    ariaLabel="Роль сотрудника"
-                    className="h-11 rounded-xl border-slate-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                    onValueChange={(value) => {
-                      if (isStaffLoginRole(value)) setRole(value);
-                    }}
-                    options={staffLoginRoleOptions}
-                    placeholder="Выберите роль из списка"
-                    value={role === "CUSTOMER" ? undefined : role}
-                  />
-                </div>
-              </fieldset>
             )}
             {!recovering && (
               <label className="grid gap-1.5 text-sm font-medium">

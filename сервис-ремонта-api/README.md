@@ -1,5 +1,14 @@
 # Application
 
+## Login portals
+
+Password, VK ID, and MAX sign-in expose two current audiences: `CUSTOMER` and `STAFF`. The staff
+audience accepts only existing `TECHNICIAN`, `PROCUREMENT`, and `ADMIN` accounts; the API returns
+the account's actual role and does not grant extra permissions. Legacy role-specific login requests
+remain accepted for older app versions. MAX login stores the staff audience separately from the
+existing user-role enum and still cannot create employee accounts; the additive
+`20261125190000_staff_login_audience` migration keeps older login requests compatible.
+
 ## Technician profiles
 
 Signed-in users can open a technician card from a repair order. Technicians can edit their own name,

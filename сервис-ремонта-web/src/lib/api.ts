@@ -27,6 +27,7 @@ const readLocalizedJson = async <T>(response: Response, fallback: string): Promi
 };
 
 export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
+export type LoginPortal = Role | "STAFF";
 export type StaffRole = Exclude<Role, "CUSTOMER"> | "ADMIN_ASSISTANT";
 export type OrderArchiveView = "active" | "archived";
 export type OrderScope = "personal" | "business";
@@ -1003,7 +1004,7 @@ export const apiRequest = <T>(path: string, token?: string | null, init: Request
   return requestJson<T>(`${apiBase}${path}`, { ...init, headers });
 };
 
-export const loginRequest = (email: string, password: string, portal: Role) =>
+export const loginRequest = (email: string, password: string, portal: LoginPortal) =>
   apiRequest<AuthResponse>("/auth/login", null, {
     method: "POST",
     body: JSON.stringify({ email, password, portal }),
@@ -1012,7 +1013,10 @@ export const loginRequest = (email: string, password: string, portal: Role) =>
 export const maxLoginConfigRequest = () =>
   apiRequest<{ available: boolean }>("/auth/max/config", null);
 
-export const startMaxLoginRequest = (referralCode?: string, expectedRole: Role = "CUSTOMER") => {
+export const startMaxLoginRequest = (
+  referralCode?: string,
+  expectedRole: LoginPortal = "CUSTOMER",
+) => {
   const normalizedReferralCode = referralCode?.trim().toUpperCase();
   return apiRequest<MaxLoginStart>("/auth/max/login", null, {
     method: "POST",

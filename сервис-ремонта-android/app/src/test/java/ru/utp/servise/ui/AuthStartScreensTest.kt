@@ -6,18 +6,23 @@ import org.junit.Test
 
 class AuthStartScreensTest {
     @Test
-    fun `staff role selector includes only technician procurement and admin`() {
-        val portals = staffLoginPortalOptions.map(LoginPortalOption::portal)
+    fun `login screen has only customer and staff portals`() {
+        val portals = loginPortalOptions.map(LoginPortalOption::portal)
 
-        assertEquals(listOf("TECHNICIAN", "PROCUREMENT", "ADMIN"), portals)
+        assertEquals(listOf("CUSTOMER", "STAFF"), portals)
         assertEquals(portals.size, portals.distinct().size)
     }
 
     @Test
-    fun `customer login remains a separate option`() {
-        val customer = customerLoginPortalOption
+    fun `staff entry is labelled administrator and explains account-based routing`() {
+        assertEquals("STAFF", staffLoginPortalOption.portal)
+        assertTrue(staffLoginPortalOption.title.contains("администратор", ignoreCase = true))
+        assertTrue(staffLoginPortalOption.description.contains("учётной записи", ignoreCase = true))
+    }
 
-        assertEquals("CUSTOMER", customer.portal)
-        assertTrue(customer.title.contains("клиент", ignoreCase = true))
+    @Test
+    fun `customer login remains a separate option`() {
+        assertEquals("CUSTOMER", customerLoginPortalOption.portal)
+        assertTrue(customerLoginPortalOption.title.contains("клиент", ignoreCase = true))
     }
 }

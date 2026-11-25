@@ -1152,6 +1152,7 @@ model MaxLoginRequest {
   pollTokenHash   String         @unique @map("poll_token_hash") @db.Char(64)
   status          MaxLoginStatus @default(PENDING)
   expectedRole    UserRole       @default(CUSTOMER) @map("expected_role")
+  expectedStaff   Boolean        @default(false) @map("expected_staff")
   userId          String?        @map("user_id") @db.Uuid
   maxUserId       String?        @map("max_user_id") @db.VarChar(64)
   maxDisplayName  String?        @map("max_display_name") @db.VarChar(120)

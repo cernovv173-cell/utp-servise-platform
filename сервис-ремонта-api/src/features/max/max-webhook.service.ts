@@ -1,4 +1,5 @@
 import type { DatabaseClient } from "../../lib/database/database.js";
+import { matchesLoginPortal } from "../auth/login-portal.js";
 import { sendMaxContactRequest } from "./max-bot.js";
 import {
   MAX_LOGIN_EXPIRED_MESSAGE,
@@ -92,7 +93,10 @@ export const handleMaxBotStarted = async (
     });
     if (
       !target ||
-      target.role !== request.expectedRole ||
+      !matchesLoginPortal(
+        request.expectedStaff ? "STAFF" : request.expectedRole,
+        target.role,
+      ) ||
       target.role !== "CUSTOMER" ||
       !target.active ||
       target.terminatedAt
@@ -184,7 +188,12 @@ export const handleMaxBotStarted = async (
     select: { id: true, role: true, active: true, terminatedAt: true },
   });
   if (linkedUser) {
-    if (linkedUser.role !== request.expectedRole) {
+    if (
+      !matchesLoginPortal(
+        request.expectedStaff ? "STAFF" : request.expectedRole,
+        linkedUser.role,
+      )
+    ) {
       await failAndNotify(
         database,
         request.id,
@@ -220,7 +229,7 @@ export const handleMaxBotStarted = async (
     return;
   }
 
-  if (request.expectedRole !== "CUSTOMER") {
+  if (request.expectedStaff || request.expectedRole !== "CUSTOMER") {
     await failAndNotify(
       database,
       request.id,

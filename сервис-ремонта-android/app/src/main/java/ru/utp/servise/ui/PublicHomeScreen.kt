@@ -49,9 +49,7 @@ fun PublicHomeScreen(
     onBackToStart: () -> Unit,
     onRequest: () -> Unit,
     onCustomerLogin: () -> Unit,
-    onTechnicianLogin: () -> Unit,
-    onProcurementLogin: () -> Unit,
-    onAdminLogin: () -> Unit,
+    onStaffLogin: () -> Unit,
     seasonalTheme: String = "NONE",
 ) {
     var company by remember { mutableStateOf<CompanyInfo?>(null) }
@@ -215,16 +213,15 @@ fun PublicHomeScreen(
                 OutlinedButton(onClick = onCustomerLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
                     Text("Войти в аккаунт клиента")
                 }
-                Text("Вход для сотрудников", fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.padding(top = 4.dp))
-                OutlinedButton(onClick = onTechnicianLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
-                    Text("Вход для мастера")
+                OutlinedButton(onClick = onStaffLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
+                    Text("Войти как администратор")
                 }
-                OutlinedButton(onClick = onProcurementLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
-                    Text("Вход для закупки")
-                }
-                OutlinedButton(onClick = onAdminLogin, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(13.dp)) {
-                    Text("Вход администратора")
-                }
+                Text(
+                    "Вход для команды: раздел мастера, закупок или администратора определится по вашей учётной записи.",
+                    color = UtpMuted,
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                )
             }
         }
         Spacer(Modifier.height(8.dp))

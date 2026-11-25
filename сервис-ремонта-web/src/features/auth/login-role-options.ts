@@ -1,15 +1,19 @@
-import type { Role } from "@/lib/api";
+import type { LoginPortal } from "@/lib/api";
 
-export type StaffLoginRole = Exclude<Role, "CUSTOMER">;
-
-export const staffLoginRoleOptions: readonly {
+export const loginPortalOptions: readonly {
+  readonly value: LoginPortal;
   readonly label: string;
-  readonly value: StaffLoginRole;
+  readonly description: string;
 }[] = [
-  { value: "TECHNICIAN", label: "Мастер" },
-  { value: "PROCUREMENT", label: "Мастер закупки" },
-  { value: "ADMIN", label: "Администратор Енот-сервис.рф" },
+  {
+    value: "CUSTOMER",
+    label: "Клиент",
+    description: "Заявки, ремонт и магазин",
+  },
+  {
+    value: "STAFF",
+    label: "Администратор",
+    description:
+      "Для команды: мастер, закупки или администратор. Раздел откроется по вашей учётной записи.",
+  },
 ];
-
-export const isStaffLoginRole = (value: string): value is StaffLoginRole =>
-  staffLoginRoleOptions.some((option) => option.value === value);
