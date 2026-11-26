@@ -89,7 +89,7 @@ internal fun RepairOrderReleaseDialog(
         onDismissRequest = onDismiss,
         title = { Text("Выдать заказ · ${order.serviceNumber}") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 when {
                     loading -> Text("Проверяем итоговую сумму…")
                     totals != null -> {

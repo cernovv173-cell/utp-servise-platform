@@ -260,7 +260,7 @@ private fun RepairEstimateComposerDialog(
         onDismissRequest = onDismiss,
         title = { Text("Подготовить смету для клиента") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 OutlinedTextField(
                     value = diagnosis,
                     onValueChange = { diagnosis = it.take(2000) },

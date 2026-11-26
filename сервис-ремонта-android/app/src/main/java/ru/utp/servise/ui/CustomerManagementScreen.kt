@@ -219,7 +219,7 @@ private fun DeleteCustomerDialog(
         onDismissRequest = onDismiss,
         title = { Text("Удалить клиента навсегда?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 Text(
                     "Аккаунт и связанные заявки, чеки, устройства, фото, переписки, отзывы, бонусы, рефералы и участия в акциях будут удалены безвозвратно.",
                     fontSize = 12.sp,
@@ -266,7 +266,7 @@ private fun CreateCustomerDialog(
         onDismissRequest = onDismiss,
         title = { Text("Новый клиент") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 Text("Клиент получит временный пароль и сменит его при первом входе.", fontSize = 12.sp, color = UtpMuted)
                 OutlinedTextField(displayName, { displayName = it.take(120) }, label = { Text("Имя") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                 OutlinedTextField(email, { email = it.take(320) }, label = { Text("Электронная почта") }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
@@ -292,7 +292,7 @@ private fun NewCustomerCredentialsDialog(
         onDismissRequest = onDismiss,
         title = { Text("Данные для первого входа") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 Text("Передайте данные клиенту безопасным способом. После закрытия пароль больше не будет показан.", fontSize = 12.sp, color = UtpMuted)
                 Text("Клиент: ${result.customer.displayName}", fontWeight = FontWeight.SemiBold)
                 Text("Логин: ${result.customer.login ?: result.customer.email ?: "—"}", fontWeight = FontWeight.Medium)
@@ -320,7 +320,7 @@ private fun EditCustomerDialog(
         onDismissRequest = onDismiss,
         title = { Text("Данные клиента") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 OutlinedTextField(
                     value = displayName,
                     onValueChange = { displayName = it.take(120) },

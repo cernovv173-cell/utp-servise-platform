@@ -1,11 +1,13 @@
 package ru.utp.servise.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -85,7 +87,10 @@ internal fun MonthlyPayrollAdjustmentForm(
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 PayrollAdjustmentType.values().forEach { type ->
                     FilterChip(
                         selected = selectedType == type,
@@ -161,7 +166,7 @@ internal fun VoidPayrollAdjustmentDialog(
         onDismissRequest = onDismiss,
         title = { Text("Отменить запись?") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 Text("Запись останется в истории, но перестанет уменьшать сумму к выплате.")
                 OutlinedTextField(
                     value = reason,

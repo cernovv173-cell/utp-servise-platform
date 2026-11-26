@@ -407,7 +407,7 @@ private fun NewsEditDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (article.kind == "WORK_STORY") "Изменить пример работы" else "Изменить новость") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 OutlinedTextField(title, { title = it.take(160) }, label = { Text("Заголовок") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                 OutlinedTextField(content, { content = it.take(8000) }, label = { Text(if (article.kind == "WORK_STORY") "Описание работы" else "Текст") }, modifier = Modifier.fillMaxWidth().height(140.dp), shape = RoundedCornerShape(12.dp))
                 ScheduleDateTimeField("Начало публикации", startsAt, { startsAt = it })

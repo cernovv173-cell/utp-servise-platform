@@ -5,13 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -31,8 +31,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.OrderAddress
+import ru.utp.servise.data.RepairOrder
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.deviceLabel
 
@@ -49,23 +49,29 @@ internal fun AssignmentDialog(
         onDismissRequest = onDismiss,
         title = { Text("Назначить мастера") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                if (technicians.isEmpty()) Text("Сначала добавьте активного мастера в разделе «Сотрудники».")
-                technicians.forEach { member ->
-                    TextButton(onClick = { onSelect(member.id) }) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            UserAvatar(
-                                member.avatarObjectId,
-                                token = token,
-                                modifier = Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)),
-                                contentDescription = "Аватар ${member.displayName}",
-                            )
-                            Column(
-                                Modifier.fillMaxWidth().padding(start = 8.dp),
-                                horizontalAlignment = Alignment.Start,
-                            ) {
-                                Text(member.displayName, color = UtpInk, fontWeight = FontWeight.SemiBold)
-                                Text(member.email, fontSize = 12.sp, color = UtpMuted)
+            if (technicians.isEmpty()) {
+                Text("Сначала добавьте активного мастера в разделе «Сотрудники».")
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp),
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    items(technicians, key = { it.id }) { member ->
+                        TextButton(onClick = { onSelect(member.id) }) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                UserAvatar(
+                                    member.avatarObjectId,
+                                    token = token,
+                                    modifier = Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)),
+                                    contentDescription = "Аватар ${member.displayName}",
+                                )
+                                Column(
+                                    Modifier.weight(1f).padding(start = 8.dp),
+                                    horizontalAlignment = Alignment.Start,
+                                ) {
+                                    Text(member.displayName, color = UtpInk, fontWeight = FontWeight.SemiBold)
+                                    Text(member.email, fontSize = 12.sp, color = UtpMuted)
+                                }
                             }
                         }
                     }
@@ -101,10 +107,7 @@ internal fun OrderEditDialog(
         onDismissRequest = onDismiss,
         title = { Text("Редактировать заказ") },
         text = {
-            Column(
-                modifier = Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            ScrollableDialogContent {
                 Box {
                     OutlinedButton(
                         onClick = { deviceMenu = true },

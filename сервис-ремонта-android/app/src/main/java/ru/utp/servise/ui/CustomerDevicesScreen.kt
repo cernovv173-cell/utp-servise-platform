@@ -192,7 +192,7 @@ private fun DeviceCard(
             onDismissRequest = { warrantyClaimOrder = null; warrantyClaimProblem = "" },
             title = { Text("Обращение по гарантии") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ScrollableDialogContent {
                     Text("Талон ${order.warrantyNumber} · исходный ремонт ${order.serviceNumber}")
                     OutlinedTextField(
                         value = warrantyClaimProblem,

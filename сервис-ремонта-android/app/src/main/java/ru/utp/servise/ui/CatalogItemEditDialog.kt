@@ -1,7 +1,6 @@
 package ru.utp.servise.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -50,7 +49,7 @@ internal fun CatalogItemEditDialog(
         onDismissRequest = onDismiss,
         title = { Text("Изменить позицию") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                     if (type == "SERVICE") Button(onClick = { type = "SERVICE" }) { Text("Услуга") }
                     else OutlinedButton(onClick = { type = "SERVICE" }) { Text("Услуга") }

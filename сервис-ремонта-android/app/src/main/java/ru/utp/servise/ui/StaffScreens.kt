@@ -231,7 +231,11 @@ fun StaffManagementScreen(
         AlertDialog(
             onDismissRequest = { temporaryPassword = null },
             title = { Text("Сотрудник создан") },
-            text = { Text("Передайте эти данные сотруднику. Временный пароль отображается только сейчас.\n\n$credentials") },
+            text = {
+                ScrollableDialogContent {
+                    Text("Передайте эти данные сотруднику. Временный пароль отображается только сейчас.\n\n$credentials")
+                }
+            },
             confirmButton = { TextButton(onClick = { temporaryPassword = null; refresh() }) { Text("Скопировал") } },
         )
     }
@@ -253,7 +257,9 @@ fun StaffManagementScreen(
             onDismissRequest = { deletingStaff = null },
             title = { Text("Уволить сотрудника навсегда?") },
             text = {
-                Text("Вход для ${member.displayName} и связанные сеансы будут закрыты навсегда. История, завершённые заявки, чеки и начисления сохранятся; незавершённые заявки вернутся администраторам для переназначения. Восстановить доступ нельзя.")
+                ScrollableDialogContent {
+                    Text("Вход для ${member.displayName} и связанные сеансы будут закрыты навсегда. История, завершённые заявки, чеки и начисления сохранятся; незавершённые заявки вернутся администраторам для переназначения. Восстановить доступ нельзя.")
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
@@ -284,7 +290,7 @@ private fun EditStaffDialog(
         onDismissRequest = onDismiss,
         title = { Text("Редактировать сотрудника") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ScrollableDialogContent {
                 OutlinedTextField(
                     value = displayName,
                     onValueChange = { displayName = it.take(120) },
@@ -318,28 +324,28 @@ private fun EditStaffDialog(
                     }
                 }
                 if ("repairs" in permissions) {
-                OutlinedTextField(
-                    value = salaryRatePercent,
-                    onValueChange = { value ->
-                        if (value.all(Char::isDigit) && value.length <= 3) {
-                            salaryRatePercent = value
-                            validationError = null
-                        }
-                    },
-                    label = { Text("Процент оплаты за услуги") },
-                    suffix = { Text("%") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    isError = validationError != null,
-                )
-                Text(
-                    "Ставка применяется к новым начислениям. Запчасти и товары не учитываются.",
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp,
-                    color = UtpMuted,
-                )
+                    OutlinedTextField(
+                        value = salaryRatePercent,
+                        onValueChange = { value ->
+                            if (value.all(Char::isDigit) && value.length <= 3) {
+                                salaryRatePercent = value
+                                validationError = null
+                            }
+                        },
+                        label = { Text("Процент оплаты за услуги") },
+                        suffix = { Text("%") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        isError = validationError != null,
+                    )
+                    Text(
+                        "Ставка применяется к новым начислениям. Запчасти и товары не учитываются.",
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        color = UtpMuted,
+                    )
                 }
                 validationError?.let { error ->
                     Text(
