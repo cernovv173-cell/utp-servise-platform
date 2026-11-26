@@ -17,7 +17,8 @@ class AuthStartScreensTest {
     fun `staff entry is labelled employee and explains account-based routing`() {
         assertEquals("STAFF", staffLoginPortalOption.portal)
         assertTrue(staffLoginPortalOption.title.contains("сотрудник", ignoreCase = true))
-        assertTrue(staffLoginPortalOption.description.contains("после входа", ignoreCase = true))
+        assertTrue(staffLoginPortalOption.description.contains("рабочими данными", ignoreCase = true))
+        assertTrue(staffLoginPortalOption.description.contains("разделы", ignoreCase = true))
     }
 
     @Test

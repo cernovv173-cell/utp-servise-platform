@@ -8,6 +8,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { UserAvatar } from "@/components/user-avatar";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission, isFullAdministrator } from "@/features/auth/staff-access";
 
 import { getTechnicianProfile, saveTechnicianProfile, uploadAvatar } from "@/lib/api";
 
@@ -20,8 +21,8 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
     enabled: Boolean(token && technicianId),
   });
   const profile = profileQuery.data?.profile;
-  const isOwner = user?.role === "TECHNICIAN" && user.id === technicianId;
-  const canViewAddress = isOwner || user?.role === "ADMIN";
+  const isOwner = hasPermission(user, "repairs") && user.id === technicianId;
+  const canViewAddress = isOwner || isFullAdministrator(user);
   const [draft, setDraft] = useState<{
     profileKey: string;
     experience: number | "";
@@ -66,7 +67,10 @@ export const TechnicianProfileScreen = ({ technicianId }: { technicianId: string
   });
   return (
     <AppShell active={isOwner ? "/account" : "/orders"}>
-      <PageTitle eyebrow="МАСТЕР" title={profile?.user.displayName ?? "Карточка мастера"} />
+      <PageTitle
+        eyebrow="ПРОФИЛЬ СОТРУДНИКА"
+        title={profile?.user.displayName ?? "Профиль сотрудника"}
+      />
       {profileQuery.isLoading && <p className="text-sm text-slate-500">Загружаем профиль…</p>}
       {profileQuery.isError && (
         <SectionCard>

@@ -4,6 +4,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { BannerManagement } from "@/features/admin/banner-management";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 const AdvertisingPage = () => {
   const { user } = useAuth();
@@ -14,7 +15,7 @@ const AdvertisingPage = () => {
         title="Реклама"
         description="Создавайте рекламные баннеры и управляйте местами и сроками их показа."
       />
-      {user?.role === "ADMIN" ? (
+      {hasPermission(user, "content") ? (
         <BannerManagement />
       ) : (
         <SectionCard>

@@ -8,6 +8,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 import { sendPushNotification } from "../notifications/push-notifications.js";
 
@@ -126,7 +127,7 @@ export const createSupportChatRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/support/chats",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     async (_request, response) => {
       const chats = await database.supportConversation.findMany({
         include: {
@@ -151,7 +152,7 @@ export const createSupportChatRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/support/chats/:customerId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     validateRequest({ params: customerIdParams }),
     async (_request, response) => {
       const { customerId } =
@@ -169,7 +170,7 @@ export const createSupportChatRouter = (database: DatabaseClient): Router => {
   router.post(
     "/admin/support/chats/:customerId/messages",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     validateRequest({ params: customerIdParams, body: messageBody }),
     async (_request, response) => {
       const admin = getAuthenticatedUser(response);

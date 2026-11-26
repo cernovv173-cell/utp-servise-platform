@@ -26,9 +26,24 @@ const readLocalizedJson = async <T>(response: Response, fallback: string): Promi
   }
 };
 
-export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT";
+export type Role = "CUSTOMER" | "TECHNICIAN" | "ADMIN" | "PROCUREMENT" | "STAFF";
 export type LoginPortal = Role | "STAFF";
 export type StaffRole = Exclude<Role, "CUSTOMER"> | "ADMIN_ASSISTANT";
+export type StaffPermission =
+  | "repairs"
+  | "inventory"
+  | "customers"
+  | "shop_orders"
+  | "communications"
+  | "content"
+  | "reports"
+  | "company_settings"
+  | "staff_management";
+export type StaffPermissionOption = {
+  key: StaffPermission;
+  label: string;
+  description: string;
+};
 export type OrderArchiveView = "active" | "archived";
 export type OrderScope = "personal" | "business";
 export type RepairCatalogType = "SERVICE" | "SPARE_PART" | "PRODUCT";
@@ -104,6 +119,7 @@ export type User = {
   maxAvailable?: boolean;
   role: Role;
   isAdminAssistant?: boolean;
+  permissions?: StaffPermission[];
   mustChangePassword: boolean;
 };
 
@@ -466,6 +482,7 @@ export type StaffMember = {
   terminatedAt?: string | null;
   role: string;
   isAdminAssistant?: boolean;
+  permissions?: StaffPermission[];
 };
 
 export type TechnicianProfile = {
@@ -1872,7 +1889,10 @@ export const searchOrders = (
 };
 
 export const getStaff = (token: string, signal?: AbortSignal) =>
-  apiRequest<{ staff: StaffMember[] }>("/staff", token, { signal });
+  apiRequest<{
+    staff: StaffMember[];
+    permissionOptions: StaffPermissionOption[];
+  }>("/staff", token, { signal });
 
 export const getTechnicianProfile = (token: string, userId: string, signal?: AbortSignal) =>
   apiRequest<{ profile: TechnicianProfile }>(`/staff/${userId}/profile`, token, { signal });
@@ -1916,13 +1936,14 @@ export const createStaff = (
     email: string;
     displayName: string;
     phoneNumber?: string;
-    role: Extract<StaffRole, "TECHNICIAN" | "PROCUREMENT" | "ADMIN_ASSISTANT">;
+    permissions: StaffPermission[];
+    fullAdministrator?: boolean;
   },
 ) =>
   apiRequest<{
     staff: Pick<
       StaffMember,
-      "id" | "displayName" | "email" | "login" | "role" | "isAdminAssistant"
+      "id" | "displayName" | "email" | "login" | "role" | "isAdminAssistant" | "permissions"
     >;
     temporaryPassword: string;
   }>("/staff", token, {
@@ -1933,7 +1954,12 @@ export const createStaff = (
 export const updateTechnician = (
   token: string,
   userId: string,
-  input: { salaryRatePercent: number },
+  input: {
+    salaryRatePercent?: number;
+    permissions?: StaffPermission[];
+    displayName?: string;
+    phoneNumber?: string | null;
+  },
 ) =>
   apiRequest<{ staff: StaffMember }>(`/staff/${userId}`, token, {
     method: "PATCH",

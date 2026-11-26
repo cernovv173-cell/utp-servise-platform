@@ -8,7 +8,7 @@ import { createStaffRouter } from "../src/features/staff/staff.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("admin assistants can manage staff but cannot create full administrators", async (t) => {
+test("legacy assistant creation becomes a permissioned employee, not a full administrator", async (t) => {
   const adminToken = "A".repeat(48);
   const assistantToken = "H".repeat(48);
   const admin = makeUser("11111111-1111-4111-8111-111111111111", "ADMIN");
@@ -96,11 +96,12 @@ test("admin assistants can manage staff but cannot create full administrators", 
   );
   assert.equal(helperResponse.status, 201);
   const helperBody = (await helperResponse.json()) as {
-    staff: { role: string; isAdminAssistant: boolean };
+    staff: { role: string; isAdminAssistant: boolean; permissions: string[] };
     temporaryPassword: string;
   };
-  assert.equal(helperBody.staff.role, "ADMIN");
-  assert.equal(helperBody.staff.isAdminAssistant, true);
+  assert.equal(helperBody.staff.role, "STAFF");
+  assert.equal(helperBody.staff.isAdminAssistant, false);
+  assert.ok(helperBody.staff.permissions.includes("staff_management"));
   assert.equal(helperBody.temporaryPassword.length, 6);
 
   const blockedAdminResponse = await create(
@@ -138,9 +139,9 @@ test("admin assistants can manage staff but cannot create full administrators", 
   });
   assert.equal(listResponse.status, 200);
   const listBody = (await listResponse.json()) as {
-    staff: Array<{ id: string; isAdminAssistant: boolean }>;
+    staff: Array<{ id: string; isAdminAssistant: boolean; role: string }>;
   };
-  assert.ok(listBody.staff.some((member) => member.isAdminAssistant));
+  assert.ok(listBody.staff.some((member) => member.role === "STAFF"));
   assert.equal(
     listBody.staff.some((member) => member.id === terminated.id),
     false,

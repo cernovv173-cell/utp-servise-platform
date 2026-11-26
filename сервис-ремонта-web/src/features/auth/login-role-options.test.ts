@@ -8,9 +8,9 @@ describe("login portal options", () => {
     expect(loginPortalOptions.map((option) => option.label)).toEqual(["Клиент", "Сотрудник"]);
   });
 
-  it("explains that the staff role is resolved after sign-in", () => {
+  it("explains that employee access is resolved from the account after sign-in", () => {
     expect(loginPortalOptions[1]?.description).toBe(
-      "Мастер, закупки или администратор — система определит вашу роль после входа.",
+      "Войдите с рабочими данными — система откроет разделы, доступные вашей учётной записи.",
     );
   });
 });

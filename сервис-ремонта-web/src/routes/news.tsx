@@ -7,6 +7,7 @@ import { ProtectedMedia } from "@/components/protected-media";
 
 import { NewsAdmin } from "@/features/admin/news-admin";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import { BirthdayGreetingCard } from "@/features/news/birthday-greeting-card";
 import { TechnologyFactCard } from "@/features/news/technology-fact-card";
@@ -40,7 +41,7 @@ const NewsPage = () => {
         title="Новости сервиса"
         description="Объявления и актуальные предложения ЕНОТ СЕРВИС. Примеры работ размещаются отдельно от отзывов клиентов."
       />
-      {user?.role === "ADMIN" && <NewsAdmin />}
+      {hasPermission(user, "content") && <NewsAdmin />}
       {query.isLoading && <p className="text-sm text-slate-500">Загружаем новости…</p>}
       {query.isError && (
         <p role="alert" className="text-sm text-rose-600">

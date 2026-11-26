@@ -15,6 +15,7 @@ data class AppUser(
     val role: String,
     val mustChangePassword: Boolean,
     val isAdminAssistant: Boolean = false,
+    val permissions: List<String> = emptyList(),
 )
 
 data class RepairOrderIntakeSettings(
@@ -766,6 +767,7 @@ data class StaffMember(
     val salaryRatePercent: Int = 75,
     val terminatedAt: String? = null,
     val isAdminAssistant: Boolean = false,
+    val permissions: List<String> = emptyList(),
 )
 
 data class CustomerReview(

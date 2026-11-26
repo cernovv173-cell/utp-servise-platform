@@ -7,6 +7,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireRolesOrStaffPermission,
 } from "../auth/auth.middleware.js";
 import { TECHNICIAN_SALARY_RATE_PERCENT } from "./salary-calculation.js";
 import {
@@ -54,7 +55,7 @@ export const createSalaryRouter = (database: DatabaseClient): Router => {
   router.get(
     "/salary",
     requireAuth,
-    requireRoles("TECHNICIAN", "ADMIN"),
+    requireRolesOrStaffPermission("repairs", "TECHNICIAN", "ADMIN"),
     validateRequest({ query: salaryQuery }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -71,21 +72,33 @@ export const createSalaryRouter = (database: DatabaseClient): Router => {
         ),
       );
 
-      const technicians =
-        user.role === "ADMIN"
-          ? await database.user.findMany({
-              where: { role: "TECHNICIAN" },
-              select: { id: true, displayName: true, salaryRatePercent: true },
-              orderBy: { displayName: "asc" },
-            })
-          : [
-              {
-                id: user.id,
-                displayName: user.displayName,
-                salaryRatePercent:
-                  user.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT,
-              },
-            ];
+      const canViewTeamSalary =
+        user.role === "ADMIN" &&
+        (!user.isAdminAssistant || !user.staffPermissionsConfigured);
+      const technicians = canViewTeamSalary
+        ? await database.user.findMany({
+            where: {
+              OR: [
+                {
+                  role: "TECHNICIAN",
+                  OR: [
+                    { staffPermissionsConfigured: false },
+                    { staffPermissions: { has: "repairs" } },
+                  ],
+                },
+              ],
+            },
+            select: { id: true, displayName: true, salaryRatePercent: true },
+            orderBy: { displayName: "asc" },
+          })
+        : [
+            {
+              id: user.id,
+              displayName: user.displayName,
+              salaryRatePercent:
+                user.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT,
+            },
+          ];
       const salaryFilter = {
         technicianId: { in: technicians.map(({ id }) => id) },
         earnedAt: { gte: earliestPeriod, lte: now },
@@ -128,7 +141,7 @@ export const createSalaryRouter = (database: DatabaseClient): Router => {
 
       response.json({
         ratePercent:
-          user.role === "TECHNICIAN"
+          user.role !== "ADMIN"
             ? (user.salaryRatePercent ?? TECHNICIAN_SALARY_RATE_PERCENT)
             : null,
         timeZone: query.timeZone,

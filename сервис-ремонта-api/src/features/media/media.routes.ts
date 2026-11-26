@@ -13,6 +13,7 @@ import {
   getAuthenticatedUser,
   publicUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 import { canAccessCraftOrderChat } from "../crafts/craft-chat-policy.js";
 import {
@@ -174,7 +175,7 @@ export const createMediaRouter = (
   router.post(
     "/news/:articleId/image",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: newsParams }),
     imageBody,
     async (request, response) => {
@@ -213,7 +214,7 @@ export const createMediaRouter = (
   router.post(
     "/news/:articleId/media",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: newsParams }),
     mediaBody,
     async (request, response) => {
@@ -269,7 +270,7 @@ export const createMediaRouter = (
   router.post(
     "/craft-items/:itemId/image",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: craftItemParams }),
     imageBody,
     async (request, response) => {
@@ -365,7 +366,7 @@ export const createMediaRouter = (
   router.post(
     "/banners/:bannerId/image",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: bannerParams }),
     imageBody,
     async (request, response) => {
@@ -398,7 +399,7 @@ export const createMediaRouter = (
   router.post(
     "/banners/:bannerId/media",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: bannerParams }),
     mediaBody,
     async (request, response) => {

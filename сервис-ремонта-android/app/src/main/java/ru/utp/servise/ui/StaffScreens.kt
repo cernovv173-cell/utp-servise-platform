@@ -18,7 +18,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -41,7 +41,24 @@ import ru.utp.servise.data.AuthResult
 import ru.utp.servise.data.NewStaffResult
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.ApiClient
-import ru.utp.servise.data.roleLabel
+
+private data class StaffPermissionChoice(
+    val key: String,
+    val label: String,
+    val description: String,
+)
+
+private val staffPermissionChoices = listOf(
+    StaffPermissionChoice("repairs", "Заявки и ремонт", "Назначенные заявки и собственные начисления."),
+    StaffPermissionChoice("inventory", "Каталог и склад", "Каталог товаров, остатки, поставщики и поступления."),
+    StaffPermissionChoice("customers", "Клиенты", "Поиск и работа с клиентскими данными."),
+    StaffPermissionChoice("shop_orders", "Заказы магазина", "Обработка заказов товаров и доставки."),
+    StaffPermissionChoice("communications", "Чаты и поддержка", "Переписка по заявкам и обращения клиентов."),
+    StaffPermissionChoice("content", "Новости и предложения", "Новости, баннеры, акции и розыгрыши."),
+    StaffPermissionChoice("reports", "Расписание и отчёты", "Просмотр расписания и рабочих отчётов."),
+    StaffPermissionChoice("company_settings", "Настройки сервиса", "Контакты и сезонное оформление."),
+    StaffPermissionChoice("staff_management", "Сотрудники и доступы", "Создание сотрудников и настройка их прав."),
+)
 
 @Composable
 fun StaffManagementScreen(
@@ -55,15 +72,20 @@ fun StaffManagementScreen(
     var displayName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
-    var role by remember { mutableStateOf("TECHNICIAN") }
+    var selectedPermissions by remember { mutableStateOf(setOf<String>()) }
+    var fullAdministrator by remember { mutableStateOf(false) }
     var temporaryPassword by remember { mutableStateOf<String?>(null) }
     var editedStaff by remember { mutableStateOf<StaffMember?>(null) }
     var deletingStaff by remember { mutableStateOf<StaffMember?>(null) }
+    val isFullAdministrator = currentUser.role == "ADMIN" && !currentUser.isAdminAssistant
+    val availablePermissionChoices = staffPermissionChoices.filter {
+        isFullAdministrator || it.key in currentUser.permissions
+    }
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Сотрудники", fontSize = 25.sp, fontWeight = FontWeight.Bold, color = UtpInk)
-                Text("Вход мастеров и администраторов — только по выданным данным", fontSize = 12.sp, color = UtpMuted)
+                Text("Управляйте учётными записями и доступом команды", fontSize = 12.sp, color = UtpMuted)
             }
             TextButton(onClick = refresh) { Text("Обновить") }
         }
@@ -76,24 +98,51 @@ fun StaffManagementScreen(
                 OutlinedTextField(
                     value = phoneNumber,
                     onValueChange = { phoneNumber = it },
-                    label = { Text("Телефон мастера (необязательно)") },
+                    label = { Text("Телефон сотрудника (необязательно)") },
                     modifier = Modifier.fillMaxWidth().padding(top = 7.dp),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                     shape = RoundedCornerShape(16.dp),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                    FilterChip(selected = role == "TECHNICIAN", onClick = { role = "TECHNICIAN" }, label = { Text("Мастер") })
-                    FilterChip(selected = role == "PROCUREMENT", onClick = { role = "PROCUREMENT" }, label = { Text("Мастер закупки") })
-                    FilterChip(selected = role == "ADMIN_ASSISTANT", onClick = { role = "ADMIN_ASSISTANT" }, label = { Text("Помощник администратора") })
-                    if (!currentUser.isAdminAssistant) {
-                        FilterChip(selected = role == "ADMIN", onClick = { role = "ADMIN" }, label = { Text("Администратор") })
+                if (isFullAdministrator) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                        Checkbox(checked = fullAdministrator, onCheckedChange = { fullAdministrator = it })
+                        Column {
+                            Text("Полный доступ администратора", fontWeight = FontWeight.Medium)
+                            Text("Отдельный защищённый уровень доступа ко всем разделам.", fontSize = 11.sp, color = UtpMuted)
+                        }
                     }
                 }
-                Text("Роль нельзя выбрать при обычной регистрации. Новый сотрудник получит временный пароль и сменит его при первом входе.", fontSize = 11.sp, lineHeight = 16.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
+                if (!fullAdministrator) {
+                    Text("Доступ к разделам", fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))
+                    staffPermissionChoices.forEach { choice ->
+                        val canAssign = choice in availablePermissionChoices
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                        ) {
+                            Checkbox(
+                                checked = choice.key in selectedPermissions,
+                                enabled = canAssign,
+                                onCheckedChange = { checked ->
+                                    selectedPermissions = if (checked) {
+                                        selectedPermissions + choice.key
+                                    } else {
+                                        selectedPermissions - choice.key
+                                    }
+                                },
+                            )
+                            Column(Modifier.padding(top = 10.dp)) {
+                                Text(choice.label, fontWeight = FontWeight.Medium)
+                                Text(choice.description, fontSize = 11.sp, lineHeight = 15.sp, color = UtpMuted)
+                            }
+                        }
+                    }
+                }
+                Text("Должность отдельно не назначается. Права можно сохранить и изменить позднее.", fontSize = 11.sp, lineHeight = 16.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
                 Button(
                     onClick = {
-                        runAction({ ru.utp.servise.data.ApiClient.createStaff(token, email.trim(), displayName.trim(), role, phoneNumber.trim().takeIf { it.isNotEmpty() }) }) { result ->
+                        runAction({ ru.utp.servise.data.ApiClient.createStaff(token, email.trim(), displayName.trim(), selectedPermissions.toList(), fullAdministrator, phoneNumber.trim().takeIf { it.isNotEmpty() }) }) { result ->
                             val created = result as? NewStaffResult
                             temporaryPassword = created?.let {
                                 "Логин: ${it.staff.login ?: it.staff.email}\nРабочая почта: ${it.staff.email}\n\nВременный пароль: ${it.temporaryPassword}"
@@ -101,6 +150,8 @@ fun StaffManagementScreen(
                             email = ""
                             displayName = ""
                             phoneNumber = ""
+                            selectedPermissions = emptySet()
+                            fullAdministrator = false
                         }
                     },
                     enabled = displayName.trim().length >= 2 && email.contains("@"),
@@ -112,6 +163,10 @@ fun StaffManagementScreen(
         Spacer(Modifier.height(14.dp))
         Text("Учётные записи (${staff.size})", fontWeight = FontWeight.SemiBold, color = UtpInk, modifier = Modifier.padding(bottom = 8.dp))
         staff.forEach { member ->
+            val isFullAdmin = member.role == "ADMIN" && !member.isAdminAssistant
+            val memberPermissionLabels = staffPermissionChoices
+                .filter { it.key in member.permissions }
+                .joinToString { it.label }
             Card(Modifier.fillMaxWidth().padding(bottom = 8.dp), shape = RoundedCornerShape(15.dp), colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface)) {
                 Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                     UserAvatar(
@@ -125,12 +180,19 @@ fun StaffManagementScreen(
                         Text(member.email, fontSize = 12.sp, color = UtpMuted)
                         member.phoneNumber?.takeIf { it.isNotBlank() }?.let { Text(it, fontSize = 12.sp, color = UtpBlue, modifier = Modifier.padding(top = 2.dp)) }
                         Text(
-                            "${if (member.isAdminAssistant) "Помощник администратора" else member.role.roleLabel()} · ${member.terminatedAt?.let { "Уволен навсегда" } ?: if (member.active) "Активен" else "Доступ отключён"}",
+                            "${if (isFullAdmin) "Полный доступ администратора" else "Сотрудник"} · ${member.terminatedAt?.let { "Уволен навсегда" } ?: if (member.active) "Активен" else "Доступ отключён"}",
                             fontSize = 11.sp,
                             color = if (member.active && member.terminatedAt == null) UtpGreen else UtpMuted,
                             modifier = Modifier.padding(top = 4.dp),
                         )
-                        if (member.role == "TECHNICIAN") {
+                        Text(
+                            "Доступ: ${if (isFullAdmin) "все разделы" else memberPermissionLabels.ifBlank { "не назначен" }}",
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            color = UtpMuted,
+                            modifier = Modifier.padding(top = 3.dp),
+                        )
+                        if ("repairs" in member.permissions || member.role == "TECHNICIAN") {
                             Text(
                                 "Оплата: ${member.salaryRatePercent}% только от услуг",
                                 fontSize = 11.sp,
@@ -140,10 +202,13 @@ fun StaffManagementScreen(
                         }
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        if (member.role == "TECHNICIAN") {
+                        if ("repairs" in member.permissions || member.role == "TECHNICIAN") {
                             TextButton(onClick = { onOpenTechnicianProfile(member.id) }) { Text("Профиль") }
-                            TextButton(onClick = { editedStaff = member }) { Text("Изменить") }
                         }
+                        if (
+                            member.id != currentUser.id &&
+                            !(member.role == "ADMIN" && !member.isAdminAssistant)
+                        ) TextButton(onClick = { editedStaff = member }) { Text("Изменить права") }
                         if (member.id != currentUser.id && member.terminatedAt == null) {
                             TextButton(
                                 onClick = {
@@ -171,8 +236,9 @@ fun StaffManagementScreen(
         )
     }
     editedStaff?.let { member ->
-        EditTechnicianDialog(
+        EditStaffDialog(
             staff = member,
+            permissionChoices = availablePermissionChoices,
             onDismiss = { editedStaff = null },
             onSave = { updated ->
                 runAction({ ApiClient.updateStaff(token, updated) }) {
@@ -203,18 +269,20 @@ fun StaffManagementScreen(
 }
 
 @Composable
-private fun EditTechnicianDialog(
+private fun EditStaffDialog(
     staff: StaffMember,
+    permissionChoices: List<StaffPermissionChoice>,
     onDismiss: () -> Unit,
     onSave: (StaffMember) -> Unit,
 ) {
     var displayName by remember(staff.id) { mutableStateOf(staff.displayName) }
     var phoneNumber by remember(staff.id) { mutableStateOf(staff.phoneNumber.orEmpty()) }
     var salaryRatePercent by remember(staff.id) { mutableStateOf(staff.salaryRatePercent.toString()) }
+    var permissions by remember(staff.id) { mutableStateOf(staff.permissions.toSet()) }
     var validationError by remember(staff.id) { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Редактировать мастера") },
+        title = { Text("Редактировать сотрудника") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -234,6 +302,22 @@ private fun EditTechnicianDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
                 )
+                Text("Доступ к разделам", fontWeight = FontWeight.Medium)
+                permissionChoices.forEach { choice ->
+                    Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
+                        Checkbox(
+                            checked = choice.key in permissions,
+                            onCheckedChange = { checked ->
+                                permissions = if (checked) permissions + choice.key else permissions - choice.key
+                            },
+                        )
+                        Column(Modifier.padding(top = 10.dp)) {
+                            Text(choice.label, fontWeight = FontWeight.Medium)
+                            Text(choice.description, fontSize = 11.sp, lineHeight = 15.sp, color = UtpMuted)
+                        }
+                    }
+                }
+                if ("repairs" in permissions) {
                 OutlinedTextField(
                     value = salaryRatePercent,
                     onValueChange = { value ->
@@ -256,6 +340,7 @@ private fun EditTechnicianDialog(
                     lineHeight = 17.sp,
                     color = UtpMuted,
                 )
+                }
                 validationError?.let { error ->
                     Text(
                         error,
@@ -277,6 +362,7 @@ private fun EditTechnicianDialog(
                         staff.copy(
                             displayName = displayName.trim(),
                             phoneNumber = phoneNumber.trim().takeIf { it.isNotEmpty() },
+                            permissions = permissions.toList(),
                             salaryRatePercent = rate,
                         ),
                     )

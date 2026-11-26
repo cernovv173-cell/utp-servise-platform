@@ -5,7 +5,10 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { validateImage } from "../../lib/storage/project-images.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  requireStaffPermission,
+} from "../auth/auth.middleware.js";
 import {
   type MediaStorage,
   projectMediaStorage,
@@ -117,7 +120,7 @@ export const createReviewShowcaseRouter = (
   router.post(
     "/admin/reviews/:reviewId/showcase-image/:kind",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: reviewImageParams }),
     imageBody,
     async (request, response) => {
@@ -178,7 +181,7 @@ export const createReviewShowcaseRouter = (
   router.delete(
     "/admin/reviews/:reviewId/showcase-image/:kind",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: reviewImageParams }),
     async (_request, response) => {
       const { reviewId, kind } =

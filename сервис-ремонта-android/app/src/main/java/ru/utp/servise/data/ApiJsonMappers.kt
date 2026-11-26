@@ -18,6 +18,7 @@ internal fun JSONObject.toUser() = AppUser(
     role = getString("role"),
     mustChangePassword = optBoolean("mustChangePassword"),
     isAdminAssistant = optBoolean("isAdminAssistant"),
+    permissions = optJSONArray("permissions").strings(),
 )
 
 internal fun JSONObject.toOrder(): RepairOrder {
@@ -342,6 +343,7 @@ internal fun JSONObject.toStaff() = StaffMember(
     salaryRatePercent = optInt("salaryRatePercent", 75),
     terminatedAt = nullableString("terminatedAt"),
     isAdminAssistant = optBoolean("isAdminAssistant"),
+    permissions = optJSONArray("permissions").strings(),
 )
 
 internal fun JSONObject.toCatalogItem() = CatalogItem(
@@ -766,7 +768,7 @@ fun String.orderItemTypeLabel(): String = when (this) {
 fun String.roleLabel(): String = when (this) {
     "CUSTOMER" -> "Клиент"
     "TECHNICIAN" -> "Мастер"
-    "PROCUREMENT" -> "Мастер закупки"
-    "ADMIN" -> "Администратор Енот-сервис.рф"
+    "PROCUREMENT", "STAFF", "ADMIN_ASSISTANT" -> "Сотрудник"
+    "ADMIN" -> "Администратор"
     else -> this
 }

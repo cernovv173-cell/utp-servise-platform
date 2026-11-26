@@ -253,6 +253,8 @@ model User {
   maxUserId                         String?                                 @unique @map("max_user_id") @db.VarChar(64)
   referralCode                      String?                                 @unique @map("referral_code") @db.VarChar(16)
   role                              UserRole                                @default(CUSTOMER)
+  staffPermissions                  String[]                                @default([]) @map("staff_permissions")
+  staffPermissionsConfigured        Boolean                                 @default(false) @map("staff_permissions_configured")
   salaryRatePercent                 Int                                     @default(75) @map("salary_rate_percent") @db.SmallInt
   active                            Boolean                                 @default(true)
   isAdminAssistant                  Boolean                                 @default(false) @map("is_admin_assistant")

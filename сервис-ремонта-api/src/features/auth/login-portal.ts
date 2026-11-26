@@ -1,24 +1,29 @@
 import { z } from "zod";
 
+import type { UserRole } from "../../generated/prisma/client.js";
+
 export const loginPortalValues = [
   "CUSTOMER",
   "STAFF",
   "TECHNICIAN",
   "ADMIN",
-  "PROCUREMENT",
 ] as const;
 
 export const loginPortalSchema = z.enum(loginPortalValues);
 
 export type LoginPortal = (typeof loginPortalValues)[number];
 
-const staffAccountRoles = ["TECHNICIAN", "ADMIN", "PROCUREMENT"] as const;
+const staffAccountRoles = ["TECHNICIAN", "PROCUREMENT", "ADMIN"] as const;
 
 export const isStaffAccountRole = (role: string): boolean =>
   (staffAccountRoles as readonly string[]).includes(role);
 
 export const matchesLoginPortal = (
-  portal: LoginPortal,
+  portal: LoginPortal | UserRole,
   accountRole: string,
-): boolean =>
-  portal === "STAFF" ? isStaffAccountRole(accountRole) : accountRole === portal;
+): boolean => {
+  if (portal === "PROCUREMENT") return false;
+  return portal === "STAFF"
+    ? isStaffAccountRole(accountRole)
+    : accountRole === portal;
+};

@@ -1,14 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Lock, Unlock, UserRound, X } from "lucide-react";
+import { Lock, Pencil, Unlock, UserRound, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
 
 import { StaffCreateForm } from "@/features/admin/staff-create-form";
+import { StaffPermissionCheckboxes } from "@/features/admin/staff-permission-checkboxes";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
+import type { StaffPermission } from "@/lib/api";
 import { getStaff, setStaffActive, terminateStaff, updateTechnician } from "@/lib/api";
 
 export const StaffManagement = () => {
@@ -16,10 +19,12 @@ export const StaffManagement = () => {
   const queryClient = useQueryClient();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [draftRates, setDraftRates] = useState<Record<string, string>>({});
+  const [editingPermissionsId, setEditingPermissionsId] = useState<string | null>(null);
+  const [draftPermissions, setDraftPermissions] = useState<Record<string, StaffPermission[]>>({});
   const staff = useQuery({
     queryKey: ["staff", token],
     queryFn: ({ signal }) => getStaff(token!, signal),
-    enabled: Boolean(token && user?.role === "ADMIN"),
+    enabled: Boolean(token && hasPermission(user, "staff_management")),
   });
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["staff", token] });
   const terminateMutation = useMutation({
@@ -37,6 +42,22 @@ export const StaffManagement = () => {
       setStaffActive(token!, userId, active),
     onSuccess: refresh,
     onError: () => toast.error("Не удалось изменить доступ сотрудника."),
+  });
+  const permissionsMutation = useMutation({
+    mutationFn: ({ userId, permissions }: { userId: string; permissions: StaffPermission[] }) =>
+      updateTechnician(token!, userId, { permissions }),
+    onSuccess: async ({ staff: updated }) => {
+      setEditingPermissionsId(null);
+      setDraftPermissions((current) => {
+        const next = { ...current };
+        delete next[updated.id];
+        return next;
+      });
+      toast.success(`Права доступа ${updated.displayName} сохранены.`);
+      await refresh();
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "Не удалось сохранить права."),
   });
   const rateMutation = useMutation({
     mutationFn: ({ userId, salaryRatePercent }: { userId: string; salaryRatePercent: number }) =>
@@ -68,7 +89,10 @@ export const StaffManagement = () => {
           </p>
         </div>
       </div>
-      <StaffCreateForm onCreated={refresh} />
+      <StaffCreateForm
+        onCreated={refresh}
+        permissionOptions={staff.data?.permissionOptions ?? []}
+      />
       {staff.isLoading && (
         <p className="mt-4 text-sm text-slate-500">Загружаем список сотрудников…</p>
       )}
@@ -87,16 +111,25 @@ export const StaffManagement = () => {
               <div>
                 <p className="font-medium">{member.displayName}</p>
                 <p className="mt-1 text-sm text-slate-500">
-                  {member.email} · {roleLabel(member)} ·{" "}
+                  {member.email} · {staffLabel(member)} ·{" "}
                   {member.terminatedAt
                     ? `Уволен навсегда · ${new Date(member.terminatedAt).toLocaleDateString("ru-RU")}`
                     : member.active
                       ? "Активен"
                       : "Доступ временно отключён"}
                 </p>
+                <p className="mt-1 max-w-3xl text-xs leading-5 text-slate-500 dark:text-slate-400">
+                  {isFullAdministratorMember(member)
+                    ? "Полный доступ администратора"
+                    : (member.permissions ?? []).length > 0
+                      ? `Доступ: ${(member.permissions ?? [])
+                          .map((permission) => permissionLabels[permission])
+                          .join(", ")}`
+                      : "Доступ к разделам не назначен"}
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                {member.role === "TECHNICIAN" && (
+                {member.permissions?.includes("repairs") && (
                   <Link
                     to="/staff/$technicianId"
                     params={{ technicianId: member.id }}
@@ -127,6 +160,26 @@ export const StaffManagement = () => {
                     )}
                   </button>
                 )}
+                {member.id !== user?.id && !isFullAdministratorMember(member) && (
+                  <button
+                    type="button"
+                    aria-expanded={editingPermissionsId === member.id}
+                    aria-label={`Изменить права ${member.displayName}`}
+                    title="Изменить права"
+                    className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
+                    onClick={() => {
+                      setEditingPermissionsId(
+                        editingPermissionsId === member.id ? null : member.id,
+                      );
+                      setDraftPermissions((current) => ({
+                        ...current,
+                        [member.id]: current[member.id] ?? member.permissions ?? [],
+                      }));
+                    }}
+                  >
+                    <Pencil size={16} aria-hidden="true" />
+                  </button>
+                )}
                 {member.id !== user?.id && !member.terminatedAt && (
                   <button
                     type="button"
@@ -140,7 +193,7 @@ export const StaffManagement = () => {
                 )}
               </div>
             </div>
-            {member.role === "TECHNICIAN" && (
+            {member.permissions?.includes("repairs") && (
               <form
                 onSubmit={(event) => {
                   event.preventDefault();
@@ -185,6 +238,42 @@ export const StaffManagement = () => {
                 </button>
               </form>
             )}
+            {editingPermissionsId === member.id && !isFullAdministratorMember(member) && (
+              <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+                <StaffPermissionCheckboxes
+                  options={staff.data?.permissionOptions ?? []}
+                  selected={draftPermissions[member.id] ?? member.permissions ?? []}
+                  onChange={(next) =>
+                    setDraftPermissions((current) => ({ ...current, [member.id]: next }))
+                  }
+                  disabled={permissionsMutation.isPending}
+                  label={`Права сотрудника ${member.displayName}`}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={permissionsMutation.isPending}
+                    onClick={() =>
+                      permissionsMutation.mutate({
+                        userId: member.id,
+                        permissions: draftPermissions[member.id] ?? [],
+                      })
+                    }
+                    className="min-h-9 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white disabled:opacity-50"
+                  >
+                    {permissionsMutation.isPending ? "Сохраняем…" : "Сохранить права"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={permissionsMutation.isPending}
+                    onClick={() => setEditingPermissionsId(null)}
+                    className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            )}
             {confirmingId === member.id && !member.terminatedAt && member.id !== user?.id && (
               <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">
                 <p>
@@ -222,11 +311,22 @@ export const StaffManagement = () => {
   );
 };
 
-const roleLabel = (member: { role: string; isAdminAssistant?: boolean }) =>
-  member.isAdminAssistant
-    ? "Помощник администратора"
-    : member.role === "ADMIN"
-      ? "Администратор"
-      : member.role === "PROCUREMENT"
-        ? "Мастер закупки"
-        : "Мастер";
+const staffLabel = (member: { role: string; isAdminAssistant?: boolean }) =>
+  member.role === "ADMIN" && !member.isAdminAssistant
+    ? "Администратор с полным доступом"
+    : "Сотрудник";
+
+const isFullAdministratorMember = (member: { role: string; isAdminAssistant?: boolean }) =>
+  member.role === "ADMIN" && !member.isAdminAssistant;
+
+const permissionLabels: Record<StaffPermission, string> = {
+  repairs: "Заявки и ремонт",
+  inventory: "Каталог и склад",
+  customers: "Клиенты",
+  shop_orders: "Заказы магазина",
+  communications: "Чаты и поддержка",
+  content: "Новости и предложения",
+  reports: "Расписание и отчёты",
+  company_settings: "Настройки сервиса",
+  staff_management: "Сотрудники и доступы",
+};

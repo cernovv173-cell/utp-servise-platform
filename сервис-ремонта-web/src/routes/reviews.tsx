@@ -7,6 +7,7 @@ import { PublicSiteShell } from "@/components/public-site-shell";
 
 import { ReviewManagement } from "@/features/admin/review-management";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
 import { BenefitsNavigation } from "@/features/navigation/benefits-navigation";
 
@@ -30,7 +31,7 @@ const ReviewsPage = () => {
         title="Отзывы клиентов"
         description="Только отзывы о завершённых ремонтах, опубликованные сервисом."
       />
-      {user?.role === "ADMIN" && <ReviewManagement />}
+      {hasPermission(user, "content") && <ReviewManagement />}
       <div className="grid gap-4 md:grid-cols-2">
         {(query.data?.reviews ?? []).map((review) => (
           <SectionCard key={review.id}>

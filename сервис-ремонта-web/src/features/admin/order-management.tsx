@@ -8,6 +8,7 @@ import { Select } from "@/components/select";
 import { AdminOrderCreate } from "@/features/admin/admin-order-create";
 import { RepairOrderEditor } from "@/features/admin/repair-order-editor";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import {
   archiveForOrderListView,
   filterOrdersForListView,
@@ -112,7 +113,7 @@ export const OrderManagement = ({
       ? filterOrdersForListView(found.data?.orders ?? [], listView)
       : filterOrdersForListView(orders.data?.orders ?? [], listView);
   const activeTechnicians = (staff.data?.staff ?? []).filter(
-    (member) => member.role === "TECHNICIAN" && member.active,
+    (member) => hasPermission(member, "repairs") && member.active,
   );
   return (
     <SectionCard>

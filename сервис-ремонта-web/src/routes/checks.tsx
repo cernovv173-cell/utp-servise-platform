@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { repairDeviceTypeLabel } from "@/features/catalog/catalog-model";
 import { ReceiptDraftEditor } from "@/features/checks/receipt-draft-editor";
 
@@ -82,7 +83,7 @@ const ChecksPage = () => {
       <div className="grid gap-4">
         {(query.data?.orders ?? []).map((order) => {
           const canManageOrder =
-            user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id;
+            hasPermission(user, "repairs") && order.assignedTechnicianId === user.id;
           const isWorkshopOrder =
             order.repairLocation === "SERVICE_CENTER" ||
             (order.visitScenarioVersion === 0 && (order.repairLocation ?? null) === null);

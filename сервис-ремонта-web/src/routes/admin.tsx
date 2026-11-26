@@ -5,6 +5,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { AdminSectionLinks } from "@/features/admin/admin-section-links";
 import { AdminToolLinks } from "@/features/admin/admin-tool-links";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasAnyPermission } from "@/features/auth/staff-access";
 
 const AdminPage = () => {
   const { user } = useAuth();
@@ -19,9 +20,21 @@ const AdminPage = () => {
         title="Управление"
         description="Шесть рабочих разделов и административные инструменты сервиса."
       />
-      {user?.role !== "ADMIN" ? (
+      {!hasAnyPermission(user, [
+        "repairs",
+        "inventory",
+        "customers",
+        "shop_orders",
+        "communications",
+        "content",
+        "reports",
+        "company_settings",
+        "staff_management",
+      ]) ? (
         <SectionCard>
-          <p className="text-sm text-slate-500">Эта страница доступна только администратору.</p>
+          <p className="text-sm text-slate-500">
+            Нет назначенных разделов управления. Обратитесь к администратору.
+          </p>
         </SectionCard>
       ) : (
         <div className="grid gap-6">

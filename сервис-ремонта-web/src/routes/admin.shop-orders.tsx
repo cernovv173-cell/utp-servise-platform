@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { CraftsWorkspace } from "@/features/crafts/crafts-workspace";
 import { ShopOrdersManagement } from "@/features/shop/shop-orders-management";
 
@@ -17,7 +18,7 @@ const AdminShopOrdersPage = () => {
         title="Магазин и рукоделие"
         description="Заказы готовых товаров и управление изделиями ручной работы — в одном разделе."
       />
-      {user?.role === "ADMIN" ? (
+      {hasPermission(user, "shop_orders") ? (
         <>
           <div
             className="mb-5 flex flex-wrap gap-2"

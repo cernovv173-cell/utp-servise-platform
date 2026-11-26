@@ -6,6 +6,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/table";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission, isFullAdministrator } from "@/features/auth/staff-access";
 
 import { type SalaryPeriodName, getSalarySummary } from "@/lib/api";
 
@@ -35,10 +36,10 @@ const SalaryPage = () => {
   const query = useQuery({
     queryKey: ["salary", token, timeZone],
     queryFn: ({ signal }) => getSalarySummary(token!, timeZone, signal),
-    enabled: Boolean(token && (user?.role === "TECHNICIAN" || user?.role === "ADMIN")),
+    enabled: Boolean(token && (hasPermission(user, "repairs") || isFullAdministrator(user))),
   });
-  const isAdmin = user?.role === "ADMIN";
-  const canViewSalary = user?.role === "ADMIN" || user?.role === "TECHNICIAN";
+  const isAdmin = isFullAdministrator(user);
+  const canViewSalary = isAdmin || hasPermission(user, "repairs");
 
   return (
     <AppShell active="/salary">
@@ -54,7 +55,7 @@ const SalaryPage = () => {
       {!canViewSalary && (
         <SectionCard>
           <p className="text-sm text-slate-500">
-            Раздел зарплаты доступен мастерам и администраторам.
+            Раздел доступен сотрудникам с правом «Заявки и ремонт» и полным администраторам.
           </p>
         </SectionCard>
       )}

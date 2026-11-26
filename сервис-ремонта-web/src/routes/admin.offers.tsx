@@ -5,6 +5,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { AdminBackLink } from "@/features/admin/admin-back-link";
 import { CustomerOffersManagement } from "@/features/admin/customer-offers-management";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 const AdminOffersPage = () => {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ const AdminOffersPage = () => {
         description="Акции и розыгрыши для клиентов, призовые места и результаты."
         action={<AdminBackLink />}
       />
-      {user?.role !== "ADMIN" ? (
+      {!hasPermission(user, "content") ? (
         <SectionCard>
           <p className="text-sm text-slate-500">Эта страница доступна только администратору.</p>
         </SectionCard>

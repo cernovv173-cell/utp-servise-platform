@@ -2,47 +2,48 @@ import { useMutation } from "@tanstack/react-query";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
+import { StaffPermissionCheckboxes } from "@/features/admin/staff-permission-checkboxes";
 import { useAuth } from "@/features/auth/auth-context";
+import { isFullAdministrator } from "@/features/auth/staff-access";
 
-import { type StaffRole, createStaff } from "@/lib/api";
-
-type StaffCreationRole = Extract<StaffRole, "TECHNICIAN" | "PROCUREMENT" | "ADMIN_ASSISTANT">;
-
-const roleLabels: Record<StaffCreationRole, string> = {
-  TECHNICIAN: "Мастер",
-  PROCUREMENT: "Мастер закупки",
-  ADMIN_ASSISTANT: "Помощник администратора",
-};
+import type { StaffPermission, StaffPermissionOption } from "@/lib/api";
+import { createStaff } from "@/lib/api";
 
 type CreatedAccount = {
   login: string;
   email: string;
   displayName: string;
-  role: StaffCreationRole;
+  permissions: StaffPermission[];
+  fullAdministrator: boolean;
   temporaryPassword: string;
 };
 
-export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknown> | unknown }) => {
-  const { token } = useAuth();
+export const StaffCreateForm = ({
+  onCreated,
+  permissionOptions,
+}: {
+  onCreated: () => Promise<unknown> | unknown;
+  permissionOptions: StaffPermissionOption[];
+}) => {
+  const { token, user } = useAuth();
   const [createdAccount, setCreatedAccount] = useState<CreatedAccount | null>(null);
-  const [role, setRole] = useState<StaffCreationRole>("TECHNICIAN");
+  const [permissions, setPermissions] = useState<StaffPermission[]>([]);
+  const [fullAdministrator, setFullAdministrator] = useState(false);
   const create = useMutation({
     mutationFn: (input: {
       email: string;
       displayName: string;
       phoneNumber?: string;
-      role: StaffCreationRole;
+      permissions: StaffPermission[];
+      fullAdministrator: boolean;
     }) => createStaff(token!, input),
     onSuccess: async ({ staff, temporaryPassword }) => {
       setCreatedAccount({
         login: staff.login ?? staff.email,
         email: staff.email,
         displayName: staff.displayName,
-        role: staff.isAdminAssistant
-          ? "ADMIN_ASSISTANT"
-          : staff.role === "PROCUREMENT"
-            ? "PROCUREMENT"
-            : "TECHNICIAN",
+        permissions: staff.permissions ?? [],
+        fullAdministrator: staff.role === "ADMIN" && !staff.isAdminAssistant,
         temporaryPassword,
       });
       await onCreated();
@@ -56,7 +57,8 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
     <section className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
       <h3 className="font-semibold">Добавить сотрудника</h3>
       <p className="mt-1 text-sm text-slate-500">
-        Выберите роль сотрудника. При первом входе ему потребуется задать новый пароль.
+        Назначьте сотруднику доступ к нужным разделам. Права можно изменить позже; при первом входе
+        ему потребуется задать новый пароль.
       </p>
       <form
         className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
@@ -69,30 +71,47 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
             {
               displayName: String(data.get("displayName")).trim(),
               email: String(data.get("email")).trim(),
-              role,
+              permissions: fullAdministrator ? [] : permissions,
+              fullAdministrator,
               ...(phoneNumber ? { phoneNumber } : {}),
             },
-            { onSuccess: () => form.reset() },
+            {
+              onSuccess: () => {
+                form.reset();
+                setPermissions([]);
+                setFullAdministrator(false);
+              },
+            },
           );
         }}
       >
-        <fieldset className="grid gap-2 sm:col-span-2 lg:col-span-3">
-          <legend className="text-sm font-medium">Должность</legend>
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(roleLabels) as StaffCreationRole[]).map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={role === option}
+        <div className="grid gap-4 sm:col-span-2 lg:col-span-3">
+          {isFullAdministrator(user) && (
+            <label className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
+              <input
+                type="checkbox"
+                checked={fullAdministrator}
                 disabled={create.isPending}
-                onClick={() => setRole(option)}
-                className={`min-h-10 rounded-lg border px-4 text-sm font-medium ${role === option ? "border-blue-600 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : "border-slate-200 dark:border-slate-700"}`}
-              >
-                {roleLabels[option]}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+                onChange={(event) => setFullAdministrator(event.currentTarget.checked)}
+                className="mt-0.5 size-4 accent-amber-600"
+              />
+              <span>
+                <span className="block text-sm font-semibold">Полный доступ администратора</span>
+                <span className="mt-1 block text-xs text-slate-600 dark:text-slate-300">
+                  Доступ ко всем разделам и управлению учётными записями.
+                </span>
+              </span>
+            </label>
+          )}
+          {!fullAdministrator && (
+            <StaffPermissionCheckboxes
+              options={permissionOptions}
+              selected={permissions}
+              onChange={setPermissions}
+              disabled={create.isPending}
+            />
+          )}
+        </div>
         <label className="grid gap-1 text-sm font-medium">
           <span>
             Имя сотрудника{"\u00a0"}
@@ -133,7 +152,7 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
         </label>
         <button
           type="submit"
-          disabled={create.isPending}
+          disabled={create.isPending || (!fullAdministrator && permissionOptions.length === 0)}
           className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-span-2 lg:col-span-3 lg:justify-self-start"
         >
           {create.isPending ? "Создаём учётную запись…" : "Добавить сотрудника"}
@@ -145,7 +164,14 @@ export const StaffCreateForm = ({ onCreated }: { onCreated: () => Promise<unknow
             <div>
               <h4 className="font-semibold">
                 Данные для первого входа · {createdAccount.displayName} ·{" "}
-                {roleLabels[createdAccount.role]}
+                {createdAccount.fullAdministrator
+                  ? "Полный доступ администратора"
+                  : createdAccount.permissions.length > 0
+                    ? `Права: ${permissionOptions
+                        .filter((option) => createdAccount.permissions.includes(option.key))
+                        .map((option) => option.label)
+                        .join(", ")}`
+                    : "Без прав доступа"}
               </h4>
               <p className="mt-2">Логин: {createdAccount.login}</p>
               <p className="mt-1">Рабочая почта: {createdAccount.email}</p>

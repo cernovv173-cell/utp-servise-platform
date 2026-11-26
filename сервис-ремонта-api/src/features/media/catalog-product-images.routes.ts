@@ -5,7 +5,10 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { validateImage } from "../../lib/storage/project-images.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  requireStaffPermission,
+} from "../auth/auth.middleware.js";
 import { type MediaStorage, projectMediaStorage } from "./media-storage.js";
 
 const imageBody: RequestHandler = express.raw({
@@ -39,7 +42,7 @@ export const createCatalogProductImagesRouter = (
   router.post(
     "/catalog/:catalogItemId/images",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("inventory"),
     validateRequest({ params: catalogImageParams }),
     imageBody,
     async (request, response) => {
@@ -87,7 +90,7 @@ export const createCatalogProductImagesRouter = (
   router.delete(
     "/catalog/:catalogItemId/images/:objectId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("inventory"),
     validateRequest({ params: catalogImageDeleteParams }),
     async (_request, response) => {
       const { catalogItemId, objectId } =

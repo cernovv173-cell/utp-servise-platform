@@ -5,7 +5,10 @@ import { Prisma } from "../../generated/prisma/client.js";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  requireStaffPermission,
+} from "../auth/auth.middleware.js";
 
 const SETTING_KEY = "seasonal_theme";
 const seasonChoiceSchema = z.enum([
@@ -78,7 +81,7 @@ export const createSeasonalThemeRouter = (
   router.put(
     "/seasonal-theme",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("company_settings"),
     validateRequest({ body: seasonRequestSchema }),
     async (_request, response) => {
       const { body } = response.locals.input as {

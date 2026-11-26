@@ -8,6 +8,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 import { readCatalogVisibility } from "../company/catalog-visibility-settings.js";
 import {
@@ -486,7 +487,7 @@ export const createShopRouter = (
   router.get(
     "/admin/shop/orders",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     async (_request, response) => {
       const orders = await database.shopOrder.findMany({
         include: adminOrderInclude,
@@ -500,7 +501,7 @@ export const createShopRouter = (
   router.patch(
     "/admin/shop/orders/:orderId/status",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: orderIdParams, body: orderStatusBody }),
     async (_request, response) => {
       const actor = getAuthenticatedUser(response);

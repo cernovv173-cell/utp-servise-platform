@@ -61,7 +61,7 @@ import ru.utp.servise.data.SalarySummary
 import ru.utp.servise.data.StaffMember
 import ru.utp.servise.data.SupportChat
 import ru.utp.servise.data.SupportChatInboxItem
-import ru.utp.servise.navigation.workspaceNavigationForRole
+import ru.utp.servise.navigation.workspaceNavigationForUser
 import ru.utp.servise.registerAdminOrderChatsRoute
 import ru.utp.servise.registerAdminCampaignRoutes
 import ru.utp.servise.registerAdminSalaryReportRoute
@@ -217,7 +217,9 @@ internal fun AuthenticatedWorkspace(
                 .onFailure { onError(it.message ?: "Не удалось обновить чат.") }
         }
     }
-    val workspaceNavigation = remember(user.role) { workspaceNavigationForRole(user.role) }
+    val workspaceNavigation = remember(user.role, user.permissions) {
+        workspaceNavigationForUser(user.role, user.permissions.toSet())
+    }
     val destinations = workspaceNavigation.primaryDestinations
     val navController = rememberNavController()
     LaunchedEffect(pendingRepairFollowUpOrderId, user.role) {
@@ -639,6 +641,44 @@ internal fun AuthenticatedWorkspace(
                             }
                         }
                         else -> {
+                            if (user.role == "STAFF" && "repairs" in user.permissions) {
+                                composable("technician/jobs") {
+                                    RepairOrdersScreen(
+                                        "Назначенные заявки",
+                                        orders,
+                                        "TECHNICIAN",
+                                        token,
+                                        emptyList(),
+                                        catalogItems,
+                                        false,
+                                        runAction,
+                                        refresh,
+                                        onChat = { navController.navigate("chat/$it") },
+                                        onReview = {},
+                                        currentUserId = user.id,
+                                    )
+                                }
+                                composable("technician/history") {
+                                    RepairOrdersScreen(
+                                        "История ремонтов",
+                                        orders,
+                                        "TECHNICIAN",
+                                        token,
+                                        emptyList(),
+                                        catalogItems,
+                                        true,
+                                        runAction,
+                                        refresh,
+                                        onChat = { navController.navigate("chat/$it") },
+                                        onReview = {},
+                                        currentUserId = user.id,
+                                    )
+                                }
+                                composable("technician/catalog") { TechnicianCatalogScreen(catalogItems) }
+                                composable("technician/salary") {
+                                    SalaryScreen(salary, isAdmin = false, onRefresh = refresh)
+                                }
+                            }
                             registerAdminOrderChatsRoute(
                                 orders = orders,
                                 refresh = refresh,

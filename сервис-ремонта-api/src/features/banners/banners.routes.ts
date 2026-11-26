@@ -8,6 +8,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 
 const bannerParams = z.object({ bannerId: z.string().uuid() });
@@ -77,7 +78,7 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
   router.get(
     "/banners",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "PROCUREMENT", "ADMIN"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const now = new Date();
@@ -104,7 +105,7 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
   router.post(
     "/banners",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ body: createBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -135,7 +136,7 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/banners/:bannerId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: bannerParams, body: updateBody }),
     async (_request, response) => {
       const { bannerId } = paramsOf(response);
@@ -198,7 +199,7 @@ export const createBannersRouter = (database: DatabaseClient): Router => {
   router.delete(
     "/banners/:bannerId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: bannerParams }),
     async (_request, response) => {
       const { bannerId } = paramsOf(response);

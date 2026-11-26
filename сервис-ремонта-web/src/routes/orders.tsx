@@ -10,6 +10,7 @@ import { RepairOrderEditor } from "@/features/admin/repair-order-editor";
 import { RepairOrderItemsEditor } from "@/features/admin/repair-order-items-editor";
 import { RepairOrderPriority } from "@/features/admin/repair-order-priority";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { CampaignPlacement } from "@/features/campaigns/campaign-banner";
 import {
   archiveForOrderListView,
@@ -103,7 +104,7 @@ const OrdersPage = () => {
   const catalog = useQuery({
     queryKey: ["repair-catalog", token],
     queryFn: ({ signal }) => getRepairCatalog(token!, signal),
-    enabled: Boolean(token && ["ADMIN", "TECHNICIAN"].includes(user?.role ?? "")),
+    enabled: Boolean(token && (hasPermission(user, "repairs") || hasPermission(user, "inventory"))),
   });
   const devices = useQuery({
     queryKey: ["customer-devices", token, businessScope ? "business" : "personal"],
@@ -178,14 +179,14 @@ const OrdersPage = () => {
       <PageTitle
         eyebrow={businessScope ? "КОРПОРАТИВНЫЙ КАБИНЕТ" : "ЗАКАЗЫ"}
         title={
-          user?.role === "TECHNICIAN"
+          hasPermission(user, "repairs")
             ? "Назначенные заказы"
             : businessScope
               ? "Заявки компании"
               : "Мои заявки"
         }
         description={
-          user?.role === "TECHNICIAN"
+          hasPermission(user, "repairs")
             ? "Работайте с назначенными ремонтами, фиксируйте этапы и состав заказа."
             : businessScope
               ? "История корпоративных ремонтов и документы по устройствам компании."
@@ -329,7 +330,7 @@ const OrdersPage = () => {
                       token={token}
                       canEdit={
                         (user?.role === "ADMIN" && order.status === "REQUESTED") ||
-                        (user?.role === "TECHNICIAN" &&
+                        (hasPermission(user, "repairs") &&
                           order.assignedTechnicianId === user.id &&
                           ["ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP"].includes(order.status))
                       }
@@ -348,7 +349,7 @@ const OrdersPage = () => {
                   </p>
                 )}
                 <ServiceNumberBarcode serviceNumber={order.serviceNumber} />
-                {user?.role === "TECHNICIAN" &&
+                {hasPermission(user, "repairs") &&
                   order.assignedTechnicianId === user.id &&
                   order.status === "READY_FOR_PICKUP" &&
                   token && (
@@ -378,7 +379,7 @@ const OrdersPage = () => {
                 </div>
                 <RepairDeadlineHistory order={order} />
                 {token &&
-                  user?.role === "TECHNICIAN" &&
+                  hasPermission(user, "repairs") &&
                   order.assignedTechnicianId === user.id &&
                   ["ASSIGNED", "IN_PROGRESS", "READY_FOR_PICKUP"].includes(order.status) && (
                     <RepairDeadlineEditor
@@ -424,6 +425,7 @@ const OrdersPage = () => {
                     order={order}
                     token={token}
                     role={user.role}
+                    hasRepairPermission={hasPermission(user, "repairs")}
                     userId={user.id}
                     onRefresh={() =>
                       Promise.all([
@@ -455,35 +457,35 @@ const OrdersPage = () => {
                         token={token}
                         canEditIntake={
                           (user?.role === "ADMIN" && order.status === "REQUESTED") ||
-                          (user?.role === "TECHNICIAN" &&
+                          (hasPermission(user, "repairs") &&
                             order.assignedTechnicianId === user.id &&
                             ["ASSIGNED", "IN_PROGRESS"].includes(order.status))
                         }
                       />
-                      {(user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
+                      {(user?.role === "CUSTOMER" || hasPermission(user, "repairs")) && (
                         <RepairOrderChat token={token} orderId={order.id} />
                       )}
                     </div>
                   </details>
                 )}
-                {token && (user?.role === "CUSTOMER" || user?.role === "TECHNICIAN") && (
+                {token && (user?.role === "CUSTOMER" || hasPermission(user, "repairs")) && (
                   <RepairOrderItemsEditor
                     order={order}
                     token={token}
                     catalogItems={
-                      user.role === "TECHNICIAN" ? (catalog.data?.catalogItems ?? []) : []
+                      hasPermission(user, "repairs") ? (catalog.data?.catalogItems ?? []) : []
                     }
                     canEdit={false}
                     canAdd={
-                      user.role === "TECHNICIAN" &&
+                      hasPermission(user, "repairs") &&
                       order.assignedTechnicianId === user.id &&
                       order.status === "ASSIGNED" &&
                       !order.workActRequired &&
                       (order.estimates?.length ?? 0) === 0
                     }
                     showEditHint={false}
-                    isCatalogLoading={user.role === "TECHNICIAN" && catalog.isLoading}
-                    isCatalogError={user.role === "TECHNICIAN" && catalog.isError}
+                    isCatalogLoading={hasPermission(user, "repairs") && catalog.isLoading}
+                    isCatalogError={hasPermission(user, "repairs") && catalog.isError}
                     onRefresh={() =>
                       Promise.all([
                         queryClient.invalidateQueries({ queryKey: ["orders", token] }),
@@ -522,51 +524,53 @@ const OrdersPage = () => {
                     </button>
                   </div>
                 )}
-                {user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id && token && (
-                  <div className="mt-3 grid gap-3">
-                    {order.status === "ASSIGNED" && (
-                      <button
-                        type="button"
-                        disabled={
-                          statusMutation.isPending ||
-                          (!(
-                            order.visitScenarioVersion &&
-                            order.repairLocation === "CUSTOMER_ADDRESS" &&
-                            !order.visitPickupAgreedAt
-                          ) &&
-                            order.estimates?.at(-1)?.status !== "APPROVED")
-                        }
-                        onClick={() =>
-                          statusMutation.mutate({ orderId: order.id, status: "IN_PROGRESS" })
-                        }
-                        className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-                      >
-                        Начать ремонт
-                      </button>
-                    )}
-                    {order.status === "IN_PROGRESS" && !isActiveOnsiteVisit(order) && (
-                      <button
-                        type="button"
-                        disabled={
-                          statusMutation.isPending ||
-                          isWaitingForTechnicianCompletion(order) ||
-                          order.estimates?.at(-1)?.status === "PENDING" ||
-                          (order.workActRequired && order.workAct?.status !== "APPROVED")
-                        }
-                        onClick={() =>
-                          statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
-                        }
-                        className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
-                      >
-                        Готова к выдаче
-                      </button>
-                    )}
-                    {order.status === "COMPLETED" &&
-                      order.assignedTechnicianId === user.id &&
-                      !order.review && <RepairReviewRequestButton order={order} token={token} />}
-                  </div>
-                )}
-                {user?.role === "TECHNICIAN" &&
+                {hasPermission(user, "repairs") &&
+                  order.assignedTechnicianId === user.id &&
+                  token && (
+                    <div className="mt-3 grid gap-3">
+                      {order.status === "ASSIGNED" && (
+                        <button
+                          type="button"
+                          disabled={
+                            statusMutation.isPending ||
+                            (!(
+                              order.visitScenarioVersion &&
+                              order.repairLocation === "CUSTOMER_ADDRESS" &&
+                              !order.visitPickupAgreedAt
+                            ) &&
+                              order.estimates?.at(-1)?.status !== "APPROVED")
+                          }
+                          onClick={() =>
+                            statusMutation.mutate({ orderId: order.id, status: "IN_PROGRESS" })
+                          }
+                          className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                        >
+                          Начать ремонт
+                        </button>
+                      )}
+                      {order.status === "IN_PROGRESS" && !isActiveOnsiteVisit(order) && (
+                        <button
+                          type="button"
+                          disabled={
+                            statusMutation.isPending ||
+                            isWaitingForTechnicianCompletion(order) ||
+                            order.estimates?.at(-1)?.status === "PENDING" ||
+                            (order.workActRequired && order.workAct?.status !== "APPROVED")
+                          }
+                          onClick={() =>
+                            statusMutation.mutate({ orderId: order.id, status: "READY_FOR_PICKUP" })
+                          }
+                          className="min-h-10 justify-self-start rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50"
+                        >
+                          Готова к выдаче
+                        </button>
+                      )}
+                      {order.status === "COMPLETED" &&
+                        order.assignedTechnicianId === user.id &&
+                        !order.review && <RepairReviewRequestButton order={order} token={token} />}
+                    </div>
+                  )}
+                {hasPermission(user, "repairs") &&
                   order.assignedTechnicianId === user.id &&
                   order.status === "IN_PROGRESS" &&
                   !isActiveOnsiteVisit(order) &&
@@ -575,7 +579,7 @@ const OrdersPage = () => {
                       Сначала отметьте завершение ремонта.
                     </p>
                   )}
-                {user?.role === "TECHNICIAN" &&
+                {hasPermission(user, "repairs") &&
                   order.assignedTechnicianId === user.id &&
                   order.status === "COMPLETED" &&
                   order.receipt?.paymentStatus === "PENDING" && (

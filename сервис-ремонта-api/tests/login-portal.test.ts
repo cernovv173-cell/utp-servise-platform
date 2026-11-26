@@ -24,8 +24,10 @@ test("customer login remains limited to customer accounts", () => {
   assert.equal(matchesLoginPortal("CUSTOMER", "TECHNICIAN"), false);
 });
 
-test("legacy role-specific login requests keep their exact matching", () => {
+test("legacy supported role-specific login requests keep exact matching", () => {
   assert.equal(matchesLoginPortal("ADMIN", "ADMIN"), true);
   assert.equal(matchesLoginPortal("ADMIN", "TECHNICIAN"), false);
-  assert.equal(matchesLoginPortal("PROCUREMENT", "PROCUREMENT"), true);
+  assert.equal(matchesLoginPortal("TECHNICIAN", "TECHNICIAN"), true);
+  assert.equal(matchesLoginPortal("TECHNICIAN", "STAFF"), false);
+  assert.equal(matchesLoginPortal("PROCUREMENT", "PROCUREMENT"), false);
 });

@@ -4,6 +4,12 @@ import { createHash } from "node:crypto";
 import type { UserRole } from "../../generated/prisma/client.js";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
+import {
+  type StaffPermission,
+  hasStaffPermission,
+  permissionsForUser,
+  publicRoleForUser,
+} from "./staff-permissions.js";
 
 export type AuthenticatedUser = {
   readonly id: string;
@@ -18,6 +24,8 @@ export type AuthenticatedUser = {
   readonly avatarObjectId: string | null;
   readonly role: UserRole;
   readonly isAdminAssistant?: boolean;
+  readonly staffPermissions?: readonly string[];
+  readonly staffPermissionsConfigured?: boolean;
   readonly salaryRatePercent?: number;
   readonly active: boolean;
   readonly terminatedAt?: Date | null;
@@ -58,6 +66,8 @@ export const createRequireAuth =
             avatarObjectId: true,
             role: true,
             isAdminAssistant: true,
+            staffPermissions: true,
+            staffPermissionsConfigured: true,
             salaryRatePercent: true,
             active: true,
             terminatedAt: true,
@@ -95,7 +105,130 @@ export const requireRoles =
       next(new HttpError(401, "AUTHENTICATION_REQUIRED", "Войдите в аккаунт."));
       return;
     }
-    if (!roles.includes(user.role)) {
+    const hasRole = roles.some((role) => {
+      if (role === "ADMIN") {
+        return (
+          user.role === "ADMIN" &&
+          (!user.isAdminAssistant || !user.staffPermissionsConfigured)
+        );
+      }
+      if (role === "TECHNICIAN") {
+        return (
+          user.role === "TECHNICIAN" && hasStaffPermission(user, "repairs")
+        );
+      }
+      if (role === "PROCUREMENT") {
+        return (
+          user.role === "PROCUREMENT" && hasStaffPermission(user, "inventory")
+        );
+      }
+      return user.role === role;
+    });
+    const canUseEmployeeRole =
+      user.role !== "ADMIN" && user.role !== "CUSTOMER";
+    const roleViaPermission =
+      canUseEmployeeRole &&
+      ((roles.includes("TECHNICIAN") && hasStaffPermission(user, "repairs")) ||
+        (roles.includes("PROCUREMENT") &&
+          hasStaffPermission(user, "inventory")));
+    if (!hasRole && !roleViaPermission) {
+      next(
+        new HttpError(
+          403,
+          "FORBIDDEN",
+          "Недостаточно прав для этого действия.",
+        ),
+      );
+      return;
+    }
+    if (user.mustChangePassword) {
+      next(
+        new HttpError(
+          403,
+          "PASSWORD_CHANGE_REQUIRED",
+          "Сначала смените временный пароль.",
+        ),
+      );
+      return;
+    }
+    next();
+  };
+
+export const requireRolesOrStaffPermission =
+  (
+    permissions: StaffPermission | readonly StaffPermission[],
+    ...roles: UserRole[]
+  ): RequestHandler =>
+  (_request, response, next) => {
+    const user = (response.locals as AuthenticatedLocals).authUser;
+    if (!user) {
+      next(new HttpError(401, "AUTHENTICATION_REQUIRED", "Войдите в аккаунт."));
+      return;
+    }
+    const hasRole = roles.some((role) => {
+      if (role === "ADMIN") {
+        return (
+          user.role === "ADMIN" &&
+          (!user.isAdminAssistant || !user.staffPermissionsConfigured)
+        );
+      }
+      if (role === "TECHNICIAN") {
+        return (
+          user.role === "TECHNICIAN" && hasStaffPermission(user, "repairs")
+        );
+      }
+      if (role === "PROCUREMENT") {
+        return (
+          user.role === "PROCUREMENT" && hasStaffPermission(user, "inventory")
+        );
+      }
+      return user.role === role;
+    });
+    const requiredPermissions = Array.isArray(permissions)
+      ? permissions
+      : [permissions];
+    const canUseEmployeePermission =
+      user.role !== "ADMIN" && user.role !== "CUSTOMER";
+    if (
+      !hasRole &&
+      (!canUseEmployeePermission ||
+        !requiredPermissions.some((permission) =>
+          hasStaffPermission(user, permission),
+        ))
+    ) {
+      next(
+        new HttpError(
+          403,
+          "FORBIDDEN",
+          "Недостаточно прав для этого действия.",
+        ),
+      );
+      return;
+    }
+    if (user.mustChangePassword) {
+      next(
+        new HttpError(
+          403,
+          "PASSWORD_CHANGE_REQUIRED",
+          "Сначала смените временный пароль.",
+        ),
+      );
+      return;
+    }
+    next();
+  };
+
+export const requireStaffPermission =
+  (...permissions: StaffPermission[]): RequestHandler =>
+  (_request, response, next) => {
+    const user = (response.locals as AuthenticatedLocals).authUser;
+    if (!user) {
+      next(new HttpError(401, "AUTHENTICATION_REQUIRED", "Войдите в аккаунт."));
+      return;
+    }
+    if (
+      !permissions.some((permission) => hasStaffPermission(user, permission))
+    ) {
       next(
         new HttpError(
           403,
@@ -127,8 +260,9 @@ export const publicUser = (user: AuthenticatedUser) => ({
   gender: user.gender ?? null,
   birthDate: user.birthDate?.toISOString().slice(0, 10) ?? null,
   avatarObjectId: user.avatarObjectId,
-  role: user.role,
+  role: publicRoleForUser(user),
   isAdminAssistant: Boolean(user.isAdminAssistant),
+  permissions: permissionsForUser(user),
   mustChangePassword: user.mustChangePassword,
   telegramLinked: Boolean(user.telegramChatId),
   maxLinked: Boolean(user.maxUserId),

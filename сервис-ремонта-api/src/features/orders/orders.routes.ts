@@ -6,10 +6,13 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import {
+  type AuthenticatedUser,
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireRolesOrStaffPermission,
 } from "../auth/auth.middleware.js";
+import { hasStaffPermission } from "../auth/staff-permissions.js";
 import { isInventoryCatalogItem } from "../catalog/catalog-policy.js";
 import {
   isSupportedRepairDeviceType,
@@ -311,7 +314,7 @@ const orderDetails = (role: UserRole) => ({
 
 const getOrdersRoleWhere = async (
   database: DatabaseClient,
-  user: { id: string; role: UserRole },
+  user: AuthenticatedUser,
   scope?: "personal" | "business",
 ) => {
   if (user.role === "CUSTOMER") {
@@ -333,7 +336,10 @@ const getOrdersRoleWhere = async (
       "Область заявок доступна только клиентскому аккаунту.",
     );
   }
-  return user.role === "TECHNICIAN" ? { assignedTechnicianId: user.id } : {};
+  if (user.role === "ADMIN") return {};
+  return hasStaffPermission(user, "repairs")
+    ? { assignedTechnicianId: user.id }
+    : {};
 };
 
 const isUniqueViolation = (error: unknown): boolean =>
@@ -349,7 +355,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.get(
     "/orders",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    requireRolesOrStaffPermission("repairs", "CUSTOMER", "TECHNICIAN", "ADMIN"),
     validateRequest({ query: orderListQuery }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -382,7 +388,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.get(
     "/orders/search",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    requireRolesOrStaffPermission("repairs", "CUSTOMER", "TECHNICIAN", "ADMIN"),
     validateRequest({ query: orderSearchQuery }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -1340,7 +1346,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
       });
       if (
         !technician ||
-        technician.role !== "TECHNICIAN" ||
+        !hasStaffPermission(technician, "repairs") ||
         !technician.active
       ) {
         next(
@@ -1598,7 +1604,7 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/orders/:orderId/status",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    requireRolesOrStaffPermission("repairs", "CUSTOMER", "TECHNICIAN", "ADMIN"),
     validateRequest({
       params: orderIdParams,
       body: statusBody,
@@ -1831,7 +1837,11 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
             "После отправки сметы состав работ можно менять только новой сметой, которую мастер согласует с клиентом.",
           );
         }
-        if (existing.status === "IN_PROGRESS" && user.role === "TECHNICIAN") {
+        if (
+          existing.status === "IN_PROGRESS" &&
+          user.role !== "ADMIN" &&
+          hasStaffPermission(user, "repairs")
+        ) {
           throw new HttpError(
             409,
             "WORK_ACT_REQUIRED_FOR_ITEM_CHANGES",
@@ -1974,7 +1984,8 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         }
         if (
           currentOrder.status === "IN_PROGRESS" &&
-          user.role === "TECHNICIAN"
+          user.role !== "ADMIN" &&
+          hasStaffPermission(user, "repairs")
         ) {
           throw new HttpError(
             409,
@@ -2106,7 +2117,8 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
         }
         if (
           currentOrder.status === "IN_PROGRESS" &&
-          user.role === "TECHNICIAN"
+          user.role !== "ADMIN" &&
+          hasStaffPermission(user, "repairs")
         ) {
           throw new HttpError(
             409,
@@ -2149,13 +2161,18 @@ export const createOrdersRouter = (database: DatabaseClient): Router => {
   router.get(
     "/reviews",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    requireRolesOrStaffPermission(
+      ["repairs", "content"],
+      "CUSTOMER",
+      "TECHNICIAN",
+      "ADMIN",
+    ),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const where =
         user.role === "CUSTOMER"
           ? { OR: [{ customerId: user.id }, { isPublished: true }] }
-          : user.role === "TECHNICIAN"
+          : user.role !== "ADMIN" && hasStaffPermission(user, "repairs")
             ? { isPublished: true, order: { assignedTechnicianId: user.id } }
             : {};
       const reviews = await database.review.findMany({

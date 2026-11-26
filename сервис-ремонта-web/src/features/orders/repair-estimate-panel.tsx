@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Select } from "@/components/select";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 import {
   type RepairCatalogItem,
@@ -55,7 +56,7 @@ export const RepairEstimatePanel = ({
       (item.type === "PRODUCT" || item.deviceTypes.includes(order.deviceType as RepairDeviceType)),
   );
   const isAssignedTechnician =
-    user?.role === "TECHNICIAN" && order.assignedTechnicianId === user.id;
+    hasPermission(user, "repairs") && order.assignedTechnicianId === user.id;
   const canSubmit =
     isAssignedTechnician &&
     ["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&

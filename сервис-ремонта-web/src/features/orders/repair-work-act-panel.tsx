@@ -4,6 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { RepairWorkActCatalogPicker } from "@/features/orders/repair-work-act-catalog-picker";
 import {
   readRepairWorkActCatalogShortcuts,
@@ -69,7 +70,7 @@ export const RepairWorkActPanel = (props: {
       {...props}
       currentUserId={currentUserId || props.order.assignedTechnicianId || "local"}
       isAssignedTechnician={
-        user?.role === "TECHNICIAN" && props.order.assignedTechnicianId === user.id
+        hasPermission(user, "repairs") && props.order.assignedTechnicianId === user.id
       }
     />
   );

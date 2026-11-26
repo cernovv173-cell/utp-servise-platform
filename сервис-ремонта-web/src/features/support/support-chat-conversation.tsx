@@ -3,6 +3,7 @@ import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 import {
   getAdminSupportChat,
@@ -15,7 +16,7 @@ export const SupportChatConversation = ({ customerId }: { customerId?: string })
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
   const [content, setContent] = useState("");
-  const isAdmin = user?.role === "ADMIN";
+  const isAdmin = hasPermission(user, "communications");
   const queryKey = ["support-chat", token, isAdmin ? customerId : "self"];
   const chat = useQuery({
     queryKey,

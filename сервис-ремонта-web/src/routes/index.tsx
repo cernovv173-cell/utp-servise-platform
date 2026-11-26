@@ -6,6 +6,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { RaccoonIcon } from "@/components/raccoon-icon";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { CampaignCarousel } from "@/features/campaigns/campaign-banner";
 import { CustomerOfferHomeBanners } from "@/features/campaigns/customer-offer-home-banners";
 import { GuidesSection } from "@/features/guides/guides-section";
@@ -130,7 +131,7 @@ const HomePage = () => {
       />
       <GuidesSection compact />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {user?.role === "ADMIN" && (
+        {hasPermission(user, "customers") && (
           <Link to="/admin/customers">
             <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
               <span className="grid size-11 place-items-center rounded-2xl bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
@@ -141,7 +142,7 @@ const HomePage = () => {
             </SectionCard>
           </Link>
         )}
-        {user?.role === "ADMIN" && (
+        {hasPermission(user, "shop_orders") && (
           <Link to="/admin/shop-orders">
             <SectionCard className="h-full transition hover:-translate-y-0.5 hover:shadow-md">
               <span className="grid size-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">

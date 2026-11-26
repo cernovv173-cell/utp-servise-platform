@@ -9,6 +9,7 @@ import { CompanyAdmin } from "@/features/admin/company-admin";
 import { FlowingFireSettingsControl } from "@/features/admin/flowing-fire-settings-control";
 import { RepairOrderIntakeControl } from "@/features/admin/repair-order-intake-control";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 const AdminCompanyPage = () => {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ const AdminCompanyPage = () => {
         description="Текст и данные раздела «О компании» на сайте."
         action={<AdminBackLink />}
       />
-      {user?.role !== "ADMIN" ? (
+      {!hasPermission(user, "company_settings") ? (
         <SectionCard>
           <p className="text-sm text-slate-500">Эта страница доступна только администратору.</p>
         </SectionCard>

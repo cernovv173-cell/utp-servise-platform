@@ -8,7 +8,9 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
+import { hasStaffPermission } from "../auth/staff-permissions.js";
 import {
   type MediaStorage,
   projectMediaStorage,
@@ -95,7 +97,9 @@ export const createCraftsRouter = (
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const items = await database.craftItem.findMany({
-        where: user.role === "ADMIN" ? {} : { isPublished: true },
+        where: hasStaffPermission(user, "shop_orders")
+          ? {}
+          : { isPublished: true },
         orderBy: { createdAt: "desc" },
         take: 200,
       });
@@ -106,7 +110,7 @@ export const createCraftsRouter = (
   router.post(
     "/craft-items",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ body: productBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -127,7 +131,7 @@ export const createCraftsRouter = (
   router.patch(
     "/craft-items/:itemId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: productParams, body: updateProductBody }),
     async (_request, response) => {
       const { itemId } = paramsOf<z.infer<typeof productParams>>(response);
@@ -143,7 +147,7 @@ export const createCraftsRouter = (
   router.delete(
     "/craft-items/:itemId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: productParams }),
     async (_request, response) => {
       const { itemId } = paramsOf<z.infer<typeof productParams>>(response);
@@ -271,7 +275,9 @@ export const createCraftsRouter = (
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const orders = await database.craftOrder.findMany({
-        where: user.role === "ADMIN" ? {} : { customerId: user.id },
+        where: hasStaffPermission(user, "shop_orders")
+          ? {}
+          : { customerId: user.id },
         include: {
           customer: {
             select: {
@@ -297,7 +303,7 @@ export const createCraftsRouter = (
   router.patch(
     "/craft-orders/:craftOrderId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: orderParams, body: updateCraftOrderBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -407,7 +413,19 @@ export const createCraftsRouter = (
           );
         }
         const technician = await transaction.user.findFirst({
-          where: { id: technicianId, role: "TECHNICIAN", active: true },
+          where: {
+            id: technicianId,
+            active: true,
+            OR: [
+              {
+                role: "TECHNICIAN",
+                OR: [
+                  { staffPermissionsConfigured: false },
+                  { staffPermissions: { has: "repairs" } },
+                ],
+              },
+            ],
+          },
           select: { id: true, salaryRatePercent: true },
         });
         if (!technician) {
@@ -511,7 +529,7 @@ export const createCraftsRouter = (
   router.patch(
     "/craft-orders/:craftOrderId/bonus-redemption",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: orderParams }),
     async () => {
       throw new HttpError(
@@ -525,7 +543,7 @@ export const createCraftsRouter = (
   router.patch(
     "/craft-orders/:craftOrderId/receipt/payment",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: orderParams, body: craftReceiptPaymentBody }),
     async (_request, response) => {
       const { craftOrderId } = paramsOf<z.infer<typeof orderParams>>(response);

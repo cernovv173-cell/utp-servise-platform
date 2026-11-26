@@ -12,7 +12,7 @@ import { validateImage } from "../../lib/storage/project-images.js";
 import {
   createRequireAuth,
   getAuthenticatedUser,
-  requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 import {
   type MediaStorage,
@@ -58,7 +58,7 @@ export const registerCustomerOfferAdminRoutes = (
   router.get(
     "/admin/offers",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     async (_request, response) => {
       const offers = await database.customerOffer.findMany({
         where: { type: { in: ["PROMOTION", "GIVEAWAY"] } },
@@ -73,7 +73,7 @@ export const registerCustomerOfferAdminRoutes = (
   router.post(
     "/admin/offers",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ body: createOfferBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -115,7 +115,7 @@ export const registerCustomerOfferAdminRoutes = (
   router.patch(
     "/admin/offers/:offerId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: offerParams, body: updateOfferBody }),
     async (_request, response) => {
       const { offerId } = paramsOf(response);
@@ -152,7 +152,7 @@ export const registerCustomerOfferAdminRoutes = (
   router.delete(
     "/admin/offers/:offerId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: offerParams }),
     async (_request, response) => {
       const { offerId } = paramsOf(response);
@@ -194,7 +194,7 @@ export const registerCustomerOfferAdminRoutes = (
   router.post(
     "/admin/offers/:offerId/draw",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: offerParams }),
     async (_request, response) => {
       const { offerId } = paramsOf(response);
@@ -284,7 +284,7 @@ export const registerCustomerOfferAdminRoutes = (
   router.post(
     "/admin/offers/:offerId/publish-results",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: offerParams }),
     async (_request, response) => {
       const admin = getAuthenticatedUser(response);

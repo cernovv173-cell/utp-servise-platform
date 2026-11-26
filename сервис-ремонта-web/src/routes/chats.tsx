@@ -6,6 +6,7 @@ import { z } from "zod";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { MessageSectionNavigation } from "@/features/navigation/message-section-navigation";
 import { OrderArchiveTabs } from "@/features/orders/order-archive-tabs";
 import { RepairOrderChat } from "@/features/orders/repair-order-chat";
@@ -35,7 +36,10 @@ const ChatsPage = () => {
   const { orderId } = Route.useSearch();
   const [archiveView, setArchiveView] = useState<OrderArchiveView>("active");
   const canViewChats =
-    user?.role === "ADMIN" || user?.role === "CUSTOMER" || user?.role === "TECHNICIAN";
+    user?.role === "CUSTOMER" ||
+    hasPermission(user, "repairs") ||
+    hasPermission(user, "communications");
+  const canOpenSupport = user?.role === "CUSTOMER" || hasPermission(user, "communications");
   const orders = useQuery({
     queryKey: ["orders", token, archiveView],
     queryFn: ({ signal }) => getOrders(token!, signal, archiveView),
@@ -47,14 +51,14 @@ const ChatsPage = () => {
 
   return (
     <AppShell active="/chats">
-      {canViewChats && <MessageSectionNavigation canOpenSupport={user?.role !== "TECHNICIAN"} />}
+      {canViewChats && <MessageSectionNavigation canOpenSupport={canOpenSupport} />}
       <PageTitle
         eyebrow="СООБЩЕНИЯ ПО ЗАЯВКАМ"
         title="Чаты"
         description={
-          user?.role === "ADMIN"
+          hasPermission(user, "communications")
             ? "Переписки с клиентами сгруппированы по заявкам. Откройте нужный чат, чтобы ответить."
-            : user?.role === "TECHNICIAN"
+            : hasPermission(user, "repairs")
               ? "Здесь собраны чаты назначенных вам заказов. При необходимости можно позвать администратора."
               : orderId
                 ? "Это отдельная переписка по гарантийному обращению. Она связана только с выбранным ремонтом."
@@ -73,7 +77,7 @@ const ChatsPage = () => {
       {!canViewChats ? (
         <SectionCard>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Вкладка чатов доступна клиентам, мастерам и администраторам.
+            Чаты доступны клиентам и сотрудникам с правом ремонта или поддержки.
           </p>
         </SectionCard>
       ) : (

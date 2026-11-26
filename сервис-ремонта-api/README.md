@@ -2,11 +2,12 @@
 
 ## Login portals
 
-Password, VK ID, and MAX sign-in expose two current audiences: `CUSTOMER` and `STAFF`. The staff
-audience accepts only existing `TECHNICIAN`, `PROCUREMENT`, and `ADMIN` accounts; the API returns
-the account's actual role and does not grant extra permissions. Legacy role-specific login requests
-remain accepted for older app versions. MAX login stores the staff audience separately from the
-existing user-role enum and still cannot create employee accounts; the additive
+Password, VK ID, and MAX sign-in expose two audiences: `CUSTOMER` and `STAFF` (shown to users as
+“Клиент” and “Сотрудник”). The staff audience accepts existing `TECHNICIAN`, `PROCUREMENT`, and
+`ADMIN` accounts. Newly configured employees keep a legacy-compatible database role but are returned
+as `STAFF` with their saved permissions; selecting the staff login does not grant privileges. Older
+role-specific login requests remain accepted for compatibility. MAX stores the staff audience
+separately from the user-role enum and does not create employee accounts; the additive
 `20261125190000_staff_login_audience` migration keeps older login requests compatible.
 
 ## Technician profiles
@@ -45,8 +46,8 @@ characters. Passwords are stored as scrypt hashes. A successful change revokes t
 sessions and returns a fresh session to the current client; client forms ask the user to confirm the
 new password before submitting.
 
-Password login uses the same progressive delay for every portal (customer, technician, administrator,
-and procurement): after four consecutive failures for a normalized identifier, later attempts wait
+Password login uses the same progressive delay for every portal (customer and staff): after four
+consecutive failures for a normalized identifier, later attempts wait
 250 ms, then double up to 5 seconds. There is no hard account lockout. The bounded, in-memory tracker
 stores only a hash of the identifier, resets after 15 minutes without a failure, and is local to one
 API process; it resets on restart and does not replace a shared gateway limit or MFA.
@@ -279,12 +280,25 @@ can create assistants. Staff-list responses omit permanently terminated accounts
 record and order history remain stored. Customer self-registration remains separate at
 `POST /auth/register` and always creates a customer account; public registration cannot assign staff roles.
 
-The procurement role is managed by an administrator and signs in through the `PROCUREMENT` portal.
-It can view the purchase-replenishment summary and active products and spare parts, then update only
-their stock and minimum-stock quantities through `PATCH /catalog/:catalogItemId/inventory`. It cannot
-create catalog entries or change names, prices, item types, or activation state. The role does not
-receive administrator staff-management, customer-management, or repair-workspace navigation in Web
-or Android; authorization is enforced by the API, not only by those interfaces.
+Employee accounts use one generic `STAFF` account type in Web and Android and a saved list of
+capabilities instead of job titles. New accounts retain the existing database `TECHNICIAN` enum
+value for compatibility with already published app versions; the API presents a configured employee
+as `STAFF` to clients.
+`POST /staff` accepts `permissions` from the API's permission catalog; `GET /staff` returns the
+assignable catalog and each employee's effective permissions; `PATCH /staff/:userId` saves changes.
+The catalog covers repairs, inventory, customers, shop orders, communications, content, reports,
+company settings, and staff management. The staff-management permission lets an employee manage
+accounts only within the rights that employee can grant. Only a full administrator may grant rights
+they do not already hold or create a full-administrator account. Full administration remains a
+separate account level, not a checkbox in the ordinary staff permission list. API routes enforce
+these capabilities independently of the Web and Android menus.
+
+The former `PROCUREMENT` role remains in the database enum for compatibility with existing accounts,
+but it is no longer selectable as a job title. Legacy procurement accounts retain inventory access;
+editing one converts it to a configured employee account with the equivalent saved inventory
+permission. Existing technician accounts similarly retain their repair access until their saved
+permissions are edited. The additive migration adds permission columns only; it does not add or
+remove enum values, staff records, or stock data.
 Administrators can correct request details through `PATCH /orders/:orderId` in any order status;
 customers can edit only their own not-yet-assigned orders. Status transitions, service lines, stock,
 and paid receipts keep their independent authorization and lifecycle checks.

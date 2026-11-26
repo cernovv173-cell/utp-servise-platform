@@ -8,6 +8,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 import { sendPushNotification } from "../notifications/push-notifications.js";
 import { sendShopNotificationToAdministrators } from "./shop-notifications.js";
@@ -47,7 +48,7 @@ export const createShopDeliveryRouter = (
   router.patch(
     "/admin/shop/orders/:orderId/delivery-offer",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: orderIdParams, body: deliveryOfferBody }),
     async (_request, response) => {
       const actor = getAuthenticatedUser(response);

@@ -10,11 +10,22 @@ import {
   publicUser,
   requireRoles,
 } from "../auth/auth.middleware.js";
+import { requireStaffPermission } from "../auth/auth.middleware.js";
 import {
   generateAccountLogin,
   generateTemporaryPassword,
   hashPassword,
 } from "../auth/passwords.js";
+import {
+  STAFF_PERMISSION_KEYS,
+  STAFF_PERMISSION_OPTIONS,
+  type StaffPermission,
+  assertCanAssignPermissions,
+  hasStaffPermission,
+  isFullAdmin,
+  permissionsForUser,
+  publicRoleForUser,
+} from "../auth/staff-permissions.js";
 
 const emailSchema = z
   .string()
@@ -39,9 +50,15 @@ const staffSchema = z
     email: emailSchema,
     displayName: z.string().trim().min(2).max(120),
     phoneNumber: phoneNumberSchema,
+    permissions: z
+      .array(z.enum(STAFF_PERMISSION_KEYS))
+      .max(STAFF_PERMISSION_KEYS.length)
+      .optional(),
+    fullAdministrator: z.boolean().default(false),
+    // Older app releases still send a role. Convert it to permissions; never persist PROCUREMENT.
     role: z
       .enum(["TECHNICIAN", "ADMIN", "ADMIN_ASSISTANT", "PROCUREMENT"])
-      .default("TECHNICIAN"),
+      .optional(),
   })
   .strict();
 const updateTechnicianSchema = z
@@ -49,6 +66,10 @@ const updateTechnicianSchema = z
     displayName: z.string().trim().min(2).max(120).optional(),
     phoneNumber: phoneNumberSchema,
     salaryRatePercent: z.number().int().min(0).max(100).optional(),
+    permissions: z
+      .array(z.enum(STAFF_PERMISSION_KEYS))
+      .max(STAFF_PERMISSION_KEYS.length)
+      .optional(),
   })
   .strict()
   .refine((body) => Object.keys(body).length > 0);
@@ -74,6 +95,15 @@ const userIdOf = (response: { locals: { input?: unknown } }): string =>
   (response.locals.input as { readonly params: z.infer<typeof userIdParams> })
     .params.userId;
 
+const legacyRolePermissions = (
+  role: z.infer<typeof staffSchema>["role"],
+): StaffPermission[] => {
+  if (role === "TECHNICIAN") return ["repairs"];
+  if (role === "PROCUREMENT") return ["inventory"];
+  if (role === "ADMIN_ASSISTANT") return [...STAFF_PERMISSION_KEYS];
+  return [];
+};
+
 const isUniqueViolation = (error: unknown): boolean =>
   typeof error === "object" &&
   error !== null &&
@@ -91,7 +121,8 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
     async (_request, response) => {
       const userId = userIdOf(response);
       const actor = getAuthenticatedUser(response);
-      const isSelf = actor.id === userId && actor.role === "TECHNICIAN";
+      const isSelf =
+        actor.id === userId && hasStaffPermission(actor, "repairs");
       const isAdmin = actor.role === "ADMIN";
       let profile = await database.technicianProfile.findUnique({
         where: { userId },
@@ -103,6 +134,9 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
               avatarObjectId: true,
               phoneNumber: true,
               role: true,
+              isAdminAssistant: true,
+              staffPermissions: true,
+              staffPermissionsConfigured: true,
             },
           },
         },
@@ -123,18 +157,27 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
                 avatarObjectId: true,
                 phoneNumber: true,
                 role: true,
+                isAdminAssistant: true,
+                staffPermissions: true,
+                staffPermissionsConfigured: true,
               },
             },
           },
         });
       }
-      if (!profile || profile.user.role !== "TECHNICIAN")
+      if (!profile || !hasStaffPermission(profile.user, "repairs"))
         throw new HttpError(
           404,
           "TECHNICIAN_PROFILE_NOT_FOUND",
           "Профиль мастера не найден.",
         );
-      const { homeAddress, isVerified, verifiedAt, ...publicProfile } = profile;
+      const {
+        homeAddress,
+        isVerified,
+        verifiedAt,
+        user: profileUser,
+        ...publicProfile
+      } = profile;
       const [completedOrders, reviews, works] = await Promise.all([
         database.repairOrder.count({
           where: { assignedTechnicianId: userId, status: "COMPLETED" },
@@ -172,6 +215,14 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
       response.json({
         profile: {
           ...publicProfile,
+          user: {
+            id: profileUser.id,
+            displayName: profileUser.displayName,
+            avatarObjectId: profileUser.avatarObjectId,
+            phoneNumber: profileUser.phoneNumber,
+            role: publicRoleForUser(profileUser),
+            permissions: permissionsForUser(profileUser),
+          },
           ...(isSelf || isAdmin ? { homeAddress } : {}),
           completedOrders,
           rating: reviews.length
@@ -191,7 +242,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
   router.put(
     "/staff/:userId/profile",
     requireAuth,
-    requireRoles("TECHNICIAN"),
+    requireStaffPermission("repairs"),
     validateRequest({ params: userIdParams, body: technicianProfileBody }),
     async (_request, response) => {
       const userId = userIdOf(response);
@@ -202,12 +253,11 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           "Можно менять только собственный профиль.",
         );
       const input = bodyOf<z.infer<typeof technicianProfileBody>>(response);
-      const technician = await database.user.findFirst({
-        where: { id: userId, role: "TECHNICIAN" },
-        select: { id: true },
+      const technician = await database.user.findUnique({
+        where: { id: userId },
       });
-      if (!technician)
-        throw new HttpError(404, "STAFF_NOT_FOUND", "Мастер не найден.");
+      if (!technician || !hasStaffPermission(technician, "repairs"))
+        throw new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден.");
       const [updatedUser, profile] = await Promise.all([
         database.user.update({
           where: { id: userId },
@@ -249,8 +299,9 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
   router.get(
     "/staff",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("staff_management"),
     async (_request, response) => {
+      const actor = getAuthenticatedUser(response);
       const staff = await database.user.findMany({
         where: {
           role: { in: ["TECHNICIAN", "ADMIN", "PROCUREMENT"] },
@@ -265,6 +316,8 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           avatarObjectId: true,
           role: true,
           isAdminAssistant: true,
+          staffPermissions: true,
+          staffPermissionsConfigured: true,
           salaryRatePercent: true,
           active: true,
           terminatedAt: true,
@@ -272,28 +325,43 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
         },
         orderBy: [{ active: "desc" }, { displayName: "asc" }],
       });
-      response.json({ staff });
+      response.json({
+        permissionOptions: STAFF_PERMISSION_OPTIONS.filter(
+          ({ key }) => isFullAdmin(actor) || hasStaffPermission(actor, key),
+        ),
+        staff: staff.map((member) => ({
+          ...member,
+          role: publicRoleForUser(member),
+          permissions: permissionsForUser(member),
+        })),
+      });
     },
   );
 
   router.post(
     "/staff",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("staff_management"),
     validateRequest({ body: staffSchema }),
     async (_request, response, next) => {
       const input = bodyOf<z.infer<typeof staffSchema>>(response);
       const actor = getAuthenticatedUser(response);
-      if (input.role === "ADMIN" && actor.isAdminAssistant) {
+      const fullAdministrator =
+        input.fullAdministrator || input.role === "ADMIN";
+      if (fullAdministrator && !isFullAdmin(actor)) {
         next(
           new HttpError(
             403,
             "ADMIN_CREATION_FORBIDDEN",
-            "Помощник администратора не может создавать учётные записи администраторов.",
+            "Создавать учётные записи с полным доступом может только администратор.",
           ),
         );
         return;
       }
+      const permissions = fullAdministrator
+        ? []
+        : (input.permissions ?? legacyRolePermissions(input.role));
+      assertCanAssignPermissions(actor, permissions);
       const temporaryPassword = generateTemporaryPassword();
       try {
         const staff = await database.user.create({
@@ -302,8 +370,10 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
             login: generateAccountLogin(),
             displayName: input.displayName,
             phoneNumber: input.phoneNumber?.trim() || null,
-            role: input.role === "ADMIN_ASSISTANT" ? "ADMIN" : input.role,
-            isAdminAssistant: input.role === "ADMIN_ASSISTANT",
+            role: fullAdministrator ? "ADMIN" : "TECHNICIAN",
+            isAdminAssistant: false,
+            staffPermissions: permissions,
+            staffPermissionsConfigured: !fullAdministrator,
             passwordHash: await hashPassword(temporaryPassword),
             mustChangePassword: true,
           },
@@ -328,27 +398,92 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/staff/:userId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("staff_management"),
     validateRequest({ params: userIdParams, body: updateTechnicianSchema }),
     async (_request, response) => {
       const userId = userIdOf(response);
       const input = bodyOf<z.infer<typeof updateTechnicianSchema>>(response);
-      const target = await database.user.findFirst({
-        where: { id: userId, role: "TECHNICIAN" },
-        select: { id: true },
-      });
-      if (!target)
-        throw new HttpError(404, "STAFF_NOT_FOUND", "Мастер не найден.");
+      const actor = getAuthenticatedUser(response);
+      const target = await database.user.findUnique({ where: { id: userId } });
+      if (!target || target.role === "CUSTOMER" || isFullAdmin(target)) {
+        throw new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден.");
+      }
+      const updatedPermissions =
+        input.permissions === undefined
+          ? undefined
+          : (() => {
+              const actorPermissions = new Set(permissionsForUser(actor));
+              const requested = new Set(input.permissions);
+              if (!isFullAdmin(actor)) {
+                for (const permission of permissionsForUser(target)) {
+                  if (!actorPermissions.has(permission))
+                    requested.add(permission);
+                }
+              }
+              return [...requested];
+            })();
+      if (input.permissions !== undefined) {
+        if (actor.id === target.id) {
+          throw new HttpError(
+            409,
+            "CANNOT_EDIT_SELF_PERMISSIONS",
+            "Изменять собственные права доступа нельзя.",
+          );
+        }
+        assertCanAssignPermissions(actor, updatedPermissions ?? []);
+        if (
+          hasStaffPermission(target, "repairs") &&
+          !updatedPermissions?.includes("repairs")
+        ) {
+          const activeAssignments = await database.repairOrder.count({
+            where: {
+              assignedTechnicianId: target.id,
+              status: { notIn: ["COMPLETED", "CANCELLED"] },
+            },
+          });
+          if (activeAssignments > 0) {
+            throw new HttpError(
+              409,
+              "ACTIVE_REPAIRS_REQUIRE_REASSIGNMENT",
+              "Сначала переназначьте незавершённые заявки сотрудника.",
+            );
+          }
+        }
+      }
+      const resultingPermissions =
+        updatedPermissions ?? permissionsForUser(target);
+      if (
+        input.salaryRatePercent !== undefined &&
+        !resultingPermissions.includes("repairs")
+      ) {
+        throw new HttpError(
+          400,
+          "SALARY_RATE_REQUIRES_REPAIR_ACCESS",
+          "Процент начислений можно настроить сотруднику с доступом к ремонту.",
+        );
+      }
 
       const staff = await database.user.update({
         where: { id: target.id },
         data: {
-          displayName: input.displayName,
-          phoneNumber:
-            input.phoneNumber === undefined
-              ? undefined
-              : input.phoneNumber?.trim() || null,
-          salaryRatePercent: input.salaryRatePercent,
+          ...(input.permissions !== undefined
+            ? { role: "TECHNICIAN", isAdminAssistant: false }
+            : {}),
+          ...(input.displayName !== undefined
+            ? { displayName: input.displayName }
+            : {}),
+          ...(input.phoneNumber !== undefined
+            ? { phoneNumber: input.phoneNumber?.trim() || null }
+            : {}),
+          ...(input.salaryRatePercent !== undefined
+            ? { salaryRatePercent: input.salaryRatePercent }
+            : {}),
+          ...(input.permissions !== undefined
+            ? {
+                staffPermissions: updatedPermissions ?? [],
+                staffPermissionsConfigured: true,
+              }
+            : {}),
         },
         select: {
           id: true,
@@ -357,19 +492,28 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           phoneNumber: true,
           avatarObjectId: true,
           role: true,
+          isAdminAssistant: true,
+          staffPermissions: true,
+          staffPermissionsConfigured: true,
           salaryRatePercent: true,
           active: true,
           createdAt: true,
         },
       });
-      response.json({ staff });
+      response.json({
+        staff: {
+          ...staff,
+          role: publicRoleForUser(staff),
+          permissions: permissionsForUser(staff),
+        },
+      });
     },
   );
 
   router.patch(
     "/staff/:userId/active",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("staff_management"),
     validateRequest({
       params: userIdParams,
       body: z.object({ active: z.boolean() }).strict(),
@@ -389,11 +533,18 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
         return;
       }
       const target = await database.user.findUnique({ where: { id: userId } });
-      if (
-        !target ||
-        !["TECHNICIAN", "ADMIN", "PROCUREMENT"].includes(target.role)
-      ) {
+      if (!target || target.role === "CUSTOMER") {
         next(new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден."));
+        return;
+      }
+      if (isFullAdmin(target) && !isFullAdmin(actor)) {
+        next(
+          new HttpError(
+            403,
+            "FULL_ADMIN_PROTECTED",
+            "Отключить администратора с полным доступом может только он сам или другой полный администратор.",
+          ),
+        );
         return;
       }
       if (target.terminatedAt && active) {
@@ -437,13 +588,22 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
           phoneNumber: true,
           avatarObjectId: true,
           role: true,
+          isAdminAssistant: true,
+          staffPermissions: true,
+          staffPermissionsConfigured: true,
           active: true,
           terminatedAt: true,
           createdAt: true,
         },
       });
       if (!active) await database.session.deleteMany({ where: { userId } });
-      response.json({ staff });
+      response.json({
+        staff: {
+          ...staff,
+          role: publicRoleForUser(staff),
+          permissions: permissionsForUser(staff),
+        },
+      });
     },
   );
 
@@ -472,13 +632,21 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
         const [currentActor, target] = await Promise.all([
           transaction.user.findUnique({
             where: { id: actor.id },
-            select: { id: true, role: true, active: true, terminatedAt: true },
+            select: {
+              id: true,
+              role: true,
+              isAdminAssistant: true,
+              staffPermissions: true,
+              staffPermissionsConfigured: true,
+              active: true,
+              terminatedAt: true,
+            },
           }),
           transaction.user.findUnique({ where: { id: userId } }),
         ]);
         if (
           !currentActor ||
-          currentActor.role !== "ADMIN" ||
+          !hasStaffPermission(currentActor, "staff_management") ||
           !currentActor.active ||
           currentActor.terminatedAt
         ) {
@@ -488,11 +656,15 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
             "Недостаточно прав для этого действия.",
           );
         }
-        if (
-          !target ||
-          !["TECHNICIAN", "ADMIN", "PROCUREMENT"].includes(target.role)
-        ) {
+        if (!target || target.role === "CUSTOMER") {
           throw new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден.");
+        }
+        if (isFullAdmin(target) && !isFullAdmin(currentActor)) {
+          throw new HttpError(
+            403,
+            "FULL_ADMIN_PROTECTED",
+            "Уволить администратора с полным доступом может только другой полный администратор.",
+          );
         }
         if (target.terminatedAt) return target;
         if (
@@ -585,7 +757,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
   router.post(
     "/staff/:userId/terminate",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("staff_management"),
     validateRequest({ params: userIdParams }),
     terminateStaff,
   );
@@ -594,7 +766,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
   router.delete(
     "/staff/:userId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("staff_management"),
     validateRequest({ params: userIdParams }),
     terminateStaff,
   );

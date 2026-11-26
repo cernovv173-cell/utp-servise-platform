@@ -1268,9 +1268,20 @@ object ApiClient {
         JSONObject().put("consent", consent),
     )
 
-    fun createStaff(token: String, email: String, displayName: String, role: String, phoneNumber: String?): NewStaffResult {
+    fun createStaff(
+        token: String,
+        email: String,
+        displayName: String,
+        permissions: List<String>,
+        fullAdministrator: Boolean,
+        phoneNumber: String?,
+    ): NewStaffResult {
         val result = request("POST", "/staff", token,
-            JSONObject().put("email", email).put("displayName", displayName).put("role", role)
+            JSONObject()
+                .put("email", email)
+                .put("displayName", displayName)
+                .put("permissions", JSONArray(permissions))
+                .put("fullAdministrator", fullAdministrator)
                 .put("phoneNumber", phoneNumber ?: JSONObject.NULL))
         return NewStaffResult(result.getJSONObject("staff").toStaff(), result.getString("temporaryPassword"))
     }
@@ -1288,7 +1299,10 @@ object ApiClient {
         JSONObject()
             .put("displayName", staff.displayName)
             .put("phoneNumber", staff.phoneNumber ?: JSONObject.NULL)
-            .put("salaryRatePercent", staff.salaryRatePercent),
+            .put("permissions", JSONArray(staff.permissions))
+            .apply {
+                if ("repairs" in staff.permissions) put("salaryRatePercent", staff.salaryRatePercent)
+            },
     ).getJSONObject("staff").toStaff()
 
     fun reviews(token: String): List<CustomerReview> = request("GET", "/reviews", token)

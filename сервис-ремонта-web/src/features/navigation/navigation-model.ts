@@ -1,10 +1,9 @@
 import {
   BookOpen,
+  Boxes,
   ClipboardList,
-  FileSpreadsheet,
   FileText,
   Home,
-  Leaf,
   LifeBuoy,
   type LucideIcon,
   MessageSquareText,
@@ -17,7 +16,19 @@ import {
   Wrench,
 } from "lucide-react";
 
-import type { Role } from "@/lib/api";
+import { hasPermission, isFullAdministrator } from "@/features/auth/staff-access";
+
+import type { User } from "@/lib/api";
+
+const managementPermissions = [
+  "customers",
+  "shop_orders",
+  "communications",
+  "content",
+  "reports",
+  "company_settings",
+  "staff_management",
+] as const;
 
 export type NavigationRoute =
   | "/"
@@ -55,99 +66,86 @@ export type NavigationGroup = {
   links: NavigationLink[];
 };
 
-const navigationByRole: Record<Role, NavigationGroup> = {
-  CUSTOMER: {
-    label: "Клиент",
-    links: [
-      { to: "/", label: "Главная", compactLabel: "Главная", icon: Home },
-      { to: "/orders", label: "Ремонты", compactLabel: "Ремонты", icon: Wrench },
-      { to: "/shop", label: "Магазин", compactLabel: "Магазин", icon: ShoppingBag },
-      { to: "/loyalty", label: "Бонусы", compactLabel: "Бонусы", icon: Star },
-      { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
-    ],
-  },
-  TECHNICIAN: {
-    label: "Мастер",
-    links: [
-      { to: "/orders", label: "Заявки", compactLabel: "Заявки", icon: ClipboardList },
-      { to: "/checks", label: "Чеки и выдача", compactLabel: "Чеки", icon: FileText },
-      { to: "/catalog", label: "Каталог", compactLabel: "Каталог", icon: Package },
-      { to: "/salary", label: "Зарплата", compactLabel: "Зарплата", icon: Wallet },
-      { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
-    ],
-  },
-  PROCUREMENT: {
-    label: "Закупка",
-    links: [
-      { to: "/admin/procurement", label: "Закупки", compactLabel: "Закупки", icon: ClipboardList },
-      { to: "/catalog", label: "Товары", compactLabel: "Товары", icon: Package },
-      { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
-    ],
-  },
-  ADMIN: {
-    label: "Администратор Енот-сервис.рф",
-    links: [
-      { to: "/admin/orders", label: "Заявки", compactLabel: "Заявки", icon: ClipboardList },
-      { to: "/admin", label: "Управление", compactLabel: "Управление", icon: Settings },
-      { to: "/admin/seasonal", label: "Оформление", compactLabel: "Сезон", icon: Leaf },
+export const getNavigationGroupsForUser = (user: User): NavigationGroup[] => {
+  if (user.role === "CUSTOMER") {
+    return [
       {
-        to: "/admin/salary-reports",
-        label: "Отчёты",
-        compactLabel: "Отчёты",
-        icon: FileSpreadsheet,
+        label: "Клиент",
+        links: [
+          { to: "/", label: "Главная", compactLabel: "Главная", icon: Home },
+          { to: "/orders", label: "Ремонты", compactLabel: "Ремонты", icon: Wrench },
+          { to: "/shop", label: "Магазин", compactLabel: "Магазин", icon: ShoppingBag },
+          { to: "/loyalty", label: "Бонусы", compactLabel: "Бонусы", icon: Star },
+          { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
+        ],
       },
-      { to: "/catalog", label: "Каталог", compactLabel: "Каталог", icon: Package },
-      { to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound },
-    ],
-  },
+    ];
+  }
+
+  const links: NavigationLink[] = [];
+  if (hasPermission(user, "repairs")) {
+    links.push(
+      { to: "/orders", label: "Назначенные заявки", compactLabel: "Заявки", icon: ClipboardList },
+      { to: "/checks", label: "Чеки и выдача", compactLabel: "Чеки", icon: FileText },
+      { to: "/salary", label: "Мои начисления", compactLabel: "Начисления", icon: Wallet },
+    );
+  }
+  if (hasPermission(user, "repairs") || hasPermission(user, "inventory")) {
+    links.push({ to: "/catalog", label: "Каталог", compactLabel: "Каталог", icon: Package });
+  }
+  if (hasPermission(user, "inventory")) {
+    links.push({
+      to: "/admin/procurement",
+      label: "Склад и поставщики",
+      compactLabel: "Склад",
+      icon: Boxes,
+    });
+  }
+  if (managementPermissions.some((permission) => hasPermission(user, permission))) {
+    links.push({ to: "/admin", label: "Управление", compactLabel: "Управление", icon: Settings });
+  }
+  links.push({ to: "/account", label: "Профиль", compactLabel: "Профиль", icon: UserRound });
+  return [{ label: isFullAdministrator(user) ? "Администратор" : "Сотрудник", links }];
 };
 
-const helpLinksByRole: Record<Role, HelpNavigationLink[]> = {
-  CUSTOMER: [
-    {
+export const getHelpNavigationLinksForUser = (user: User): HelpNavigationLink[] => {
+  if (user.role === "CUSTOMER") {
+    return [
+      {
+        to: "/chats",
+        label: "Сообщения по заявкам",
+        compactLabel: "Сообщения",
+        icon: MessageSquareText,
+      },
+      { to: "/guides", label: "Полезные памятки", compactLabel: "Памятки", icon: BookOpen },
+      { to: "/support", label: "Поддержка клиентов", compactLabel: "Поддержка", icon: LifeBuoy },
+      {
+        to: "/feedback",
+        label: "Жалобы и предложения",
+        compactLabel: "Обратная связь",
+        icon: MessageSquareText,
+      },
+    ];
+  }
+  const links: HelpNavigationLink[] = [];
+  if (hasPermission(user, "repairs") || hasPermission(user, "communications")) {
+    links.push({
       to: "/chats",
       label: "Сообщения по заявкам",
       compactLabel: "Сообщения",
       icon: MessageSquareText,
-    },
-    { to: "/guides", label: "Полезные памятки", compactLabel: "Памятки", icon: BookOpen },
-    { to: "/support", label: "Поддержка клиентов", compactLabel: "Поддержка", icon: LifeBuoy },
-    {
-      to: "/feedback",
-      label: "Жалобы и предложения",
-      compactLabel: "Обратная связь",
-      icon: MessageSquareText,
-    },
-  ],
-  TECHNICIAN: [
-    {
-      to: "/chats",
-      label: "Сообщения по заявкам",
-      compactLabel: "Сообщения",
-      icon: MessageSquareText,
-    },
-  ],
-  ADMIN: [
-    {
-      to: "/chats",
-      label: "Сообщения по заявкам",
-      compactLabel: "Сообщения",
-      icon: MessageSquareText,
-    },
-    { to: "/support", label: "Поддержка клиентов", compactLabel: "Поддержка", icon: LifeBuoy },
-  ],
-  PROCUREMENT: [],
+    });
+  }
+  if (hasPermission(user, "communications")) {
+    links.push({
+      to: "/support",
+      label: "Поддержка клиентов",
+      compactLabel: "Поддержка",
+      icon: LifeBuoy,
+    });
+  }
+  return links;
 };
-
-export const getNavigationGroupsForRole = (role: Role): NavigationGroup[] => [
-  navigationByRole[role],
-];
-
-export const getPrimaryNavigationLinksForRole = (role: Role): NavigationLink[] =>
-  navigationByRole[role].links;
-
-export const getHelpNavigationLinksForRole = (role: Role): HelpNavigationLink[] =>
-  helpLinksByRole[role];
 
 export const isNavigationItemActive = (
   active: string,

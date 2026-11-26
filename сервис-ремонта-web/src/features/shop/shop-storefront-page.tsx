@@ -8,6 +8,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { PublicAuthTrigger, PublicSiteShell } from "@/components/public-site-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { CUSTOMER_CATALOG_VISIBILITY_QUERY_KEY } from "@/features/catalog/catalog-visibility";
 
 import {
@@ -226,7 +227,7 @@ const ShopStorefrontPage = () => {
         title="Товары и ручная работа"
         description="Покупайте готовые изделия в общей корзине. Изготовление по индивидуальному запросу обсудим отдельно."
         action={
-          user?.role === "ADMIN" ? (
+          hasPermission(user, "shop_orders") ? (
             <Link
               to="/admin/shop-orders"
               className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-900"
@@ -311,7 +312,7 @@ const ShopStorefrontPage = () => {
                   ? "Изделия ручной работы по-прежнему доступны."
                   : "Когда в магазин добавят товары или готовые изделия ручной работы, они появятся здесь."}
               </p>
-              {user?.role === "ADMIN" && (
+              {(hasPermission(user, "inventory") || hasPermission(user, "shop_orders")) && (
                 <div className="mt-4 flex flex-wrap justify-center gap-4">
                   <Link
                     to="/catalog"

@@ -4,7 +4,10 @@ import { z } from "zod";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  requireStaffPermission,
+} from "../auth/auth.middleware.js";
 
 const optionalText = (maximumLength: number) =>
   z
@@ -78,12 +81,12 @@ const isUniqueViolation = (error: unknown): boolean =>
 export const createProcurementRouter = (database: DatabaseClient): Router => {
   const router = Router();
   const requireAuth = createRequireAuth(database);
-  const requireProcurementAccess = requireRoles("ADMIN", "PROCUREMENT");
+  const requireInventoryAccess = requireStaffPermission("inventory");
 
   router.get(
     "/admin/operations/suppliers",
     requireAuth,
-    requireProcurementAccess,
+    requireInventoryAccess,
     async (_request, response) => {
       const suppliers = await database.procurementSupplier.findMany({
         orderBy: [{ isActive: "desc" }, { name: "asc" }],
@@ -106,7 +109,7 @@ export const createProcurementRouter = (database: DatabaseClient): Router => {
   router.post(
     "/admin/operations/suppliers",
     requireAuth,
-    requireProcurementAccess,
+    requireInventoryAccess,
     validateRequest({ body: supplierCreateBody }),
     async (_request, response, next) => {
       const input = bodyOf<z.infer<typeof supplierCreateBody>>(response);
@@ -140,7 +143,7 @@ export const createProcurementRouter = (database: DatabaseClient): Router => {
   router.patch(
     "/admin/operations/suppliers/:supplierId",
     requireAuth,
-    requireProcurementAccess,
+    requireInventoryAccess,
     validateRequest({ params: supplierIdParams, body: supplierUpdateBody }),
     async (_request, response, next) => {
       const { supplierId } =
@@ -190,7 +193,7 @@ export const createProcurementRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/operations/stock-receipts",
     requireAuth,
-    requireProcurementAccess,
+    requireInventoryAccess,
     async (_request, response) => {
       const receipts = await database.inventoryStockReceipt.findMany({
         orderBy: [{ receivedAt: "desc" }, { createdAt: "desc" }],
@@ -215,7 +218,7 @@ export const createProcurementRouter = (database: DatabaseClient): Router => {
   router.post(
     "/admin/operations/stock-receipts",
     requireAuth,
-    requireProcurementAccess,
+    requireInventoryAccess,
     validateRequest({ body: receiptCreateBody }),
     async (_request, response) => {
       const input = bodyOf<z.infer<typeof receiptCreateBody>>(response);

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { getProcurementSuppliers, getStockReceipts } from "@/features/procurement/procurement-api";
 import { ProcurementSuppliers } from "@/features/procurement/procurement-suppliers";
 import { StockReceiptDialog } from "@/features/procurement/stock-receipt-dialog";
@@ -15,7 +16,7 @@ import { getProcurementList, getRepairCatalog } from "@/lib/api";
 
 const ProcurementPage = () => {
   const { token, user } = useAuth();
-  const canView = user?.role === "ADMIN" || user?.role === "PROCUREMENT";
+  const canView = hasPermission(user, "inventory");
   const list = useQuery({
     queryKey: ["procurement-list", token],
     queryFn: ({ signal }) => getProcurementList(token!, signal),
@@ -43,10 +44,10 @@ const ProcurementPage = () => {
   if (!canView) {
     return (
       <AppShell active="/admin/procurement">
-        <PageTitle eyebrow="ЗАКУПКИ" title="Доступ ограничен" />
+        <PageTitle eyebrow="СКЛАД" title="Доступ ограничен" />
         <SectionCard>
           <p className="text-sm text-slate-500">
-            Этот раздел доступен администраторам и мастерам закупки.
+            Этот раздел доступен сотрудникам с правом на каталог и склад.
           </p>
         </SectionCard>
       </AppShell>
@@ -56,8 +57,8 @@ const ProcurementPage = () => {
   return (
     <AppShell active="/admin/procurement">
       <PageTitle
-        eyebrow={user?.role === "PROCUREMENT" ? "ЗАКУПКИ" : "АДМИНИСТРИРОВАНИЕ"}
-        title="Закупки и поставщики"
+        eyebrow="СКЛАД"
+        title="Склад и поставщики"
         description="Пополнение склада, реестр поставщиков и история поступлений запчастей и товаров."
         action={
           <div className="flex flex-wrap gap-2">

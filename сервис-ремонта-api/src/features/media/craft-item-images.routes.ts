@@ -5,7 +5,10 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { validateImage } from "../../lib/storage/project-images.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  requireStaffPermission,
+} from "../auth/auth.middleware.js";
 import { type MediaStorage, projectMediaStorage } from "./media-storage.js";
 
 const imageBody: RequestHandler = express.raw({
@@ -53,7 +56,7 @@ export const createCraftItemImagesRouter = (
   router.post(
     "/craft-items/:itemId/images",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: itemParams }),
     imageBody,
     async (request, response) => {
@@ -110,7 +113,7 @@ export const createCraftItemImagesRouter = (
   router.delete(
     "/craft-items/:itemId/images/:objectId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("shop_orders"),
     validateRequest({ params: imageParams }),
     async (_request, response) => {
       const { itemId, objectId } =

@@ -49,7 +49,17 @@ export const loadMonthlySalaryReportData = async (
   const earnedAt = { gte: range.startsAt, lt: range.endsAt };
   const [technicians, repairEntries, craftEntries] = await Promise.all([
     database.user.findMany({
-      where: { role: "TECHNICIAN" },
+      where: {
+        OR: [
+          {
+            role: "TECHNICIAN",
+            OR: [
+              { staffPermissionsConfigured: false },
+              { staffPermissions: { has: "repairs" } },
+            ],
+          },
+        ],
+      },
       select: { id: true, displayName: true },
       orderBy: { displayName: "asc" },
     }),

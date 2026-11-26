@@ -5,6 +5,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { AdminBackLink } from "@/features/admin/admin-back-link";
 import { LoyaltyManagement } from "@/features/admin/loyalty-management";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 const AdminLoyaltyPage = () => {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ const AdminLoyaltyPage = () => {
         description="Бонусные балансы клиентов, последние начисления и списания."
         action={<AdminBackLink />}
       />
-      {user?.role !== "ADMIN" ? (
+      {!hasPermission(user, "customers") ? (
         <SectionCard>
           <p className="text-sm text-slate-500">Эта страница доступна только администратору.</p>
         </SectionCard>

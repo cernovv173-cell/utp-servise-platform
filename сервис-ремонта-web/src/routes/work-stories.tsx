@@ -6,6 +6,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { PublicSiteShell } from "@/components/public-site-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 import { getPublicWorkStories, getPublicWorkStoryImageUrl } from "@/lib/api";
 import { createPageHead } from "@/lib/seo";
@@ -29,7 +30,7 @@ const WorkStoriesPage = () => {
         title="Примеры работ"
         description="Истории подготовлены самим сервисом. Это описание выполненных работ, а не отзывы клиентов."
       />
-      {user?.role === "ADMIN" && (
+      {hasPermission(user, "content") && (
         <Link
           to="/news"
           className="mb-5 inline-flex min-h-10 items-center rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"

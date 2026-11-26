@@ -187,8 +187,8 @@ internal fun workspaceNavigationForRole(role: String): WorkspaceNavigation = whe
 
     "PROCUREMENT" -> WorkspaceNavigation(
         primaryDestinations = listOf(
-            WorkspaceDestination("procurement/home", "Закупки", Icons.Filled.ShoppingCart),
-            WorkspaceDestination("procurement/catalog", "Товары", Icons.Filled.Search),
+            WorkspaceDestination("procurement/home", "Склад", Icons.Filled.ShoppingCart),
+            WorkspaceDestination("procurement/catalog", "Каталог склада", Icons.Filled.Search),
             WorkspaceDestination("procurement/profile", "Профиль", Icons.Filled.Person),
         ),
         sectionHubRoute = "sections",

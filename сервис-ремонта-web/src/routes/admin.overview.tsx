@@ -5,6 +5,7 @@ import { AlertTriangle, CalendarDays, CheckCheck, Clock3, Wallet } from "lucide-
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 import { getOperationsDashboard } from "@/lib/api";
 
@@ -22,7 +23,7 @@ const AdminOverviewPage = () => {
   const metrics = useQuery({
     queryKey: ["operations-dashboard", token],
     queryFn: ({ signal }) => getOperationsDashboard(token!, signal),
-    enabled: Boolean(token && user?.role === "ADMIN"),
+    enabled: Boolean(token && hasPermission(user, "reports")),
   });
   const data = metrics.data;
   const cards = [

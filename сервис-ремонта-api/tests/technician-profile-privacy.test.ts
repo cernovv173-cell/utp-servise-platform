@@ -35,6 +35,8 @@ test("technician home address is returned only to its owner and administrators",
       phoneNumber: "+7 900 123-45-67",
       avatarObjectId: "technician-avatar",
       role: "TECHNICIAN" as const,
+      staffPermissions: [] as string[],
+      staffPermissionsConfigured: false,
       active: true,
       mustChangePassword: false,
       token: tokens.technician,
@@ -95,6 +97,8 @@ test("technician home address is returned only to its owner and administrators",
     },
     user: {
       findFirst: async () => ({ id: technicianId }),
+      findUnique: async ({ where }: { where: { id: string } }) =>
+        users.find((user) => user.id === where.id) ?? null,
       update: async () => ({
         id: technicianId,
         displayName: "Мастер",

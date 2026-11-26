@@ -10,6 +10,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 import {
   type TechnicianPayrollAdjustmentType,
@@ -72,7 +73,7 @@ export const createMonthlySalaryReportRouter = (
   router.get(
     "/admin/salary-reports",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("reports"),
     async (_request, response) => {
       const reports = await database.technicianMonthlySalaryReport.findMany({
         take: 36,
@@ -141,7 +142,7 @@ export const createMonthlySalaryReportRouter = (
   router.get(
     "/admin/salary-reports/:reportId/adjustments",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("reports"),
     validateRequest({ params: reportIdParamsSchema }),
     async (_request, response) => {
       const { reportId } =
@@ -191,7 +192,7 @@ export const createMonthlySalaryReportRouter = (
   router.post(
     "/admin/salary-reports/:reportId/adjustments",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("reports"),
     validateRequest({
       params: reportIdParamsSchema,
       body: adjustmentBodySchema,
@@ -276,7 +277,7 @@ export const createMonthlySalaryReportRouter = (
   router.post(
     "/admin/salary-reports/:reportId/adjustments/:adjustmentId/void",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("reports"),
     validateRequest({ params: adjustmentParamsSchema, body: voidBodySchema }),
     async (_request, response) => {
       const administrator = getAuthenticatedUser(response);
@@ -340,7 +341,7 @@ export const createMonthlySalaryReportRouter = (
   router.get(
     "/admin/salary-reports/:reportId/file",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("reports"),
     async (request, response) => {
       const parsedId = reportIdSchema.safeParse(request.params.reportId);
       if (!parsedId.success) {

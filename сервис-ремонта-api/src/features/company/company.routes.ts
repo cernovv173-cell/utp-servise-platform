@@ -4,7 +4,10 @@ import { z } from "zod";
 import { Prisma } from "../../generated/prisma/client.js";
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  requireStaffPermission,
+} from "../auth/auth.middleware.js";
 import {
   catalogVisibilitySchema,
   readCatalogVisibility,
@@ -92,7 +95,7 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
   router.put(
     "/admin/company/catalog-visibility",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("company_settings"),
     validateRequest({ body: catalogVisibilitySchema }),
     async (_request, response) => {
       const settings = (
@@ -119,7 +122,7 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
   router.put(
     "/admin/company/flowing-fire-settings",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("company_settings"),
     validateRequest({ body: flowingFireSettingsSchema }),
     async (_request, response) => {
       const settings = (
@@ -136,7 +139,7 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
   router.put(
     "/admin/company/closure-announcement",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("company_settings"),
     validateRequest({ body: closureAnnouncementSchema }),
     async (_request, response) => {
       const settings = (
@@ -153,7 +156,7 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
   router.put(
     "/admin/company/order-intake",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("company_settings"),
     validateRequest({ body: repairOrderIntakeSchema }),
     async (_request, response) => {
       const setting = (
@@ -170,7 +173,7 @@ export const createCompanyRouter = (database: DatabaseClient): Router => {
   router.put(
     "/about",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("company_settings"),
     validateRequest({ body: companyInfoSchema }),
     async (_request, response) => {
       const company = (

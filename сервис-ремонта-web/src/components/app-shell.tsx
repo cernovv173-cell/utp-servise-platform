@@ -11,11 +11,12 @@ import { IncomingOrderNotifications } from "@/features/admin/incoming-order-noti
 import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { CustomerEventNotifications } from "@/features/customer/customer-event-notifications";
 import { CustomerPhoneGate } from "@/features/customer/customer-phone-gate";
 import {
-  getHelpNavigationLinksForRole,
-  getNavigationGroupsForRole,
+  getHelpNavigationLinksForUser,
+  getNavigationGroupsForUser,
 } from "@/features/navigation/navigation-model";
 import {
   DesktopSectionNavigation,
@@ -62,8 +63,8 @@ export const AppShell = ({ active, children }: { active: string; children: React
     );
   }
 
-  const navigationGroups = getNavigationGroupsForRole(user.role);
-  const helpNavigationLinks = getHelpNavigationLinksForRole(user.role);
+  const navigationGroups = getNavigationGroupsForUser(user);
+  const helpNavigationLinks = getHelpNavigationLinksForUser(user);
   return (
     <div className="app-shell min-h-dvh bg-slate-50/45 text-slate-900 dark:bg-transparent dark:text-[#edf2ff] print:bg-white print:text-black">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 flex-col border-r border-slate-200 bg-white px-4 py-6 shadow-sm lg:flex dark:border-[#26365f] dark:bg-[#080e20]/95 dark:shadow-[8px_0_38px_rgba(0,0,0,0.22)] print:hidden">
@@ -106,8 +107,8 @@ export const AppShell = ({ active, children }: { active: string; children: React
             </span>
             <IncomingOrderNotifications />
             {user.role === "CUSTOMER" && <CustomerEventNotifications />}
-            {user.role === "ADMIN" && <RepairChatNotifications />}
-            {user.role === "ADMIN" && <SupportChatNotifications />}
+            {hasPermission(user, "communications") && <RepairChatNotifications />}
+            {hasPermission(user, "communications") && <SupportChatNotifications />}
             <button
               aria-label="Переключить тему"
               onClick={() => setDark((value) => !value)}

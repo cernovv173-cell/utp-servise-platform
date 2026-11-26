@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 import { getAdminRepairChatNotifications } from "@/lib/api";
 
@@ -15,7 +16,7 @@ const POLL_INTERVAL_MS = 15_000;
 export const RepairChatNotifications = () => {
   const { token, user } = useAuth();
   const navigate = useNavigate();
-  const isAdmin = Boolean(token && user?.role === "ADMIN");
+  const isAdmin = Boolean(token && hasPermission(user, "communications"));
   const seenMessages = useRef(new Map<string, string>());
   const initialSnapshotLoaded = useRef(false);
   const previousAdminId = useRef<string | null>(null);

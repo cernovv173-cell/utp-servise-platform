@@ -5,6 +5,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 
 export const createLoyaltyRouter = (database: DatabaseClient): Router => {
@@ -39,7 +40,7 @@ export const createLoyaltyRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/loyalty",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("customers"),
     async (_request, response) => {
       const [balances, transactions] = await Promise.all([
         database.loyaltyTransaction.groupBy({

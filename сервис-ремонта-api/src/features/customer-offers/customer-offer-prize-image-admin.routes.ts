@@ -9,7 +9,10 @@ import type { DatabaseClient } from "../../lib/database/database.js";
 import { HttpError } from "../../lib/http/http-error.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
 import { validateImage } from "../../lib/storage/project-images.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  requireStaffPermission,
+} from "../auth/auth.middleware.js";
 import {
   type MediaStorage,
   projectMediaStorage,
@@ -48,7 +51,7 @@ export const registerCustomerOfferPrizeImageAdminRoutes = (
   router.post(
     "/admin/offers/:offerId/prizes/:place/image",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: prizeImageParams }),
     prizeImageBody,
     async (request, response) => {
@@ -115,7 +118,7 @@ export const registerCustomerOfferPrizeImageAdminRoutes = (
   router.delete(
     "/admin/offers/:offerId/prizes/:place/image",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: prizeImageParams }),
     async (_request, response) => {
       const { offerId, place: placeParam } = prizeImageParamsOf(response);

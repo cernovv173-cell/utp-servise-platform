@@ -8,7 +8,9 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
+import { hasStaffPermission, isFullAdmin } from "../auth/staff-permissions.js";
 import { readCatalogVisibility } from "../company/catalog-visibility-settings.js";
 import {
   type MediaStorage,
@@ -178,16 +180,20 @@ export const createCatalogRouter = (
   router.get(
     "/catalog",
     requireAuth,
-    requireRoles("ADMIN", "TECHNICIAN", "PROCUREMENT"),
+    requireStaffPermission("inventory", "repairs"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
+      const inventoryOnly =
+        user.role !== "ADMIN" &&
+        hasStaffPermission(user, "inventory") &&
+        !hasStaffPermission(user, "repairs");
       const catalogItems = await database.repairCatalogItem.findMany({
         where:
-          user.role === "PROCUREMENT"
-            ? { active: true, type: { in: ["SPARE_PART", "PRODUCT"] } }
-            : user.role === "TECHNICIAN"
-              ? { active: true }
-              : {},
+          user.role === "ADMIN"
+            ? {}
+            : inventoryOnly
+              ? { active: true, type: { in: ["SPARE_PART", "PRODUCT"] } }
+              : { active: true },
         orderBy: [{ type: "asc" }, { name: "asc" }],
         take: 250,
       });
@@ -198,7 +204,7 @@ export const createCatalogRouter = (
   router.patch(
     "/catalog/:catalogItemId/inventory",
     requireAuth,
-    requireRoles("ADMIN", "PROCUREMENT"),
+    requireStaffPermission("inventory"),
     validateRequest({
       params: catalogItemIdParams,
       body: inventoryUpdateBody,
@@ -218,8 +224,8 @@ export const createCatalogRouter = (
         });
         if (
           !existing ||
-          !isInventoryCatalogItem(existing.type) ||
-          (actor.role === "PROCUREMENT" && !existing.active)
+          (!existing.active && !isFullAdmin(actor)) ||
+          !isInventoryCatalogItem(existing.type)
         ) {
           throw new HttpError(
             404,
@@ -239,7 +245,7 @@ export const createCatalogRouter = (
   router.post(
     "/catalog",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("inventory"),
     validateRequest({ body: catalogCreateBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -266,7 +272,7 @@ export const createCatalogRouter = (
   router.patch(
     "/catalog/:catalogItemId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("inventory"),
     validateRequest({
       params: catalogItemIdParams,
       body: catalogUpdateBody,
@@ -395,7 +401,7 @@ export const createCatalogRouter = (
   router.delete(
     "/catalog/:catalogItemId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("inventory"),
     validateRequest({ params: catalogItemIdParams }),
     async (_request, response) => {
       const { catalogItemId } =

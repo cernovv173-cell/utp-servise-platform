@@ -8,7 +8,7 @@ import { createStaffRouter } from "../src/features/staff/staff.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("only administrators can edit technician profiles and individual salary rates", async (t) => {
+test("administrators can edit staff profiles, salary rates, and saved permissions", async (t) => {
   const tokens = {
     admin: "A".repeat(48),
     technician: "T".repeat(48),
@@ -33,6 +33,8 @@ test("only administrators can edit technician profiles and individual salary rat
     avatarObjectId: null,
     role: "TECHNICIAN" as const,
     salaryRatePercent: 75,
+    staffPermissions: [] as string[],
+    staffPermissionsConfigured: false,
     active: true,
     mustChangePassword: false,
     createdAt: new Date(),
@@ -65,6 +67,8 @@ test("only administrators can edit technician profiles and individual salary rat
         where.id === technician.id && where.role === technician.role
           ? { id: technician.id }
           : null,
+      findUnique: async ({ where }: { where: { id: string } }) =>
+        where.id === technician.id ? technician : null,
       update: async ({ data }: { data: Record<string, unknown> }) => {
         updates.push(data);
         Object.assign(technician, data);
@@ -108,6 +112,22 @@ test("only administrators can edit technician profiles and individual salary rat
     },
   ]);
 
+  const savedPermissions = await fetch(endpoint, {
+    method: "PATCH",
+    headers: headers(tokens.admin),
+    body: JSON.stringify({ permissions: ["repairs", "inventory"] }),
+  });
+  assert.equal(savedPermissions.status, 200);
+  const permissionsBody = await savedPermissions.json();
+  assert.equal(permissionsBody.staff.role, "STAFF");
+  assert.deepEqual(permissionsBody.staff.permissions, ["repairs", "inventory"]);
+  assert.deepEqual(updates[1], {
+    role: "TECHNICIAN",
+    isAdminAssistant: false,
+    staffPermissions: ["repairs", "inventory"],
+    staffPermissionsConfigured: true,
+  });
+
   const forbidden = await fetch(endpoint, {
     method: "PATCH",
     headers: headers(tokens.customer),
@@ -121,7 +141,7 @@ test("only administrators can edit technician profiles and individual salary rat
     body: JSON.stringify({ phoneNumber: "позвони мне" }),
   });
   assert.equal(invalidPhone.status, 400);
-  assert.equal(updates.length, 1);
+  assert.equal(updates.length, 2);
 
   const invalidRate = await fetch(endpoint, {
     method: "PATCH",
@@ -129,5 +149,5 @@ test("only administrators can edit technician profiles and individual salary rat
     body: JSON.stringify({ salaryRatePercent: 101 }),
   });
   assert.equal(invalidRate.status, 400);
-  assert.equal(updates.length, 1);
+  assert.equal(updates.length, 2);
 });

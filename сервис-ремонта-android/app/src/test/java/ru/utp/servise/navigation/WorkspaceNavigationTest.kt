@@ -46,9 +46,51 @@ class WorkspaceNavigationTest {
         )
         assertFalse(routes.any { it.startsWith("admin/") || it.startsWith("technician/") })
         assertEquals("sections", procurement.sectionHubRoute)
+        assertEquals("Склад", procurement.primaryDestinations.first().label)
         val sectionRoutes = procurement.sectionGroups.flatMap { it.destinations }.map { it.route }
         assertTrue(sectionRoutes.any { it == "app/version" })
         assertTrue(sectionRoutes.all { it == "procurement/profile" || it == "app/version" })
+    }
+
+    @Test
+    fun `staff navigation contains only modules granted by saved permissions`() {
+        val staff = workspaceNavigationForUser("STAFF", setOf("inventory", "communications"))
+        val routes = staff.sectionGroups.flatMap { it.destinations }.map { it.route }
+
+        assertEquals(listOf("admin/profile"), staff.primaryDestinations.map { it.route })
+        assertEquals("sections", staff.sectionHubRoute)
+        assertEquals("admin/profile", staff.sectionParentRoute)
+        assertTrue(routes.contains("admin/procurement"))
+        assertTrue(routes.contains("admin/catalog"))
+        assertTrue(routes.contains("admin/chats"))
+        assertTrue(routes.contains("admin/order-chats"))
+        assertFalse(routes.contains("admin/customers"))
+        assertFalse(routes.contains("admin/staff"))
+        assertFalse(routes.contains("admin/seasonal"))
+        assertFalse(routes.any { it.startsWith("technician/") })
+    }
+
+    @Test
+    fun `staff with repair permission gets assigned jobs without admin navigation`() {
+        val staff = workspaceNavigationForUser("STAFF", setOf("repairs"))
+        val routes = staff.sectionGroups.flatMap { it.destinations }.map { it.route }
+
+        assertEquals("technician/jobs", staff.primaryDestinations.first().route)
+        assertTrue(routes.contains("technician/history"))
+        assertTrue(routes.contains("technician/catalog"))
+        assertTrue(routes.contains("technician/salary"))
+        assertFalse(routes.any { it.startsWith("admin/") })
+    }
+
+    @Test
+    fun `full administrator retains the existing unrestricted navigation`() {
+        val administrator = workspaceNavigationForUser("ADMIN", setOf("repairs"))
+
+        assertEquals(
+            workspaceNavigationForRole("ADMIN").primaryDestinations.map { it.route },
+            administrator.primaryDestinations.map { it.route },
+        )
+        assertTrue(administrator.sectionGroups.flatMap { it.destinations }.any { it.route == "admin/staff" })
     }
 
     @Test

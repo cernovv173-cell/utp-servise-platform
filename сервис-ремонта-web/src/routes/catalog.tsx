@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { CatalogItemRow } from "@/features/catalog/catalog-item-row";
 import {
   defaultMinimumStockQuantity,
@@ -32,8 +33,8 @@ import {
 const CatalogPage = () => {
   const { token, user } = useAuth();
   const queryClient = useQueryClient();
-  const canView =
-    user?.role === "ADMIN" || user?.role === "TECHNICIAN" || user?.role === "PROCUREMENT";
+  const canView = hasPermission(user, "repairs") || hasPermission(user, "inventory");
+  const canManageInventory = hasPermission(user, "inventory");
   const items = useQuery({
     queryKey: ["repair-catalog", token],
     queryFn: ({ signal }) => getRepairCatalog(token!, signal),
@@ -166,7 +167,7 @@ const CatalogPage = () => {
         item.stockQuantity <= (item.minimumStockQuantity ?? defaultMinimumStockQuantity)),
   );
 
-  if (user?.role === "PROCUREMENT") {
+  if (canManageInventory && !hasPermission(user, "repairs")) {
     return (
       <AppShell active="/catalog">
         <PageTitle
@@ -195,7 +196,7 @@ const CatalogPage = () => {
       {!canView ? (
         <SectionCard>
           <p className="text-sm text-slate-500">
-            Каталог доступен администраторам, мастерам и мастерам закупки после входа в аккаунт.
+            Каталог доступен сотрудникам с правом на ремонт или склад.
           </p>
         </SectionCard>
       ) : (
@@ -216,7 +217,7 @@ const CatalogPage = () => {
               остаток всегда отмечается, даже если порог установлен в 0.
             </p>
           </SectionCard>
-          {user?.role === "ADMIN" && (
+          {canManageInventory && (
             <SectionCard>
               <h2 className="flex items-center gap-2 font-semibold">
                 <Plus size={18} /> Добавить позицию
@@ -440,7 +441,7 @@ const CatalogPage = () => {
                       <CatalogItemRow
                         key={`${item.id}:${item.type}:${item.serviceCategory ?? "general"}:${item.deviceTypes.join(",")}`}
                         item={item}
-                        editable={user?.role === "ADMIN"}
+                        editable={canManageInventory}
                         saving={update.isPending}
                         deleteBusy={deleteItem.isPending}
                         onSave={(input) => update.mutate({ id: item.id, input })}

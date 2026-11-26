@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import type { DatabaseClient } from "../../lib/database/database.js";
 import { validateRequest } from "../../lib/http/validate-request.js";
-import { createRequireAuth, requireRoles } from "../auth/auth.middleware.js";
+import {
+  createRequireAuth,
+  requireStaffPermission,
+} from "../auth/auth.middleware.js";
 import { productAnalyticsDay } from "./product-analytics.js";
 
 const querySchema = z.object({
@@ -32,7 +35,7 @@ export const createProductAnalyticsRouter = (
   router.get(
     "/admin/analytics",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("reports"),
     validateRequest({ query: querySchema }),
     async (_request, response) => {
       const {

@@ -8,7 +8,10 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireRolesOrStaffPermission,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
+import { hasStaffPermission } from "../auth/staff-permissions.js";
 import {
   getChatMessageRecipientIds,
   sendPushNotification,
@@ -69,7 +72,7 @@ export const createChatRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/chats",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     async (_request, response) => {
       const chats = await database.orderChat.findMany({
         where: { adminRequestedAt: { not: null } },
@@ -106,7 +109,7 @@ export const createChatRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/chat-notifications",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     async (_request, response) => {
       const admin = getAuthenticatedUser(response);
       const chats = await database.orderChat.findMany({
@@ -166,7 +169,12 @@ export const createChatRouter = (database: DatabaseClient): Router => {
   router.get(
     "/orders/:orderId/chat",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    requireRolesOrStaffPermission(
+      "communications",
+      "CUSTOMER",
+      "TECHNICIAN",
+      "ADMIN",
+    ),
     validateRequest({ params: orderIdParams }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -175,7 +183,16 @@ export const createChatRouter = (database: DatabaseClient): Router => {
         where: { id: orderId },
         select: { customerId: true, assignedTechnicianId: true },
       });
-      if (!order || !canAccessOrderChat(user.role, user.id, order))
+      if (
+        !order ||
+        !canAccessOrderChat(
+          user.role,
+          user.id,
+          order,
+          hasStaffPermission(user, "communications"),
+          hasStaffPermission(user, "repairs"),
+        )
+      )
         throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
       response.json(chatPayload(await loadChat(database, orderId), orderId));
     },
@@ -184,7 +201,7 @@ export const createChatRouter = (database: DatabaseClient): Router => {
   router.post(
     "/orders/:orderId/chat/read",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     validateRequest({ params: orderIdParams, body: readMessageBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -233,7 +250,12 @@ export const createChatRouter = (database: DatabaseClient): Router => {
   router.post(
     "/orders/:orderId/chat/messages",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    requireRolesOrStaffPermission(
+      "communications",
+      "CUSTOMER",
+      "TECHNICIAN",
+      "ADMIN",
+    ),
     validateRequest({ params: orderIdParams, body: messageBody }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);
@@ -245,7 +267,16 @@ export const createChatRouter = (database: DatabaseClient): Router => {
             where: { id: orderId },
             select: { customerId: true, assignedTechnicianId: true },
           });
-          if (!order || !canAccessOrderChat(user.role, user.id, order))
+          if (
+            !order ||
+            !canAccessOrderChat(
+              user.role,
+              user.id,
+              order,
+              hasStaffPermission(user, "communications"),
+              hasStaffPermission(user, "repairs"),
+            )
+          )
             throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
           const current = await transaction.orderChat.findUnique({
             where: { orderId },
@@ -255,7 +286,16 @@ export const createChatRouter = (database: DatabaseClient): Router => {
               adminJoinedById: true,
             },
           });
-          if (!canSendOrderChatMessage(user.role, user.id, order, current))
+          if (
+            !canSendOrderChatMessage(
+              user.role,
+              user.id,
+              order,
+              current,
+              hasStaffPermission(user, "communications"),
+              hasStaffPermission(user, "repairs"),
+            )
+          )
             throw new HttpError(
               403,
               "ADMIN_MUST_JOIN_CHAT",
@@ -319,7 +359,15 @@ export const createChatRouter = (database: DatabaseClient): Router => {
             where: { id: orderId },
             select: { customerId: true, assignedTechnicianId: true },
           });
-          if (!order || !canRequestAdministratorHelp(user.role, user.id, order))
+          if (
+            !order ||
+            !canRequestAdministratorHelp(
+              user.role,
+              user.id,
+              order,
+              hasStaffPermission(user, "repairs"),
+            )
+          )
             throw new HttpError(404, "ORDER_NOT_FOUND", "Заявка не найдена.");
           const current = await transaction.orderChat.findUnique({
             where: { orderId },
@@ -386,7 +434,7 @@ export const createChatRouter = (database: DatabaseClient): Router => {
   router.post(
     "/orders/:orderId/chat/join-admin",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     validateRequest({ params: orderIdParams }),
     async (_request, response) => {
       const { orderId } = paramsOf<z.infer<typeof orderIdParams>>(response);

@@ -2,7 +2,7 @@
 
 ## Вход в аккаунт
 
-Экран входа предлагает два варианта: «Клиент» и «Сотрудник». Второй вариант служит общей точкой входа для команды: API проверяет назначенную аккаунту роль и возвращает её в сессии, поэтому пользователь попадает в раздел администратора, мастера или закупок без ручного выбора роли. Серверные проверки доступа остаются привязаны к фактической роли. Старые клиенты могут продолжать отправлять конкретную роль на вход.
+Экран входа предлагает два варианта: «Клиент» и «Сотрудник». Сотрудник входит через одну общую форму, а приложение показывает разделы по сохранённым правам аккаунта; выбирать должность не требуется. Полный доступ администратора — отдельный защищённый уровень. Новые сотрудники получают отмеченные администратором права при создании; их можно посмотреть и изменить на странице сотрудников. Сервер повторно проверяет права для каждой операции, а старые клиенты могут продолжать отправлять конкретную роль на вход.
 
 ## Корпоративный кабинет
 
@@ -37,7 +37,7 @@ inaccessible to the page.
 
 В разделе `/news` администратор может создавать обычные новости или материалы «Пример работы от сервиса». Примеры публикуются отдельно на `/work-stories`, показываются с явной пометкой, что это материалы сервиса, а не отзывы клиентов, и могут содержать фото (не видео). Они не попадают в новостную карусель и не запускают рассылку новостных push-уведомлений. Отзывы клиентов по-прежнему берутся только из завершённых ремонтов.
 
-Основная навигация короткая и зависит от роли: клиент — главная, ремонты, магазин, бонусы и профиль; мастер — заявки, каталог, зарплата и профиль; закупки — закупки, товары и профиль; администратор — заявки, управление, каталог и профиль. Вспомогательные клиентские и мастерские экраны собраны в быстрых ссылках профиля; администраторские операции сгруппированы в шесть направлений управления. Прямые адреса дополнительных страниц остаются доступны.
+Основная навигация короткая: клиенты видят свои разделы, а сотрудники — только разделы из сохранённых прав (например, ремонт, склад, клиенты, заказы магазина, коммуникации, контент, отчёты, настройки или управление сотрудниками). Полный администратор видит все рабочие разделы. Вспомогательные страницы сгруппированы в меню; прямой URL не обходит серверную проверку доступа.
 
 В акте ремонта мастер добавляет позицию через единый поиск по работам, запчастям и товарам, с фильтрами, избранным и последними выбранными позициями. Избранное и недавний список сохраняются в браузере для конкретной учётной записи и не синхронизируются с Android. Добавленные строки остаются в черновике: чек и склад меняются только после подтверждения акта администратором.
 
@@ -223,9 +223,11 @@ sign in with the verified email and password.
 The Web `/login` page supports password and MAX sign-in. Yandex ID sign-in was removed; its callback
 page and client component no longer exist. VK ID sign-in is intentionally not offered in the Web
 client; the server-side VK endpoint remains available to other clients.
-For password sign-in, customers keep a separate choice while staff select one of three roles from a
-single list: technician, procurement, or administrator. This only selects the expected account role;
-access to protected operations continues to be enforced by the API.
+For password sign-in, customers keep a separate choice and all employees use the single “Сотрудник”
+entry. New staff accounts do not select a job title: an administrator saves per-section checkboxes
+when creating an employee and can edit them later. Full administrator access is separate from the
+ordinary permission list. Existing technician and procurement records retain compatible access until
+their permissions are edited; the API enforces access independently of the selected entry.
 
 The shared app-install controls offer the Android APK and instructions for adding the website to an
 iPhone or iPad Home Screen from Safari as a web app. The iOS control creates a website shortcut; it
@@ -238,11 +240,11 @@ the device type, fault description and customer address; active service-catalog 
 to an open order with a quantity. The card lists existing service and item lines, while the API
 checks the active catalog entry, order status and inventory balance before saving changes.
 
-Navigation is filtered by account role. On small screens, four frequently used destinations stay
-visible, while the remaining permitted pages are grouped under “Разделы”; the desktop sidebar keeps
-the same groups in its own scrollable area. Administrator-only pages, including scheduling,
-procurement, customer records, repair editing and store-order confirmation, are available directly
-from the administrator group.
+Navigation is filtered by saved employee permissions. On small screens, four frequently used
+destinations stay visible, while the remaining permitted pages are grouped under “Разделы”; the
+desktop sidebar keeps the same groups in its own scrollable area. Scheduling, the warehouse,
+customer records, repair editing and store-order confirmation are available only to accounts with
+the corresponding permission; some operations remain administrator-only.
 
 While an administrator is signed in to the Web app, it checks for new repair and craft-product orders
 every 30 seconds. New orders appear as in-app alerts with a shortcut to the relevant order list. The
@@ -382,9 +384,11 @@ The support inbox refreshes every five seconds and alerts administrators to new 
 with notifications opening the matching support conversation.
 Administrators can correct request details in any status; customers can edit only their own requests
 before technician assignment. Service lines and paid financial documents keep their separate
-lifecycle safeguards. The staff section of `/admin` can create staff accounts with short 8-character
-logins and one-time temporary passwords that must be changed on first sign-in; customer self-registration remains on
-`/login` and cannot create staff or administrator accounts.
+lifecycle safeguards. The staff section of `/admin` can create employees with short 8-character
+logins, per-section permissions, and one-time temporary passwords that must be changed on first
+sign-in. Existing employee permissions can be edited there; only a full administrator can create
+another full administrator. Customer self-registration remains on `/login` and cannot create staff
+accounts.
 
 ## Customer repair guides
 

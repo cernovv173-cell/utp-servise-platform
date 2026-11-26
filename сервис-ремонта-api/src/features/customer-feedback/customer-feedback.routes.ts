@@ -8,6 +8,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 
 const feedbackIdParams = z.object({ feedbackId: z.string().uuid() });
@@ -64,7 +65,7 @@ export const createCustomerFeedbackRouter = (
   router.get(
     "/admin/feedback",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     async (_request, response) => {
       const feedback = await database.customerFeedback.findMany({
         include: adminFeedbackDetails,
@@ -79,7 +80,7 @@ export const createCustomerFeedbackRouter = (
   router.patch(
     "/admin/feedback/:feedbackId/status",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("communications"),
     validateRequest({ params: feedbackIdParams, body: statusBody }),
     async (_request, response) => {
       const { feedbackId } =

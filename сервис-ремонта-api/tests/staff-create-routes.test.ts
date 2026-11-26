@@ -8,7 +8,7 @@ import { createStaffRouter } from "../src/features/staff/staff.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("administrators create staff with an ordinary login and a one-time six-character password", async (t) => {
+test("administrators create permission-based staff with an ordinary login and a one-time password", async (t) => {
   const token = "A".repeat(48);
   const admin = {
     id: "11111111-1111-4111-8111-111111111111",
@@ -67,8 +67,8 @@ test("administrators create staff with an ordinary login and a one-time six-char
     },
     body: JSON.stringify({
       email: "technician@example.test",
-      displayName: "Новый мастер",
-      role: "TECHNICIAN",
+      displayName: "Новый сотрудник",
+      permissions: ["inventory", "communications"],
     }),
   });
 
@@ -77,6 +77,14 @@ test("administrators create staff with an ordinary login and a one-time six-char
   assert.match(result.staff.login, /^[a-hjkmnp-z2-9]{8}$/u);
   assert.equal(result.temporaryPassword.length, 6);
   assert.equal(result.staff.mustChangePassword, true);
+  assert.equal(result.staff.role, "STAFF");
+  assert.deepEqual(result.staff.permissions, ["inventory", "communications"]);
+  assert.equal(createdData?.role, "TECHNICIAN");
+  assert.deepEqual(createdData?.staffPermissions, [
+    "inventory",
+    "communications",
+  ]);
+  assert.equal(createdData?.staffPermissionsConfigured, true);
   assert.equal("passwordHash" in result.staff, false);
   assert.equal(createdData?.mustChangePassword, true);
   assert.equal(String(createdData?.passwordHash).startsWith("scrypt$"), true);

@@ -3,6 +3,7 @@ import { type FormEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 import {
   getRepairOrderChat,
@@ -26,8 +27,8 @@ export const RepairOrderChat = ({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [content, setContent] = useState("");
   const lastReadMessageId = useRef<string | null>(null);
-  const isAdmin = user?.role === "ADMIN";
-  const isTechnician = user?.role === "TECHNICIAN";
+  const isAdmin = hasPermission(user, "communications");
+  const isTechnician = hasPermission(user, "repairs");
   const queryKey = ["repair-order-chat", token, orderId];
   const chat = useQuery({
     queryKey,

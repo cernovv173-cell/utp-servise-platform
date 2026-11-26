@@ -8,6 +8,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 import {
   type MediaStorage,
@@ -108,7 +109,7 @@ export const createNewsRouter = (
   router.get(
     "/news",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "PROCUREMENT", "ADMIN"),
     async (request, response) => {
       response.setHeader("Cache-Control", "no-store");
       const user = getAuthenticatedUser(response);
@@ -172,7 +173,7 @@ export const createNewsRouter = (
   router.post(
     "/news",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ body: createArticleBody }),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
@@ -206,7 +207,7 @@ export const createNewsRouter = (
   router.patch(
     "/news/:articleId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: articleIdParams, body: updateArticleBody }),
     async (_request, response) => {
       const { articleId } = paramsOf<z.infer<typeof articleIdParams>>(response);
@@ -304,7 +305,7 @@ export const createNewsRouter = (
   router.delete(
     "/news/:articleId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("content"),
     validateRequest({ params: articleIdParams }),
     async (_request, response) => {
       const { articleId } = paramsOf<z.infer<typeof articleIdParams>>(response);

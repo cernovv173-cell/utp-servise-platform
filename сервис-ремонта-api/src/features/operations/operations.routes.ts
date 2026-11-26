@@ -8,6 +8,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 
 const dateRangeQuery = z
@@ -40,7 +41,7 @@ export const createOperationsRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/operations/calendar",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("reports"),
     validateRequest({ query: dateRangeQuery }),
     async (_request, response) => {
       const { from, to } = queryOf<z.infer<typeof dateRangeQuery>>(response);
@@ -76,7 +77,7 @@ export const createOperationsRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/operations/procurement",
     requireAuth,
-    requireRoles("ADMIN", "PROCUREMENT"),
+    requireStaffPermission("inventory"),
     async (_request, response) => {
       const [catalogItems, activeEstimateParts] = await Promise.all([
         database.repairCatalogItem.findMany({
@@ -142,7 +143,7 @@ export const createOperationsRouter = (database: DatabaseClient): Router => {
   router.get(
     "/admin/operations/dashboard",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("reports"),
     async (_request, response) => {
       const now = new Date();
       const periodStart = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);

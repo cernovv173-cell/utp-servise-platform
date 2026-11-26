@@ -74,7 +74,7 @@ const SupplierFormDialog = ({
         <ModalHeader>
           <ModalTitle>{supplier ? "Изменить поставщика" : "Новый поставщик"}</ModalTitle>
           <ModalDescription>
-            Контакты будут доступны сотрудникам закупки при оформлении поступления.
+            Контакты будут доступны сотрудникам с правом на склад при оформлении поступления.
           </ModalDescription>
         </ModalHeader>
         <form onSubmit={submit} className="mt-5 grid gap-3">

@@ -202,7 +202,7 @@ export const createMaxRouter = (database: DatabaseClient): Router => {
   router.get(
     "/auth/max/status",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "PROCUREMENT", "ADMIN"),
     (_request, response) => {
       response.json({
         available:
@@ -217,7 +217,7 @@ export const createMaxRouter = (database: DatabaseClient): Router => {
   router.post(
     "/auth/max/link",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "PROCUREMENT", "ADMIN"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       let bot: Awaited<ReturnType<typeof getMaxBotProfile>>;
@@ -260,7 +260,7 @@ export const createMaxRouter = (database: DatabaseClient): Router => {
   router.delete(
     "/auth/max/link",
     requireAuth,
-    requireRoles("CUSTOMER", "TECHNICIAN", "ADMIN", "PROCUREMENT"),
+    requireRoles("CUSTOMER", "TECHNICIAN", "PROCUREMENT", "ADMIN"),
     async (_request, response) => {
       const user = getAuthenticatedUser(response);
       const now = new Date();

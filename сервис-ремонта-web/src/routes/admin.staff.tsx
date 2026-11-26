@@ -5,6 +5,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { AdminBackLink } from "@/features/admin/admin-back-link";
 import { StaffManagement } from "@/features/admin/staff-management";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 const AdminStaffPage = () => {
   const { user } = useAuth();
@@ -16,7 +17,7 @@ const AdminStaffPage = () => {
         description="Список сотрудников, добавление новых и удаление учётных записей."
         action={<AdminBackLink />}
       />
-      {user?.role !== "ADMIN" ? (
+      {!hasPermission(user, "staff_management") ? (
         <SectionCard>
           <p className="text-sm text-slate-500">Эта страница доступна только администратору.</p>
         </SectionCard>

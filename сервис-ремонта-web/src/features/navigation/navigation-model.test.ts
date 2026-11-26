@@ -1,56 +1,72 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  getHelpNavigationLinksForRole,
-  getNavigationGroupsForRole,
-  getPrimaryNavigationLinksForRole,
+  getHelpNavigationLinksForUser,
+  getNavigationGroupsForUser,
   isNavigationItemActive,
 } from "@/features/navigation/navigation-model";
 
-import type { Role } from "@/lib/api";
+import type { StaffPermission, User } from "@/lib/api";
 
-const routesFor = (role: Role) =>
-  getNavigationGroupsForRole(role).flatMap((group) => group.links.map((link) => link.to));
+const makeUser = (role: User["role"], permissions?: StaffPermission[]): User => ({
+  id: "user-1",
+  email: "staff@example.test",
+  displayName: "Test User",
+  role,
+  mustChangePassword: false,
+  ...(permissions === undefined ? {} : { permissions }),
+});
 
-const primaryRoutesFor = (role: Role) =>
-  getPrimaryNavigationLinksForRole(role).map((link) => link.to);
+const routesFor = (user: User) =>
+  getNavigationGroupsForUser(user).flatMap((group) => group.links.map((link) => link.to));
 
-describe("role-aware primary navigation", () => {
+describe("permission-aware navigation", () => {
   it("keeps the customer workspace to five consistent sections", () => {
-    expect(primaryRoutesFor("CUSTOMER")).toEqual(["/", "/orders", "/shop", "/loyalty", "/account"]);
+    expect(routesFor(makeUser("CUSTOMER"))).toEqual([
+      "/",
+      "/orders",
+      "/shop",
+      "/loyalty",
+      "/account",
+    ]);
   });
 
-  it("gives each employee role only its working sections and profile", () => {
-    expect(primaryRoutesFor("TECHNICIAN")).toEqual([
+  it("preserves the legacy repair-only view", () => {
+    expect(routesFor(makeUser("TECHNICIAN"))).toEqual([
       "/orders",
       "/checks",
-      "/catalog",
       "/salary",
-      "/account",
-    ]);
-    expect(primaryRoutesFor("ADMIN")).toEqual([
-      "/admin/orders",
-      "/admin",
-      "/admin/seasonal",
-      "/admin/salary-reports",
       "/catalog",
       "/account",
     ]);
-    expect(primaryRoutesFor("PROCUREMENT")).toEqual(["/admin/procurement", "/catalog", "/account"]);
   });
 
-  it("keeps secondary screens out of the main menu without removing their routes", () => {
-    const customerRoutes = routesFor("CUSTOMER");
-    const technicianRoutes = routesFor("TECHNICIAN");
-    const adminRoutes = routesFor("ADMIN");
+  it("builds employee navigation from saved permissions instead of a job title", () => {
+    expect(routesFor(makeUser("STAFF", ["inventory"]))).toEqual([
+      "/catalog",
+      "/admin/procurement",
+      "/account",
+    ]);
+    expect(routesFor(makeUser("STAFF", ["repairs", "communications"]))).toEqual([
+      "/orders",
+      "/checks",
+      "/salary",
+      "/catalog",
+      "/admin",
+      "/account",
+    ]);
+    expect(routesFor(makeUser("STAFF", []))).toEqual(["/account"]);
+  });
+
+  it("keeps secondary management screens out of the primary menu", () => {
+    const customerRoutes = routesFor(makeUser("CUSTOMER"));
+    const inventoryRoutes = routesFor(makeUser("STAFF", ["inventory"]));
 
     expect(customerRoutes).not.toContain("/offers");
     expect(customerRoutes).not.toContain("/reviews");
     expect(customerRoutes).not.toContain("/support");
-    expect(technicianRoutes).not.toContain("/chats");
-    expect(adminRoutes).not.toContain("/admin/schedule");
-    expect(adminRoutes).not.toContain("/admin/customers");
-    expect(customerRoutes).not.toContain("/game");
+    expect(inventoryRoutes).not.toContain("/admin/staff");
+    expect(inventoryRoutes).not.toContain("/admin/customers");
   });
 
   it("marks nested routes active without matching root destinations", () => {
@@ -60,17 +76,9 @@ describe("role-aware primary navigation", () => {
   });
 });
 
-describe("help navigation", () => {
-  it("collects messages, support, and customer feedback in the help section", () => {
-    expect(getHelpNavigationLinksForRole("ADMIN").map((link) => link.to)).toEqual([
-      "/chats",
-      "/support",
-    ]);
-    expect(getHelpNavigationLinksForRole("ADMIN").map((link) => link.label)).toEqual([
-      "Сообщения по заявкам",
-      "Поддержка клиентов",
-    ]);
-    expect(getHelpNavigationLinksForRole("CUSTOMER").map((link) => link.to)).toEqual([
+describe("permission-aware help navigation", () => {
+  it("keeps customer help links unchanged", () => {
+    expect(getHelpNavigationLinksForUser(makeUser("CUSTOMER")).map((link) => link.to)).toEqual([
       "/chats",
       "/guides",
       "/support",
@@ -78,11 +86,18 @@ describe("help navigation", () => {
     ]);
   });
 
-  it("keeps help sections separate from the primary role menu", () => {
-    expect(primaryRoutesFor("ADMIN")).not.toContain("/chats");
-    expect(primaryRoutesFor("ADMIN")).not.toContain("/support");
-    expect(getHelpNavigationLinksForRole("TECHNICIAN").map((link) => link.to)).toEqual(["/chats"]);
-    expect(getHelpNavigationLinksForRole("PROCUREMENT")).toEqual([]);
+  it("shows employees only the help sections allowed by their rights", () => {
+    expect(getHelpNavigationLinksForUser(makeUser("ADMIN")).map((link) => link.to)).toEqual([
+      "/chats",
+      "/support",
+    ]);
+    expect(
+      getHelpNavigationLinksForUser(makeUser("STAFF", ["repairs"])).map((link) => link.to),
+    ).toEqual(["/chats"]);
+    expect(
+      getHelpNavigationLinksForUser(makeUser("STAFF", ["communications"])).map((link) => link.to),
+    ).toEqual(["/chats", "/support"]);
+    expect(getHelpNavigationLinksForUser(makeUser("STAFF", ["inventory"]))).toEqual([]);
   });
 
   it("marks a customer support conversation as part of the help section", () => {

@@ -13,6 +13,7 @@ import {
   createRequireAuth,
   getAuthenticatedUser,
   requireRoles,
+  requireStaffPermission,
 } from "../auth/auth.middleware.js";
 import {
   generateAccountLogin,
@@ -122,7 +123,7 @@ export const createCustomerAdminRouter = (
   router.post(
     "/admin/customers",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("customers"),
     validateRequest({ body: createCustomerBody }),
     async (_request, response, next) => {
       const input = bodyOf<z.infer<typeof createCustomerBody>>(response);
@@ -232,7 +233,7 @@ export const createCustomerAdminRouter = (
   router.get(
     "/admin/customers",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("customers"),
     validateRequest({ query: customerQuery }),
     async (_request, response) => {
       const { page, pageSize, search } =
@@ -289,7 +290,7 @@ export const createCustomerAdminRouter = (
   router.patch(
     "/admin/customers/:customerId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("customers"),
     validateRequest({ params: customerIdParams, body: updateCustomerBody }),
     async (_request, response, next) => {
       const { customerId } =
@@ -341,7 +342,7 @@ export const createCustomerAdminRouter = (
   router.delete(
     "/admin/customers/:customerId",
     requireAuth,
-    requireRoles("ADMIN"),
+    requireStaffPermission("customers"),
     validateRequest({ params: customerIdParams }),
     async (_request, response, next) => {
       const { customerId } =

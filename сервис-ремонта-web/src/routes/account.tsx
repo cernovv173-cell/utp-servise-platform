@@ -18,6 +18,7 @@ import { clearCustomerLocalData } from "@/features/account/account-local-data";
 import { CustomerAvatarCard } from "@/features/account/customer-avatar-card";
 import { MaxEmailLoginCard } from "@/features/account/max-email-login-card";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { AccountQuickLinks } from "@/features/navigation/account-quick-links";
 import { TechnicianQuestionnaireCard } from "@/features/staff/technician-questionnaire-card";
 
@@ -244,7 +245,7 @@ const AccountPage = () => {
             )}
           </form>
         </SectionCard>
-        {user?.role === "TECHNICIAN" && user.id && (
+        {hasPermission(user, "repairs") && user.id && (
           <TechnicianQuestionnaireCard technicianId={user.id} />
         )}
         {user?.role === "CUSTOMER" && user.maxLinked && !user.email && token && (
@@ -395,11 +396,11 @@ const AccountPage = () => {
           <h2 className="font-semibold">Доступ</h2>
           <p className="mt-2 text-sm text-slate-500">
             Роль:{" "}
-            {user?.role === "ADMIN"
-              ? "Администратор Енот-сервис.рф"
-              : user?.role === "TECHNICIAN"
-                ? "Мастер"
-                : "Клиент"}
+            {user?.role === "CUSTOMER"
+              ? "Клиент"
+              : user?.role === "ADMIN" && !user.isAdminAssistant
+                ? "Администратор с полным доступом"
+                : "Сотрудник"}
           </p>
           <p className="mt-3 text-sm leading-6 text-slate-500">
             Сменить пароль может каждый вошедший пользователь. После смены остальные активные сеансы

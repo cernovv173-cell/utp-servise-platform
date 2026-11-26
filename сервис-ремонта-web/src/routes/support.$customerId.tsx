@@ -3,6 +3,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 import { SupportChatConversation } from "@/features/support/support-chat-conversation";
 
 const AdminSupportConversationPage = () => {
@@ -24,12 +25,12 @@ const AdminSupportConversationPage = () => {
           </Link>
         }
       />
-      {user?.role === "ADMIN" ? (
+      {hasPermission(user, "communications") ? (
         <SupportChatConversation customerId={customerId} />
       ) : (
         <SectionCard>
           <p className="text-sm text-slate-600 dark:text-slate-300">
-            Эта переписка доступна только администратору.
+            Эта переписка доступна только сотрудникам поддержки.
           </p>
         </SectionCard>
       )}

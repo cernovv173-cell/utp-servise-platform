@@ -5,6 +5,7 @@ import { AppShell, PageTitle, SectionCard } from "@/components/app-shell";
 import { AdminBackLink } from "@/features/admin/admin-back-link";
 import { AnalyticsDashboard } from "@/features/admin/analytics-dashboard";
 import { useAuth } from "@/features/auth/auth-context";
+import { hasPermission } from "@/features/auth/staff-access";
 
 const AdminAnalyticsPage = () => {
   const { user } = useAuth();
@@ -17,7 +18,7 @@ const AdminAnalyticsPage = () => {
         description="Успешные входы, регистрации и скачивания Android-приложения."
         action={<AdminBackLink />}
       />
-      {user?.role !== "ADMIN" ? (
+      {!hasPermission(user, "reports") ? (
         <SectionCard>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Эта страница доступна только администратору.

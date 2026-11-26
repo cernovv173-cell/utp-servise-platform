@@ -121,7 +121,11 @@ export const CraftOrderCard = ({
               options={[
                 { value: "", label: "Без мастера" },
                 ...staff
-                  .filter((member) => member.role === "TECHNICIAN" && member.active)
+                  .filter(
+                    (member) =>
+                      member.active &&
+                      (member.permissions?.includes("repairs") || member.role === "TECHNICIAN"),
+                  )
                   .map((member) => ({
                     value: member.id,
                     label: `${member.displayName} · ${member.salaryRatePercent}%`,

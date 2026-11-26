@@ -19,12 +19,14 @@ export const RepairVisitWorkflow = ({
   order,
   token,
   role,
+  hasRepairPermission,
   userId,
   onRefresh,
 }: {
   order: RepairOrder;
   token: string;
   role: Role;
+  hasRepairPermission: boolean;
   userId: string;
   onRefresh: () => Promise<unknown>;
 }) => {
@@ -40,8 +42,8 @@ export const RepairVisitWorkflow = ({
   const isHomeVisit = order.repairLocation === "CUSTOMER_ADDRESS";
   const wasTransferredToServiceCenter =
     order.repairLocation === "SERVICE_CENTER" && order.visitPickupAgreedAt != null;
-  const isStaff = role === "ADMIN" || role === "TECHNICIAN";
-  const isAssignedTechnician = role === "TECHNICIAN" && order.assignedTechnicianId === userId;
+  const isStaff = role === "ADMIN" || hasRepairPermission;
+  const isAssignedTechnician = hasRepairPermission && order.assignedTechnicianId === userId;
   const canUseAssignedActions = isAssignedTechnician;
   const diagnosisComplete = Boolean(order.diagnosisCompletedAt);
   const verifiedDistance = order.visitDistanceVerifiedAt != null;
@@ -261,7 +263,7 @@ export const RepairVisitWorkflow = ({
       )}
 
       {isHomeVisit &&
-        role === "TECHNICIAN" &&
+        hasRepairPermission &&
         isAssignedTechnician &&
         ["ASSIGNED", "IN_PROGRESS"].includes(order.status) &&
         !order.visitPickupAgreedAt && (
@@ -300,7 +302,7 @@ export const RepairVisitWorkflow = ({
         )}
 
       {isHomeVisit &&
-        role === "TECHNICIAN" &&
+        hasRepairPermission &&
         isAssignedTechnician &&
         !order.visitPickupAgreedAt &&
         ["ASSIGNED", "IN_PROGRESS"].includes(order.status) && (
@@ -397,7 +399,7 @@ export const RepairVisitWorkflow = ({
         )}
 
       {!isHomeVisit &&
-        role === "TECHNICIAN" &&
+        hasRepairPermission &&
         isAssignedTechnician &&
         order.status === "IN_PROGRESS" &&
         !order.technicianRepairCompletedAt && (
