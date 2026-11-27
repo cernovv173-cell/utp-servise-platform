@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { LogOut, Moon, Power, Sun } from "lucide-react";
-import { type ReactNode, useEffect, useState } from "react";
+import { LogOut, Power } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -27,12 +27,6 @@ import {
 export const AppShell = ({ active, children }: { active: string; children: ReactNode }) => {
   const { user, ready, logout } = useAuth();
   const queryClient = useQueryClient();
-  const [dark, setDark] = useState(() => localStorage.getItem("utp-web-theme") !== "light");
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-    localStorage.setItem("utp-web-theme", dark ? "dark" : "light");
-  }, [dark]);
 
   if (!ready)
     return (
@@ -109,13 +103,6 @@ export const AppShell = ({ active, children }: { active: string; children: React
             {user.role === "CUSTOMER" && <CustomerEventNotifications />}
             {hasPermission(user, "communications") && <RepairChatNotifications />}
             {hasPermission(user, "communications") && <SupportChatNotifications />}
-            <button
-              aria-label="Переключить тему"
-              onClick={() => setDark((value) => !value)}
-              className="grid size-10 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 dark:border-[#304373] dark:text-[#b6c8f4] dark:hover:border-[#5f7fe0] dark:hover:bg-[#152449] dark:hover:text-[#9aeeff]"
-            >
-              {dark ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
           </div>
         </header>
         <div className="print:hidden">

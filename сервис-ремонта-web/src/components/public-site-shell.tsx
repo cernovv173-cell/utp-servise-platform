@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, LogIn, Moon, ShoppingBag, Sun, X } from "lucide-react";
-import { type ReactNode, createContext, useContext, useEffect, useState } from "react";
+import { ArrowRight, LogIn, ShoppingBag, X } from "lucide-react";
+import { type ReactNode, createContext, useContext, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
 import { BrandLogo } from "@/components/brand-logo";
@@ -51,18 +51,12 @@ export const PublicAuthTrigger = ({
 };
 
 export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
-  const [dark, setDark] = useState(() => localStorage.getItem("utp-web-theme") === "dark");
   const [authRequest, setAuthRequest] = useState<PublicAuthRequest | null>(null);
 
   const openAuthDialog: OpenPublicAuthDialog = (intent, nextPath = "/") => {
     const safeNextPath = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/";
     setAuthRequest({ intent, nextPath: safeNextPath });
   };
-
-  useEffect(() => {
-    document.documentElement.dataset.theme = dark ? "dark" : "light";
-    localStorage.setItem("utp-web-theme", dark ? "dark" : "light");
-  }, [dark]);
 
   return (
     <PublicAuthDialogContext.Provider value={openAuthDialog}>
@@ -115,14 +109,6 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
               </Link>
             </nav>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="Переключить тему"
-                onClick={() => setDark((value) => !value)}
-                className="grid size-10 place-items-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 dark:border-[#304373] dark:text-[#b6c8f4] dark:hover:bg-[#152449]"
-              >
-                {dark ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
               <PublicAuthTrigger
                 intent="login"
                 className="hidden min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:inline-flex dark:border-[#304373] dark:text-[#d5def6] dark:hover:bg-[#152449]"
