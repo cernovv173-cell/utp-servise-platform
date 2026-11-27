@@ -9,13 +9,14 @@ import { SectionCard } from "@/components/app-shell";
 import { StaffCreateForm } from "@/features/admin/staff-create-form";
 import { StaffPermissionCheckboxes } from "@/features/admin/staff-permission-checkboxes";
 import { useAuth } from "@/features/auth/auth-context";
-import { hasPermission } from "@/features/auth/staff-access";
+import { hasPermission, isFullAdministrator } from "@/features/auth/staff-access";
 
 import type { StaffPermission } from "@/lib/api";
 import { getStaff, setStaffActive, terminateStaff, updateTechnician } from "@/lib/api";
 
 export const StaffManagement = () => {
   const { token, user } = useAuth();
+  const canAssignPermissions = isFullAdministrator(user);
   const queryClient = useQueryClient();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [draftRates, setDraftRates] = useState<Record<string, string>>({});
@@ -160,26 +161,28 @@ export const StaffManagement = () => {
                     )}
                   </button>
                 )}
-                {member.id !== user?.id && !isFullAdministratorMember(member) && (
-                  <button
-                    type="button"
-                    aria-expanded={editingPermissionsId === member.id}
-                    aria-label={`Изменить права ${member.displayName}`}
-                    title="Изменить права"
-                    className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
-                    onClick={() => {
-                      setEditingPermissionsId(
-                        editingPermissionsId === member.id ? null : member.id,
-                      );
-                      setDraftPermissions((current) => ({
-                        ...current,
-                        [member.id]: current[member.id] ?? member.permissions ?? [],
-                      }));
-                    }}
-                  >
-                    <Pencil size={16} aria-hidden="true" />
-                  </button>
-                )}
+                {canAssignPermissions &&
+                  member.id !== user?.id &&
+                  !isFullAdministratorMember(member) && (
+                    <button
+                      type="button"
+                      aria-expanded={editingPermissionsId === member.id}
+                      aria-label={`Изменить права ${member.displayName}`}
+                      title="Изменить права"
+                      className="grid size-9 place-items-center rounded-lg border border-slate-200 dark:border-slate-700"
+                      onClick={() => {
+                        setEditingPermissionsId(
+                          editingPermissionsId === member.id ? null : member.id,
+                        );
+                        setDraftPermissions((current) => ({
+                          ...current,
+                          [member.id]: current[member.id] ?? member.permissions ?? [],
+                        }));
+                      }}
+                    >
+                      <Pencil size={16} aria-hidden="true" />
+                    </button>
+                  )}
                 {member.id !== user?.id && !member.terminatedAt && (
                   <button
                     type="button"
@@ -238,42 +241,44 @@ export const StaffManagement = () => {
                 </button>
               </form>
             )}
-            {editingPermissionsId === member.id && !isFullAdministratorMember(member) && (
-              <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
-                <StaffPermissionCheckboxes
-                  options={staff.data?.permissionOptions ?? []}
-                  selected={draftPermissions[member.id] ?? member.permissions ?? []}
-                  onChange={(next) =>
-                    setDraftPermissions((current) => ({ ...current, [member.id]: next }))
-                  }
-                  disabled={permissionsMutation.isPending}
-                  label={`Права сотрудника ${member.displayName}`}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    disabled={permissionsMutation.isPending}
-                    onClick={() =>
-                      permissionsMutation.mutate({
-                        userId: member.id,
-                        permissions: draftPermissions[member.id] ?? [],
-                      })
+            {canAssignPermissions &&
+              editingPermissionsId === member.id &&
+              !isFullAdministratorMember(member) && (
+                <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
+                  <StaffPermissionCheckboxes
+                    options={staff.data?.permissionOptions ?? []}
+                    selected={draftPermissions[member.id] ?? member.permissions ?? []}
+                    onChange={(next) =>
+                      setDraftPermissions((current) => ({ ...current, [member.id]: next }))
                     }
-                    className="min-h-9 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white disabled:opacity-50"
-                  >
-                    {permissionsMutation.isPending ? "Сохраняем…" : "Сохранить права"}
-                  </button>
-                  <button
-                    type="button"
                     disabled={permissionsMutation.isPending}
-                    onClick={() => setEditingPermissionsId(null)}
-                    className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
-                  >
-                    Отмена
-                  </button>
+                    label={`Права сотрудника ${member.displayName}`}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={permissionsMutation.isPending}
+                      onClick={() =>
+                        permissionsMutation.mutate({
+                          userId: member.id,
+                          permissions: draftPermissions[member.id] ?? [],
+                        })
+                      }
+                      className="min-h-9 rounded-lg bg-blue-600 px-3 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      {permissionsMutation.isPending ? "Сохраняем…" : "Сохранить права"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={permissionsMutation.isPending}
+                      onClick={() => setEditingPermissionsId(null)}
+                      className="min-h-9 rounded-lg border border-slate-200 px-3 text-sm font-medium dark:border-slate-700"
+                    >
+                      Отмена
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             {confirmingId === member.id && !member.terminatedAt && member.id !== user?.id && (
               <div className="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-100">
                 <p>

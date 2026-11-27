@@ -326,9 +326,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
         orderBy: [{ active: "desc" }, { displayName: "asc" }],
       });
       response.json({
-        permissionOptions: STAFF_PERMISSION_OPTIONS.filter(
-          ({ key }) => isFullAdmin(actor) || hasStaffPermission(actor, key),
-        ),
+        permissionOptions: isFullAdmin(actor) ? STAFF_PERMISSION_OPTIONS : [],
         staff: staff.map((member) => ({
           ...member,
           role: publicRoleForUser(member),
@@ -361,7 +359,8 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
       const permissions = fullAdministrator
         ? []
         : (input.permissions ?? legacyRolePermissions(input.role));
-      assertCanAssignPermissions(actor, permissions);
+      if (permissions.length > 0)
+        assertCanAssignPermissions(actor, permissions);
       const temporaryPassword = generateTemporaryPassword();
       try {
         const staff = await database.user.create({
@@ -408,20 +407,7 @@ export const createStaffRouter = (database: DatabaseClient): Router => {
       if (!target || target.role === "CUSTOMER" || isFullAdmin(target)) {
         throw new HttpError(404, "STAFF_NOT_FOUND", "Сотрудник не найден.");
       }
-      const updatedPermissions =
-        input.permissions === undefined
-          ? undefined
-          : (() => {
-              const actorPermissions = new Set(permissionsForUser(actor));
-              const requested = new Set(input.permissions);
-              if (!isFullAdmin(actor)) {
-                for (const permission of permissionsForUser(target)) {
-                  if (!actorPermissions.has(permission))
-                    requested.add(permission);
-                }
-              }
-              return [...requested];
-            })();
+      const updatedPermissions = input.permissions;
       if (input.permissions !== undefined) {
         if (actor.id === target.id) {
           throw new HttpError(

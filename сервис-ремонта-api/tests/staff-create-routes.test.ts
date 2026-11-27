@@ -90,3 +90,66 @@ test("administrators create permission-based staff with an ordinary login and a 
   assert.equal(String(createdData?.passwordHash).startsWith("scrypt$"), true);
   assert.notEqual(createdData?.passwordHash, result.temporaryPassword);
 });
+
+test("staff managers cannot grant permissions when creating an employee", async (t) => {
+  const token = "M".repeat(48);
+  const manager = {
+    id: "11111111-1111-4111-8111-111111111111",
+    email: "manager@example.test",
+    login: null,
+    displayName: "Менеджер сотрудников",
+    phoneNumber: null,
+    gender: null,
+    birthDate: null,
+    telegramChatId: null,
+    maxUserId: null,
+    avatarObjectId: null,
+    role: "TECHNICIAN" as const,
+    staffPermissions: ["repairs", "staff_management"],
+    staffPermissionsConfigured: true,
+    salaryRatePercent: 75,
+    active: true,
+    terminatedAt: null,
+    mustChangePassword: false,
+  };
+  let createCalled = false;
+  const database = {
+    session: {
+      findUnique: async ({ where }: { where: { tokenHash: string } }) =>
+        where.tokenHash === hashSessionToken(token)
+          ? { expiresAt: new Date(Date.now() + 60_000), user: manager }
+          : null,
+    },
+    user: {
+      create: async () => {
+        createCalled = true;
+        throw new Error("Unexpected account creation");
+      },
+    },
+  };
+  const app = express();
+  app.use(express.json());
+  app.use("/api", createStaffRouter(database as unknown as DatabaseClient));
+  app.use(errorHandler);
+  const server = app.listen(0);
+  await once(server, "listening");
+  t.after(() => server.close());
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+
+  const response = await fetch(`http://127.0.0.1:${address.port}/api/staff`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      email: "new-tech@example.test",
+      displayName: "Новый сотрудник",
+      permissions: ["repairs"],
+    }),
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(createCalled, false);
+});

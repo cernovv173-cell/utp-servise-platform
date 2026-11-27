@@ -84,7 +84,7 @@ class WorkspaceNavigationTest {
 
     @Test
     fun `full administrator retains the existing unrestricted navigation`() {
-        val administrator = workspaceNavigationForUser("ADMIN", setOf("repairs"))
+        val administrator = workspaceNavigationForUser("ADMIN", emptySet())
 
         assertEquals(
             workspaceNavigationForRole("ADMIN").primaryDestinations.map { it.route },

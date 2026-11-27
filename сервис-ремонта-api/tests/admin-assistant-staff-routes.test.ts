@@ -8,7 +8,7 @@ import { createStaffRouter } from "../src/features/staff/staff.routes.js";
 import type { DatabaseClient } from "../src/lib/database/database.js";
 import { errorHandler } from "../src/lib/http/error-handler.js";
 
-test("legacy assistant creation becomes a permissioned employee, not a full administrator", async (t) => {
+test("only the full administrator can assign employee permissions or create a full administrator", async (t) => {
   const adminToken = "A".repeat(48);
   const assistantToken = "H".repeat(48);
   const admin = makeUser("11111111-1111-4111-8111-111111111111", "ADMIN");
@@ -115,12 +115,28 @@ test("legacy assistant creation becomes a permissioned employee, not a full admi
     "ADMIN_CREATION_FORBIDDEN",
   );
 
-  const technicianResponse = await create(
+  const assignedRoleResponse = await create(
     assistantToken,
     "TECHNICIAN",
     "new-tech@example.test",
   );
-  assert.equal(technicianResponse.status, 201);
+  assert.equal(assignedRoleResponse.status, 403);
+
+  const unpermissionedResponse = await fetch(endpoint, {
+    method: "POST",
+    headers: headers(assistantToken),
+    body: JSON.stringify({
+      email: "new-tech@example.test",
+      displayName: "Новый сотрудник",
+      permissions: [],
+    }),
+  });
+  assert.equal(unpermissionedResponse.status, 201);
+  const unpermissionedBody = (await unpermissionedResponse.json()) as {
+    staff: { role: string; permissions: string[] };
+  };
+  assert.equal(unpermissionedBody.staff.role, "STAFF");
+  assert.deepEqual(unpermissionedBody.staff.permissions, []);
 
   const adminResponse = await create(
     adminToken,
@@ -139,8 +155,10 @@ test("legacy assistant creation becomes a permissioned employee, not a full admi
   });
   assert.equal(listResponse.status, 200);
   const listBody = (await listResponse.json()) as {
+    permissionOptions: unknown[];
     staff: Array<{ id: string; isAdminAssistant: boolean; role: string }>;
   };
+  assert.deepEqual(listBody.permissionOptions, []);
   assert.ok(listBody.staff.some((member) => member.role === "STAFF"));
   assert.equal(
     listBody.staff.some((member) => member.id === terminated.id),

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  STAFF_ASSIGNABLE_PERMISSION_OPTIONS,
   STAFF_PERMISSION_OPTIONS,
   assertCanAssignPermissions,
   permissionsForUser,
@@ -41,12 +42,12 @@ test("legacy accounts keep their existing repair or inventory access", () => {
   );
 });
 
-test("only the full administrator can grant rights they do not possess", () => {
+test("only the full administrator can assign or change employee permissions", () => {
   const staffWithRepairAndStaffManagement = employee("TECHNICIAN", [
     "repairs",
     "staff_management",
   ]);
-  assert.doesNotThrow(() =>
+  assert.throws(() =>
     assertCanAssignPermissions(staffWithRepairAndStaffManagement, ["repairs"]),
   );
   assert.throws(() =>
@@ -57,6 +58,14 @@ test("only the full administrator can grant rights they do not possess", () => {
       "reports",
       "staff_management",
     ]),
+  );
+  assert.throws(() =>
+    assertCanAssignPermissions(employee("ADMIN", [], true, true), ["reports"]),
+  );
+  assert.ok(
+    STAFF_ASSIGNABLE_PERMISSION_OPTIONS.some(
+      ({ key }) => key === "staff_management",
+    ),
   );
 });
 

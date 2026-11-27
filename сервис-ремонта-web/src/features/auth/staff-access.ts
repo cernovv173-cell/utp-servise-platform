@@ -3,6 +3,7 @@ import type { StaffPermission, User } from "@/lib/api";
 type PermissionSubject = {
   role: string;
   permissions?: readonly StaffPermission[] | null;
+  isAdminAssistant?: boolean;
 };
 
 const allStaffPermissions: readonly StaffPermission[] = [
@@ -22,6 +23,8 @@ export const hasPermission = <T extends PermissionSubject>(
   permission: StaffPermission,
 ): user is T => {
   if (!user || user.role === "CUSTOMER") return false;
+  if (user.role === "ADMIN" && !user.isAdminAssistant)
+    return allStaffPermissions.includes(permission);
   if (user.permissions) return user.permissions.includes(permission);
   if (user.role === "ADMIN") return allStaffPermissions.includes(permission);
   if (user.role === "TECHNICIAN") return permission === "repairs";

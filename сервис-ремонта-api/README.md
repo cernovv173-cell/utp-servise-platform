@@ -274,24 +274,30 @@ role-scoped list. Omitting `archive` retains the unfiltered legacy response.
 
 Administrators can load an individual repair record through `GET /admin/orders/:orderId`. `POST /staff`
 creates staff accounts with a unique 8-character login, a generated temporary password, and mandatory
-password change on first sign-in. A full administrator can create another `ADMIN`; an `ADMIN_ASSISTANT` is stored with the
-same operational administrator permissions but cannot create an `ADMIN`. Administrators and assistants
-can create assistants. Staff-list responses omit permanently terminated accounts, while the user
-record and order history remain stored. Customer self-registration remains separate at
+password change on first sign-in. A full administrator can create another `ADMIN`; existing
+`ADMIN_ASSISTANT` accounts retain their assigned operational permissions but cannot create a full
+administrator or assign or change employee permissions. A staff manager without full administrator
+access can create an employee account only without section permissions. Staff-list responses omit
+permanently terminated accounts, while the user record and order history remain stored. Customer
+self-registration remains separate at
 `POST /auth/register` and always creates a customer account; public registration cannot assign staff roles.
 
 Employee accounts use one generic `STAFF` account type in Web and Android and a saved list of
 capabilities instead of job titles. New accounts retain the existing database `TECHNICIAN` enum
 value for compatibility with already published app versions; the API presents a configured employee
 as `STAFF` to clients.
-`POST /staff` accepts `permissions` from the API's permission catalog; `GET /staff` returns the
-assignable catalog and each employee's effective permissions; `PATCH /staff/:userId` saves changes.
+`POST /staff` accepts `permissions` from the API's permission catalog; `GET /staff` returns the full
+assignable catalog to full administrators and each employee's effective permissions; `PATCH /staff/:userId`
+saves changes.
 The catalog covers repairs, inventory, customers, shop orders, communications, content, reports,
-company settings, and staff management. The staff-management permission lets an employee manage
-accounts only within the rights that employee can grant. Only a full administrator may grant rights
-they do not already hold or create a full-administrator account. Full administration remains a
-separate account level, not a checkbox in the ordinary staff permission list. API routes enforce
-these capabilities independently of the Web and Android menus.
+company settings, and staff management. The staff-management permission lets an employee work with
+staff accounts, but does not let them assign or change permissions. Only a full administrator can
+grant or revoke any employee permission, including staff management, and only a full administrator
+can create another full-administrator account. Full administration remains a separate account level,
+not a checkbox in the ordinary staff permission list; it is never limited by that list. Staff managers
+who are not full administrators can create an account without section access, which the full
+administrator may assign later. API routes enforce these capabilities independently of the Web and
+Android menus.
 
 The former `PROCUREMENT` role remains in the database enum for compatibility with existing accounts,
 but it is no longer selectable as a job title. Legacy procurement accounts retain inventory access;

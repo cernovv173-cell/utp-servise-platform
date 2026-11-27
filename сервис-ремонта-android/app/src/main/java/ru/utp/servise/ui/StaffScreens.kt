@@ -78,9 +78,7 @@ fun StaffManagementScreen(
     var editedStaff by remember { mutableStateOf<StaffMember?>(null) }
     var deletingStaff by remember { mutableStateOf<StaffMember?>(null) }
     val isFullAdministrator = currentUser.role == "ADMIN" && !currentUser.isAdminAssistant
-    val availablePermissionChoices = staffPermissionChoices.filter {
-        isFullAdministrator || it.key in currentUser.permissions
-    }
+    val availablePermissionChoices = if (isFullAdministrator) staffPermissionChoices else emptyList()
     Column(Modifier.fillMaxSize().background(UtpPale).verticalScroll(rememberScrollState()).padding(18.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
@@ -113,17 +111,15 @@ fun StaffManagementScreen(
                         }
                     }
                 }
-                if (!fullAdministrator) {
+                if (isFullAdministrator && !fullAdministrator) {
                     Text("Доступ к разделам", fontWeight = FontWeight.Medium, modifier = Modifier.padding(top = 8.dp))
                     staffPermissionChoices.forEach { choice ->
-                        val canAssign = choice in availablePermissionChoices
                         Row(
                             verticalAlignment = Alignment.Top,
                             modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                         ) {
                             Checkbox(
                                 checked = choice.key in selectedPermissions,
-                                enabled = canAssign,
                                 onCheckedChange = { checked ->
                                     selectedPermissions = if (checked) {
                                         selectedPermissions + choice.key
@@ -139,7 +135,17 @@ fun StaffManagementScreen(
                         }
                     }
                 }
-                Text("Должность отдельно не назначается. Права можно сохранить и изменить позднее.", fontSize = 11.sp, lineHeight = 16.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
+                if (!isFullAdministrator) {
+                    Text(
+                        "Вы можете создать учётную запись без доступа к разделам. Назначать и менять права может только владелец сайта.",
+                        fontSize = 11.sp,
+                        lineHeight = 16.sp,
+                        color = UtpMuted,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                } else {
+                    Text("Должность отдельно не назначается. Права можно изменить позднее.", fontSize = 11.sp, lineHeight = 16.sp, color = UtpMuted, modifier = Modifier.padding(top = 2.dp))
+                }
                 Button(
                     onClick = {
                         runAction({ ru.utp.servise.data.ApiClient.createStaff(token, email.trim(), displayName.trim(), selectedPermissions.toList(), fullAdministrator, phoneNumber.trim().takeIf { it.isNotEmpty() }) }) { result ->
@@ -206,6 +212,7 @@ fun StaffManagementScreen(
                             TextButton(onClick = { onOpenTechnicianProfile(member.id) }) { Text("Профиль") }
                         }
                         if (
+                            isFullAdministrator &&
                             member.id != currentUser.id &&
                             !(member.role == "ADMIN" && !member.isAdminAssistant)
                         ) TextButton(onClick = { editedStaff = member }) { Text("Изменить права") }
@@ -239,7 +246,7 @@ fun StaffManagementScreen(
             confirmButton = { TextButton(onClick = { temporaryPassword = null; refresh() }) { Text("Скопировал") } },
         )
     }
-    editedStaff?.let { member ->
+    if (isFullAdministrator) editedStaff?.let { member ->
         EditStaffDialog(
             staff = member,
             permissionChoices = availablePermissionChoices,

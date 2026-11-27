@@ -225,9 +225,11 @@ page and client component no longer exist. VK ID sign-in is intentionally not of
 client; the server-side VK endpoint remains available to other clients.
 For password sign-in, customers keep a separate choice and all employees use the single “Сотрудник”
 entry. New staff accounts do not select a job title: an administrator saves per-section checkboxes
-when creating an employee and can edit them later. Full administrator access is separate from the
-ordinary permission list. Existing technician and procurement records retain compatible access until
-their permissions are edited; the API enforces access independently of the selected entry.
+when creating an employee and can edit them later. Only a full administrator can assign or change
+employee permissions; staff-management access alone does not grant that authority. Full administrator
+access is separate from the ordinary permission list and is not limited by it. Existing technician
+and procurement records retain compatible access until their permissions are edited; the API enforces
+access independently of the selected entry.
 
 The shared app-install controls offer the Android APK and instructions for adding the website to an
 iPhone or iPad Home Screen from Safari as a web app. The iOS control creates a website shortcut; it

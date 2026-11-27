@@ -47,16 +47,13 @@ export const STAFF_PERMISSION_OPTIONS = [
     key: "staff_management",
     label: "Сотрудники и доступы",
     description:
-      "Создание сотрудников и настройка их прав. Полный доступ администратора выдаётся отдельно.",
+      "Работа с учётными записями сотрудников. Назначать права доступа может только полный администратор.",
   },
 ] as const;
 
 export type StaffPermission = (typeof STAFF_PERMISSION_OPTIONS)[number]["key"];
 
-export const STAFF_ASSIGNABLE_PERMISSION_OPTIONS =
-  STAFF_PERMISSION_OPTIONS.filter(
-    (option) => option.key !== "staff_management",
-  );
+export const STAFF_ASSIGNABLE_PERMISSION_OPTIONS = STAFF_PERMISSION_OPTIONS;
 
 export const STAFF_PERMISSION_KEYS = STAFF_PERMISSION_OPTIONS.map(
   ({ key }) => key,
@@ -121,15 +118,12 @@ export const publicRoleForUser = (user: {
 
 export const assertCanAssignPermissions = (
   actor: Parameters<typeof permissionsForUser>[0],
-  requested: readonly StaffPermission[],
+  _requested: readonly StaffPermission[],
 ) => {
   if (isFullAdministrator(actor)) return;
-  const actorPermissions = new Set(permissionsForUser(actor));
-  if (requested.some((permission) => !actorPermissions.has(permission))) {
-    throw new HttpError(
-      403,
-      "STAFF_PERMISSION_ESCALATION_FORBIDDEN",
-      "Нельзя выдавать права, которыми вы сами не обладаете.",
-    );
-  }
+  throw new HttpError(
+    403,
+    "STAFF_PERMISSION_ASSIGNMENT_FORBIDDEN",
+    "Назначать права доступа сотрудникам может только полный администратор.",
+  );
 };

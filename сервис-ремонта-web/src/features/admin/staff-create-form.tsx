@@ -26,6 +26,7 @@ export const StaffCreateForm = ({
   permissionOptions: StaffPermissionOption[];
 }) => {
   const { token, user } = useAuth();
+  const canAssignPermissions = isFullAdministrator(user);
   const [createdAccount, setCreatedAccount] = useState<CreatedAccount | null>(null);
   const [permissions, setPermissions] = useState<StaffPermission[]>([]);
   const [fullAdministrator, setFullAdministrator] = useState(false);
@@ -86,7 +87,7 @@ export const StaffCreateForm = ({
         }}
       >
         <div className="grid gap-4 sm:col-span-2 lg:col-span-3">
-          {isFullAdministrator(user) && (
+          {canAssignPermissions && (
             <label className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950/30">
               <input
                 type="checkbox"
@@ -103,13 +104,19 @@ export const StaffCreateForm = ({
               </span>
             </label>
           )}
-          {!fullAdministrator && (
+          {canAssignPermissions && !fullAdministrator && (
             <StaffPermissionCheckboxes
               options={permissionOptions}
               selected={permissions}
               onChange={setPermissions}
               disabled={create.isPending}
             />
+          )}
+          {!canAssignPermissions && (
+            <p className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+              Вы можете создать учётную запись без доступа к разделам. Назначать и менять права
+              может только владелец сайта.
+            </p>
           )}
         </div>
         <label className="grid gap-1 text-sm font-medium">
@@ -152,7 +159,10 @@ export const StaffCreateForm = ({
         </label>
         <button
           type="submit"
-          disabled={create.isPending || (!fullAdministrator && permissionOptions.length === 0)}
+          disabled={
+            create.isPending ||
+            (canAssignPermissions && !fullAdministrator && permissionOptions.length === 0)
+          }
           className="min-h-10 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white disabled:opacity-50 sm:col-span-2 lg:col-span-3 lg:justify-self-start"
         >
           {create.isPending ? "Создаём учётную запись…" : "Добавить сотрудника"}

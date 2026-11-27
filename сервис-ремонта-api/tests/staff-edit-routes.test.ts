@@ -11,6 +11,7 @@ import { errorHandler } from "../src/lib/http/error-handler.js";
 test("administrators can edit staff profiles, salary rates, and saved permissions", async (t) => {
   const tokens = {
     admin: "A".repeat(48),
+    manager: "M".repeat(48),
     technician: "T".repeat(48),
     customer: "C".repeat(48),
   };
@@ -39,6 +40,14 @@ test("administrators can edit staff profiles, salary rates, and saved permission
     mustChangePassword: false,
     createdAt: new Date(),
   };
+  const staffManager = {
+    ...technician,
+    id: "44444444-4444-4444-8444-444444444444",
+    email: "manager@example.test",
+    displayName: "Менеджер сотрудников",
+    staffPermissions: ["repairs", "staff_management"],
+    staffPermissionsConfigured: true,
+  };
   const customer = {
     ...admin,
     id: "33333333-3333-4333-8333-333333333333",
@@ -47,6 +56,7 @@ test("administrators can edit staff profiles, salary rates, and saved permission
   };
   const sessions = [
     { ...admin, token: tokens.admin },
+    { ...staffManager, token: tokens.manager },
     { ...technician, token: tokens.technician },
     { ...customer, token: tokens.customer },
   ];
@@ -121,6 +131,19 @@ test("administrators can edit staff profiles, salary rates, and saved permission
   const permissionsBody = await savedPermissions.json();
   assert.equal(permissionsBody.staff.role, "STAFF");
   assert.deepEqual(permissionsBody.staff.permissions, ["repairs", "inventory"]);
+  assert.deepEqual(updates[1], {
+    role: "TECHNICIAN",
+    isAdminAssistant: false,
+    staffPermissions: ["repairs", "inventory"],
+    staffPermissionsConfigured: true,
+  });
+
+  const delegatedPermissionChange = await fetch(endpoint, {
+    method: "PATCH",
+    headers: headers(tokens.manager),
+    body: JSON.stringify({ permissions: ["repairs"] }),
+  });
+  assert.equal(delegatedPermissionChange.status, 403);
   assert.deepEqual(updates[1], {
     role: "TECHNICIAN",
     isAdminAssistant: false,
