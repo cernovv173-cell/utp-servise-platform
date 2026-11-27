@@ -91,15 +91,5 @@ export const RepairChatNotifications = () => {
         {count > 99 ? "99+" : count}
       </span>
     </Link>
-  ) : (
-    <Link
-      to="/admin/orders"
-      aria-label={label}
-      title={label}
-      className="relative flex min-h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-medium text-slate-600 transition hover:bg-slate-50 dark:border-[#304373] dark:text-[#b6c8f4] dark:hover:bg-[#152449]"
-    >
-      <MessageCircle size={17} aria-hidden="true" />
-      <span className="hidden xl:inline">Чаты</span>
-    </Link>
-  );
+  ) : null;
 };
