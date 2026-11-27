@@ -58,6 +58,10 @@ describe("permission-aware navigation", () => {
     expect(routesFor(makeUser("STAFF", []))).toEqual(["/account"]);
   });
 
+  it("gives administrators a direct link to the repair order list", () => {
+    expect(routesFor(makeUser("ADMIN"))).toContain("/admin/orders");
+  });
+
   it("keeps secondary management screens out of the primary menu", () => {
     const customerRoutes = routesFor(makeUser("CUSTOMER"));
     const inventoryRoutes = routesFor(makeUser("STAFF", ["inventory"]));

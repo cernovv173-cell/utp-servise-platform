@@ -83,6 +83,14 @@ export const getNavigationGroupsForUser = (user: User): NavigationGroup[] => {
   }
 
   const links: NavigationLink[] = [];
+  if (user.role === "ADMIN") {
+    links.push({
+      to: "/admin/orders",
+      label: "Заявки на ремонт",
+      compactLabel: "Заявки",
+      icon: ClipboardList,
+    });
+  }
   if (hasPermission(user, "repairs")) {
     links.push(
       { to: "/orders", label: "Назначенные заявки", compactLabel: "Заявки", icon: ClipboardList },
