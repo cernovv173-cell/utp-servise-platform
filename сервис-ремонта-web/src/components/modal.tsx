@@ -18,7 +18,7 @@ export const ModalContent = ({
     <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs" />
     <Dialog.Content
       className={classNames(
-        "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-neutral-200 bg-white p-6 text-neutral-950 shadow-xl focus:outline-none",
+        "fixed top-1/2 left-1/2 z-50 max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-slate-700 !bg-slate-900 p-6 !text-white shadow-xl focus:outline-none [&_*:not(svg)]:!text-white [&_input]:!bg-slate-950 [&_input]:!text-white [&_input::placeholder]:!text-white/60 [&_select]:!bg-slate-950 [&_select]:!text-white [&_textarea]:!bg-slate-950 [&_textarea]:!text-white [&_textarea::placeholder]:!text-white/60",
         className,
       )}
       {...props}
