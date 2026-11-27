@@ -1,19 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { LoginExperience } from "@/features/auth/login-experience";
-
-import { createPageHead } from "@/lib/seo";
-
-const LoginPage = () => <LoginExperience />;
+import { getPublicAuthRequestFromSearch } from "@/features/auth/public-auth-entry";
 
 export const Route = createFileRoute("/login")({
-  component: LoginPage,
-  head: () =>
-    createPageHead({
-      title: "Вход в личный кабинет — ЕНОТ СЕРВИС",
-      description:
-        "Вход и регистрация в сервисе ЕНОТ СЕРВИС: заявки, статус ремонта, бонусы и история обращений.",
-      path: "/login",
-      noindex: true,
-    }),
+  beforeLoad: ({ location }) => {
+    const request = getPublicAuthRequestFromSearch(location.searchStr) ?? {
+      intent: "login" as const,
+      nextPath: "/",
+    };
+    const referralCode = new URLSearchParams(location.searchStr).get("ref")?.trim();
+
+    throw redirect({
+      to: "/",
+      search: {
+        auth: request.intent,
+        next: request.nextPath,
+        ...(referralCode ? { ref: referralCode } : {}),
+      },
+      replace: true,
+    });
+  },
 });

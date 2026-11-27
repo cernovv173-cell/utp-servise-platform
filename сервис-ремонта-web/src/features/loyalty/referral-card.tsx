@@ -4,6 +4,8 @@ import { toast } from "sonner";
 
 import { SectionCard } from "@/components/app-shell";
 
+import { createPublicAuthHref } from "@/features/auth/public-auth-entry";
+
 import { getReferralProgram } from "@/lib/api";
 
 export const ReferralCard = ({ token }: { token: string }) => {
@@ -28,7 +30,7 @@ export const ReferralCard = ({ token }: { token: string }) => {
 
   const copyInviteLink = async (code: string) => {
     try {
-      const inviteLink = `${window.location.origin}/login?ref=${encodeURIComponent(code)}`;
+      const inviteLink = `${window.location.origin}${createPublicAuthHref("register", "/orders", code)}`;
       await navigator.clipboard.writeText(inviteLink);
       toast.success("Ссылка приглашения скопирована.");
     } catch {
@@ -92,7 +94,7 @@ export const ReferralCard = ({ token }: { token: string }) => {
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {codes.map((code) => {
-              const inviteLink = `${window.location.origin}/login?ref=${encodeURIComponent(code.code)}`;
+              const inviteLink = `${window.location.origin}${createPublicAuthHref("register", "/orders", code.code)}`;
               const available = code.status === "AVAILABLE";
               return (
                 <div

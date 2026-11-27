@@ -11,6 +11,7 @@ import { IncomingOrderNotifications } from "@/features/admin/incoming-order-noti
 import { RepairChatNotifications } from "@/features/admin/repair-chat-notifications";
 import { SupportChatNotifications } from "@/features/admin/support-chat-notifications";
 import { useAuth } from "@/features/auth/auth-context";
+import { createPublicAuthHref } from "@/features/auth/public-auth-entry";
 import { hasPermission } from "@/features/auth/staff-access";
 import { CustomerEventNotifications } from "@/features/customer/customer-event-notifications";
 import { CustomerPhoneGate } from "@/features/customer/customer-phone-gate";
@@ -43,12 +44,12 @@ export const AppShell = ({ active, children }: { active: string; children: React
           <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
             Заявки, история ремонта и новости доступны после входа в аккаунт.
           </p>
-          <Link
-            to="/login"
+          <a
+            href={createPublicAuthHref("login")}
             className="mt-6 inline-flex min-h-11 items-center rounded-xl bg-blue-600 px-5 font-semibold text-white hover:bg-blue-700"
           >
             Войти или зарегистрироваться
-          </Link>
+          </a>
           <div className="mt-4">
             <AppInstallButton />
           </div>

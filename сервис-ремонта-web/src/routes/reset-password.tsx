@@ -1,14 +1,15 @@
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { type FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { BrandLogo } from "@/components/brand-logo";
 
+import { createPublicAuthHref } from "@/features/auth/public-auth-entry";
+
 import { confirmPasswordReset, confirmPasswordResetWithCode } from "@/lib/api";
 import { createPageHead } from "@/lib/seo";
 
 const ResetPasswordPage = () => {
-  const navigate = useNavigate();
   const [token] = useState(() =>
     typeof window === "undefined"
       ? ""
@@ -72,12 +73,12 @@ const ResetPasswordPage = () => {
             <p role="status" className="text-sm leading-6 text-emerald-700 dark:text-emerald-300">
               Пароль изменён. Теперь войдите с новым паролем.
             </p>
-            <button
-              onClick={() => void navigate({ to: "/login" })}
+            <a
+              href={createPublicAuthHref("login")}
               className="min-h-11 rounded-xl bg-blue-600 px-4 font-semibold text-white hover:bg-blue-700"
             >
               Перейти ко входу
-            </button>
+            </a>
           </div>
         ) : (
           <>

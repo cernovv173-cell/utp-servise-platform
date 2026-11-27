@@ -1,15 +1,19 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, LogIn, ShoppingBag, X } from "lucide-react";
-import { type ReactNode, createContext, useContext, useState } from "react";
+import { type ReactNode, createContext, useContext, useEffect, useState } from "react";
 
 import { AppInstallButton } from "@/components/app-install-button";
 import { BrandLogo } from "@/components/brand-logo";
 import { Modal, ModalClose, ModalContent, ModalTitle } from "@/components/modal";
 
 import { LoginExperience } from "@/features/auth/login-experience";
+import {
+  type PublicAuthIntent,
+  type PublicAuthRequest,
+  createPublicAuthHref,
+  getPublicAuthRequestFromSearch,
+} from "@/features/auth/public-auth-entry";
 
-type PublicAuthIntent = "login" | "register";
-type PublicAuthRequest = { intent: PublicAuthIntent; nextPath: string };
 type OpenPublicAuthDialog = (intent: PublicAuthIntent, nextPath?: string) => void;
 
 const PublicAuthDialogContext = createContext<OpenPublicAuthDialog | null>(null);
@@ -29,11 +33,7 @@ export const PublicAuthTrigger = ({
   const returnPath =
     nextPath ??
     (typeof window === "undefined" ? "/" : `${window.location.pathname}${window.location.search}`);
-  const query = new URLSearchParams({
-    ...(intent === "register" ? { register: "1" } : {}),
-    next: returnPath,
-  });
-  const href = `/login?${query.toString()}`;
+  const href = createPublicAuthHref(intent, returnPath);
 
   if (!openAuthDialog) {
     return (
@@ -51,7 +51,22 @@ export const PublicAuthTrigger = ({
 };
 
 export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
-  const [authRequest, setAuthRequest] = useState<PublicAuthRequest | null>(null);
+  const [authRequest, setAuthRequest] = useState<PublicAuthRequest | null>(() =>
+    typeof window === "undefined" ? null : getPublicAuthRequestFromSearch(window.location.search),
+  );
+
+  useEffect(() => {
+    if (!authRequest) return;
+    const url = new URL(window.location.href);
+    for (const key of ["auth", "login", "register", "next", "ref"]) {
+      url.searchParams.delete(key);
+    }
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
+  }, [authRequest]);
 
   const openAuthDialog: OpenPublicAuthDialog = (intent, nextPath = "/") => {
     const safeNextPath = nextPath.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/";
@@ -269,7 +284,6 @@ export const PublicSiteShell = ({ children }: { children: ReactNode }) => {
             </div>
             <LoginExperience
               key={authRequest.intent}
-              mode="dialog"
               initialRegister={authRequest.intent === "register"}
               nextPath={authRequest.nextPath}
               onClose={() => setAuthRequest(null)}

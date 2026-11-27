@@ -2,7 +2,7 @@
 
 ## Вход в аккаунт
 
-Экран входа предлагает два варианта: «Клиент» и «Сотрудник». Сотрудник входит через одну общую форму, а приложение показывает разделы по сохранённым правам аккаунта; выбирать должность не требуется. Полный доступ администратора — отдельный защищённый уровень. Новые сотрудники получают отмеченные администратором права при создании; их можно посмотреть и изменить на странице сотрудников. Сервер повторно проверяет права для каждой операции, а старые клиенты могут продолжать отправлять конкретную роль на вход.
+Вход и регистрация доступны во всплывающем окне на публичном сайте; отдельной страницы входа нет. Старые ссылки `/login` перенаправляются на сайт и открывают это окно. В нём доступны два варианта входа: «Клиент» и «Сотрудник». Сотрудник входит через одну общую форму, а приложение показывает разделы по сохранённым правам аккаунта; выбирать должность не требуется. Полный доступ администратора — отдельный защищённый уровень. Новые сотрудники получают отмеченные администратором права при создании; их можно посмотреть и изменить на странице сотрудников. Сервер повторно проверяет права для каждой операции, а старые клиенты могут продолжать отправлять конкретную роль на вход.
 
 ## Корпоративный кабинет
 
@@ -177,7 +177,7 @@ bonus points cannot be redeemed against craft orders. An administrator records t
 payment method after receiving payment outside the app, and the customer then receives 5% of the
 remaining cash amount as bonus points. This is not an online-payment flow.
 
-The `/login` screen can request a password-reset code using the account email or generated login.
+The site's sign-in dialog can request a password-reset code using the account email or generated login.
 The API sends it to the account's available linked channels (email and/or MAX); the customer enters
 the same identifier and code at `/reset-password`. The API enforces the 8-character minimum and
 invalidates active sessions after a successful reset.
@@ -210,7 +210,7 @@ live countdown. The service is closed from 00:00 Moscow time on December 31, 202
 urgent-order call button uses the phone number saved in company settings; it is omitted when no
 number is configured. The countdown is calculated locally and updates once per second.
 
-The Web `/login` page offers MAX sign-in and registration for customers. The card asks the API for
+The public site's sign-in dialog offers MAX sign-in and registration for customers. The card asks the API for
 the bot configuration, opens the `https://max.ru/<botName>?start=<payload>` chat link, and polls
 every two seconds (and on window focus) until the bot confirms the phone number. New accounts are
 created automatically in the customer role; the referral code from the login screen is applied at
@@ -220,7 +220,7 @@ start without an email. A signed-in customer with a MAX-linked account can add a
 address is verified it is not attached; after confirmation the customer can continue to use MAX or
 sign in with the verified email and password.
 
-The Web `/login` page supports password and MAX sign-in. Yandex ID sign-in was removed; its callback
+The public site's sign-in dialog supports password and MAX sign-in. Yandex ID sign-in was removed; its callback
 page and client component no longer exist. VK ID sign-in is intentionally not offered in the Web
 client; the server-side VK endpoint remains available to other clients.
 For password sign-in, customers keep a separate choice and all employees use the single “Сотрудник”
@@ -387,8 +387,8 @@ before technician assignment. Service lines and paid financial documents keep th
 lifecycle safeguards. The staff section of `/admin` can create employees with short 8-character
 logins, per-section permissions, and one-time temporary passwords that must be changed on first
 sign-in. Existing employee permissions can be edited there; only a full administrator can create
-another full administrator. Customer self-registration remains on `/login` and cannot create staff
-accounts.
+another full administrator. Customer self-registration remains available in the public site's
+sign-in dialog and cannot create staff accounts.
 
 ## Customer repair guides
 
